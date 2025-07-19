@@ -1,5 +1,5 @@
 from zhipuai import ZhipuAI
-from config import GLM_API_KEY,GLM_API_MODEL
+from config import GLM_API_KEY,GLM_API_MODEL,SAVE_DIR
 import os
 import re
 import json
@@ -12,7 +12,7 @@ def save_raw_output(content, pdf_filename="unknown", file_name=None):
     :param pdf_filename: PDF文件名，用于生成唯一的debug文件名
     :param file_name: 自定义文件名，如果提供则优先使用
     """
-    save_dir = "Data/glm_outputs"
+    save_dir = SAVE_DIR
     os.makedirs(save_dir, exist_ok=True)
     
     if file_name is None:

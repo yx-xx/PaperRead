@@ -13,7 +13,8 @@ GLM_API_KEY = ""
 GLM_API_MODEL = ""
 
 # 论文PDF文件夹路径
-PDF_FOLDER = "paper"  # 可根据实际情况修改
-
+PDF_FOLDER = "Data/PR_Data/paper"
+# 原始输出保存路径
+SAVE_DIR = "Data/PR_Data/glm_outputs"
 # 输出Excel文件名
-OUTPUT_EXCEL = "PaperRead_result.xlsx" 
+OUTPUT_EXCEL = "Data/PR_Data/PaperRead_result.xlsx" 
