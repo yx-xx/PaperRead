@@ -1,6 +1,6 @@
 from pdf_reader import get_pdf_files, extract_text_from_pdf, get_processed_files
 
-# from qwen_api import analyze_paper_with_qwen
+# from .qwen_api import analyze_paper_with_qwen
 from glm_api import analyze_paper_with_glm
 
 from result_writer import append_result_to_excel, EXCEL_COLUMNS

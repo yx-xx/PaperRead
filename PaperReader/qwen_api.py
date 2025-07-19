@@ -1,8 +1,12 @@
+#################################
+# 免费模型太过拉跨，已经弃用
+#################################
+
 import requests
-from config import QWEN_API_URL, QWEN_API_KEY, QWEN_API_MODEL
+import json
 import os
 import re
-import json
+from config import QWEN_API_URL, QWEN_API_KEY, QWEN_API_MODEL
 
 
 def save_raw_output(content, pdf_filename="unknown", file_name=None):
@@ -12,7 +16,7 @@ def save_raw_output(content, pdf_filename="unknown", file_name=None):
     :param pdf_filename: PDF文件名，用于生成唯一的debug文件名
     :param file_name: 自定义文件名，如果提供则优先使用
     """
-    save_dir = "debug_outputs"
+    save_dir = "Data/qwen_outputs"
     os.makedirs(save_dir, exist_ok=True)
     
     if file_name is None:
