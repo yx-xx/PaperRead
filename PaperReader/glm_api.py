@@ -1,5 +1,5 @@
 from zhipuai import ZhipuAI
-from config import GLM_API_KEY,GLM_API_MODEL,SAVE_DIR
+from config import GLM_API_KEY,GLM_API_MODEL,SAVE_OP_DIR,SAVE_PROMPT_DIR
 import os
 import re
 import json
@@ -12,7 +12,7 @@ def save_raw_output(content, pdf_filename="unknown", file_name=None):
     :param pdf_filename: PDF文件名，用于生成唯一的debug文件名
     :param file_name: 自定义文件名，如果提供则优先使用
     """
-    save_dir = SAVE_DIR
+    save_dir = SAVE_OP_DIR
     os.makedirs(save_dir, exist_ok=True)
     
     if file_name is None:
@@ -30,6 +30,25 @@ def save_raw_output(content, pdf_filename="unknown", file_name=None):
             f.write(json.dumps(content, ensure_ascii=False, indent=2) + "\n")
     print(f"[调试] 已保存大模型原始输出到 {file_path}")
 
+
+def save_prompt_output(prompt, pdf_filename="unknown", file_name=None):
+    """
+    保存大模型请求的prompt内容到本地txt文件，便于调试和复现。
+    :param prompt: 字符串prompt内容
+    :param pdf_filename: PDF文件名，用于生成唯一的debug文件名
+    :param file_name: 自定义文件名，如果提供则优先使用
+    """
+    save_dir = SAVE_PROMPT_DIR
+    os.makedirs(save_dir, exist_ok=True)
+    if file_name is None:
+        base_name = os.path.splitext(pdf_filename)[0]
+        file_name = f"{base_name}_prompt.txt"
+    file_path = os.path.join(save_dir, file_name)
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(f"=== PDF文件: {pdf_filename} ===\n")
+        f.write(f"=== 时间: {__import__('datetime').datetime.now()} ===\n\n")
+        f.write(prompt + "\n")
+    print(f"[调试] 已保存大模型prompt到 {file_path}")
 
 
 def analyze_paper_with_glm(text, pdf_filename="unknown"):
@@ -50,6 +69,7 @@ def analyze_paper_with_glm(text, pdf_filename="unknown"):
         "内容：" + text
     )
     try:
+        save_prompt_output(prompt, pdf_filename)
         response = client.chat.completions.create(
             model = GLM_API_MODEL,
             messages=[{"role": "user", "content": prompt}],

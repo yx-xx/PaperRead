@@ -1,0 +1,1060 @@
+=== PDF文件: ArticuBot Learning Universal Articulated Object Manipulation Policy via Large Scale Simulation.pdf ===
+=== 时间: 2025-07-19 18:13:52.571015 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：ArticuBot: Learning Universal Articulated Object
+Manipulation Policy via Large Scale Simulation
+Yufei Wang∗1, Ziyu Wang∗2, Mino Nakura†1, Pratik Bhowal†1, Chia-Liang Kuo†3,
+Yi-Ting Chen3, Zackory Erickson‡1, David Held‡1
+1Robotics Institute, Carnegie Mellon University
+2IIIS, Tsinghua University
+3Department of Computer Science, National Yang Ming Chiao Tung University
+∗†Equal Contribution, ‡Equal Advising
+1.Demonstration 2. Hierarchical Policy Learning
+Generation in Sim Predicted
+Point Cloud Obs.
+Sub-goal eef Obs. eef
+Attention Diffusion Action
+Goal. eef
+High-level: Weighted Displacement Model Low-level: goal conditioned 3D diffusion policy
+3. Zero-shot Transfer to real robot
+t t
+Fig. 1: Overview and real-world results of ArticuBot. Top: We generate thousands of demonstrations using a physics-based
+simulator, and distill them into a hierarchical policy with point cloud observations. Bottom: The learned policy can transfer
+zero-shot to table-top Franka arms in two different labs and a mobile X-Arm, and can open diverse unseen articulated objects
+in both labs, real kitchens and lounges.
+Abstract—This paper presents ArticuBot, in which a single in which the high-level policy learns the sub-goal for the end-
+learned policy enables a robotics system to open diverse cat- effector, and the low-level policy learns how to move the end-
+egories of unseen articulated objects in the real world. This effector conditioned on the predicted goal. We demonstrate
+task has long been challenging for robotics due to the large that this hierarchical approach achieves much better object-
+variations in the geometry, size, and articulation types of such level generalization compared to the non-hierarchical version.
+objects.Oursystem,ArticuBot,consistsofthreeparts:generating Wefurtherproposeanovelweighteddisplacementmodelforthe
+a large number of demonstrations in physics-based simulation, high-level policy that grounds the prediction into the existing
+distilling all generated demonstrations into a point cloud-based 3D structure of the scene, outperforming alternative policy
+neural policy via imitation learning, and performing zero-shot representations. We show that our learned policy can zero-shot
+sim2real transfer to real robotics systems. Utilizing sampling- transfer to three different real robot settings: a fixed table-top
+based grasping and motion planning, our demonstration gener- Frankaarmacrosstwodifferentlabs,andanX-Armonamobile
+alizationpipelineisfastandeffective,generatingatotalof42.3k base,openingmultipleunseenarticulatedobjectsacrosstwolabs,
+demonstrations over 322 training articulated objects. For policy reallounges,andkitchens.Videosandcodecanbefoundonour
+learning, we propose a novel hierarchical policy representation, project website: 
+I. INTRODUCTION Franka arms in two different labs, and a mobile-base X-Arm
+invariousrealkitchensandlounges.Thissinglepolicyisable
+Robotic manipulation of articulated objects, such as cabi- toopen20differentunseenreal-worldarticulatedobjectssuch
+ in a zero-shot manner. See Fig. 1 for
+settings. Having a single robotics policy that can generalize a visualization of some of the different real-world articulated
+to manipulate diverse articulated objects has long been chal- objects that our policy is able to open.
+lenging due to the large variations in the geometry, shape,
+In summary, our contributions are:
+size and articulation types of such objects. Many prior works
+• A system that presents a single policy trained on thou-
+have studied the problem of articulated object manipula-
+sandsofdemonstrationsgeneratedinsimulation,thatcan
+tion [58, 31, 10, 19, 21, 53, 15, 32]. However, few have
+zero-shottransfertotherealworldandgeneralizetoopen
+demonstrated generalization to manipulating many different
+various articulated objects with 2 robot embodiments: a
+articulated objects in the real world without simplifying as-
+table-top Franka, and a mobile base X-Arm.
+sumptions(e.g.,usingasuctiongripper).Inthispaper,we
+• Weshowthatusingahierarchicalpolicyrepresentationis
+aimtolearnageneralistarticulatedobjectmanipulationpolicy
+betterthanthenon-hierarchicalversiontoachieveobject-
+that can open various kinds of articulated objects in the real
+level generalization.
+world with commercial robotic manipulators equipped with a
+• Wepresentaweighteddisplacementpolicyrepresentation
+parallel jaw gripper, purely from visual observations, without
+that scales up well with the number of demonstrations,
+assuming access to knowledge of the articulation parameters.
+outperforming alternative policy representations.
+Motivated by a recent trend of success in scaling up robot
+• Alargearticulatedobjectmanipulationsimulationdataset
+learning with large datasets, we aim to learn a universal
+that contains 42.3k demonstration trajectories for 322
+articulated object opening policy following this paradigm:
+articulated objects, and a pipeline for quickly generating
+generating thousands of demonstrations in physics-based sim-
+additional demonstrations.
+ulation,distillingthegenerateddataintoageneralizablepolicy
+by imitation learning, and then performing zero-shot sim2real
+II. RELATEDWORK
+transfer. This is a paradigm that has been applied in previous
+work to learn general policies for different robotics tasks, A. Robot Learning for Articulated Object Manipulation
+such as grasping [12, 45], locomotion [26, 25, 67], assem- There is a rich body of prior work studying the problem
+bly [47, 46], and deformable object manipulation [51, 16]. of articulated object manipulation [31, 53, 10, 62, 58, 32, 19,
+In this paper, we investigate various ways to realize such a 61, 20, 15, 50, 56]. Most of these prior works show major
+system to learn a generalist policy for articulated object ma- results in simulation, with limited real-world manipulation
+nipulation. We first build an efficient data generation pipeline results [31, 53, 62, 58, 19, 61, 20, 50]. In contrast, our
+that combines sampling-based grasping, motion planning, and work aims to learn a manipulation policy that can transfer
+actionprimitives.Usingthepipeline,wehavegeneratedalarge andgeneralizetodiversereal-worldarticulatedobjects.Eisner
+datasetconsistingofthousandsof(42.3k)demonstrationsover et al.  shows a number of tests on real-world articulated
+322articulatedobjects.Wealsoshowthatusingahierarchical objects in a table-top lab setting with a suction gripper to
+policy representation, in which a high-level policy predicts simplifygrasping.Ourpolicyworkswiththestandardparallel
+sub-goal end-effector poses and a low-level policy predicts jaw gripper which is more commonly equipped with robotic
+delta end-effector transformations, performs much better than manipulatorsandperformgraspingofthehandlesforopening.
+thenon-hierarchicalversionwhenimitatingthegeneratedlarge We also show results with a mobile manipulator in real
+dataset.Wealsoexploredvariousdesignchoicesforthepolicy kitchens and lounges. Gupta et al.  proposes a system
+representations to study which architecture scales up the best that integrates various modules for perception, planning, and
+when learning with a large number of demonstrations. We actionandshowsthatitcanopenvariouscabinetsanddrawers
+show that a weighted displacement model that leverages the with a mobile manipulator in real kitchens. Our method does
+underlying 3d scene structure can scale and generalize better not employ layered modules, instead, we directly learn a
+than models that do not incorporate such 3D reasoning. policy via imitation learning that maps sensory observations
+Our final policy, trained with 42.3k trajectories and 322 to actions. Our method also generalizes to a more diverse
+objects in simulation, can transfer zero-shot to the real world range of articulated objects such as fridges, microwaves, and
+to open diverse unseen real articulated objects. Furthermore, ovens. Xiong et al.  builds a mobile base manipulator
+although our policy is only trained on a Franka arm in for articulated object manipulation and learn object-specific
+simulation, we show that it can transfer zero-shot to two policies via imitation learning and reinforcement learning di-
+different embodiments in the real world: a table-top Franka rectlyintherealworld.Welearnourmanipulationpoliciesby
+arm, and a mobile-base X-Arm. This is achieved by using the constructing much larger demonstration datasets in simulation
+policy to learn actions in the robotic arm’s end-effector space andperformingsim2realtransfer,andwelearnasinglepolicy
+instead of the joint space. Our final policy is successfully that can generalize to various articulated objects. Some prior
+deployed in 3 different real-world settings: two table-top works learn to first predict the articulation parameters and
+then use the predicted articulation parameters for manipula- ovens, microwaves, dishwashers, and fridges. We assume that
+tion [19, 61, 20]. Our policy directly learns how to manip- theobjectshouldhaveagraspablehandle,soitcanbeopened
+ulate the object without explicitly inferring the articulation inthefullyclosedstate.Weaimtolearnapolicyπ,thattakes
+parameters. Another line of work [21, 5, 30, 28] focus on asinputasensoryobservationandrobotproprioceptiono,and
+reconstructing the articulated objects from real-world images outputsactionsathatopensthearticulatedobject.Weassume
+to simulation. Our work focuses on manipulation rather than therobotarmisequippedwithacommonparalleljawgripper
+real2sim reconstruction. A recent work  learns specific instead of a suction gripper or a floating gripper, which are
+grasps for articulated objects that are useful for downstream often assumed in prior works for simplification [10, 58]. We
+manipulation.Ourpolicylearnsnotonlythegrasping,butalso also assume access to a pool of articulated object assets to
+the opening; further, we compare to this prior work and show be used in simulation, as well as annotations to handles (in
+significantly improved performance. simulation only). For effective sim2real transfer, we use point
+clouds as the sensory observations. We assume the name of
+B. Sim2real Policy Learning
+the target object to manipulate, such that we can run a open-
+Learning a policy via simulation training and then trans- vocabulary segmentation method, e.g., Grounded SAM ,
+ferring to the real world (sim2real transfer) has been applied to segment the object and obtain object-only point clouds.
+to many different domains in previous work, including legged
+locomotion[26,6,38],grasping[12,45,8],in-handobjectre-
+IV. ARTICUBOT
+orientation[1,4,37],catchingobjects,deformableobject Fig. 2 gives an overview of our system, which consists of
+manipulation [51, 59], and more [9, 13]. No prior work has 3 stages. The first is large-scale demonstration generation, in
+demonstrated the learning of a generalizable policy for articu- which we combine methods from motion planning, sampling-
+lated objectmanipulation via sim2realtransfer. Many ofthese based grasping, and action primitives to generate thousands
+prior works use reinforcement learning and teacher-student of demonstrations in simulation. The second is hierarchical
+learningtolearnthepolicyinsimulation[26,38,6,37,63,51]. policy learning, in which we perform imitation learning on
+In contrast, we generate demonstrations in simulation using a the generated demonstrations to distill them into a vision-
+combinationoftechniquesincludingsampling-basedgrasping, based policy. Finally, we deploy our simulation-trained policy
+motion planning, and action primitives, and learn the policy zero-shot to the real world, on two table-top Franka arms in
+viaimitationlearning.Somerecentwork[52,49,18]attempts two different labs and an X-Arm on a mobile base in real
+to automate simulation policy learning for many tasks. In kitchens and lounges, opening real-world cabinets, drawers,
+contrast, our work focuses on learning a generalizable policy microwaves, fridges, dishwashers, and ovens.
+for articulated object manipulation.
+A. Demonstration Generation in Simulation
+C. Robotic Foundation Models
+First we describe our procedure for automatically generat-
+Many recent works aim to develop a foundation model for ing thousands of demonstrations in simulation. We use the
+robotics, where a single model can perform multiple tasks or PartNet-Mobility  dataset, which contains hundreds of
+generalize to different settings [2, 3, 24, 48, 11, 33, 8, 27]. articulatedobjects.Amongthese,weusethecategoriesofstor-
+Most of them perform imitation learning with a large set of age furniture, microwave, oven, dishwasher, and fridge. The
+demonstrationscollectedintherealworld[2,3,24,48,11,33, majority of the assets in these categories have annotations of
+27]. Instead, we generate demonstrations and learn the policy handles;wefilteroutassetsthatdonothavesuchannotations,
+insimulation,andthenweperformsim2realtransfertodeploy since the position of the handle is needed for generating the
+itintherealworld.Mostoftheseworksdonotfocusontasks demonstrations.
+involvingarticulatedobjectsanddonotdemonstratethepolicy Theprocessofopeninganarticulatedobjectcanbedecom-
+working for manipulating diverse articulated objects [2, 3, 24, posedintotwosubsteps:graspingthehandle,andthenopening
+48,27,8],whileourpaperfocusesonbuildingageneralizable it along the articulation axis. Our demonstration generation
+policyspecificallyforarticulatedobjectmanipulation.Etukuru pipelinefollowsthesetwosubstepsaswell(seeFig.2topleft
+et al.  shows the most diverse real-world test settings for for an illustration of the process): we first perform sampling-
+articulated object manipulation among these previous works. based grasping to generate hundreds of end-effector grasping
+However, they train two different policies for drawer and poses on the handle. For each generated grasp, we approach
+cabinet opening. In contrast, we train a single model that can the grasping pose using collision-free motion planning. After
+beappliedtoopeningvariouscategoriesofarticulatedobjects. performing the grasp, since we have the ground-truth articu-
+Besides, their system requires a specialized gripper, whereas lation information of the object in simulation, we move the
+ourmethodworksforgeneralparalleljawgrippersandtransfer end-effector along the articulation axis for a fixed distance to
+across two different grippers. open it. We detail each of these three steps below.
+SimulationInitialization: WeuseaFrankaarminsimulation
+III. PROBLEMSTATEMENTANDASSUMPTIONS
+forgeneratingthedemonstrations.ThebaseoftheFrankaArm
+The task we are considering is for a robotic arm to open is initialized at the world origin. We randomize the position,
+an articulated object within the category of drawers, cabinets, orientation, and size of the object, as well as the initial joint
+ArticuBot System Overview
+1.Demonstration Generation in Sim 2. Hierarchical 3. Zero-shot Transfer to real
+Policy Learning
+High-level policy
+Low-level policy
+Grasp Sampling Motion Planning Opening Action
+2. Hierarchical Policy Learning -- High-level Policy Architecture
+Per-point Weight
+Point Cloud Obs. Predicted
+Sub-goal eef
+Weighted Weighted
+Displacement Per-point Displacement Average
+to sub-goal eef
+Model
+2. Hierarchical Policy Learning -- Low-level Policy Architecture
+Perception Encoder Diffusion Head
+tokens
+Latent Robot Diffusion
+Obs-Scene
+Scene points MLP Embed. State step k
+Cross
+Attn. Conditioning
+Obs. eef
+[Learnable Embed., MLP]
+Noisy Action
+Obs-Goal Action U-Net Noise
+Cross
+Goal. eef [Learnable Embed., MLP] Attn.
+× K
+Fig. 2: System overview of ArticuBot. Top: We combine sampling-based grasping, motion planning, and opening actions to
+efficiently generate thousands of demonstrations in simulation. These demonstrations are distilled into a hierarchical policy via
+imitation learning, and then zero-shot transferred to real world. Middle: We propose a weighted displacement model for the
+high-level policy, which predicts the sub-goal end-effector pose. The weighted displacement model predicts the displacement
+from each point in the point cloud observation to the sub-goal end-effector, as well as a weight for each point. The final
+prediction is the weighted average of each point’s prediction. Bottom: We propose a goal-conditioned 3D diffusion policy
+for the low-level policy, which first applies attention between the current end-effector points, the scene points, and the goal
+end-effector points to obtain a latent embedding, and then performs diffusion on the latent embedding to generate the action,
+which is the delta transformation of the robot end-effector.
+angleoftheFrankaArm,toincreasediversityinthegenerated small angle perturbations (<30◦) about the y axis to increase
+demonstrations.Thedetailedparametersfortherandomization the diversity of our grasp pose candidates. This generates in
+can be found in Appendix D. total m ×m = 120 grasping pose candidates. See Fig. 2
+1 2
+(top left) for an illustration of the sampled grasps.
+Sampling Based Grasping: Given an articulated object from
+PartNet-Mobility and a link (i.e., a door) we want to open, Motion Planning for reaching the grasping pose: For each
+we first obtain a point cloud of the link’s handle using of the grasp candidates, we first use inverse kinematics (IK)
+the annotations from the dataset. We perform farthest point to compute a target joint configuration of the robot arm. We
+sampling on the handle point cloud to get m =15 candidate solve the IK for m = 80 times and filter out solutions that
+1 3
+graspingpositions.Foreachgraspingposition,togeneratethe have collisions between the robot arm and the environment
+grasping orientation, we align the z-axis of the robot end- (e.g. collisions with the floor or the target object). Among the
+effector(whichisthedirectionthatpointsfromtherootofthe collision-free solutions, we choose the one solution that has
+hand to the finger) with the normal direction of that handle the shortest distance in the joint angle space to the current
+point. We set the y direction of the end-effector (which is joint configuration, so as to minimize the distance of the
+the direction along which the finger opens and closes) to be path needed to reach the target joint configuration. We then
+horizontalifthehandleisvertical(i.e.,itsheightislargerthan run three different motion planning algorithms, RRT* ,
+its width), and vice versa. We also sample m = 8 random BIT*  and ABIT* , to generate the path to reach the
+2
+target configuration. We smooth the resulting path from each Formally, the above approach gives us a set of generated
+algorithmbyshortcuttingunnecessarywaypointsandusingB- demonstrations {τ }N , where each trajectory τ is a list of
+i i=1 i
+spline smoothing . We keep the path that has the shortest observation-action pairs: τ = {(oi,ai),...,(oi ,ai )}. The
+i 1 1 T T
+length in terms of the total end-effector movement. See Fig. 2 observations include point clouds of the scene and the robot
+(top left) for a visualization of the motion planned path. proprioception (end-effector pose and finger open/close). We
+Generating Opening Actions: Next, we generate demonstra- perform segmentation on the scene point cloud to remove the
+tions in simulation of the robot executing the opening action. backgroundandleaveonlythetargetobject.Insimulation,this
+After the grasping pose is reached via motion planning, we can be achieved using the ground-truth segmentation masks
+close the gripper to form a grasp. Using the ground-truth provided by the simulator; in the real world, we use an
+articulation information of the object, we can compute an open-vocabulary object segmentation model, e.g., Grounded
+idealizedend-effectortrajectorythatopenstheobjectperfectly. SAM . See Fig. 2 (middle) for an example object point
+Formally, let Tinit represent the end-effector’s pose after it cloudinsimulation.Theactionsrepresentthedeltatransforma-
+eef
+grasps the handle, and let T (θ) represent the pose of the tion of the end-effector, which includes the delta translations,
+door
+door at joint angle θ. We compute the idealized trajectory delta orientations, and delta finger movement. We use the
+based on the fact that the relative pose between the robot robot base frame as our reference frame, i.e., all point cloud
+end-effector and the door should remain unchanged during observations,androbotactions,areexpressedintherobotbase
+the trajectory of opening the door, i.e., T = T−1 (θ)T frame.
+rel door eef
+shouldbeaconstantforanyjointangleθ.Assumethedooris Ourgoalistofindaneuralnetworkpolicyπ,parameterized
+at joint angle θ when the robot grasps it, then the pose of by θ, to minimize the following imitation learning loss:
+init
+the robot end-effector when the door is opened at joint angle
+N T
+θ can be computed as: T =T (θ)T−1 (θ )Tinit. We L = (cid:88)(cid:88) ||π (oi)−ai||2 (1)
+eef door door init eef θ θ t t 2
+can then compute a trajectory for the end-effector pose that i=1t=1
+opens the object with increasing values of θ, e.g., from 0◦ The goal for the policy is to be able to generalize to
+to 90◦ with an interval of 1◦. IK is then performed for the open various kinds of different objects, which possess diverse
+end-effector to reach each of the computed poses along the geometries, shapes, and articulation types. We hypothesize
+trajectory to open the object. that, to achieve object-level generalization in such a case, it
+Filtering: Some of the trajectories will fail to fully open is inefficient to just learn to predict actions as the low-level
+the door due to various reasons such as: no collision-free delta transformations of the end-effector. Instead, we propose
+joint angles can be found at the sampled grasping pose, to use a hierarchical policy representation, which consists of
+motion planning failed to find a collision-free path to reach a high-level policy and a low-level policy. The high-level
+the grasping pose, the grasping pose does not result in a firm policy will learn to predict the sub-goal end-effector poses,
+grasp of the handle, or the end-effector slips off the handle e.g. intermediate waypoints of where the gripper should be
+partwayduringopening.Wefilteroutalltrajectorieswherethe at various key frames in the trajectory. The low-level policy
+final opened angle (radians for hinge doors and centimeters stilllearnstopredictthelow-leveldeltatransformationsofthe
+for drawers) is smaller than a threshold, e.g., if the door is end-effectorateachtimestep,butitisadditionallyconditioned
+opened less than 60 degrees. From the remaining successful on the high-level prediction of the sub-goal end-effector pose,
+trajectories, we choose the single best trajectory according to which helps the low-level policy to better generalize across
+the following two metrics: 1) the stability of the grasp, which diverse objects. We now detail how each of the policies work.
+isapproximatelymeasuredasthenumberofhandlepointsthat High-Level Policy. Intuitively, the high-level policy aims to
+are between the end-effector fingertips, and 2) the length of predict “where” the robot should move to. Specifically, the
+the motion planned trajectory (in the end-effector space) to high-levelpolicyπH learnstopredictthesub-goalend-effector
+θ
+reach the grasping pose. Each trajectory is first ranked using pose given an observation. The sub-goal end-effector pose is
+these two metrics, and the final rank is the sum of the two defined as the pose of the robot end-effector at the end of
+individual ranks. The trajectory with the highest rank is kept each substep for a given task. In our case, the task of opening
+as the final best trajectory for opening the door. an articulated object (e.g., a cabinet) can be decomposed into
+By employing the above data generation pipeline, and exe- two substeps: grasping the handle and opening the door. Thus
+cuting each of the m ×m trials in parallel, we can generate for this task, the sub-goal end-effector poses are the poses
+1 2
+optimal trajectories for opening an articulated object. Using a where the robot has grasped the handle, and when it has fully
+CPU with 128 virtual cores, one optimal opening trajectory openedthedoor.Formally,thehigh-levelpolicyπH islearned
+θ
+can be generated within 2 minutes. Using this approach, we via minimizing the following loss:
+have generated 42.3k successful opening trajectories for 322 N T
+objects in PartNet-Mobility. L θ = (cid:88)(cid:88) ||π θ H(oi t )−ai poset ||2 2 (2)
+i=1t=1
+B. Policy Learning with a Hierarchical Policy Representation where ai is the sub-goal end-effector pose at timestep t,
+poset
+Wenowdescribehowwedistilltheabovegeneratedtrajec- which is represented as its 3D position, orientation, and the
+tories into a vision-based neural policy via imitation learning. gripper finger opened width.
+We propose a new representation for the high-level policy, We term this high-level policy representation the weighted
+termed the weighted displacement model. Existing 3D neural displacementmodel.Wetrainitwiththefollowingtwolosses,
+policies,e.g.,Perceiver-Actor,or3DDiffuserActor, which supervises the per-point displacement prediction, and
+often generate the sub-goal end-effector pose in free SE(3) the weighted average prediction:
+space. Instead, we aim to predict the sub-goal end-effector
+posebygroundingthepredictionontheobserved3Dstructure M 4
+1 (cid:88) 1(cid:88)
+ofthescene.Todoso,wedesignthepolicytolearntopredict L=λ ||δ −δ (θ)||2+λ ||eegoal−ee (θ)||2
+1M j j 2 24 i i 2
+the “offset” from observed points in the scene to the sub-goal
+j=1 i=1
+end-effector pose. This learned offset thus closely grounds (3)
+the prediction in the observed 3D scene structure. See Fig. 2 M
+(cid:88)
+(middle)foranoverviewoftheweighteddisplacementmodel. ee (θ)= w (θ)(p +δi(θ)) (4)
+i j j j
+Specifically, instead of representing the sub-goal end- j=1
+effector pose as a position and an SO(3) orientation (e.g., Low-levelPolicy.Thelow-levelpolicyπLlearnstopredictthe
+θ
+a quaternion or a 6D orientation representation ) and
+delta transformation of the end-effector, given the observation
+forcing the network to learn the connection between SO(3) o and the sub-goal end-effector pose {eegoal}4 , i.e., “how”
+i i=1
+orientations and the 3D point cloud observation, we propose
+toactuallymovetheend-effectortosolvethetask.Itislearned
+to represent the sub-goal end-effector pose as a collection of
+to minimize the following loss:
+K points that are naturally in 3D. In our case, we use K =4:
+N T
+the first point is located at the root of the robot hand, the L = (cid:88)(cid:88) ||πL(oi,{eegoal}4 })−ai||2, (5)
+secondandthirdpointsattheparalleljawgripperfingers,and θ θ t k k=1 t 2
+i=1t=1
+the fourth point at the grasping center when the finger closes.
+where ai is the delta transformation of the end-effector,
+t
+Inthisway,asub-goalend-effectorposecanberepresented
+including the delta translation, delta rotation, and delta finger
+as {ee }4 , where ee is the 3D position of the ith point.
+i i=1 i movement (open/close). We represent the delta rotation using
+Given a point cloud of the scene with M points P ={p }M
+j j=1 the6Drotationrepresentation.Wenotethatthelow-level
+and the current robot end-effector points {eeobs}4 , we
+i i=1 policyisnottrainedtoreachthesub-goalend-effectorpose;it
+propose to let the policy πH learn to predict the displacement
+θ istrainedtosolvethetask,andthesub-goalend-effectorpose
+from each point p in the scene point cloud to the sub-goal
+j isjustanadditionalinputthathelpsguidethelow-levelpolicy
+end-effector points {eeg i oal}4 i=1 : δ j = [δ j 1,δ j 2,δ j 3,δ j 4], where to learn how to move. Given that part of the demonstration
+δ j i = eeg i oal −p j . At inference time, the final predicted sub- trajectoriesaregeneratedfromamotionplanner,whichcanbe
+goal end-effector pose is the averaged prediction from all highly multi-modal, we employ a diffusion policy as the low-
+pointsinthescene:ee i (θ)= (cid:80)M j=1 (p j +δ j i(θ)).Thisproposed level policy representation, which is known for their ability to
+model converts the prediction of the end-effector pose from handle multi-modalities.
+SE(3), especially SO(3), to a list of vectors just in the 3D Specifically, we modify 3D Diffusion Policy (DP3) 
+space,whichislesscomplex.Wenotethisper-pointprediction such that it can be conditioned on the sub-goal end-effector
+requires us to use a network architecture that can generate pose. See Fig. 2 (bottom) for an overview of the low-level
+per-point outputs given a point cloud input. Many point cloud policy architecture. As in DP3, the network has two parts: a
+processing networks can do so [35, 36, 64]; we choose to point cloud encoder that encodes the point cloud observation
+use PointNet++  in our case. As the model predicts into a latent embedding, and a diffusion head on the latent
+the displacement from existing points in the scene instead embedding that generates the actions. We modify the encoder
+of the absolute positions, and PointNet++ is a translation- architecture to incorporate the sub-goal end-effector pose.
+invariant architecture, our proposed model is thus invariant to Formally, given the current scene point cloud observation
+the translation of the robot end-effector and the object, which P ={p }M ,thecurrentend-effectorposerepresentedwith4
+j j=1
+makes it more robust in real-world settings. points{eeobs}4 ,thesub-goalend-effectorpose{eegoal}4 ,
+i i=1 i i=1
+However,notallpointsinthesceneareofequalimportance we treat each point as a token and perform attention among
+for the task and for predicting the sub-goal end-effector pose. them to generate the final latent embedding. For the scene
+Inthetaskofopeninganarticulatedobject(e.g.,acabinet),the point cloud P = {p }M , we use an MLP applied to each
+j j=1
+pointsonthehandleareprobablymoreimportantcomparedto point in the point cloud to obtain a per-point feature {f }M ,
+j j=1
+thepointsonthesideofthecabinet.Therefore,weproposefor which will be used as the features for cross attention later.
+the network to also learn a weight for each point in the scene For the current end-effector points {eeobs}4 , its feature for
+i i=1
+point cloud when predicting the sub-goal end-effector pose. attention includes the following: the first part is a learnable
+Formally, in addition to predicting the per point displacement embedding vobs for each of the 4 points. The second part is
+i
+δ ,thenetworkalsopredictsaweightw foreachpointp .At a feature vector produced by an MLP, where the input to the
+j j j
+inferencetime,thefinalpredictionofthesub-goalend-effector MLPincludeseachpoint’spositioneeobs,thedisplacementto
+i
+points is then the weighted average of the displacement from thecorrespondingpointinthesub-goalend-effectorposeδ =
+i
+each point: ee (θ)= (cid:80)M w (θ)(p +δi(θ)),i=1,2,3,4. eegoal−eeobs,andthedisplacementtotheclosestscenepoint:
+i j=1 j j j i i
+10objs 50objs 100objs 200objs 322objs
+With 1116 4656 8749 17893 22918
+camerarandomization 121k 502k 958k 1.97M 2.55M
+Without 750 3669 6444 11795 15998
+camerarandomization 80k 403k 702k 1.28M 1.76M
+TABLE I: Dataset Statistics. Top: # of trajectories. Bottom:
+total # of observation-action pairs in the trajectories.
+δ′ =p −eeobs,k =argmin ||p −eeobs||. The final feature
+i k i j j i
+vector for each point is fobs = [v ,MLPobs(eeobs,δ ,δ′)].
+i i i i i
+Fig. 3: Comparison of hierarchical and non-hierarchical poli-
+Intuitively, the displacement to the corresponding sub-goal
+cies.
+points help the model to learn how to reach towards the goal;
+andthedisplacementtotheclosestscenepointshelpthemodel
+microwave,dishwashers,oven,andfridge,whichhaveannota-
+to learn to avoid collision.
+tions for handles. Among these, 322 are used for training and
+We then perform cross attention between the scene point
+10 unseen objects are used for testing. For each object, we
+cloud and the current end-effector points with Rotary Posi-
+generate75demonstrationsforopeningit.Eachdemonstration
+tion Embedding (RoPE) , which generates the updated
+has a different configuration, where we vary the position,
+features for current end-effector points as {fobs-scene}4 .
+i i=1 orientation, size of the object, and the initial pose of the end-
+We generate the features for the goal end-effector points
+effector (randomization details in Appendix D).
+in the same way as for the current end-effector points:
+fgoal = [vgoal,MLPgoal(eegoal,δ ,δ′)]. We perform cross In order to study the object-level generalization abilities of
+i i i i i different methods, we first generated 15,998 demonstration
+attention between the current end-effector points and the goal
+trajectories with 1.76M observation-action pairs for these 322
+end-effector points, also with Rotary Position Embedding
+training objects, without any camera randomizations when
+(RoPE) , which produces another set of updated features
+for the current end-effector points {fobs-goal}4 . The final rendering the point clouds. For efficient sim2real transfer, we
+i i=1 generate additional demonstrations with camera pose random-
+latentembeddingusedfordiffusionistheconcatenationofthe
+above two features: [fobs-scene,fobs-goal,...,fobs-scene,fobs-goal]. izations.Thedatasetswithcamerarandomizationshasintotal
+1 1 4 4 22,918 trajectories and 2.55M observation-action pairs. We
+This latent embedding is used as the conditioning for an
+partition both types of datasets into different sets, in which
+action generation UNet diffusion head, which takes as input
+we vary the number of objects in each of these sets (objects
+this latent conditioning, the robot state (which includes the
+and trajectories are randomly sampled) to study the scaling
+3D position, 6D orientation of the end-effector, and finger
+behavior of different methods. The detailed statistics of the
+width), a noisy version of the action, a denoising time step,
+partitioned datasets can be found in Table I.
+and predicts the noise. At test time, we use DDIM  as the
+For evaluation, we test each of the 10 objects with 25
+denoising scheduler to generate the actions.
+different configurations, resulting in a total of 250 test sce-
+C. Zero-shot Transfer to Real Robotic Systems narios. The evaluation metric is the normalized opening
+performance: the ratio of the increase in the opened joint
+After the high-level and low-level policies are trained in
+angle of the object achieved by a method, to the increase
+simulation, we transfer them zero-shot to real-world robotic
+in the opened joint angle of the object in the demonstration,
+systems.Duringinference,ateachtimestep,giventhecurrent
+whichiscalculatedas θf−θ0 ,whereθ istheinitialopened
+point cloud observation and end-effector pose, we first run θdemo−θ0 0
+angle, θ is the final opened angle achieved by the method
+the high-level policy to obtain a predicted goal end-effector f
+and θ is the final opened angle in the demonstration. A
+pose, and then run the low-level policy with the point cloud demo
+value of 1 indicates that the method performs as well as the
+observation, current end-effector pose, and the predicted goal
+demonstration, while 0 means the method has not contributed
+end-effector pose to move the end-effector. We repeat this
+toopeningtheobject.Foreachmethod,weruntheevaluation
+process until the object is fully opened, or a pre-defined
+3times(atotalof750trials)andreportthemeanandstandard
+episodelengthisreached,ortherobotisgoingtocollidewith
+deviation of the normalized opening performances of the 3
+the environment. We discuss the details of our robot systems
+runs. In the following, we compare to different baselines and
+and real-world pipeline in Sec. VI.
+prior methods to answer different research questions.
+V. SIMULATIONRESULTS
+B. Is a Hierarchical Policy Needed?
+A. Experiment Setups
+We use Pybullet  as the underlying physics simulator; Our first set of experiments aims to answer whether it
+any simulator that supports rigid-body dynamics and fast is beneficial to use a hierarchical policy. We compare our
+parallelization can be used. We use the PartNet-Mobility  proposed hierarchical policy with the following two non-
+dataset for the assets of the articulated object. We extracted hierarchical baselines:
+332 objects from 5 different categories: storage furniture, • 3D Diffusion Policy (DP3) , a diffusion policy that
+Fig. 4: Comparison of different high-level policies. Leftmost: Train and test without camera randomizations. Right: Train with
+camera randomizations, and test with no camera randomization, with camera randomizations from training distribution, and
+with camera randomizations from an unseen test distribution.
+takes 3D point cloud as input and outputs delta end- proposed weighted displacement model performs consistently
+effector transformations as the actions. betterthanothermethodswhenthenumberoftrainingobjects
+• DP3 Transformer, which replaces the simplified Point- ranges from 10 to 100. When training with all 322 objects,
+Net encoder in DP3 with a transformer-based encoder DP3 - Transformer Diffusion achieves the best performance,
+(thesameoneusedinourlow-levelpolicyinSec.IV-B). outperforming the weighted displacement policy by 5%. We
+We compare these two baselines with our method that uses a also find that all methods’ performances generally improve
+hierarchicalpolicyondatasetswithoutcamerarandomizations as the size of the dataset increases (except for DP3 - UNet
+to study the object-level generalization abilities of them. The diffusion when the number of training objects increases from
+results are shown in Fig. 3. As shown, the performance 200 to 322, and weighted displacement model when the
+of using a non-hierarchical policy only gets a normalized number of training objects increases from 100 to 200). We
+opening performance below 0.25, which is much lower than trained3DDAwith200objectsandfoundittoperformpoorly,
+that of using a hierarchical policy. Furthermore, we observe achieving a performance of only 0.135, much lower than the
+thatthenon-hierarchicalpoliciesdonotexperiencesignificant performance of alternative methods (> 0.6). Therefore, we
+improvementinperformanceasthenumberoftrainingobjects omit the training of it on other datasets to save computation.
+and trajectories increase. These results show that it is very Since our primary focus is sim2real transfer of the learned
+challenging to achieve object-level generalization if we just policy to the real world, we also compare these methods on
+learn low-level delta end-effector transformations, regardless the dataset with camera randomizations, as it is hard to place
+of how much training data we use; using a hierarchal policy thecameraattheexactposeintherealworldasinsimulation,
+achievesmuchbetterobject-levelgeneralizationperformances. and we want the policy to be robust to camera pose changes.
+Forevaluation,wehavethreedifferentsettings:testonafixed
+C. Comparison of Different High-level policies camera pose, test on random camera poses sampled from the
+We now investigate the performance of different high-level trainingdistribution,andtestonrandomcameraposessampled
+policy architectures. We compare our proposed Weighted fromatestdistributionnotseenduringtraining.Theresultsare
+Displacement Model to the following baselines: shown in the right 3 subplots in Fig. 4. Interestingly, we find
+that when tested with camera randomizations, our proposed
+• DP3-UNetDiffusion:thisbaselinebuildsuponDP3and
+weighted displacement model performs much better than the
+diffuses the sub-goal end-effector points. We modify the
+compared methods, for all different sizes of training datasets.
+simplifiedPointNetencoderinDP3toanattention-based
+The performance gap is especially large when tested with un-
+encoder (similar to our low-level policy), as we find this
+seencamerarandomizations.AlthoughDP3-Transformerstill
+provides better performance in early experiments.
+achieves good performance when tested with a fixed camera
+• DP3 - Transformer Diffusion: In addition to using the
+pose with datasets more than 200 objects, its performance
+attention-based encoder, we also modify the UNet diffu-
+degrades drastically when tested with randomized cameras.
+sion head in DP3 to be a transformer-based architecture,
+In contrast, the performance drop for weighted displacement
+such that the diffusion head conditions on not only a
+model when tested under camera randomizations is much
+latent embedding, but also the 3D point cloud features.
+smaller. We also find DP3 - UNet diffusion to perform poorly
+• 3D Diffuser Actor (3DDA) : this baseline also dif-
+inthissetting,whichcouldbeduetothatitcompressesthe3D
+fuses the sub-goal end-effector points conditioned on 3D
+sceneintoasinglelatentembeddingvector,losingsomeofthe
+point cloud features, but employs a different architecture
+needed 3D information for making the prediction. Similarly,
+compared to DP3 - Transformer Diffusion.
+we find that training with more data is generally helpful for
+PleaseseeAppendixGformoredetailsaboutthesebaselines.
+achieving a higher performance.
+We use a fixed low-level policy for all experiments in this
+section. We first compare all method’s performances when D. Ablation Studies
+trained on the datasets without camera randomizations. The In this subsection, we examine some of the design choices
+results are shown in the left subplot of Fig. 4. As shown, our in our method to understand their contributions. We compare
+Normalized Grasping Normalized
+Ablations(trainedwith200objs) Method
+OpeningPerformance SucessRate OpeningPerformance
+ArticuBot(Ours) 0.7±0.01 ArticuBot(Ours) 0.88±0.01 0.75±0.01
+WeightedDisplacementModelw/PointTransformer 0.6±0.02 AO-Grasp 0.11±0.0 0.08±0.0
+UnweightedDisplacementModel 0.66±0.01
+WeightedDisplacementModelw/6Dorientation 0.53±0.01 ArticuBot(Ours),AfterGrasping - 0.86±0.01
+Replacinglow-levelpolicywithamotionplanner 0.24±0.02 FlowBot3d-w/oMask,AfterGrasping - 0.2±0.01
+FlowBot3d-w/Mask,AfterGrasping - 0.57±0.01
+TABLE II: Performance of different ablation studies.
+TABLE III: Comparison with prior articulated object manip-
+our full method to the following ablations: ulation methods.
+• Weighted Displacement Model w/ Point Trans- during opening (possibly due to ignoring object kinematic
+former : instead of using PointNet++, we use the constraints). This shows the importance of using a learned
+PointTransformerarchitecturefortheweighteddisplace- low-level policy.
+ment high-level policy.
+E. Comparison with Prior Articulated Object Manipulation
+• Unweighted Displacement Model: This ablation does
+Methods
+not learn a weight for each point in the weighted dis-
+placement model; instead, the prediction is simply the Wealsocompareoursystemwithpriormethodsthataimto
+average of all point’s predictions. learn a single policy for generalizable articulated object ma-
+• Weighted Displacement with 6D orientation: Instead nipulation. We compare to two state-of-the-art prior methods
+of predicting the offset to the 4 goal end-effector points, thatfocusoneachstageofmanipulatinganarticulatedobject:
+thisablationpredictsthe3Doffsettothegoalend-effector • AO-Grasp : this method focuses on the grasping of
+position, and the 6D orientation of the goal end-effector, the articulated objects for downstream manipulation. It
+fromeachscenepoint.Thefinalpredictionistheaverage learns an Actionable Grasp Point Predictor that predicts
+of each point’s prediction. the grasp-likelihood scores for each point in the point
+• Replacing low-level policy with a motion planner: cloud, which is combined with pretrained ContactGrasp-
+This ablation does not use a low-level policy for moving Net  to generate 6D grasps.
+therobotend-effector.Wefirstpredictagoalend-effector • FlowBot3D : this method predicts the flow for each
+pose for grasping using the high-level policy and then point on the articulated object, and moves the robot end-
+use a motion planner to reach it. After grasping, we run effector along the maximal flow direction to open the
+the high-level policy again to predict a goal end-effector object. The original paper performs grasping by using
+poseforopeningthedoor.Wecomputethecorresponding a suction gripper to attach the robot end-effector to the
+joint angles using inverse kinematics and use a joint PD maximal flow point on the object’s surface.
+controller to reach it. We compare ArticuBot with AO-Grasp in terms of grasping
+More details of these ablations can be found in Appendix I. success rate, i.e., if the method generates a firm grasp of the
+Wecomparetotheseablationswhentrainingwith200objects object that enables downstream manipulation. As AO-Grasp
+without camera randomizations. The results are shown in only generates a 6D grasp pose, we use motion planning
+TableII.WefindthatusingaPointTransformer,notpredicting to move the robot end-effector to reach the grasping pose.
+the per-point weights, or predicting a per-point goal end- AlthoughAO-Graspdoesnotopentheobject,westillcompare
+effector 6D orientation instead of per-point displacements to with it in terms of normalized opening performance in
+the goal end-effector points, all lead to worse performance, the following way: After grasping, we assume access to
+supporting the effectiveness of our design choices in Artic- ground-trutharticulationinformationoftheobjectanduseour
+uBot.Predictingaper-point6Dorientationandaveragingthem designed opening action (See Sec. IV-A) to open the object.
+leads to a large drop in performance because it is difficult to Note such information is not available in the real world, and
+correctly compute the average of multiple 6D orientations; in ArticuBot also does not use such information in the learned
+ArticuBot,weavoidthis byrepresentingthegoalend-effector policy. We compare with FlowBot3D in terms of normalized
+pose as a collection of points and averaging the displacement opening performance after grasping: starting from the state
+to these points. Replacing the low-level policy with motion where the robot gripper has already firmly grasped the handle
+planningandanIKcontrollerresultsinverypoorperformance. of the object, how well does the method open the object. We
+Wehypothesisitcouldbeduetotworeasons:1.Thehigh-level used pre-trained checkpoints provided by the authors of AO-
+policy may predict poses with minor collisions, and motion Grasp and FlowBot3D for the comparison.
+planning often fails due to the inability to find collision-free The results are shown in Table III, tested without camera
+paths.2.Duringdoor-opening,thejointPDcontrollertakesthe randomizations. The grasping success rate of AO-Grasp is
+shortest joint-space path to the goal pose, ignoring necessary much lower than ArticuBot. We find that AO-Grasp often
+kinematicconstraints(e.g.,followinganarctoopenarevolute proposes grasps at the edges of the point cloud (e.g., the side
+door), causing the gripper to slip off. Experimentally, the wall of a drawer; see Appendix H for visuals). This likely
+motionplanningfailurerateis17%.Amongsuccessfulgrasps, stemsfromitstrainingdata,whichincludesmanyobjectsina
+97%ofthefailuresareduetothegripperfallingoffthehandle partiallyopenedstatewhereedgegraspsarevalid.However,in
+Azure Kinect Azure Kinect
+Laptop
+Object
+A11
+Franka Arm
+X-Arm
+LAB A
+Setup
+X-Arm
+Control Box
+Franka Arm LAB A Test Objects LAB B Test Objects
+Battery
+Converter
+Real Sense Real Sense
+D435 D435
+LAB B Mobile X-Arm Ag M ile in R i a 3 n .0 g er Mobile Base Test Objects
+Setup Setup Mobile Base Fig. 6: Real-world test objects for table-top and mobile-base
+Fig. 5: The three different real robot setups. experiments.
+arm. The policy can transfer zero-shot cross embodiment to
+our test cases, objects are usually closed or not open enough an X-Arm because the policy learns actions in the robotic
+for such grasps. Additionally, many detected edges are fake arm’s end-effector space (sub-goal end-effector pose and end-
+edges that result from partial observations from the camera effector delta-transformations) instead of the joint space.
+rather than true graspable edges. For FlowBot3D, we find For robust sim2real transfer, we generate more demonstra-
+its performance to be reasonable (0.57) when provided with tions in simulation with augmentations on the point cloud
+the segmentation mask of the target link (door or drawer) to observations to make the policy robust to noisy point clouds
+open, and much lower (0.2) without such masks. Note that obtained from real-world depth sensors. Specifically, we add
+ArticuBot does not use a segmentation mask for the target the following two augmentations to the depth map in simula-
+link.Toformafaircomparison,wealsoevaluatedourpolicy’s tion : the first is edge artifacts that models the noise along
+performance after grasping. In such a case, the performance objectedges,andthesecondisrandomholesinthedepthmap
+of ArticuBot further improved from 0.75 to be 0.86 (See to model random depth pixel value loss in real-world depth
+Table III), outperforming FlowBot3D by a large margin. cameras. Details of these augmentations can be found in the
+Appendix J. We also randomize the camera poses closer to
+F. Comparison of Different Low-level Policies
+where they are located in the real world. Combined with the
+We also performed experiments to test the performance of non-augmented demonstrations, we generated in total 42.3k
+different low-level policy architectures (e.g., using a different trajectories with 4.7M observation-action pairs, and trained a
+diffusionhead,orusingadifferentactionspace).Thedetailed single weighted displacement model high-level policy on this
+resultsandanalysiscanbefoundinAppendixC.Insummary, dataset. We find the low-level policy to transfer well without
+we do not observe huge performance differences (within 5%) needing to be trained on such point cloud augmentations. We
+between these different methods. Our hypothesis is that the detailthe3differentrobotsetupsasbelow,visualizedinFig.5.
+goal end-effector points provide a strong conditioning for Table-topFrankaPandaArminLabA: Thefirstsetuphas
+the low-level policy; with such information as input, the a fixed-base table-top Franka Arm. The table has a length and
+differences in the policy architectures and action spaces may width of 110 cm. The robot arm is located near one corner of
+not matter too much. thetable.WeusetwoAzureKinectcameras,eachmountedon
+one side of the robot looking at the center of the table, to get
+G. Additional Experiments and Evaluations
+the point cloud of the objects. The robot is controlled via the
+We show some preliminary experiments in Appendix E
+Deoxys library  with a joint position controller, i.e., given
+that our hierarchical policy learning approach works on more
+atargetpose,wefirstuseaIKsolvertoobtainthetargetjoint
+manipulationtasksbeyondarticulatedobjectmanipulation.We
+angle, and then use the joint position controller to reach that
+also study how robust the policy is to the orientation and
+joint angle. We test 9 different articulated objects, including
+positionofthehandles,withtheresultsshowninAppendixF.
+drawers, cabinets, microwaves, toy oven and toy fridges in
+this workspace (as shown in Fig. 6), all purchased from local
+VI. REAL-WORLDEXPERIMENTS
+stores and not seen during training.
+A. Setups
+Table-topFrankaPandaArminLabB: Wealsodeployour
+We deploy our learned policies to three different real robot policy in a different lab to more thoroughly test its robustness
+settings:table-topfixedFrankaarmsintwodifferentlabs,and in a different setting. The table used in this lab has a width
+anX-Armonamoblebaseinrealloungeandkitchens,totest andlengthandwidthof100cmand80cm.Therobotisplaced
+its robustness and generalization ability in the real world. We at the center of one edge of the table. Two Intel RealSense
+notethatourpolicyinsimulationisonlytrainedontheFranka D-435 RGBD cameras, one mounted on each side of the
+A1 A2 A3 A4 A5 A6 A7 A8 A9 A1 A2 A3 A4 A5 A6 A7 A8 A9
+Fig. 7: Comparison of ArticuBot with FlowBot3D and AO-Grasp on 9 test objects in Lab A with table-top Franka. We omit
+OpenVLA in the plot as it achieves a performance of 0.
+robot, are used to capture the objects’ point clouds. The robot Grasping Normalized
+RobotTestSettings
+SucessRate OpeningPerformance
+is controlled using a end-effector position controller. Four
+ArticuBot-TabletopFrankaLabA 0.78 0.63
+differentobjectsaretestedinthisworkspace,showninFig.6,
+ArticuBot-TabletopFrankaLabB 0.85 0.59
+all purchased from local stores and not seen during training. ArticuBot-MobileX-Arm 0.90 0.54
+X-Arm on a mobile base: To test our policy in real lounges
+TABLE IV: Performance of ArticuBot under all three robot
+and kitchens, we additionally build a mobile manipulator,
+setups.
+whereweassembleanX-ArmontoaRangerMini3.0mobile
+base, following the design in Xiong et al. . We mount
+two Azure Kinects on manually built frames on the mobile
+image using known camera extrinsics and intrinsics to obtain
+base for capturing point cloud observations (see Fig. 5). We
+a robot mask. All pixels within the robot mask are removed.
+usethecompany-providedend-effectorpositioncontrolpython
+We perform additional radius and statistical outlier removing
+API for controlling the X-Arm. We test this mobile X-Arm
+toremovesomeremainingoutlierpointsfromthenoisydepth
+in 4 different kitchen, lounge and offices on 7 objects (See
+cameras. More details of the real-world perception pipeline
+Fig. 6). The X-Arm and both Azure Kinects are connected
+can be found in Appendix K.
+to a Lenovo Legion Pro 7 Laptop. The laptop has a built-in
+NVIDIA GeForce RTX 4090 GPU, which is used for running
+We use the following evaluation metrics as in simulation.
+the trained policies. The X-Arm, the Azure Kinects, and the
+Grasping Success Rate: We manually check if the robot
+laptop are all powered by the battery that comes with the
+gripper has a firm grasp of the object. Normalized Opening
+Ranger Mini 3.0 mobile base, which gives a 48V DC output,
+Performance: The opened distance of the object normalized
+and we use a bettery inverter to convert it to a standard 120V
+by the maximal achievable opening distance of the object,
+AC output to power these devices.
+subject to the workspace and robot joint limit constraints.
+For both table-top settings, the objects are placed near the
+center of the table with some variations in the position and We compare to the following baselines with the table-top
+orientation, such that the robot arm can open it as much as Franka Arm in lab A, on 9 test objects. OpenVLA: This is
+possible within its joint limits. In Lab A, the Franka arm is an open-sourced robotic foundation policy trained on Internet
+randomly initialized at one of two fixed locations, one with scale of real-world datasets. It takes a language instruction
+the end-effector closer to the table, and the other with the as input and output robot actions. A small portion of the
+end-effector higher in the air. In Lab B, the arm is randomly datasets contain articulated object manipulation tasks. We
+initialized such that the end-effector is 30 to 60 centimeters also compare to AO-Grasp and FlowBot3D as described in
+away from the object. For the mobile X-Arm, we manually Sec. V-E. We compare with AO-Grasp in terms of grasping
+tele-operate the base to be near the target object, and the success rate: we use our learned low-level policy to reach the
+base remains fixed when the X-Arm is opening the object. grasping pose generated by AO-Grasp and manually check if
+We randomly initialize the X-Arm at different joint angles. the grasping is successful. We compare with FlowBot3D in
+Weperformcamera-to-robotbasecalibrationinallsettings, terms of normalized opening performance: we first manually
+and all point cloud observations are transformed into the move the end-effector to grasp the handle of the object, and
+robot’s base frame. We use GroundingDino  and Effi- then apply FlowBot3D to open the object. We do not input
+cientSAMtosegmenttheobjectgivenatextoftheobject the optional segmentation mask for the target link to open for
+name,andobtainanobject-onlypointcloudintherealworld. FlowBot3D,assuchmasksarenotreadilyavailableinthereal
+Forremovingtherobotfromthepointcloud,wefirstrendera world,andArticuBotalsodoesnotusesuchmasks.Fortable-
+canonicalrobotpointcloudfromtheroboturdfandmeshfiles, top Franka arms, we run each method on each object for five
+transform it to the current point cloud observation using the trials and report the mean performance. For mobile X-Arm,
+robot’scurrentjointangles,andthenprojectittothe2Ddepth we run ArticuBot for three trials on each object.
+Pred. Weights Pred. Weights
+Obs. Pred.
+EEF Goal EEF Obs.
+EEF
+… …
+Pred.
+Goal EEF
+… …
+… …
+t=0 t=8 t=20
+Fig. 8: Visualizations of the high-level policy’s predictions (per-point weights and goal end-effector points) in three of the
+real-world test cases. The green points represent the observed current end-effector points, and the red points represent the
+predicted goal end-effector points.
+B. Table-Top Franka Arm Results Fig. 8 (zoom-in for better views) visualizes ArticuBot’s
+predictions on some of the real-world test objects. As shown,
+Theresultsforalltestobjectsandcomparedmethodsinlab
+the learned per-point weights from the weighted displace-
+A are shown in Fig. 7; the results of ArticuBot in lab B are
+ment model concentrates on the handle of the object before
+shown in Table IV. ArticuBot achieves an average grasping
+grasping,andthepredictedgraspingend-effectorposeisquite
+success rate of 0.78 and 0.85, and a normalized opening
+accurate on the handle, even though for most of the objects
+performance of 0.63 and 0.59 in Lab A and B, respectively,
+the handles are just a very small portion of the point cloud.
+showing that it can generalize to open diverse real articulated
+We note that there is no explicit supervision for the model to
+objects with varying geometries, shapes and articulation types
+learntoassignhighweightstothehandle;thisisautomatically
+across both lab settings. We note that some of the test objects
+learned by just minimizing the imitation learning loss. After
+are quite challenging and require very precise manipulation,
+grasping, the weights are more randomly distributed across
+e.g., the knobs of object A2 and A8 are very small, with a
+the objects; but as shown in Fig. 8, ArticuBot generalizes
+diameter of only 2 cm, but ArticuBot can still precisely grasp
+to predict different opening end-effector poses for objects
+and open it. As in simulation, we find the grasping success
+with different articulations (left opening revolute joints, right
+rate of AO-grasp to be low, where it tends to grasp at the
+opening revolute joints, pulling out prismatic joints). We
+“fake” edge in the point cloud due to partial observations,
+do notice a drop in performance compared to the results
+which are not actually graspable (See Appendix H for visuals
+in simulation. We believe this is mostly due to the noisier
+of the grasps produced by AO-Grasp). FlowBot3D achieves a
+point cloud observation from the depth sensors in the real
+reasonable normalized opening performance of 0.38, starting
+world (e.g., see the noisy point cloud for the green cabinet
+from the state where the robot gripper already grasps the
+obtained from the RealSense cameras in Fig. 8). See Fig. 1
+object. The performance is still lower than ArticuBot, even
+for screenshots of the opening trajectories for more objects
+though ArticuBot performs the additional grasping step. The
+(and Appendix A for trajectories of all objects); please refer
+major failure case for FlowBot3D is that the predicted flow
+to the supplementary materials for videos. Common failure
+is in the wrong direction, e.g., it predicts upwards flows for
+casesfortable-topexperimentsinclude:1.Therobotarmruns
+opening a microwave (See Appendix H for visuals of the
+into joint limits while opening the object, due to the limited
+flows). If we compute the normalized opening performance
+space of the robot workstation. 2. Wrong end-effector pose
+forArticuBotonlyincaseswherethegraspissuccessful(i.e.,
+predictions for grasping the handle, which we find to happen
+the same starting conditions as FlowBot3D), the performance
+more for objects with small handles, e.g., A2. Appendix L
+of ArticuBot further improves to 0.81 and outperforms Flow-
+provides visualizations of some of the failure cases.
+Bot3Dbyalargemargin(SeeFig.7).WealsofindOpenVLA
+fails to grasp or open any test objects, resulting in a grasping
+C. Mobile X-Arm Results
+successrateandnormalizedopeningperformanceof0.Thisis
+likelyduetoitstrainingdatalackingsufficientdemonstrations Table IV shows the results with the mobile X-Arm. As
+of articulated object manipulation, making generalization to shown, ArticuBot achieves a grasping success rate of 0.9
+our test cases difficult. and normalized opening performance of 0.54, showing it can
+generalizetodrawers,cabinets,andfridgesinrealkitchensand policypredictionstoavoidexcessiveforce.Wethinkaddinga
+lounges. See Fig. 8 for a visualization of the high-level policy force-torquesensorontheX-Armtoenableimpedancecontrol
+predictions from ArticuBot on a real-world fridge. See Fig. 1 could help alleviate this issue; fine-tuning the policy in the
+for screenshots of some of the successful opening trajectories real-world via reinforcement learning or a few demonstra-
+with the mobile X-Arm (and Appendix A for trajectories tions for more precise sub-goal end-effector pose predictions
+of all objects); please refer to the supplementary materials could also help. 5) Objects in real kitchens and lounges
+for videos. Some of the tested real-world objects are quite are usually occluded by neighboring objects, and we believe
+challenging, for example, cabinet C3 has a very small handle that adding this type of occlusion could further improve the
+that protrudes only 2 cm from the surface, but ArticuBot is sim2real performance of the policy. 6) ArticuBot does not
+still capable of precisely grasping and opening it. use interaction history during the manipulation process. We
+Wedonoticeadropinthenormalizedopeningperformance think that incorporating interaction history with current visual
+compared to the table-top Franka experiments. In our early observationscouldfurtherimproveperformance,especiallyfor
+experiments, we find that Unlike the Franka Arm, the X-Arm objects whose articulation are ambiguous to judge just from
+lacks impedance control and force sensing. This requires a visual observations. We leave addressing these limitations as
+more precise prediction for the opening end-effector pose. important future work.
+Small prediction errors, such as turning too sharply when
+opening a revolute door, would result in excessive force VIII. CONCLUSION
+for the X-Arm and causes it to stop for motor protection,
+This paper presents ArticuBot, a robotics system powered
+which is a common failure case in this setting. To partially
+by a single learned policy that is able to open diverse
+mitigate this issue, we use the Fast-UMI  gripper in latter
+categories of unseen articulated objects in the real world.
+experiments, whose soft, compliant design enhances safety
+ArticuBotconsistsofthreeparts:generatingalargenumberof
+and partially helps prevent the arm from stopping due to
+demonstrations in simulation, distilling all generated demon-
+excessive force. Another sim2real gap is that, in simulation,
+strations into a point cloud-based neural policy via imitation
+objects are isolated by itself; in real kitchens and lounges,
+learning, and performing zero-shot sim2real transfer. Using
+objectsareusuallysurroundedbyotherobjects,whichocclude
+sampling-based grasping and motion planning, ArticuBot’s
+its side and top, and only the front side is observable. This
+demonstration generalization pipeline is fast and effective,
+additional occlusion might have caused issues for the policy
+generating a total of 42.3k demonstrations over 322 training
+to transfer as well. Finally, the articulation of some objects
+articulatedobjects.Forpolicylearning,ArticuBotusesanovel
+are inherently ambiguous to judge from a single point cloud
+hierarchical policy representation, in which the high-level
+observation, e.g., although many dishwashers have a revolute
+policy learns the sub-goal for the end-effector, and the low-
+door that open downwards, the dishwasher C2 in Fig. 6 has
+level policy learns how to move the end-effector conditioned
+a prismatic joint that needs to be pulled out horizontally.
+on the predicted goal. A novel weighted displacement model
+ArticuBot tends to make more mistakes on such ambiguous
+is used for the high-level policy that grounds the prediction
+objects. See Appendix L for visualizations of some of the
+into the existing 3D structure of the scene, outperforming
+failure cases of ArticuBot, and some basic failure recovery
+alternativepolicyrepresentations.Ourlearnedpolicycanzero-
+abilities of ArticuBot.
+shottransfertothreedifferentrealrobotsettings:afixedtable-
+top Franka arm across two different labs, and an X-Arm on
+VII. LIMITATIONS
+a mobile base, opening multiple unseen articulated objects
+Our system currently has the following limitations: 1) Our
+across two labs, real lounges, and kitchens.
+weighted displacement policy does not handle multi-modal
+outputs since it is trained with a regression loss (Eq. (3)). ACKNOWLEDGMENTS
+Thismaycreateissuesforitwhenworkingwithcabinetswith
+This material is based upon work supported by the Toyota
+multiple doors and opening only a specific one is desired.
+Research Institute, National Science Foundation under NSF
+2) The current system does not support opening a user-
+CAREER Grant No. IIS-2046491, and NIST under Grant No.
+specified door on a multi-door object, as the policy is not
+70NANB24H314. Any opinions, findings, and conclusions or
+trained to be conditioned on any user input. Although our
+recommendations expressed in this material are those of the
+training data includes multi-door objects, demonstrations are
+author(s) and do not necessarily reflect the views of Toyota
+generated for opening the closest door to the initial pose of
+Research Institute, National Science Foundation, or NIST.
+therobot.Thepolicylearnstoopentheclosestdoorimplicitly,
+rather than opening a user specified door. 3) The policy uses
+REFERENCES
+point cloud observations. Although this simplifies sim2real
+transfer, existing depth sensors in the real world do not work  Ilge Akkaya, Marcin Andrychowicz, Maciek Chociej,
+well for transparent or reflective objects, and thus our policy Mateusz Litwin, Bob McGrew, Arthur Petron, Alex
+would also fail on such objects in the current form. 4) As Paino, Matthias Plappert, Glenn Powell, Raphael Ribas,
+mentioned above, the X-Arm itself does not support force et al. Solving rubik’s cube with a robot hand. arXiv
+sensing and impedance control, which requires more precise preprint arXiv:1910.07113, 2019.
+ Anthony Brohan, Noah Brown, Justice Carbajal, Yev- based optimal planning via the heuristically guided
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana search of implicit random geometric graphs. In 2015
+Gopalakrishnan, Karol Hausman, Alex Herzog, Jasmine IEEE international conference on robotics and automa-
+Hsu, et al. Rt-1: Robotics transformer for real-world tion (ICRA), pages 3067–3074. IEEE, 2015.
+control at scale. arXiv preprint arXiv:2212.06817, 2022.  Arjun Gupta, Michelle Zhang, Rishik Sathua, and
+ Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Saurabh Gupta. Opening cabinets and drawers in the
+Chebotar,XiChen,KrzysztofChoromanski,TianliDing, realworldusingacommoditymobilemanipulator. arXiv
+DannyDriess,AvinavaDubey,ChelseaFinn,etal. Rt-2: preprint arXiv:2402.17767, 2024.
+Vision-language-action models transfer web knowledge  Huy Ha and Shuran Song. Flingbot: The unreasonable
+to robotic control. arXiv preprint arXiv:2307.15818, effectiveness of dynamic manipulation for cloth unfold-
+2023. ing. In Conference on Robot Learning, pages 24–33.
+ TaoChen,MeghaTippur,SiyangWu,VikashKumar,Ed- PMLR, 2022.
+ward Adelson, and Pulkit Agrawal. Visual dexterity: In-  Kris Hauser and Victor Ng-Thow-Hing. Fast smooth-
+hand reorientation of novel and complex object shapes. ing of manipulator trajectories using optimal bounded-
+Science Robotics, 8(84):eadc9244, 2023. acceleration shortcuts. In 2010 IEEE international con-
+ Zoey Chen, Aaron Walsman, Marius Memmel, Kaichun ference on robotics and automation, pages 2493–2498.
+Mo, Alex Fang, Karthikeya Vemuri, Alan Wu, Dieter IEEE, 2010.
+Fox, and Abhishek Gupta. Urdformer: A pipeline for  Pu Hua, Minghuan Liu, Annabella Macaluso, Yunfeng
+constructing articulated simulation environments from Lin, Weinan Zhang, Huazhe Xu, and Lirui Wang. Gen-
+real-world images. arXiv preprint arXiv:2405.11656, sim2:Scalingrobotdatagenerationwithmulti-modaland
+2024. reasoning llms. arXiv preprint arXiv:2410.03645, 2024.
+ Xuxin Cheng, Kexin Shi, Ananye Agarwal, and Deepak  Ajinkya Jain, Rudolf Lioutikov, Caleb Chuck, and Scott
+Pathak. Extreme parkour with legged robots. In 2024 Niekum. Screwnet: Category-independent articulation
+IEEEInternationalConferenceonRoboticsandAutoma- model estimation from depth images using screw theory.
+tion (ICRA), pages 11443–11450. IEEE, 2024. In 2021 IEEE International Conference on Robotics and
+ Erwin Coumans and Yunfei Bai. Pybullet, a python Automation (ICRA), pages 13670–13677. IEEE, 2021.
+module for physics simulation for games, robotics and  Ajinkya Jain, Stephen Giguere, Rudolf Lioutikov, and
+machine learning.  2016–2021. Scott Niekum. Distributional depth-based estimation of
+ Murtaza Dalal, Min Liu, Walter Talbott, Chen Chen, object articulation models. In Aleksandra Faust, David
+Deepak Pathak, Jian Zhang, and Ruslan Salakhutdinov. Hsu, and Gerhard Neumann, editors, Proceedings of
+Local policies enable zero-shot long-horizon manipula- the 5th Conference on Robot Learning, volume 164 of
+tion. arXiv preprint arXiv:2410.22332, 2024. ProceedingsofMachineLearningResearch,pages1611–
+ Murtaza Dalal, Jiahui Yang, Russell Mendonca, Youssef 1621.PMLR,08–11Nov2022.URL
+Khaky, Ruslan Salakhutdinov, and Deepak Pathak. Neu- mlr.press/v164/jain22a.html.
+ral mp: A generalist neural motion planner. arXiv  Zhenyu Jiang, Cheng-Chun Hsu, and Yuke Zhu. Ditto:
+preprint arXiv:2409.05864, 2024. Building digital twins of articulated objects from inter-
+ Ben Eisner, Harry Zhang, and David Held. Flowbot3d: action. In Proceedings of the IEEE/CVF Conference on
+Learning 3d articulation flow to manipulate articulated Computer Vision and Pattern Recognition, pages 5616–
+objects. arXiv preprint arXiv:2205.04382, 2022. 5626, 2022.
+ Haritheja Etukuru, Norihito Naka, Zijin Hu, Seung-  SertacKaramanandEmilioFrazzoli. Sampling-basedal-
+jae Lee, Julian Mehu, Aaron Edsinger, Chris Pax- gorithms for optimal motion planning. The international
+ton, Soumith Chintala, Lerrel Pinto, and Nur Muham- journal of robotics research, 30(7):846–894, 2011.
+mad Mahi Shafiullah. Robot utility models: General  Tsung-Wei Ke, Nikolaos Gkanatsios, and Katerina
+policies for zero-shot deployment in new environments. Fragkiadaki. 3d diffuser actor: Policy diffusion with 3d
+arXiv preprint arXiv:2409.05865, 2024. scene representations. arXiv preprint arXiv:2402.10885,
+ Hao-Shu Fang, Chenxi Wang, Hongjie Fang, Minghao 2024.
+Gou, Jirong Liu, Hengxu Yan, Wenhai Liu, Yichen  Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+Xie, and Cewu Lu. Anygrasp: Robust and efficient Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov,
+grasp perception in spatial and temporal domains. IEEE EthanFoster,GraceLam,PannagSanketi,etal.Openvla:
+Transactions on Robotics, 2023. An open-source vision-language-action model. arXiv
+ Adam Fishman, Adithyavairavan Murali, Clemens Epp- preprint arXiv:2406.09246, 2024.
+ner, Bryan Peele, Byron Boots, and Dieter Fox. Motion  Ashish Kumar, Zipeng Fu, Deepak Pathak, and Jitendra
+policynetworks.InConferenceonRobotLearning,pages Malik. Rma: Rapid motor adaptation for legged robots.
+967–977. PMLR, 2023. arXiv preprint arXiv:2107.04034, 2021.
+ Jonathan D Gammell, Siddhartha S Srinivasa, and Tim-  Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen,
+othy D Barfoot. Batch informed trees (bit*): Sampling- VladlenKoltun,andMarcoHutter.Learningquadrupedal
+locomotion over challenging terrain. Science robotics, 5 manoidlocomotionwithreinforcementlearning. Science
+(47):eabc5986, 2020. Robotics, 9(89):eadi9579, 2024.
+ Fanqi Lin, Yingdong Hu, Pingyue Sheng, Chuan Wen,  Tianhe Ren, Shilong Liu, Ailing Zeng, Jing Lin, Kun-
+Jiacheng You, and Yang Gao. Data scaling laws in im- chang Li, He Cao, Jiayu Chen, Xinyu Huang, Yukang
+itation learning for robotic manipulation. arXiv preprint Chen,FengYan,etal. Groundedsam:Assemblingopen-
+arXiv:2410.18647, 2024. world models for diverse visual tasks. arXiv preprint
+ JiayiLiu,AliMahdavi-Amiri,andManolisSavva. Paris: arXiv:2401.14159, 2024.
+Part-level reconstruction and motion analysis for articu-  Daniel Seita, Yufei Wang, Sarthak J Shetty, Edward Yao
+lated objects. In Proceedings of the IEEE/CVF Interna- Li, Zackory Erickson, and David Held. Toolflownet:
+tional Conference on Computer Vision, pages 352–363, Robotic manipulation with tools via predicting tool flow
+2023. from point clouds. In Conference on Robot Learning,
+ Shilong Liu, Zhaoyang Zeng, Tianhe Ren, Feng Li, Hao pages 1038–1049. PMLR, 2023.
+Zhang, Jie Yang, Qing Jiang, Chunyuan Li, Jianwei  Mohit Shridhar, Lucas Manuelli, and Dieter Fox.
+Yang, Hang Su, et al. Grounding dino: Marrying dino Perceiver-actor:Amulti-tasktransformerforroboticma-
+with grounded pre-training for open-set object detection. nipulation.InConferenceonRobotLearning,pages785–
+In European Conference on Computer Vision, pages 38– 799. PMLR, 2023.
+55. Springer, 2025.  Jiaming Song, Chenlin Meng, and Stefano Ermon.
+ Zhao Mandi, Yijia Weng, Dominik Bauer, and Shuran Denoising diffusion implicit models. arXiv preprint
+Song. Real2code: Reconstruct articulated objects via arXiv:2010.02502, 2020.
+codegeneration. arXivpreprintarXiv:2406.08474,2024.  Marlin P Strub and Jonathan D Gammell. Advanced
+ Kaichun Mo, Leonidas J Guibas, Mustafa Mukadam, bit*(abit*): Sampling-based planning with advanced
+Abhinav Gupta, and Shubham Tulsiani. Where2act: graph-search techniques. In 2020 IEEE International
+From pixels to actions for articulated 3d objects. In Conference on Robotics and Automation (ICRA), pages
+Proceedings of the IEEE/CVF International Conference 130–136. IEEE, 2020.
+on Computer Vision, pages 6813–6823, 2021.  Jianlin Su, Murtadha Ahmed, Yu Lu, Shengfeng Pan,
+ Carlota Pare´s Morlans, Claire Chen, Yijia Weng, Wen Bo, and Yunfeng Liu. Roformer: Enhanced trans-
+Michelle Yi, Yuying Huang, Nick Heppert, Linqi Zhou, formerwithrotarypositionembedding. Neurocomputing,
+Leonidas Guibas, and Jeannette Bohg. Ao-grasp: Artic- 568:127063, 2024.
+ulated object grasp generation. In 2024 IEEE/RSJ Inter-  Martin Sundermeyer, Arsalan Mousavian, Rudolph
+national Conference on Intelligent Robots and Systems Triebel, and Dieter Fox. Contact-graspnet: Efficient 6-
+(IROS), pages 13096–13103. IEEE, 2024. dof grasp generation in cluttered scenes. In 2021 IEEE
+ AbbyO’Neill,AbdulRehman,AbhinavGupta,Abhiram International Conference on Robotics and Automation
+Maddukuri, Abhishek Gupta, Abhishek Padalkar, Abra- (ICRA), pages 13438–13444. IEEE, 2021.
+ham Lee, Acorn Pooley, Agrim Gupta, Ajay Mandlekar,  Bingjie Tang, Michael A Lin, Iretiayo Akinola, Ankur
+etal. Openx-embodiment:Roboticlearningdatasetsand Handa, Gaurav S Sukhatme, Fabio Ramos, Dieter Fox,
+rt-x models. arXiv preprint arXiv:2310.08864, 2023. andYashrajNarang. Industreal:Transferringcontact-rich
+ Ethan Perez, Florian Strub, Harm De Vries, Vincent assemblytasksfromsimulationtoreality. arXivpreprint
+Dumoulin, and Aaron Courville. Film: Visual reasoning arXiv:2305.17110, 2023.
+with a general conditioning layer. In Proceedings of the  Bingjie Tang, Iretiayo Akinola, Jie Xu, Bowen Wen,
+AAAI conference on artificial intelligence, volume 32, Ankur Handa, Karl Van Wyk, Dieter Fox, Gaurav S
+2018. Sukhatme,FabioRamos,andYashrajNarang. Automate:
+ Charles R Qi, Hao Su, Kaichun Mo, and Leonidas J Specialist and generalist assembly policies over diverse
+Guibas. Pointnet: Deep learning on point sets for 3d geometries. arXiv preprint arXiv:2407.08028, 2024.
+classification and segmentation. In Proceedings of the  Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+IEEE conference on computer vision and pattern recog- Pertsch, Kevin Black, Oier Mees, Sudeep Dasari, Joey
+nition, pages 652–660, 2017. Hejna, Tobias Kreiman, Charles Xu, et al. Octo: An
+ Charles Ruizhongtai Qi, Li Yi, Hao Su, and Leonidas J open-source generalist robot policy. arXiv preprint
+Guibas. Pointnet++: Deep hierarchical feature learning arXiv:2405.12213, 2024.
+on point sets in a metric space. Advances in neural  Lirui Wang, Yiyang Ling, Zhecheng Yuan, Mohit Shrid-
+information processing systems, 30, 2017. har, Chen Bao, Yuzhe Qin, Bailin Wang, Huazhe Xu,
+ HaozhiQi,BrentYi,SudharshanSuresh,MikeLambeta, and Xiaolong Wang. Gensim: Generating robotic sim-
+YiMa,RobertoCalandra,andJitendraMalik.Generalin- ulation tasks via large language models. arXiv preprint
+handobjectrotationwithvisionandtouch.InConference arXiv:2310.01361, 2023.
+on Robot Learning, pages 2549–2564. PMLR, 2023.  Yian Wang, Ruihai Wu, Kaichun Mo, Jiaqi Ke, Qingnan
+ IlijaRadosavovic,TeteXiao,BikeZhang,TrevorDarrell, Fan, Leonidas J Guibas, and Hao Dong. Adaafford:
+Jitendra Malik, and Koushil Sreenath. Real-world hu- Learning to adapt manipulation affordance for 3d artic-
+ulated objects via few-shot interactions. In European IEEE, 2021.
+conference on computer vision, pages 90–107. Springer,  Harry Zhang, Ben Eisner, and David Held. Flowbot++:
+2022. Learninggeneralizedarticulatedobjectsmanipulationvia
+ Yufei Wang, Zhanyi Sun, Zackory Erickson, and David articulationprojection. arXivpreprintarXiv:2306.12893,
+Held. One policy to dress them all: Learning to dress 2023.
+people with diverse poses and garments. arXiv preprint  YuanhangZhang,TianhaiLiang,ZhenyangChen,Yanjie
+arXiv:2306.12372, 2023. Ze, and Huazhe Xu. Catch it! learning to catch in
+ Yufei Wang, Zhou Xian, Feng Chen, Tsun-Hsuan Wang, flight with mobile dexterous hands. arXiv preprint
+Yian Wang, Katerina Fragkiadaki, Zackory Erickson, arXiv:2409.10319, 2024.
+David Held, and Chuang Gan. Robogen: Towards un-  Hengshuang Zhao, Li Jiang, Jiaya Jia, Philip HS Torr,
+leashing infinite data for automated robot learning via and Vladlen Koltun. Point transformer. In Proceedings
+generative simulation. arXiv preprint arXiv:2311.01455, of the IEEE/CVF international conference on computer
+2023. vision, pages 16259–16268, 2021.
+ Ruihai Wu, Yan Zhao, Kaichun Mo, Zizheng Guo, Yian  Yi Zhou, Connelly Barnes, Jingwan Lu, Jimei Yang, and
+Wang,TianhaoWu,QingnanFan,XuelinChen,Leonidas Hao Li. On the continuity of rotation representations
+Guibas,andHaoDong. Vat-mart:Learningvisualaction in neural networks. In Proceedings of the IEEE/CVF
+trajectory proposals for manipulating 3d articulated ob- conference on computer vision and pattern recognition,
+jects. arXiv preprint arXiv:2106.14440, 2021. pages 5745–5753, 2019.
+ Ziniu Wu, Tianyu Wang, Chuyue Guan, Zhongjie Jia,  Yifeng Zhu, Abhishek Joshi, Peter Stone, and Yuke
+ShuaiLiang,HaomingSong,DelinQu,DongWang,Zhi- Zhu. Viola: Imitation learning for vision-based ma-
+gangWang,NieqingCao,etal. Fast-umi:Ascalableand nipulation with object proposal priors. arXiv preprint
+hardware-independent universal manipulation interface. arXiv:2210.11339, 2022. doi: 10.48550/arXiv.2210.
+arXiv preprint arXiv:2409.19499, 2024. 11339.
+ FanboXiang,YuzheQin,KaichunMo,YikuanXia,Hao  Ziwen Zhuang, Zipeng Fu, Jianren Wang, Christo-
+ et al. Sapien: A simulated part-based Hang Zhao. Robot parkour learning. arXiv preprint
+interactiveenvironment.InProceedingsoftheIEEE/CVF arXiv:2309.05665, 2023.
+conference on computer vision and pattern recognition,
+pages 11097–11107, 2020.
+ Haoyu Xiong, Russell Mendonca, Kenneth Shaw, and
+Deepak Pathak. Adaptive mobile manipulation for ar-
+ticulated objects in the open world. arXiv preprint
+arXiv:2401.14403, 2024.
+ Yunyang Xiong, Bala Varadarajan, Lemeng Wu, Xiaoyu
+ et al. Efficientsam:
+Leveraged masked image pretraining for efficient seg-
+mentanything. InProceedingsoftheIEEE/CVFConfer-
+enceonComputerVisionandPatternRecognition,pages
+16111–16121, 2024.
+ Zhenjia Xu, Zhanpeng He, and Shuran Song. Univer-
+sal manipulation policy network for articulated objects.
+IEEE robotics and automation letters, 7(2):2447–2454,
+2022.
+ Zhenjia Xu, Zhou Xian, Xingyu Lin, Cheng Chi, Zhiao
+Huang, Chuang Gan, and Shuran Song. Roboninja:
+Learning an adaptive cutting policy for multi-material
+objects. arXiv preprint arXiv:2302.11553, 2023.
+ Yanjie Ze, Gu Zhang, Kangning Zhang, Chenyuan Hu,
+Muhan Wang, and Huazhe Xu. 3d diffusion policy:
+Generalizable visuomotor policy learning via simple 3d
+representations. InRobotics:ScienceandSystems,2024.
+ Vicky Zeng, Tabitha Edith Lee, Jacky Liang, and Oliver
+Kroemer. Visual identification of articulated object
+parts. In 2021 IEEE/RSJ International Conference on
+IntelligentRobotsandSystems(IROS),pages2443–2450.

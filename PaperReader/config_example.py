@@ -13,8 +13,18 @@ GLM_API_KEY = ""
 GLM_API_MODEL = ""
 
 # 论文PDF文件夹路径
-PDF_FOLDER = "Data/PR_Data/paper"
+# PDF_FOLDER = "Data/PR_Data/paper"
+PDF_FOLDER = "/home/yx_xx/myProject/论文/RSS2025/downloads"
+
 # 原始输出保存路径
-SAVE_DIR = "Data/PR_Data/glm_outputs"
+# SAVE_DIR = "Data/PR_Data/glm_outputs"
+SAVE_OP_DIR = "Data/PR_Data/glm_outputs/RSS2025"
+
+# 原始prompt保存路径
+# SAVE_DIR = "Data/PR_Data/glm_outputs"
+SAVE_PROMPT_DIR = "Data/PR_Data/prompt_outputs"
+
+
 # 输出Excel文件名
-OUTPUT_EXCEL = "Data/PR_Data/PaperRead_result.xlsx" 
+# OUTPUT_EXCEL = "Data/PR_Data/PaperRead_result.xlsx" 
+OUTPUT_EXCEL = "Data/PR_Data/PaperRead_RSS2025.xlsx" 

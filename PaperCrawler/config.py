@@ -50,7 +50,10 @@ class Config:
         # 网页爬取配置
         self.web_sources = [
             # 'https://roboticsconference.org/program/papers/',
-            'https://roboticsconference.org/2024/program/papers/',
+            # 'https://roboticsconference.org/2024/program/papers/',
+            # 'https://roboticsconference.org/2023/program/papers/',
+            'https://roboticsconference.org/2022/program/papers/',
+
 
         ]
         
