@@ -57,7 +57,7 @@ def analyze_paper_with_glm(text, pdf_filename="unknown"):
     """
     client = ZhipuAI(api_key=GLM_API_KEY)
     prompt = (
-        "请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：\n"
+        "请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。\n"
         "{\n"
         "  \"论文标题\": \"\",\n"
         "  \"研究主题关键词\": \"\",\n"
@@ -77,7 +77,6 @@ def analyze_paper_with_glm(text, pdf_filename="unknown"):
             stream = False,
         )
         
-        # 傻逼编辑器，明明没错非要报错！！！
         content = response.choices[0].message.content
         
         # print(content)
@@ -102,9 +101,21 @@ def parse_glm_output(content):
         "创新点关键词": "",
         "主要结论关键词": ""
     }
-    
+
+    # 只有左大括号没有右大括号，直接补全
+    if '{' in content and '}' not in content:
+        brace_start = content.find('{')
+        possible_json = content[brace_start:] + '}'
+        try:
+            data = json.loads(possible_json)
+            for key in result:
+                if key in data:
+                    result[key] = str(data[key]).strip()
+            return result
+        except Exception:
+            pass
     try:
-        # 尝试1：直接解析JSON（适用于无标记的纯JSON）
+        # 直接解析JSON（适用于无标记的纯JSON）
         try:
             data = json.loads(content)
             for key in result:
@@ -114,7 +125,7 @@ def parse_glm_output(content):
         except json.JSONDecodeError:
             pass
         
-        # 尝试2：匹配带标记的JSON块（处理```json标记）
+        # 匹配带标记的JSON块（处理```json标记）
         json_match = re.search(
             r'```(?:json)?\s*({.*?})\s*```', 
             content, 
@@ -129,7 +140,7 @@ def parse_glm_output(content):
                 return result
             except json.JSONDecodeError:
                 pass
-        # 尝试3：提取最后一对大括号内的内容（处理无标记或部分标记）
+        # 提取最后一对大括号内的内容（处理无标记或部分标记）
         brace_matches = list(re.finditer(r'\{[^{}]*\}', content, flags=re.DOTALL))
         if brace_matches:
             last_brace = brace_matches[-1].group(0)
@@ -147,7 +158,7 @@ def parse_glm_output(content):
     except Exception as e:
         print(f"[JSON解析] 解析失败: {e}")
     
-    # 最后尝试：逐行解析键值对
+    # 逐行解析键值对
     print("[JSON解析] 使用备选解析方案")
     for line in content.splitlines():
         line = line.strip()
