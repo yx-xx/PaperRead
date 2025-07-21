@@ -1,0 +1,974 @@
+=== PDF文件: Neural Inertial Odometry from Lie Events.pdf ===
+=== 时间: 2025-07-21 15:00:35.467324 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Neural Inertial Odometry from Lie Events
+Royina Karegoudra Jayanth
+Yinshuang Xu
+Evangelos Chatzipantazis
+Kostas Daniilidis
+Daniel Gehrig
+Department of Computer Science, University of Pennsylvania
+{royinakj,xuyin,vaghat,kostas,dgehrig}seas.upenn.edu
+AbstractNeural displacement priors (NDP) can reduce the
+drift in inertial odometry and provide uncertainty estimates that
+can be readily fused with off-the-shelf filters. However, they fail
+to generalize to different IMU sampling rates and trajectory
+address this challenge, we replace the traditional NDP inputs
+comprising raw IMU data with Lie events that are robust to
+input rate changes and have favorable invariances when observed
+under different trajectory profiles. Unlike raw IMU data sampled
+at fixed rates, Lie events are sampled whenever the norm of
+the IMU pre-integration change, mapped to the Lie algebra
+of the SE(3) group, exceeds a threshold. Inspired by event-
+based vision, we generalize the notion of level-crossing on 1D
+signals to level-crossings on the Lie algebra and generalize binary
+polarities to normalized Lie polarities within this algebra. We
+show that training NDPs on Lie events incorporating these
+polarities reduces the trajectory error of off-the-shelf downstream
+inertial odometry methods by up to 21 with only minimal
+preprocessing. We conjecture that many more sensors than IMUs
+or cameras can benefit from an event-based sampling paradigm
+and that this work makes an important first step in this direction.
+MULTIMEDIA MATERIAL
+Open source code can be found here:
+RoyinaJayanthNIO Lie Events.
+I. INTRODUCTION
+Visual inertial odometry (VIO) has become a staple of
+modern localization and navigation systems powering a diverse
+range of applications including Augmented and Virtual Reality
+(ARVR) , autonomous driving, and robotics . In short,
+it works by integrating accelerometer and gyroscope measure-
+ments from an inertial measurement unit (IMU) and correcting
+the resulting drift with observations from a standard frame
+camera . However, the usefulness of these visual obser-
+vations is often limited by the quality of the captured camera
+lighting conditions and high-speed motion scenarios.
+In seeking to overcome these limitations, a promising
+alternative has emerged, namely using neural displacement
+priors (NDPs). NDPs learn to map raw IMU measurements
+themselves to displacement and covariance terms, and these
+can then be used to correct drift, while circumventing the
+pitfalls of classical frame-based algorithms. Surprisingly, these
+priors have been shown to possess similar drift-correcting
+capabilities to frame-based observations , and have thus
+resulted in a resurgence of IMU-only, i.e. purely Inertial
+Odometry (IO) [31, 20, 6]. These neural priors generate
+Neural Inerial Odometry from Lie Events. We train Neural Displace-
+ment Priors (NDPs), which enable low-drift inertial odometry, with Lie Events
+derived from acceleration a(ti) and angular rate (ti) measurements from
+an Inertial Measurement Unit (IMU). These events enhance the robustness
+of NDPs due to their favorable properties under varying sampling rates and
+trajectory profiles. To generate these events, we produce pre-integrations x(t)
+which reside in the special Euclidean group SE(3) and then perform level-
+crossing on this signal which prompts the generalization of level-crossing and
+event polarities (red and blue arrows) to higher dimensional manifolds.
+denoised displacement measurements with associated uncer-
+tainties by recognizing patterns in the IMU data and can
+be readily fused using off-the-shelf filters. However, learning
+generalizable priors has proven to be a challenging endeavor.
+This is because IMU data exhibits a high degree of variability
+as a result of differing IMU mount orientations, motion direc-
+addressed via data augmentation , consistency losses  or
+remains elusive. In particular, NDPs need to learn to ignore
+data variability which may arise from different gaits or speeds.
+consistency remains an open challenge.
+In this work, we take on this challenge by training NDPs
+with Lie Events instead of raw IMU data, visualized in
+Fig. 1. Lie Events are generated when the change in IMU
+pre-integration exceeds a pre-specified threshold. IMU pre-
+integrations correspond to raw integrations of debiased IMU
+accelerometer and gyroscope measurements. Change is mea-
+sured by projecting the endpoint of the pre-integrated path
+onto the Lie algebra of SE(3) and taking its norm. We show
+both theoretically and empirically that this behavior imbues
+the resulting events with favorable invariances with respect
+to different sampling rates and trajectory profiles, enhancing
+the robustness of downstream NDPs. To generate these events,
+we take inspiration from classical event-based vision [29, 38],
+and generalize notions of level-crossing and event polarities
+to arbitrary Lie groups. In particular, we generalize level-
+crossing on 1D signals to level-crossing in the Lie algebra
+centered at a reference element and introduce Lie polarities
+which generalize binary polarities to normalized elements in
+this Lie algebra. They characterize the direction of significant
+pre-integration change in the Lie algebra. Unlike their binary
+analog values. These generalizations reduce to the standard
+case in [29, 38] for 1D signals. Finally, we show that event
+generation partially canonicalizes the IMU data with respect
+to motion variations within an interval. This canonicalization
+transforms IMU sequences to a space with lower data variabil-
+ity and thereby enhances the generalizability of NDPs trained
+in this space. Our contributions are the following:
+We present a canonicalization scheme for IMU data
+which converts them into Lie Events. These Lie Events
+are directly compatible with a wide range of existing
+ness with only minimal preprocessing.
+We show both empirically and theoretically that these
+Lie Events possess favorable invariances with respect to
+motion variations within an interval, highlighting their
+benefit for NDP training.
+Lie Events, which requires the extension of traditional
+notions of level-crossing and event polarities to arbitrary
+Lie groups. These tools are applicable in a wide range of
+To show the generality of our method we apply it to multiple
+down-stream NDPs and multiple datasets, where we show
+consistent error reductions, with only minimal preprocessing.
+II. RELATED WORK
+Neural Prior for IO: Learning-based inertial odometry (IO)
+effectively reduces integration drift by leveraging neural priors.
+Recent approaches [43, 1, 20] introduce neural priors via
+velocity regression. Specifically, RIDI  utilizes CNNs to
+predict velocity for IMU data refinement, PDRNet  applies
+recurrent networks for velocity regression, and RONIN
+employs TCNs to directly integrate the predicted velocity for
+neural-based fusion. Some works [7, 31, 9, 40] learn the
+displacement prior. Specifically, TLIO  predicts both 3D
+displacements and diagonal covariances via a network, and
+incorporates them in an Extended Kalman Filter (EKF) via
+a measurement equation. RNIN-VIO  extends TLIO to
+continuous pedestrian motion estimation with visual inputs.
+In the meanwhile, there are some methods
+Brossard et al.
+, Buchanan et al. , Brossard et al.  that leverage the
+power of deep learning to denoise the motion and Steinbrener
+et al.  predicts the IMU biases. Our proposed Lie events
+can be directly applied to TLIO , and enhance its robust-
+ness to variations in motion and sampling rate.
+long been widely practiced with both hand-crafted and learned
+techniques. Recently, canonicalization with equivariant models
+to improve generalization in off-the-shelf models has gained
+popularity. Kaba et al.  first theoretically proposed using
+Learned Canonicalization Functions to achieve equivariance
+with general off-the-shelf models. In practical applications,
+Li et al. , Baker et al.  canonicalize point clouds
+by constructing global and local frames, Deng et al.
+introduces an equivariant canonicalization method in PointNet
+for 3D shape analysis and reconstruction, and Jayanth et al.
+learns an equivariant frame to canonicalize IMU data
+with respect to reflections and rotations. Additionally, with
+the rise of large pretrained models, recent work  applies
+canonicalization as an input preprocessing step to such models.
+Event-based Sensors: Event-based sensors are most promi-
+nently used in the computer vision community, where they
+address the bandwidth-latency tradeoff [12, 16] of algorithms
+based on fixed-rate images from standard frame-based image
+sensors. Capturing high-speed motion requires high framer-
+risks missing vital scene dynamics due to the increased latency.
+Event cameras like the dynamic vision sensor (DVS) ,
+address this by adapting their sampling rate to the scene
+dynamics. They do this by responding only to changes, i.e.
+performing event-based sampling on the log intensity signal
+observed at a single pixel. Alternative cameras, like the Asyn-
+chronous Time-based Image Sensor (ATIS) , use the same
+event-based sampling technique but instead measure absolute
+intensities. Most recently, the work in  introduced the
+generalized event camera, which explored a large range of
+possible event cameras differing in the condition when an
+event is triggered, and what type of data is read out for each
+event. Beyond the vision domain, event-based sensing has
+been also generalized to asynchronous binaural spatial audition
+presented in
+shows the benefits of using event-guided
+guidance to a structured light system for efficient scene recon-
+struction. This growing set of event-based sensors inspires the
+development of an event-based IMU, presented in this work.
+Similar to works in event-based control theory  which
+consider attitude consensus, our work focuses on generating
+events on the manifold. However, unlike , we use these
+events for inertial odometry and consider the full SE(3)
+manifold instead of only SO(3).
+III. METHOD
+The goal of this work is neural inertial odometry from a
+single IMU, comprised of an accelerometer providing linear
+acceleration measurements a(ti) R3, and a gyroscope
+providing angular velocity measurements (ti) R3 at
+discrete times ti. These measurements are related to the true
+canonical event timestamps
+reference  ()
+event timestamps
+arc len.
+Event timestamps j generated from reference signal x(t)
+x((t)) can be computed from the event timestamps
+j of the path x(s),
+by applying the inverse mapping 1. Moreover, references xref,j  x(j)
+j ) are equal and independent of a specific .
+angular velocity (ti) and acceleration a(ti) via
+(ti)  (ti)  bg(ti)  g(ti)
+a(ti)  a(ti) Rwb
+(ti)g  ba(ti)  a(ti)
+where g R3 denotes the gravity direction pointing down-
+ward in world frame w, Rwb(ti) is the transformation between
+body frame b and w at time ti, and bg, ba and g, a
+i are IMU
+biases and noises respectively.
+As in previous works  we assume access to a gravity
+direction and bias estimate via a filter, with which IMU
+measurements are gravity-compensated and bias-corrected:
+(ti)  Rg(ti)((ti) b
+a(ti)  Rg(ti)(a(ti) b
+a(ti))  g
+where Rg(ti) is the estimated gravity aligned frame, such that
+Rg(ti) R
+wb(ti)g  R(ti)g  g and R(ti) is an unobserv-
+able yaw around the gravity axis. The resulting measurements
+thus mimic the true body rates (ti), a(ti). Note that estimates
+of gravity and biases can be easily found by running an
+We address inertial odometry with neural displacement
+priors that regress displacements and covariances from a se-
+quence of IMU measurements regularly sampled at timestamps
+ti  it within a time interval I  [0, T]. We will denote
+these sampling times with T  (t1, ..., tN) and N  T
+We will use the shorthand (T ) to denote the set {(ti)}tiT .
+Then the displacement prior can be written as
+Here d R3 is the displacement between times t  0 and
+t  T, and  R33 is its associated covariance. Note that
+our exposition also encompasses methods like
+predict averaged velocity v over a time window. Displacement
+can be simply recovered via d  vT, with constant T.
+In what follows, we will derive steps to make the above
+neural network robust to variations in IMU speed, thus en-
+hancing its generalizability. In particular, we achieve this
+by generating canonicalized inputs (E), a(E) sampled at
+specifically chosen event timestamps E  (1, ..., M), and
+augmented by Lie polarities p(E) with p(j) S5 R6
+via a suitable preprocessing step, using on-manifold event
+generation. These polarities are normalized vectors that encode
+the change direction of pre-integrations, and will be defined
+later. We term these network inputs Lie events. In summary,
+our neural network uses inputs
+In particular, we parametrize the uncertainty with a diagonal
+covariance   exp (diag(2ux, 2uy, 2uz)) with learnable
+will study the impact of speed variations on the original neural
+network inputs, and then how to derive the new inputs above.
+A. Modeling Speed Variations in IMU motion
+Let the IMU trajectory1 T(t)  (R(t), t(t)) SE(3) on
+the interval I be decomposed into
+T(t)  T((t))
+with path2 T(s) parametrized by arc-length s and unit
+velocity v(s) 1 and time parametrization  : I [0, 1]
+with speed (t) > 0 and (0)  0 and (T)  1. Note that
+network outputs in Eq. (6) only depend on the path, since
+0(tT t0)  R
+where R0, t0 and RT , tT denote the pose at time t  0 and
+t  T respectively. Moreover, for methods like
+predict average velocity v  d
+T  vfor a fixed and
+given T. Yet, the network inputs are affected by (t) via the
+kinematic relations
+R(t) R(t)
+a(t)  t(t)
+where (.)maps a skew-symmetric matrix to a vector. Using
+the chain rule we find that
+where canonical angular rate and acceleration are defined as
+R(s)R(s)
+and a(s)  t(s). Note the use
+of (.) to denote derivatives, as these are no longer temporal
+derivatives. Thus the network inputs (T ) and a(T ) depend
+on  in the same form as above: First,  modulates the function
+evaluation time, i.e. shifts the evaluation time from T to (T ),
+and second it modulates the magnitude of the measurement
+via its derivative. We perform partial canonicalization of the
+existing inputs and provide additional canonical inputs by
+introducing new event timestamps E  (1, ..., M) and Lie
+polarities p(E). Crucially, these event timestamps depend on
+the trajectory T(t) taken by the IMU and, by construction, will
+depend on the event timestamps E (
+M) derived
+from the path T(s) via E  1(E)3. Likewise, we will
+construct polarities p(j) that only depend on the path, and
+1Subscripts wb (body to world transformation) are omitted for brevity.
+2We distinguish between path which is simply the sequence of points, and
+trajectory which depends on time.
+3Note that since (t) > 0 the function  is invertible.
+Illustration of on-manifold event generation. (A) For a reference signal x(t) on SE(3) we find the tangent space at the last reference pose xref,i. In
+this space, we find the moment it exits the -ball and record the polarity p(j) with unit norm perpendicular to that ball, and update the reference pose to
+are thus equal to the polarities p(
+j ) derived from the path.
+As a result, the inputs to the network become
+a(E)  (E)2a(E)  (E)v(E)
+p(E)  p(E)
+simplifying
+dependence
+p(E), v(E), (E), a(E)
+canonicalized
+only depend on path T(s), not T(t), and that the polarity is
+completely independent of . Thus networks trained on these
+quantities exhibit better generalization to variation in motion
+. Next, we discuss how to construct E and p(j) with the
+properties outlined above.
+B. Generating IMU Events
+To construct the event timestamps E we take inspiration
+from event-based cameras . These cameras have indepen-
+dent pixels that trigger an event whenever the difference of the
+log intensity log(I(t)) at a specific pixel with respect to some
+reference log(Iref) exceeds a threshold . We generalize this
+notion by identifying the pixel intensity with a new variable
+termed reference signal x(t) . I(t). Thus, given that an event
+was triggered at the last time step j1 and reference xref,j1,
+the next event timestamp and reference can be written as
+t>j1{t :  log(x(t)) log(xref,j1)},
+and xref,j
+x(j). Furthermore, event cameras report a
+polarity p(j) which can be defined as
+i.e. the sign of the change since the last reference. Using the
+Setting the initial event timestamp 1  0, and refer-
+ence to xref,1
+. x(1) we can generate event timestamps
+ities p(2), ..., p(M) recursively from a given signal x(t).
+We will show that such a sampling scheme has the desired
+property E  1(E). In particular, as the log intensity L(t)
+at a given pixel, we can let the reference signal x(t) depend
+on a canonical reference x(t)  x((t)). We can inductively
+prove the following theorem (see appendix, Sec. I):
+Theorem 1. If x(t)  x((t)) with (t) > 0 and (0)
+j ) and xref,j  x
+The implications of this theorem are that for all j we can
+simply find the event timestamps j by computing
+j from the
+path x(s) and applying 1. Note that, since xref,j  x
+the polarity p(j), defined in Eq. 16, only depends on events
+on the path x(s), i.e. p(j)  p(
+j ). We visualize these
+relations in Fig. 2. This theorem establishes the core invariance
+property of Lie polarities (dependent on xref,j) to variations in
+parametrization (t). Moreover, it shows that we can derive
+such polarities without needing to directly access unobservable
+(t) and x(s) by simply performing event-based sampling on
+observable x(t). Crucially, we never explicitly compute x(s)
+or (t). Having established these event properties, we turn
+to finding a suitable reference signal x(t) for IMU inertial
+odometry. We will show that the codomain of this reference
+is SE(3), and thus, we extend the notion of event-based
+sampling to manifolds.
+C. On-manifold Event Generation
+Several options exist for selecting the reference signal as
+long as it can be written in terms of x(s) as x(t)  x((t)).
+This excludes acceleration- or velocity-like signals since these
+transform as a,  (i.e. depend on , ), but includes distance-
+like signals, e.g. the distance over time from some selected
+origin. We use relative IMU pose estimates over the time
+x(t)  ( R(t),t(t)). These terms are the on-manifold forward
+Euler integrated solution R(t),t(t) to (9), using raw IMU
+measurements a(ti), (ti). Forster et al.  provides formu-
+lae for these, given initial pose ( R(t1),t(t1))  ( R(t1),t(t1))
+and velocity v(t1)  v0, namely
+R(ti1)  R(ti)Exp({(ti) bg(t1)}t)
+v(ti1)  v(ti)  R(ti)(a(ti) ba(t1))t  gt
+t(ti1)  t(ti)  v(ti)t  1
+R(ti)(a(ti) ba(t1))t2
+which provides finite samples R(ti),t(ti) for ti T . We
+define the continuous signal x(t) by interpolating between
+these samples. In particular, between samples i and i  1 we
+construct the geodesic path defined on [ti, ti1] as
+x(t)  x(ti)Exp
+Log(x1(ti)x(ti1))
+Here Log : SE(3) se(3) is the log map, which sends
+relative poses to elements in the tangent space, and Exp :
+se(3) SE(3) is the (inverse) exponential map. In Sec. IV-D,
+we show that event generation is robust to IMU rate variations,
+and interpolation errors.
+While during test time we use the EKF state to set v0,
+during training we use ground truth, and add random perturba-
+tions to v0 to simulate filter uncertainty. Since pre-integrations
+mimic the true pose of the IMU, they approximately depend
+on pre-integration paths R
+While previously our reference signal was simply a 1-D signal
+(log intensity), the above pre-integrations naturally reside in
+SE(3). Thus notions such level-crossing, and polarities need
+to be generalized. We start off by replacing the notion of signal
+change between xref,j1 and x(t) with the geodesic distance
+in SE(3), and use this to replace the L2-norm in Eq. 15
+and xref,j  x(j). Note that this equation mimics Eq. (34)
+applied to event-based attitude control on SO(3).
+We extend this to SE(3) and introduce the notion of event
+polarities in this space, which we use to enhance the robustness
+of our method. We visualize the event generation process in
+3 (a). We see that on the manifold, event generation
+amounts to finding the timestamp when the signal projected
+to the tangent space centered at xref,j1 steps outside of a ball
+of dimension 6. At the point where this crossing happens we
+record the unit vector perpendicular to this sphere and define
+it as being the Lie polarity of the event at time j:
+where S5 denotes the 6D unit sphere. we can reconstruct the
+original signal with p(j) recursively
+These closely mimic the formulae for event generation in
+Eqs. (15) and (16), but are valid for arbitrary Lie groups. More-
+Eqs. (15),(16), and (17) and polarities p(j) S0  {1, 1}.
+Note also that Theorem 1 can be seamlessly transferred to this
+In Fig. 3 (b) and (c) we illustrate the invariance of polarities
+to time reparametrizations by considering a toy example of a
+dot moving in R2 without orientation. We visualize two refer-
+ence signals x1(t)  x(1(t)) and x2(t)  x(2(t)), with
+different speed profiles. The tangent planes around reference
+poses in R2 can be visualized as planes perpendicular to time,
+and the  ball can be visualized as a cylinder parallel to time.
+Polarities are 2D unit vectors perpendicular to the cylinder.
+Projecting this image onto the xy-plane (Fig. 3 (c)) reveals
+that the polarities only depend on the path x(s), not .
+D. Network Inputs
+As our method generates a variable number of events it is
+not directly compatible with off-the-shelf neural displacement
+priors  which are designed to handle a fixed number of
+IMU measurements. Inspired by event-based vision, we use
+event stacks . We convert Lie events (E),a(E), p(E) to
+tensors Ea,, Ep RB6 with B  200 via:
+[a(j)(j)][b j]
+Ep[b]  1
+p(j)[b j]
+where M is the number of events triggered on the interval
+[0, T], and  is the Kronecker delta. Note that M can be much
+smaller than B, leading to sparsity in the inputs. Future work
+could tackle leveraging this sparsity for efficient processing.
+Acceleration and angular rates have been concatenated. Here
+nb denotes the number of samples mapped to index b and lb
+denotes the norm of the vector at index b so as to normalize the
+polarity. Furthermore, j
+maps the index
+of the event into a range [0, B 1]. Note that we linearly
+and Ep along the channel dimension, resulting in an input
+tensor of shape B  12.
+Note on Timestamps: We do not feed in raw time stamps
+into the network since they vary with the unobservable speed
+(t) from the trajectory, not the path x(s). They would thus
+re-introduce data variability, which the network would need
+to learn to ignore. We believe the network can recover the
+displacement by leveraging event polarities. Eq
+(25) shows
+that the path x(s), which is sufficient to find, d can be
+recovered from polarities alone and without raw time stamps.
+We argue that the network learns to correct this reconstruction
+with priors and additional information from a(j) and (j).
+IV. EXPERIMENTS
+of Theorem 1 in Sec. IV-A, before demonstrating the gen-
+erality of our approach by applying it to the neural inertial
+odometry frameworks TLIO  (Sec. IV-B) and RoNIN
+(Sec. IV-C). Furthermore, we will present a sensitivity study
+that highlights the robustness of our approach with respect to
+IMU rate variations in Sec. IV-D, and round off with ablation
+and hyperparameter sensitivity studies in Sec. IV-E.
+Ref. x(t)
+Correction
+Contrast Threshold
+pre-integration
+ground truth
+CHAMFER DISTANCE IN  BETWEEN EVENT TIMESTAMPS (E) AND
+CANONICAL EVENT TIMESTAMPS E. NO CORRECTION DENOTES THAT E
+WAS NOT REMAPPED USING .
+A. Toy Example
+ence signals based on the pre-integration of IMU accelerations
+and angular rates, and show their relation to event timestamps
+Egenerated from canonical pre-integrations. We use IMU
+data from the TLIO test dataset , which comprises 60
+hours of 1 kHz IMU data, with 200 Hz ground truth trajectory
+data from MSCKF . It was gathered from five individuals
+performing a broad range of activities, for example, walking,
+stair traversal, and kitchen organization. More dataset details
+are in the appendix, Sec. V.
+We denote non-overlapping 1-second ground truth trajec-
+tories as paths T(s) and generate synthetic new trajectories
+T(t)  T((t)), where (t)  ( t
+t) [0, 1] with
+t  1s and  {0.5, 1.0, 2.0}. We then generate artificial
+IMU measurements by fitting a spline through the poses and
+finding derivatives. We apply bias, noise, and bias drift consis-
+tent with the noise magnitudes found in . We then perform
+pre-integration on IMU data from the path R(s),t(s) and
+trajectories R(t),t(t). Finally, we generate events using
+different thresholds  {0.005, 0.01, 0.02} producing canon-
+ical event timestamps Eand non-canonical event timestamps
+E. Finally, we map E to the canonical setting, i.e. compute
+(E) and compare them with Evia the chamfer distance.
+For comparison, we also report the chamfer distance without
+remapping. We compare with noiseless ground truth poses as
+the reference signal to show the lower error bound.
+Tab. I shows that event generation is capable of sampling
+the correct measurement even after time dilation. The smallest
+threshold 0.005 achieves an error of 1.15  for a remapping
+of (t)  t2. We also see that using ground truth significantly
+reduces this error to about 0.1 in the same setting validating
+the theory for ideal references. Future research can benefit
+from more accurate pre-integration schemes.
+B. Application to TLIO
+TLIO is a learning-based inertial odometry algorithm that
+estimates the 6-DoF IMU pose with an extended Kalman
+filter (EKF). Propagation is performed by integrating raw ac-
+celerometer and gyroscope measurements, while measurement
+updates are performed with neural network-based displace-
+ment and covariance predictions d R3 and  R33. The
+network takes 1-second windows of 200 IMU measurements
+as input with shape 200  6. IMU data is bias-corrected
+using factory calibration bias values, and gravity aligned using
+the EKF orientation state. EKF details and propagation and
+measurement equations are provided in Sec. II, and network
+details in Sec. IV of the appendix.
+Implementation Details We pre-integrate accelerometer
+and gyroscope measurement sequences of length 200 and
+obtain the orientation and position estimates in a gravity-
+aligned world frame. We use the EKF estimates of orientation,
+testing. We then generate event timestamps and polarities
+using this reconstructed trajectory and a threshold   0.01.
+Sec. IV-E shows a sensitivity analysis motivating the choice
+of . For consistency, we map the polarity into the gravity-
+aligned frame after generation.
+described in the appendix, and evaluate it on the TLIO Test
+Set and the Aria Everyday Activities (Aria) Datasets .
+Aria is an egocentric dataset collected using the Project Aria
+glasses  and comprises a left (800 Hz) and right (1 kHz)
+IMU with ground truth position and orientation. It contains 7.3
+hours of data and includes a wide range of wearers engaged
+in everyday activities like reading, exercising, and relaxing.
+More dataset details are in the appendix, Sec. V.
+Training Details: We train the first 10 epochs we train with
+a component-wise MSE loss , so that the displacement
+prediction converges, and we then, for 40 epochs, switch
+to a Maximum Likelihood Error (MLE) loss  which
+incorporates both the predicted displacement and diagonal
+covariance. We use a learning rate of 104, the Adam op-
+models on NVIDIA a40 GPUs. During training, we use ground
+truth initial velocities v0 for bootstrapping pre-integration, and
+perturb it with uniform noise nv0 U[0.5, 0.5]. To simulate
+noise in the gravity-aligned frame, we perturb the gravity
+direction by 5uniformly at random and apply a random
+yaw. Furthermore, we add uniform noise n U[0.05, 0.05]
+and na U[0.2, 0.2] to angular rates, and accelerations
+simulating uncertainties in bias estimates. We also add noise
+np U[0.5, 0.5] to polarities before renormalizing.
+ants of TLIO , which, similar to our method, target time
+scale robustness. During training, we randomly subsample
+the 200 Hz IMU data to rates r {20, 40, 100, 200}. Since
+natively TLIO requires an input of 200 samples, we convert the
+subsampled data back to 200 by interpolation (denoted TLIO
+interp.) or by using the event stack in Eq. (26) (denoted TLIO
+splat.). Note that our method (denoted TLIO  events) is
+not trained with rate augmentation.
+and written out in detail in the appendix, Sec. VI:
+Mean Squared Error (MSE) between predicted (d(ti))
+and ground truth displacements (d(ti)) averaged over the
+trajectory.
+Absolute Translation Error (ATE), i.e. the RMSE between
+estimated (t(ti)) and ground truth positions (t(ti)).
+NN evaluation
+NNEKF evaluation
+TLIO Dataset
+Aria Right
+Aria Left
+TLIO Dataset
+Aria Right
+Aria Left
+events (ours)
+TABLE II
+COMPARISON OF OUR METHOD AGAINST BASELINES TLIO WITH AND WITHOUT DATA AUGMENTATION ON THE TLIO DATASET , AND ARIA
+EVERYDAY DATASETS . NOTE HERE LEFT AND RIGHT DENOTE THE LEFT AND RIGHT IMUS IN THE ARIA DATASETS.
+Relative Translation Error (RTE), i.e. local differences
+between t(ti) and t(ti) over a 1-second or (1 minute for
+RoNIN) window t.
+Absolute Yaw Error (AYE), i.e. the yaw RMSE.
+Translational drift over the total distance traveled.
+To limit the impact of outliers we report the median error
+over the different trajectories of the dataset. Furthermore, to
+evaluate the impact of the neural network and EKF separately,
+we evaluate two types of trajectories produced by our method:
+The first uses simple integration of the network outputs, and
+the corresponding metrics are denoted with a , and the second
+uses the EKF, and is denoted without a .
+in Sec. VII of the appendix. First, we see that, without EKF,
+events improve ATEon all datasets. They reduce the ATE
+on the TLIO Dataset by 13, on Aria Right by 11, and
+on Aria Left by 19 compared to base TLIO. Moreover, it
+reduces MSEon most datasets, reducing by 17 on Aria
+than base TLIO on the TLIO Dataset. As in  we argue
+that the correlation between MSE and ATE is not exact, since
+other methods may produce displacement estimates with lower
+Our methods EKF accuracy (ATE), is 10 higher on the
+TLIO Dataset, 3 on the Aria Right Dataset, and 12 on the
+Aria Left Dataset compared to base TLIO. We also see that
+our method outperforms base TLIO in terms of drift but is
+outcompeted by methods that use data augmentation.
+C. Application to RoNIN
+RoNIN  is a 2D inertial navigation method designed for
+IMU-based pedestrian tracking. It works by regressing velocity
+a ResNet-18 . These velocities are regressed with a 25ms
+using known orientations from the IMU.
+Implementation Details: As in
+we use the RoNIN
+of 200 measurements into events, using the same parameters
+as for TLIO but a higher contrast threshold   0.1 due to
+the higher average accelerations. We also use the last velocity
+prediction as initialization for pre-integration.
+RoNIN dataset  which comprises 200 Hz IMU and ground
+truth trajectory data collected from pedestrians with varied
+Training
+RoNIN  ResNet
+RoNIN  LSTM
+RoNIN  TCN
+RoNIN  ResNet
+events (ours)
+Integration
+TABLE III
+APPLICATION OF OUR METHOD TO THE RONIN ARCHITECTURE, AND
+COMPARISON ON THE RONIN, RIDI, AND THE OXFORD INERTIAL
+ODOMETRY DATASETS (OXIOD). NOTE,  INDICATES TRAJECTORY
+RECONSTRUCTION WITHOUT AN EKF, AS REPORTED IN [20, 6].
+placements and devices. We report results on the RoNIN
+test set, and also on the RIDI  and Oxford Inertial
+Odometry Dataset (OxIOD) . RIDI comprises pedestrian
+data at 200 Hz, with four different sensor placements, and
+includes forward, backward, and sideways walking motion as
+well as accelerating and decelerating motions. This dataset
+uses Umeyama alignment  before calculating metrics. The
+OxIOD dataset also comprises smartphone-based pedestrian
+data with various motion modes, devices, and device place-
+ments. More dataset details are in the appendix, Sec. V.
+Training Details: Training mirrors  with 50 of the
+training data that is public, minimizing the robust velocity
+loss proposed in . We use ADAM  with a batch size
+of 128 and an initial learning rate of 104 and a decay by
+a factor of 0.1 if the validation loss does not decrease in 10
+epochs. The maximum number of epochs is 120. Furthermore,
+the linear layers use dropout with p  0.5.
+As in  we
+omit gravity perturbation, and bias noise, and leave other noise
+sources and magnitudes the same.
+on raw IMU data with three different temporal processing
+and also compare against RIO . RIO adds two additional
+strategies to RoNIN which enforce approximate yaw equivari-
+ance. The first one, termed joint training (denoted with J),
+optimizes an auxiliary equivariant consistency loss between
+predictions observed under different yaws. The other strategy,
+adopted during testing and termed adaptive test-time-training
+(denoted with TTT) performs gradient descent steps on the
+current model at 20 Hz, based on the equivariant consistency
+loss derived from a buffer of 128 past IMU measurements.
+Backpropagation is only performed on losses between samples
+IMU rate sensitivity analysis. Each method is trained on the TLIO training set. Methods  interp. and  splat. were trained with IMU rate augmentation
+and TLIO and TLIO  events were trained without data rate augmentation.
+contrast threshold
+Error [m]
+v0 noise
+Error [m]
+polarity noise
+Error [m]
+Hyperparameter Sensitivity: (left) the contrast threshold determines the distance to the reference when events are fired, (middle) initial velocity v0
+and (right) polarity p(j) noise determine the range of uniform noise perturbing these quantities during training. In particular, v0 noise affects pre-integration.
+that have a significant predicted velocity mismatch. Further-
+via a separate ensemble of models that estimate prediction
+uncertainty online. Finally, we report the results of a naive
+double integration baseline (denoted with Integration).
+in Sec. VII for the appendix. Note that the first three rows
+are results reported in  which use 100 of the training
+data. Other methods are retrained with the public training data,
+which is only 50. We observe that, despite this mismatch,
+in terms of ATE, our method outperforms RONIN on 50
+data on the RONIN dataset, on RIDI, and on OxIOD. Test-
+time training and yaw consistency methods can be used
+complementarily to our method to further improve results.
+Similar to the results when applied to TLIO,
+the above results highlight the strength of using events in-
+stead of regular IMU samples. Moreover, we see that our
+method outperforms (i) methods that were trained with more
+data on RIDI-T and OxIOD (see row 1-3 in Tab. III) and
+(ii) methods that incorporate yaw consistency strategies on
+OxIOD. In particular, using yaw consistency strategies is an
+orthogonal approach to improving inertial odometry, which
+would additionally strengthen our result. Finally, we note that
+our method may benefit from a weak autoregression form
+by using the predicted velocity from the previous timestamp
+for pre-integration. However, compared to models that also
+perform autoregression, i.e. RoNINTCN or RoNINLSTM,
+our method achieves a lower ATE.
+D. Rate Sensitivity Study
+In this section, we study the robustness of our method to
+varying IMU measurement rates which simulate differing time
+scales. We generate lower-rate IMU data by subsampling the
+TLIO data (200Hz) to r  {20, 40, 100, 200}, the Aria Left
+data (800Hz) to r  {20, 40, 100, 200, 400, 800} and the Aria
+This subsampling strategy tests the robustness of our event
+generation method to sampling errors. For the TLIO baselines
+TLIO Dataset (NN)
+TLIO Dataset (NNEKF)
+ref. x(t)
+Manifold
+position
+SO(3)  R3
+TABLE IV
+ABLATION ON EVENT GENERATION, POLARITY, AND (POLARITY) NOISE.
+(base, interp. and splat.) we convert the IMU data to an
+equivalent of 200 inputs per 1 second of data with interpolation
+or event stack generation. We report the ATEin Fig. 4, and a
+table with the full results in the appendix, Sec. VIII. Note that
+despite not being trained with data augmentation our method
+remains stable over differing rates, outperforming the baselines
+and TLIO. Most methods degrade heavily at low rates, while
+our method degrades gracefully.
+E. Ablation Study and Hyperparameter Sensitivity Analysis
+In this section, we ablate the design choices in the method-
+hyperparameters. First, we study the impact of the reference
+signal x(t) and its associated manifold by comparing the ATE
+and ATEon the TLIO test set. We select reference signals
+that monitor only the translation component t(t) of the pre-
+integration (labeled with position) and those that monitor
+the full pose R(t),t(t) (labeled pose). While position
+admits only the R3 manifold, pose admits both the direct
+product manifold SO(3)  R3 and the semidirect product
+manifold SE(3)  SO(3)R3. These differ in the definition
+of the Log and Exp map used previously. We also study the
+impact of Lie polarities and the necessity of adding polarity
+noise. We report results in Tab. IV. We see that of the
+different considered manifolds, SE(3) yields the best ATE
+and ATE. This points to the fact that using the full pose
+and associated manifold yields the most informative events.
+Using polarities without noise yields very low ATEbut high
+ATE when deployed with the EKF. We argue that the neural
+Sensitivity to pre-integration errors. Baseline ATEin dashed lines.
+Training Data
+DATA EFFICIENCY OF OUR METHOD (ATERTE) IN METERS.
+network learns to overfit to specific training trajectories, and
+thus becomes sensitive to noise in its predictions. Adding
+polarity noise during training significantly reduces the ATE
+when deployed with the EKF. Next, we study the sensitivity
+of our method to hyperparameters. Specifically, we vary the
+contrast threshold  {0.005, 0.1, 0.2}, polarity noise range
+rp {0.1, 0.25, 0.5, 0.75, 1.0} and initial velocity noise range
+rv0 {0.25, 0.5, 1.0, 1.5} applied during training and report
+results in Fig. 5, with tables with the full results in the
+While too large thresholds may reduce the sensitivity of
+the method, too low thresholds may be more susceptible to
+noise and increase computational complexity. ATE reaches
+an optimum for initial velocity noise range rv0  0.5. As
+previously discussed, using too low noise makes the network
+overfit to the specific trajectories and sensitive to noise, leading
+to excessively low ATEbut high ATE. Finally, the optimal
+polarity noise range is around rp  0.75. We found that this
+value yielded marginally worse results on other datasets, so
+we opted for rp  0.5.
+F. Runtime, Robustness and Generalization
+on an NVIDIA GeForce RTX 4090 Laptop GPU, with an Intel
+i9 processor, enabling real-time measurement updates at the 20
+Hz used in the experiments. The network (baseline TLIO, i.e.
+1D ResNet-18, PyTorch) takes 1.06 ms. The C-implemented
+event generation (including pre-integration) takes 76 s (4.22
+sevent), and stacking takes 7.62 s ( 0.331 sevent). With
+an average event rate of 74 Hz (vs. 200 Hz for TLIO), our
+method reduces redundancy.
+Sensitivity to IMU Pre-integration Accuracy: Inaccurate
+integration accuracy. To minimize this we train with initial
+of ATE(lower is better) with respect to gravity, bias, and
+initial velocity noise perturbation for pre-integration, on the
+TLIO test set, following the scheme in Sec. IV-B training
+details. These introduce drift, SO(3) perturbations, and elu-
+cidate the role of gravity. Gravity and v0 perturbations lead to
+graceful degradation, still outperforming other baselines, and
+Average Speed [ms]
+TLIO  interp.
+TLIO  splat.
+TLIO  events
+Aria dataset MSE vs. speed for models trained on the TLIO dataset.
+bias noises show little to no degradation. Slight improvements
+may stem from the fact that we train with noise. Overall this
+shows low impact of bias-induced drift, and higher sensitivity
+to gravity and velocity estimation errors.
+subsets of the RoNIN training set. Our methods performance
+stays relatively stable on both in- (RoNIN-U), and out-of-
+distribution data (RIDI-T, OxIOD). Notably, performance on
+RIDI-T degrades gracefully, while fluctuating on the other
+datasets. Even with 10 our method can learn reasonably
+canonicalization capabilities of events.
+Out-of-distribution data: We report the distribution of MSE
+versus average speed, for models trained on the TLIO dataset
+and tested on the out-of-distribution Aria datasets (Fig. 2).
+Our method outcompetes other methods with lower MSE
+at higher speeds, supporting the claim that events confer
+canonicalization with respect to speed variations. This targets
+a key limitation of existing methods, and shows improvements
+in edge cases with large accelerations .
+V. LIMITATIONS AND CONCLUSION
+to compute, but suffer from slight drift and sampling noise,
+which may impact event generation. Yet, we show that event
+generation is robust to sampling noise. Finding better-behaved
+reference signals is the subject of future work.
+inertial odometry methods by training the underlying neural
+displacement priors with Lie events generated from IMU pre-
+integrations. We showed both theoretically and empirically that
+these events have favorable canonicalization properties with
+respect to motion and rate variations in IMU data which sim-
+plifies network training. To generate events on pre-integrations,
+we generalize notions of level-crossing and event polarities to
+arbitrary Lie groups, and in particular, the special Euclidean
+group SE(3). To this end, we introduce new concepts such as
+Lie polarities. Training on these events effectively reduces the
+tracking error of off-the-shelf neural inertial odometry methods
+with only minimal input pre-processing. As a result of this
+cameras may benefit from event-based sampling, opening the
+door to exciting new applications.
+ACKNOWLEDGEMENTS
+We gratefully acknowledge support by the following grants:
+NSF FRR 2220868, NSF IIS-RI 2212433, ONR N00014-22-
+REFERENCES
+Omri Asraf, Firas Shama, and Itzik Klein.
+A deep-learning pedestrian dead reckoning framework.
+IEEE Sensors Journal, 22(6):49324939, 2022.
+Justin Baker, Shih-Hsin Wang, Tommaso de Fernex,
+and Bao Wang.
+An explicit frame construction for
+normalizing 3d point clouds. In Forty-first International
+Conference on Machine Learning, 2024.
+Martin Brossard, Axel Barrau, and Silvere Bonnabel. Ai-
+imu dead-reckoning. IEEE Transactions on Intelligent
+Martin Brossard, Silvere Bonnabel, and Axel Barrau.
+Denoising imu gyroscopes with deep learning for open-
+loop attitude estimation. IEEE Robotics and Automation
+Russell Buchanan, Varun Agrawal, Marco Camurri,
+Frank Dellaert, and Maurice Fallon.
+Deep imu bias
+inference for robust visual-inertial odometry with factor
+IEEE Robotics and Automation Letters, 8(1):
+Xiya Cao, Caifa Zhou, Dandan Zeng, and Yongliang
+of robust inertial odometry. In IEEE Conf. Comput. Vis.
+Pattern Recog. (CVPR), pages 66146623, 2022.
+Changhao Chen, Xiaoxuan Lu, Andrew Markham, and
+Niki Trigoni. Ionet: Learning to cure the curse of drift in
+inertial odometry. In Proceedings of the AAAI Conference
+on Artificial Intelligence, volume 32, 2018.
+Changhao Chen, Peijun Zhao, Chris Xiaoxuan Lu, Wei
+dataset for deep inertial odometry. In arXiv, 2018.
+Danpeng Chen, Nan Wang, Runsen Xu, Weijian Xie,
+Hujun Bao, and Guofeng Zhang. Rnin-vio: Robust neural
+inertial navigation aided visual-inertial odometry in chal-
+lenging scenes. In 2021 IEEE International Symposium
+on Mixed and Augmented Reality (ISMAR), pages 275
+Congyue Deng, Or Litany, Yueqi Duan, Adrien Poule-
+tor neurons: A general framework for so (3)-equivariant
+networks. In Proceedings of the IEEECVF International
+Conference on Computer Vision, pages 1220012209,
+Jakob Engel, Kiran Somasundaram, Michael Goesele,
+Albert Sun, Alexander Gamino, Andrew Turner, Arjang
+Project aria: A new tool for egocentric multi-modal ai
+research. arXiv preprint arXiv:2308.13561, 2023.
+Benedek Forrai, Takahiro Miki, Daniel Gehrig, Marco
+catching with a quadrupedal robot. In IEEE International
+Conference on Robotics and Automation (ICRA), June
+Christian Forster, Luca Carlone, Frank Dellaert, and
+Davide Scaramuzza. On-manifold preintegration for real-
+time visual-inertial odometry. IEEE Trans. Robot., 33(1):
+Niklas Funk, Erik Helmut, Georgia Chalvatzaki, Roberto
+tactile sensor for robotic manipulation.
+IEEE Trans.
+Guillermo Gallego, Tobi Delbruck, Garrick Orchard,
+Chiara Bartolozzi, Brian Taba, Andrea Censi, Stefan
+A survey. IEEE Trans. Pattern Anal. Mach. Intell., 2020.
+Daniel Gehrig and Davide Scaramuzza.
+Low latency
+automotive vision with event cameras. Nature, 2024.
+Patrick Geneva, Kevin Eckenhoff, Woosik Lee, Yulin
+platform for visual-inertial estimation. In IEEE Int. Conf.
+Robot. Autom. (ICRA), Paris, France, 2020.
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian
+Sun. Deep residual learning for image recognition. In
+IEEE Conf. Comput. Vis. Pattern Recog. (CVPR), pages
+Sachini Herath, Hang Yan, and Yasutaka Furukawa.
+Conf. Robot. Autom. (ICRA), pages 31463152. IEEE,
+Sachini Herath, Hang Yan, and Yasutaka Furukawa.
+International Conference on Robotics and Automation
+(ICRA), pages 31463152. IEEE, 2020.
+Sepp Hochreiter and Jurgen Schmidhuber. Long short-
+term memory.
+Neural Computation, 9(8):17351780,
+November 1997. ISSN 0899-7667. doi: 10.1162neco.
+Max Jaderberg, Karen Simonyan, Andrew Zisserman,
+et al. Spatial transformer networks. Advances in neural
+information processing systems, 28, 2015.
+Royina Karegoudra Jayanth, Yinshuang Xu, Ziyun Wang,
+Evangelos Chatzipantazis, Daniel Gehrig, and Kostas
+Daniilidis. Eqnio: Subequivariant neural inertial odome-
+try. arXiv preprint arXiv:2408.06321, 2024.
+Xin Jin, Yang Shi, Yang Tang, and Xiaotai Wu.
+Event-triggered
+attitude
+consensus
+absolute
+relative
+attitude
+measurements.
+Sekou-Oumar Kaba, Arnab Kumar Mondal, Yan Zhang,
+Yoshua Bengio, and Siamak Ravanbakhsh. Equivariance
+with learned canonicalization functions. In International
+Conference on Machine Learning, pages 1554615566.
+Diederik P. Kingma and Jimmy L. Ba.
+method for stochastic optimization.
+Int. Conf. Learn.
+Representations (ICLR), 2015.
+Colin Lea, Rene Vidal, Austin Reiter, and Gregory D.
+Temporal convolutional networks: A unified
+approach to action segmentation. In Gang Hua and Herve
+4754. Springer Verlag, 2016.
+Feiran Li, Kent Fujiwara, Fumio Okura, and Yasuyuki
+Matsushita. A closer look at rotation-invariant deep point
+cloud analysis. In Proceedings of the IEEECVF Inter-
+national Conference on Computer Vision, pages 16218
+Patrick Lichtsteiner, Christoph Posch, and Tobi Delbruck.
+A 128128 120 dB 15 s latency asynchronous temporal
+contrast vision sensor. IEEE J. Solid-State Circuits, 43
+Shih-Chii Liu, Andre van Schaik, Bradley A. Minch, and
+Tobi Delbruck. Asynchronous binaural spatial audition
+sensor with 2x64x4 channel output. IEEE Trans. Biomed.
+Circuits Syst., 8(4):453464, 2014. doi: 10.1109TBCAS.
+Wenxin Liu, David Caruso, Eddy Ilg, Jing Dong, Anas-
+tasios I Mourikis, Kostas Daniilidis, Vijay Kumar, and
+Jakob Engel. Tlio: Tight learned inertial odometry. IEEE
+Robotics and Automation Letters, 5(4):56535660, 2020.
+David G Lowe. Distinctive image features from scale-
+invariant keypoints.
+International journal of computer
+Zhaoyang Lv, Nickolas Charron, Pierre Moulon, Alexan-
+der Gamino, Cheng Peng, Chris Sweeney, Edward
+et al. Aria everyday activities dataset. arXiv preprint
+Arnab Kumar Mondal, Siba Smarak Panigrahi, Oumar
+bakhsh. Equivariant adaptation of large pretrained mod-
+els. Advances in Neural Information Processing Systems,
+S.M. Mostafavi I., Lin Wang, Yo-Sung Ho, and Kuk-
+Jin Yoon Yoon. Event-based high dynamic range image
+and very high frame rate video generation using condi-
+tional generative adversarial networks.
+In IEEE Conf.
+Comput. Vis. Pattern Recog. (CVPR), 2019.
+Anastasios I. Mourikis and Stergios I. Roumeliotis. A
+multi-state constraint Kalman filter for vision-aided iner-
+tial navigation. In IEEE Int. Conf. Robot. Autom. (ICRA),
+Manasi Muglikar, Diederik Paul Moeys, and Davide
+Scaramuzza.
+Event guided depth sensing.
+International Conference on 3D Vision (3DV), pages
+Christoph Posch, Daniel Matolin, and Rainer Wohlge-
+An asynchronous time-based image sensor.
+IEEE Int. Symp. Circuits Syst. (ISCAS), pages 2130
+Jan Steinbrener, Christian Brommer, Thomas Jantos,
+Alessandro Fornasier, and Stephan Weiss. Improved state
+propagation through ai-based pre-processing and down-
+sampling of high-speed inertial data. In 2022 Interna-
+tional Conference on Robotics and Automation (ICRA),
+Scott Sun, Dennis Melamed, and Kris Kitani.
+Inertial deep orientation-estimation and localization. In
+Proceedings of the AAAI Conference on Artificial Intel-
+Varun Sundar, Matt Dutson, Andrei Ardelean, Claudio
+alized event cameras. In IEEE Conf. Comput. Vis. Pattern
+Recog. (CVPR), June 2024.
+S. Umeyama. Least-squares estimation of transformation
+parameters between two point patterns.
+IEEE Trans.
+Pattern Anal. Mach. Intell., 13(4), 1991.
+Hang Yan, Qi Shan, and Yasutaka Furukawa.
+Robust imu double integration.
+In Proceedings of
+the European Conference on Computer Vision (ECCV),
+September 2018.
+Cem Yuceer and Kemal Oflazer. A rotation, scaling, and
+translation invariant pattern classification system. Pattern
