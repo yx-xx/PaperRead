@@ -1,0 +1,1331 @@
+=== PDF文件: Building Rome with Convex Optimization.pdf ===
+=== 时间: 2025-07-21 14:26:52.161314 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Building Rome with Convex Optimization
+Haoyu Han and Heng Yang
+School of Engineering and Applied Sciences, Harvard University
+(a) BAL Dataset. From left to right: 10155, 1934, and 392 camera frames.
+(b) Replica Dataset. All three cases have 2000 camera frames.
+(c) Mip-Nerf Dataset (left: reconstruction, right: novel view synthesis). 185 camera frames.
+(d) IMC Dataset. From left to right: 3765, 2063, and 904 camera frames.
+Left (e) TUM Dataset (798 and 613 camera frames); Right (f) C3VD Dataset (370 and 613 camera frames).
+Fig. 1: Faster, scalable, and initialization-free 3D reconstruction powered by conveX bundle adjustMent (XM).
+AbstractGlobal bundle adjustment is made easy by depth
+prediction and convex optimization. We (i) propose a scaled
+bundle adjustment (SBA) formulation that lifts 2D keypoint
+measurements to 3D with learned depth, (ii) design an empirically
+tight convex semidenite programming (SDP) relaxation that
+solves SBA to certiable global optimality, (iii) solve the SDP
+relaxation at extreme scale with Burer-Monteiro factorization
+and a CUDA-based trust-region Riemannian optimizer (dubbed
+XM), (iv) build a structure from motion pipeline with XM as the
+optimization engine and show that XM-SfM compares favorably
+with existing pipelines in terms of reconstruction quality while
+being signicantly faster, more scalable, and initialization-free.
+I. INTRODUCTION
+At the heart of modern structure from motion (SfM) and
+simultaneous localization and mapping (SLAM) sits bundle
+adjustment (BA), the procedure of reconstructing camera poses
+and 3D landmarks from 2D image keypoints.
+Classical BA formulation. Consider a so-called view graph
+illustrated in Fig. 2 with two types of nodes: 3D points pk
+An edge (i, k) E indicates the k-th 3D point is visible to
+the i-th camera, and a 2D keypoint measurement uik R2
+has been obtained regarding the projection of the point onto
+the camera frame.1 The bundle adjustment problem consists
+of estimating points and poses (i.e., pks and (Ri, ti)s on the
+nodes) using the 2D keypoint measurements (i.e., uiks on the
+edges). This is often formulated as an optimization problem:
+(Ri,ti)SE(3),i1,...,N
+uik (Ripk  ti)2 ,
+where Ripk  ti transforms the point pk to the i-th camera
+by the depth and projects the 3D point to 2D, and the
+sum of squared errors evaluates how well the reprojected 2D
+points agree with the measurements uik for all (i, k) E.
+Problem (1) assumes the availability of a view graph, which
+is often obtained through feature detection and matching in
+SfM and SLAM pipelines (to be detailed in IV). An important
+observation is that problem (1) can only be solved up to scale.
+This is because (Ripk  ti) (Ri(pk)  (ti)) for any
+scalar  > 0, i.e., scaling the points and translations by a factor
+of  does not change the objective value of problem (1).
+Optimization challenges. Problem (1) is intuitive to formu-
+late but extremely difcult to optimize. The difculty comes
+from two challenges. First, problem (1) is highly nonconvex.
+The nonconvexity comes from both the nonconvex feasible
+set SE(3) and the nonconvex objective function due to the 2D
+reprojection function (). Second, problem (1) can have an
+extremely large scale. Both the number of camera poses N
+and the number of points M can range from hundreds to tens
+of thousands (cf. examples in Fig. 1). Due to these challenges,
+BA solvers such as CERES , GTSAM , and accelerated
+variants [19, 36] require good initializations and can often get
+stuck in poor local minima (cf. V-A). To address this, the
+popular SfM pipeline COLMAP  employs an incremental
+strategy which starts by reconstructing only two views (i.e., (1)
+with N  2) and then sequentially registers additional camera
+images and associated 3D structure. Incremental SfM ensures
+stable initialization but makes the pipeline slow and hard to
+scale to large datasets (cf. V where COLMAP requires several
+hours runtime). The recent global SfM pipeline GLOMAP
+replaces the incremental process with rotation averaging and
+global positioning, but such initialization can still be time-
+consuming (see results in V).
+1We consider BA with calibrated cameras, i.e., uik has been normalized
+by camera intrinsics.
+Landmarks
+(RN, tN)
+Fig. 2: A view graph for the bundle adjustment formulation (1).
+We propose a scaled bundle adjustment formulation (3) by
+lifting the 2D keypoints to 3D with learned depth.
+Can we design an algorithm that solves the global bundle
+adjustment problem (1) without initialization and at scale?
+BA with learned depth. We start by designing an approx-
+imate formulation to problem (1) that is simpler to optimize.
+The key insight is to lift the 2D keypoints uik as approxi-
+mate (and noisy) 3D keypoints leveraging off-the-shelf large-
+scale pretrained monocular depth prediction models, such
+as [35, 49, 10]. Formally, let dik > 0 be the predicted depth of
+the 2D keypoint uik, we generate a 3D keypoint measurement
+uik  dik
+(i, k) E.
+In our work, we select a metric depth model, which is designed
+to produce depth estimates that match the true depth when the
+model is perfectly trained. Further, due to imperfect depth pre-
+diction caused by potentially out-of-distribution test images,
+we incorporate a scaling parameter that allows subsequent
+optimization to correct erroneous predictions, leading to the
+following scaled bundle adjustment (SBA) formulation
+si>0,i1,...,N
+(Ri,ti)SE(3),i1,...,N
+wik Ri(siuik)  ti pk2 ,
+where si scales the predicted 3D keypoint uik in (2), (Ri, ti)
+transforms the scaled 3D keypoint to the global frame,2 and the
+squared errors in the objective computes 3D distances to the
+landmarks pk without the reprojection (). In (3), we allow
+weighting the squared errors by condence values (wik > 0)
+from the depth prediction model.
+Remark 1 (Connection to Other Perception Problems). It is
+worth noting that (i) without the per-frame scaling, prob-
+lem (3) recovers the multiple point cloud registration prob-
+lem [15, 26]; (ii) when N  2 (two frames), problem (3)
+reduces to (scaled) point cloud registration [25, 48].
+Through depth prediction, we removed the reprojection
+function () from (1) and resolved one challenge. However,
+nonconvexity and large scale remain in problem (3).
+2Although we used the same notation (Ri, ti) in both problems (1) and (3),
+the two transformations are inverse to each other. (Ri, ti) in (1) transforms
+landmarks from global frame to camera frame, while (Ri, ti) in (3) transforms
+landmarks from camera frame to global frame.
+Contributions. First, we show the remaining nonconvexity
+in problem (3) is benign. Our strategy is to rst rewrite (3)
+as a quadratically constrained quadratic program (QCQP), and
+then design a convex semidenite program (SDP) relaxation,
+in the spirit of a growing family of SDP-enabled certiable
+algorithms [47, 38, 52, 28, 6, 33, 44]. We show the SDP relax-
+ation is empirically tight, i.e., globally optimal solutions of the
+nonconvex (3) can be computed from the convex SDP relax-
+ation with optimality certicates. Second, we show the convex
+SDP relaxations can be solved at extreme scale and speed
+faster and more scalable than even the best local solvers
+such as CERES. The enabling technique is to exploit the low-
+rankness of (tight) SDP optimal solutions via Burer-Monteiro
+(BM) factorization  and solve the resulting Riemannian
+optimization using a trust-region algorithm . For the rst
+directly in CCUDA and show the GPU implementation
+is up to 100 times faster than the state-of-the-art CPU-based
+MANOPT package  and can solve extreme-scale problems
+beyond the reach of MANOPT (e.g., N > 10, 000 camera
+bundle adjustMent). Third, we build a full SfM pipeline
+with XM as the optimization engine and various techniques
+from prior work, such as feature matching from COLMAP,
+view graph creation from GLOMAP, CERES renement (i.e.,
+warmstart CERES with XMs solutions for solving (1)), and
+outlier-robust ltering and estimation schemes [4, 20, 31, 40].
+We test XM-SfM across six popular datasets and demonstrate
+that XM-SfM compares favorably with existing SfM pipelines
+in terms of reconstruction quality while being signicantly
+optimization and GPU-based implementation.
+In summary, our contributions are:
+designing an empirically tight convex SDP relaxation for
+the scaled bundle adjustment problem (3);
+solving the convex SDP at extreme scales using BM
+factorization paired with a trust-region Riemannian op-
+timizer directly implemented in CCUDA, i.e., XM;
+creating a full SfM pipeline called XM-SfM that builds
+Rome with convex optimization.
+Paper organization. We derive the QCQP formulation
+for (3) and design the SDP relaxation in II. We present BM
+factorization and the CUDA-based trust-region Riemannian
+optimizer in III. We describe the XM-SfM pipeline in IV and
+present experimental results in V. We conclude in VI.
+II. QCQP AND CONVEX SDP RELAXATION
+In this section, let us focus on solving the SBA problem (3)
+to certiable global optimality. We proceed in two steps. In
+constrained quadratic program (QCQP) through a sequence
+of mathematical manipulations. In II-B, we apply Shors
+semidenite relaxation to convexify the nonconvex QCQP.
+Before we get started, we remove the ambiguity of prob-
+lem (3) through anchoring.
+Anchoring. Observe that one can choose si 0, i
+p1      pM
+and the objective value of (3) can be set arbitrarily close
+to zero. Additionally, multiplying an arbitary rotation matrix
+on Ri, ti, pi does not change the objective of (3), leading to
+innitely many solutions. To resolve these issues, we anchor
+the rst frame and set R1  I3, t1  0, s1  1.
+A. QCQP Formulation
+We rst show that the unconstrained variables in (3), namely
+the translations ti and the 3D landmarks pk, can be marginal-
+ized out, leading to an optimization problem only concerning
+the scaling factors and 3D rotations.
+Proposition 2 (Scaled-Rotation-Only Formulation). Problem
+(3) is equivalent to the following optimization
+subject to
+si > 0, Ri SO(3),
+where Q S3N is a constant and symmetric data matrix
+whose expression is given in Appendix A-A.
+Let U represent the optimal solution of (4) and let
+t  [t1; . . . ; tN] R3N be the concatenation of translations,
+p  [p1; . . . ; pM] R3M be the concatenation of landmark
+positions. The optimal translations tand landmark positions
+pof problem (3) can be recovered from U as follows:
+(A I3)vec (U ) .
+where the expression of A can be found in Appendix A-A.
+Proposition 2 reformulates the SBA problem (3) as a lower-
+dimensional problem (4). However, problem (4) is not a QCQP
+because the objective function is a degree-four polynomial in
+si and Ri. In the next step, we show that it is possible to
+combine the scaled rotation siRi together as a new variable,
+effectively reducing the degree of the polynomial.
+Proposition 3 (QCQP Formulation). Dene the set of scaled
+orthogonal group as
+The set sO(3) can be described by quadratic constraints
+1 c1  cT
+2 c2  cT
+1 c2  cT
+2 c3  cT
+Consider the following QCQP
+QCQP  min tr
+subject to
+and let U  [I3, R
+N] be a global optimizer. If
+then U is a global minimizer to problem (4).
+It is clear that
+because from (4) to (8) we have relaxed the SO(3) constraint
+to O(3). After solving (8), if there exists some index i such
+that det R
+i < 0, we can extract a feasible solution to (4) by
+projecting onto SO(3) after extracting the scaling from R
+Remark 4 (Bad Local Minimum). Problem (8) is a nonconvex
+QCQP. In fact, it is a smooth Riemannian optimization by
+identifying sO(3) as a product manifold of the positive man-
+ifold and the orthogonal group. Therefore, one can directly
+we will show in V on the Mip-Nerf 360 dataset , directly
+solving (8) can get stuck in bad local minima.
+This motivates and necessitates convex relaxation.
+B. Convex SDP Relaxation
+For any QCQP, there exists a convex relaxation known as
+Shors semidenite relaxation [46, Chapter 3]. The basic idea
+is fairly simple: by creating a matrix variable X : U TU
+that is quadratic in the original variable U, problem (8)
+becomes linear in X. The convex relaxation proceeds by using
+convex positive semidenite constraints and linear constraints
+to properly enforce the matrix variable X.
+Proposition 5 (SDP Relaxation). The following semidenite
+program (SDP)
+SDP  min
+subject to
+is a convex relaxation to (8), i.e.,
+Let Xbe a global minimizer of (11).
+If rank (X)  3, then Xcan be factorized as X
+( U )T U , and it holds3
+then U is a global optimizer to (8). In this case, we say the
+relaxation is tight or exact.
+If rank (X) > 3, then we can extract feasible solutions
+to (8) by taking the top three eigenvectors of Xand project
+the corresponding entries to sO(3) and further to scaled
+1 is in O(3) because we restrict the scale of the rst frame to be 1.
+the rounded solution that is feasible for (4), we can evaluate
+the objective of (4) at U and denote it . Combining the chain
+of inequalities from (10) and (12), we get
+where the last inequality follows from U is a feasible solution
+for the minimization problem (4). Assuming we can solve the
+convex SDP, we compute
+SDP and  at both ends of the in-
+equality (15), allowing us to evaluate a relative suboptimality:
+0 certies global optimality of the rounded solution U,
+and tightness of the SDP relaxation.
+From (3) to (4), we rst eliminated translations and
+landmark positions. From (4) to (8), we formulated
+a QCQP by creating the new constraint set sO(3).
+From (8) to (11), we applied Shors semidenite
+relaxation. This sequence of manipulations and relax-
+ations allows us to focus on solving the convex SDP
+problem (11) while maintaining the ability to certify
+(sub)optimality of the original nonconvex problem (3),
+through the inequalities established in (15).
+Remark 6 (Connection to Prior Work). For readers familiar
+with SDP relaxations, this section should not be surprising at
+allthat is the reason why we kept this section very brief and
+only focus on milestone results listed in the propositions. The
+closest two works to ours are SE-Sync  and SIM-Sync ,
+and the SDP relaxation technique traces back to at least the
+work by Carlone et al. . The novelty of our formulation are
+to correct learned depth while SE-Sync estimates rotations
+and translations only; (b) we jointly estimate 3D landmarks
+and (scaled) camera poses while SIM-Sync does not estimate
+3D landmarks. These differences allow us to solve the long-
+standing bundle adjustment problem with convex optimization.
+We shall focus on how to solve the convex SDP (11).
+III. BURER-MONTEIRO FACTORIZATION AND
+CUDA-BASED RIEMANNIAN OPTIMIZER
+Let us rst write the SDP (11) in standard primal form:
+subject to
+where we have rewritten the constraint (11b) as a positive
+semidenite (PSD) constraint (17c) and m  5N  1 linear
+equality constraints (17b). To see why this reformulation is
+scaled I3the former can be enforced using 6 linear equalities
+and the latter can be enforced using 5, summing up to 5N 1
+linear equalities. Associated with the primal standard SDP (17)
+is the following dual standard SDP:
+subject to
+Z(y) : Q
+Since Slaters condition holds (X  I3N 0 is feasible
+for the primal (17)), we know strong duality holds between
+primal (17) and dual (18), i.e., their optimal values are equal
+to each other [46, 45].
+Scalability. Once the SDP (11) is formulated in standard
+SDP relaxation leads to a matrix variable with size 3N  3N.
+This means that when N is in the order of hundreds, MOSEK
+can solve the SDP without any problem. However, when N
+is in the order of thousands or tens of thousands, which
+is not uncommon in bundle adjustment problems, MOSEK
+will become very slow or even runs out of memory (e.g.,
+MOSEK becomes unresponsive when N > 2000). Therefore,
+we decided to customize a solver for our SDP relaxation.
+A. Burer-Monteiro Factorization
+The key structure we will leverage is, as stated in Propo-
+sition 5, the optimal solution Xhas its rank equal to three
+when the SDP relaxation is tight. In other words, the effective
+dimension of Xcan be 3  3N instead of 3N  3N.
+To exploit the low-rank structure, we will leverage the
+famous Burer-Monteiro (BM) factorization .
+Proposition 7 (BM Factorization). For a xed rank r 3,
+the Burer-Monteiro factorization of (11) and (17) reads:
+subject to
+A few comments are in order. First, by factorizing X
+U TU, X 0 holds by construction. Second, note that when
+r  3, problem (19) is exactly the same as the original
+QCQP (8) (up to the difference in R1), and thus is NOT
+convex. Third, as long as r rwhere ris the minimum
+rank of all optimal solutions of the SDP (11), the nonconvex
+BM factorization has the same global minimum as the convex
+SDP (11) [46, 13]. Note that the factor U is a matrix of size
+r  3N, i.e., a at matrix as shown in Fig. 3 bottom right.
+Counterintuitive? The reader might nd this confusing. In
+optimization problem into a convex SDP, enabling us to solve
+it to global optimality. Surprisingly, the BM factorization
+appears to undo this effort, pulling us back into nonconvex
+optimization. While the low-rank factorization offers a clear
+scalability advantage, it remains uncertain whether this benet
+outweighs the drawbacks of reintroducing nonconvexity.
+Rank staircase. The secret ingredient of BM factoriza-
+tion to tackle nonconvexity is that we will solve the factorized
+problem (19) at increasing ranks, like stepping up a staircase
+(cf. Fig. 3 bottom right). We will start with the lowest rank
+r  3 and solve problem (19) using local optimization. One
+of two cases will happen. (a) The local optimizer is the same
+as the global optimizer of the SDP, in which case we can
+leverage the dual SDP (18) to certify global optimality and
+declare victory against the SDP. (b) The local optimizer is not
+the same as the global optimizer of the SDP, in which case we
+can again leverage the dual SDP (18) to escape the bad local
+minimum via increasing the rank, i.e., going up the staircase.
+We formalize this in Algorithm 1 and prove its correctness.
+Algorithm 1: Riemannian Staircase
+Local optimization of (19)
+r  LOCALOPTIMIZER(U 0
+Compute dual certificate
+Certify global optimality
+if Z(yr) 0 then
+return Ur
+Escape local minimum
+v LEASTEIGENVECTOR(Z(yr))
+T with   1
+Line search
+while tr
+Certify global optimality. At every iteration of Algo-
+rithm 1, it rst computes a local optimizer of the BM factoriza-
+tion problem (19) in line 7 using an algorithm to be described
+in III-B. Denote the local optimizer as U
+r . To check whether
+r is the optimal solution to the convex SDP (11), we
+need to compute the dual optimality certicate.
+Theorem 8 (Dual Optimality Certicate). Let U
+r be a lo-
+cally optimal solution of (19). Then, the linear independence
+constraint qualication (LICQ) must hold at U
+U(Ai, (U
+r bi)  2Ai(U
+are linearly independent. Hence, there must exist a unique dual
+variable ysuch that
+If further,
+r is a global optimizer of (19), and (U )TU ,y, Z(y)
+are optimal for the SDP (17) and its dual (18).
+solution of the BM factorization. However, in Appendix A-D,
+we show that the unique structure of our XM SDP relaxation
+leads to guaranteed satisfaction of LICQ. The rest of the
+Theorem is standard and follows from  or .
+Theorem 8 provides a simple recipe to certify global opti-
+mality by solving the linear system of equations in (21) (recall
+Z(y) is linear in yfrom (18b)), forming the dual matrix
+Z(y), and checking its positive semidenite-ness.
+Escape local minimum. If Z(y) is not PSD, then
+r is not optimal for the SDP. In this case, the following
+theorem states that the eigenvector of Z(y) corresponding to
+the minimum eigenvalue provides a descent direction.
+Theorem 9 (Descent Direction). Let U
+r be a local minimizer
+of problem (19) and ybe the corresponding dual variable.
+Suppose Z(y) is not PSD and v is an eigenvector of Z(y)
+corresponding to a negative eigenvalue. Then, consider the
+BM factorization (19) at rank r  1. The direction
+is a descent direction at the point
+Theorem 9 states that if Algorithm 1 gets stuck at rank r, it
+can escape the local minimum by increasing the rank. Since
+D is a descent direction, we perform line search in lines 18-19
+until a point with lower objective value is found.
+Global convergence. Algorithm 1 is guaranteed to converge
+to the optimal solution of the SDP, as stated below.
+Theorem 10 (Global Convergence). Algorithm 1 nds a
+globally optimal solution of the SDP pair (17)-(18) regardless
+of the initialization point U 0
+r at r  3.
+every local optimizer of the BM factorization (19) corresponds
+to a globally optimal solution of the SDP [27, Corollary 8].
+To see this, if the locally optimal solution at r  3N is rank-
+deciency Lemma [13, Proposition 4]. Conversely, if the
+solution is full-rank, then Z(y) must be zerohence also
+positive semideniteas a result of solving (21), which again
+implies global optimality of the SDP.
+This property ensures that our approach is initialization-free.
+To verify the correctness of the theory, we conducted experi-
+ments on the BAL-93 dataset using random initializations, and
+after 1000 trials, our method achieved a 100 success rate.
+It is worth noting that, in the worst case when r is increased
+to 3N, the BM factorization does not have any scalability
+advantage over the original SDP. Fortunately, in almost all
+numerical experiments, Algorithm 1 terminates when r  3
+or 4, bringing signicant scalability advantage to solving large-
+scale SDP relaxations.
+B. CCUDA-based Riemannian Optimization
+Everything in Algorithm 1 is clear except line 7 where one
+needs to locally optimize the nonconvex BM factorization (19).
+Riemannian structure. At rst glance, problem (19) looks
+like a nonconvex constrained optimization problem. However,
+the constraints of (19) indeed dene a smooth manifold.
+Proposition 11 (BM Riemannian Optimization). The BM
+factorization problem (19) is equivalent to the following un-
+constrained Riemannian optimization problem
+subject to
+where Mp is the positive manifold dened as
+and M(r)
+is the Stiefel manifold of order r:
+{R Rr3  RTR  I3, }.
+We solve problem (25) using the Riemannian trust-region
+algorithm with truncated conjugate gradient (Rtr-tCG). Details
+of this algorithm can be found in [1, 11].
+CCUDA implementation. The Rtr-tCG algorithm is
+readily available through the MANOPT package . However,
+to boost efciency and enable fast solution of the SDP
+Conjugate gradient method. The conjugate gradient
+method involves only Hessian-vector products and vector
+addition. The Hessian-vector product can be decom-
+posed into two components: (a) the Euclidean Hessian-
+vector product and (b) the Riemannian projection onto
+the tangent space. The rst component primarily re-
+quires matrix-vector multiplication, which can be ef-
+ciently implemented using cuBLAS. The second com-
+ponent involves batched small matrix-matrix multiplica-
+CUDA kernels. For vector addition, we directly utilize
+the cublasDaxpy function from cuBLAS.
+Retraction. The retraction operation aims to map a point
+from the tangent space back to the manifold. In our
+manifold and the Stiefel manifold. The retraction on the
+positive manifold is a simple custom kernel, while the
+retraction on the Stiefel manifold involves QR decompo-
+sition. We directly apply Gram-Schmidt process on every
+batch of 3  r matrices, which is implemented using
+custom CUDA kernels.
+In V, we show our GPU-based implementation achieves up
+to 100 times speedup compared to the CPU-based MANOPT.
+We focused on developing a customized solver ca-
+pable of solving large-scale SDP relaxations in (11)
+(and (17)). We applied the Burer-Monteiro factoriza-
+tion method to exploit low-rankness of the optimal
+SDP solutions (cf. problem (19)), and leveraged the
+Staircase Algorithm 1 to solve the nonconvex BM
+factorization to global optimality. We pointed out the
+BM factorization problem is indeed an unconstrained
+Riemannian optimization problem (cf. problem (25))
+and developed a CCUDA-based implementation
+that is signicantly faster than MANOPT.
+Remark 12 (Connection to Prior Work). This is not the rst
+time BM factorization has been applied in robotics. SE-Sync
+and related works [18, 37] pioneered the application of BM
+factorization for solving the pose graph optimization problem.
+Several works [22, 21, 23, 24] utilized the dual optimality
+certicate result in Theorem 8 to develop fast certiers.
+Our novelty lies in developing the rst CCUDA-based
+implementation of the Riemannian trust-region algorithm to
+push the scalability limitations of BM factorization.
+IV. STRUCTURE FROM MOTION WITH XM
+In this section, we present our SfM pipeline with XM as the
+optimization engine, illustrated in Fig. 3.
+View graph. To construct view graph for an image set, we
+rst run COLMAPs feature extractor and exhaustive matcher
+to extract 2D correspondences. The feature extractor employs
+SIFT  for feature detection and description, while the
+exhaustive matcher matches every image pair. After matching,
+we apply GLOMAPs track establishment to produce a four-
+column le where the rst two columns represent feature
+point coordinates, the third indicates the image index, and the
+fourth corresponds to the 3D landmark indices. Currently, we
+use the original implementation from COLMAP and GLOMAP.
+processes further using C and GPU implementation. We
+leave this improvement for future work.
+Depth estimation. We use the depth estimation model
+UNIDEPTH  to calculate the metric depth of a given image,
+and lift the view graph from 2D to 3D. It is worth emphasizing
+that our test datasets do NOT belong to the training dataset of
+UNIDEPTH. If given the condence map, we use it to update
+the weight of different observations. We also tried other depth
+prediction models in Appendix B.
+Filter from two-view estimation. Using 2D observations,
+we estimate the relative pose between two images. Based on
+this pose, we lter out 3D landmarks with large Euclidean
+distance errors. Specically, landmarks with distance errors
+exceeding three times the median are removed.
+XM solver. We then use the lifted 3D measurements and the
+view-graph to form a Q matrix as shown in (4). We solve the
+SDP problem in (11) using our XM solver. If needed, we also
+delete the 10 measurements with the largest residuals and
+re-run the XM solver. This corresponds to a greedy heuristic
+for outlier removal [4, 40] and we call it XM2 (running twice).
+CERES renement. Usually the depth predictions are quite
+also feed the estimated poses and landmarks to CERES as a
+warmstart to solve the original bundle adjustment problem (1).
+As we will show, the solution of XM always provide a strong
+warmstart for CERES to quickly optimize (1).
+V. EXPERIMENTS
+We evaluate the XM solver and the XM-SfM pipeline on
+diverse datasets. XM is benchmarked against the leading bundle
+adjustment solver CERES and XM-SfM is compared against the
+widely adopted SfM pipelines COLMAP and GLOMAP. We
+further analyze the convergence rate and evaluate robustness
+to depth estimation noise in Appendix F.
+Experiments run on a Lambda Vector workstation with 64-
+core AMDo Ryzen Threadripper Pro 5975WX CPUs and dual
+NVIDIAo RTX 6000 GPUs, using CUDA 12.4 and Python
+3.11.10. All dependencies are carefully set up to leverage
+multi-CPU and GPU acceleration.
+A. BAL Dataset
+We rst evaluate on the Bundle Adjustment in the Large
+(BAL) dataset . This dataset contains reconstruction results
+from Flickr photographs using Bundler. On BAL we focus on
+XM solver performance rather than the full XM-SfM pipeline.
+Setup and baselines. For input, we use 2D observations
+for CERES and 3D observations for XM. The 2D keypoint
+measurements come directly from the BAL dataset, while
+the 3D keypoint measurements are lifted by appending z-
+coordinates to the 2D measurements. Though accurate, these
+3D observations incorporate slight noise, making them a re-
+ned yet imperfect ground truth. To showcase XMs efciency
+in solving the SDP relaxation of the SBA problem (3), we also
+evaluate MANOPT using the same input as XM.
+Metrics. We evaluate performance based on the runtime and
+the median of Absolute Trajectory Error (ATE) and Relative
+Pose Error (RPE). More details can be found in Appendix G.
+eigenvalue of the Z(y) matrix in (18) to demonstrate that XM
+achieves global optimality. Note that the minimum eigenvalue
+of Z(y) has been used as a metric for global optimality in
+previous works as well . Runtime is split into prepro-
+cessing time and solver time. The former primarily involves
+constructing the Q matrix in (4), which is implemented in
+separate preprocessing time and solver time because there are
+still ways to further reduce the preprocessing time (while the
+solver time, to the best of our understanding, has been pushed
+to the limit). For example, as building the Q matrix requires
+large dense matrix multiplications, a GPU implementation is
+expected to accelerate this step by 10 to 100 times. However,
+we leave this as a future step.
+Feature Extracting
+Feature Matching
+Depth Estimation
+Outlier Filter
+3D Observations
+Lifted View-Graph
+Scaled Bundle Adjustment (XM)
+Lower-rank Subproblems
+Global Optimality
+2063 frames 20s
+Ceres Renement
+Fig. 3: XM-SfM: structure from motion pipeline with XM.
+TABLE I: Results on the BAL dataset. We report the ATE, RPE and running time for CERES, MANOPT, and our proposed
+XM solver. The evaluation is conducted on four BAL datasets with varying numbers of frames to demonstrate that our method
+is both fast and accurate across datasets of different scales (e.g., BAL-10155 indicates there are 10155 camera frames to be
+reconstructed). CERES fails at a bad local minimum without a good initial guess, while MANOPT performs signicantly slower
+and even fails to solve within ten hours on the largest dataset.
+Datasets
+BAL-93 (6033 landmarks)
+BAL-392 (13902 landmarks)
+BAL-1934 (67594 landmarks)
+BAL-10155 (33782 landmarks)
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+CERES-GT
+CERES-GT-0.01
+CERES-GT-0.1
+TABLE II: Results on the BAL dataset (suboptimality and
+min-eig). We report the suboptimality gap and minimum
+eigenvalue of Z matrix in (18) for our proposed XM method.
+Datasets
+BAL-1934
+BAL-10155
+Suboptimality-Gap
+Results. Table I summarizes the comparison between XM
+and other methods. We tested several versions of CERES.
+CERES indicates running CERES without any initialization.
+CERES-GT indicates starting CERES at the groundtruth
+estimation. CERES-GT-0.01 means adding noise to the
+groundtruth with standard deviation 0.01. We make several
+observations. (a) Without good initialization, CERES does not
+(b) XM is up to 100 times faster than MANOPT, showing the
+superior efciency of our GPU implementation. Notably, XMs
+solver time is below a second for N in the order of hundreds,
+and XM scales to N > 10, 000 camera frames.
+Table II presents the suboptimality gap and minium eigen-
+value of XM. As we can see, except the largest instance with
+N  10155 camera frames, XM solved all the other instances
+to certiable global optimality. The reason why XM did not
+solve the largest instance to global optimality is because we
+restricted its runtime to one hour (XM indeed achieve global
+optimality if allowed four hours of runtime).
+Fig. 4 visualizes the 3D reconstructions. Since real images
+are not available in BAL, all 3D landmarks have the same
+purple color. The reconstructed cameras are shown in red.
+Fig. 4: Visualization of BAL datasets. Top: Our XM solver. Middle: CERES-GT-0.01. Bottom: CERES-GT-0.1. Both our XM
+solver and CERES-GT-0.01 accurately recover the ground truth camera poses and landmarks, whereas CERES-GT-0.1 fails.
+Fig. 5: Visualization of Replica datasets. Top: Our XM solver. Middle: GLOMAP. Bottom: COLMAP. All methods achieve
+high accuracy, producing nearly identical reconstruction results. GLOMAP sometimes produce outliers (see column 2 and 3).
+Takeaway
+The SBA problem (3) is easier to solve than the
+BA problem (1)we can design efcient convex relax-
+ations. While CERES needs good initialization for solv-
+ing (1), XM requires no initializations for solving (3).
+With GT depth and outlier-free matchings, solving
+SBA with XM produces the same result as solving BA
+with CERES or COLMAP.
+XM is fast and scalable.
+B. Replica Dataset
+We then test on the Replica dataset [53, 43, 41], which
+contains synthetic images of different virtual scenes.
+map but employ the full XM-SfM pipeline. We compare XM-SfM,
+both with and without two-view ltering, against COLMAP
+and GLOMAP. The evaluation metrics remain the same. For
+runtime analysis, we categorize all components preceding our
+XM solverincluding Matching, Indexing, Depth Estimation,
+The indexing, ltering and matrix construction components
+can be further accelerated in CUDA. Similarly, for GLOMAP
+and COLMAP, all steps prior to global positioning and bundle
+adjustment are counted as preprocessing time.
+Results. Results are presented in Table III and Table IV.
+Each Replica dataset contains 2000 frames, but for a diverse
+Fig. 6: Visualization of Mip-Nerf datasets. Top: COLMAP. Bottom: Our XM solver. 3D-gaussian renderings are the same.
+Fig. 7: Visualization of IMC2023 datasets. Top: Our XM solver. Bottom: GLOMAP.
+Fig. 8: Visualization of TUM datasets using our XM solver.
+Fig. 9: Visualization of C3VD medical datasets. Top: With ground truth depth. Bottom: With learned depth.
+TABLE III: Results on the Replica dataset. COLMAP, while highly stable, is extremely slow, taking over 20 hours for datasets
+with 2000 frames. GLOMAP improves speed but still requires several hours for the solving stage and occasionally produces
+outliers. In comparison, our solver achieves similar accuracy in just 10 seconds for the same dataset size.
+Datasets
+FILTER  XM2
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Room0-100
+Room0-2000
+Room1-100
+Room1-2000
+Ofce0-100
+Ofce0-2000
+Ofce1-100
+Ofce1-2000
+TABLE IV: Results on the Replica dataset (min-eig and
+suboptimality). All the min-eig and suboptimality-gap are
+FILTER  XM2
+Suboptimality-gap
+Suboptimality-gap
+Room0-100
+Room0-2000
+Room1-100
+Room1-2000
+Ofce0-100
+Ofce0-2000
+Ofce1-100
+Ofce1-2000
+comparison across different dataset sizes, we sample the
+rst 100 frames from each dataset as a separate experiment.
+Room0-100 refers to the rst 100 frames, while Room0-
+2000 represents the full dataset.
+XM consistently outperforms baselines by 100 to 1000 times
+in solver speed, solving almost all 2000-frame datasets within
+10 seconds. At the same time, XM maintains high accuracy,
+achieving a median translation error of just 1. In practice,
+a 0.1 and 1 translation error yield nearly identical recon-
+struction quality, as illustrated in Fig. 5.
+Appendix C. The solver time is negligible, appearing as only
+a thin bar in the chart. Matching, indexing, and ltering are the
+most time-consuming components, with the latter two planned
+for CUDA implementation as future work.
+Takeaway
+With ground truth depth and COLMAP matchings,
+minor lter renement achieves results comparable to
+COLMAP and GLOMAP.
+XM remains highly efcient and scalable.
+TABLE V: Results on the Mip-Nerf and Zip-Nerf datasets.
+COLMAP is very slow, while both XM and GLOMAP achieve
+comparable accuracy. However, XM is signicantly faster.
+Datasets
+Kitchen-279
+Garden-185
+Bicycle-194
+Room-311
+Alameda-1724
+FILTER  XM2
+(XM  CERES)
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+TABLE VI: Results on the Mip-Nerf and Zip-Nerf datasets
+(min-eig and suboptimality). All datasets are solved to global
+minimum.
+Suboptimality-gap
+C. Mip-Nerf and Zip-Nerf Dataset
+Mip-Nerf and Zip-Nerf [7, 8] are real-world image datasets
+around a single object. We evaluate learned depth and down-
+stream novel view synthesis tasks on these datasets.
+by COLMAP, we use its camera poses as ground truth to
+benchmark XM against COLMAP and GLOMAP. To address
+inaccuracies in learned depth, we apply CERES renement,
+incorporating its runtime into the solver time, denoted as XM
+CERES. All other evaluation metrics remain unchanged.
+Fig. 10: Illustration of local minimum on the Mip-Nerf dataset.
+in a poor local minimum. Right: Solution after increasing the
+rank to 4, which successfully escapes the local minimum.
+Results. Results are presented in Table V, with suboptimal-
+ity detailed in Table VI. While adding CERES increases solver
+the baselines. On the garden and room datasets, we achieve a
+0.2 error, demonstrating the same accuracy as the baselines,
+while on others, the error may be slightly higher. However, as
+shown in Fig. 6, this has no noticeable impact on downstream
+3D Gaussian Splatting tasks .
+A runtime breakdown for XM is provided in Appendix C.
+Matching and indexing remain slow, while depth estimation
+now takes even longer. This is due to (a) foundation models
+requiring much time for estimation and (b) depth estimation
+runtime scales linearly with the number of frames, whereas
+Mip-Nerf datasets are relatively small.
+The need for convex relaxation. In Fig. 10, we demonstrate
+that directly solving (19) with rank 3 (equivalently (8)) can
+lead to a local minimum. Specically, the solver terminates
+with a minimal eigenvalue of Z(y) at 6.2102, resulting in
+a messy reconstruction. However, by increasing the rank to 4,
+the solver escapes the local minimum and achieves the global
+the Burer-Monteiro method requires a higher rank to nd the
+global minimum.
+Takeaway
+With CERES renement to mitigate depth errors,
+XM achieves nearly the same accuracy as COLMAP
+and GLOMAP. Moreover, this has no impact on down-
+stream novel view synthesis tasks.
+XM maintains a signicant speed advantage, even
+with learned depth and real-world data.
+BM factorization and the Riemannian staircase ef-
+fectively escape local minimum.
+D. IMC, TUM and C3VD Datasets
+Followed by Mip-Nerf, we step to the IMC PhotoTourism
+TABLE VII: Results on the IMC datasets. XM-SfM achieves
+comparable accuracy while being much more scalable.
+Datasets
+FILTER  XM2  CERES
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Rome-2063
+Gate-1363
+Temple-904
+Paris-3765
+TABLE VIII: Results on the TUM datasets. The error is
+slightly higher due to low-resolution images.
+Solver Time  Processing Time
+ATE-T  ATE-R
+RPE-T  RPE-R
+fr1xyz-798-26078
+fr1rpy-723-26071
+fr1desk-613-38765
+fr1room-1362-86634
+. These datasets are quite challenging because of varying
+environments and low-quality images.
+against GLOMAP on IMC datasets. In these three datasets we
+add both outlier ltering and XM2. In C3VD we use the ground
+truth depth map and the learned depth from a medical-specic
+depth prediction model .
+Results. The results are presented in Table VII, Table VIII,
+and Table IX. The IMC datasets consist of large image collec-
+tions capturing some famous landmarks. As a result, GLOMAP
+requires an extremely long runtime, exceeding 20 hours for the
+largest dataset. Our accuracy is comparable to GLOMAP, with
+visualizations provided in Fig. 7. The TUM and C3VD datasets
+produce high-quality reconstructions, though accuracy is af-
+fected by the complexity of the environment and insufcient
+lighting. Visualizations of these reconstructions are provided
+in Fig. 8 and Fig. 9.
+Takeaway
+XM remains efcient and scalable across diverse
+while being signicantly faster.
+VI. CONCLUSION
+We proposed XM, a scalable and initialization-free solver
+for global bundle adjustment, leveraging learned depth and
+convex optimization. By relaxing scaled bundle adjustment as
+a convex SDP and solving it efciently with Burer-Monteiro
+factorization and a CUDA-based trust-region Riemannian op-
+scales. Integrated into the XM-SfM pipeline, it maintains the
+accuracy of existing SfM methods while being signicantly
+faster and more scalable.
+Limitation and future work. First, while our XM solver
+outperforms baselines in speed, it can be sensitive to noise
+TABLE IX: Results on the C3VD datasets. Ground truth depth
+is signicantly more accurate than learned depth, while they
+both fail on the last dataset because of dark environment.
+Datasets
+FILTER  XM2  GT-DEPTH
+FILTER  XM2
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+medical5
+medical6
+medical7
+medical8
+and outliers. Future work includes rening the ltering process
+and developing better methods to handle outliers. Second,
+our GPU solver is built on the cuBLAS dense matrix-vector
+multiplication library, whereas SLAM camera sequences often
+have sparse patterns. Extending the XM solver to support sparse
+matrix-vector multiplications would enhance its applicability
+to SLAM. Third, our XM-SfM pipeline still has components
+that potentially can be accelerated 100 to 1000 times through
+CUDA implementation, e.g., ltering and matrix construction.
+prediction model. While generic models are available, training
+effective depth predictors can be particularly challenging in
+data-scarce domains such as medical or space applications.
+ACKNOWLEDGEMENTS
+We thank Shucheng Kang for the help on CUDA program-
+ming; Xihang Yu and Luca Carlone for discussions about
+depth prediction models; and members of the Harvard Com-
+putational Robotics Group for various explorations throughout
+the project.
+REFERENCES
+P-A Absil, Robert Mahony, and Rodolphe Sepulchre.
+Optimization algorithms on matrix manifolds. Princeton
+University Press, 2008. 6, 19
+Sameer Agarwal, Noah Snavely, Steven M Seitz, and
+Richard Szeliski.
+Bundle adjustment in the large.
+Computer VisionECCV 2010: 11th European Confer-
+ence on Computer Vision, Heraklion, Crete, Greece,
+September 5-11, 2010, Proceedings, Part II 11, pages
+2942. Springer, 2010. 7
+Sameer Agarwal, Keir Mierle, et al.
+Ceres solver:
+Tutorial  reference. Google Inc, 2(72):8, 2012. 2
+Pasquale Antonante, Vasileios Tzoumas, Heng Yang,
+and Luca Carlone. Outlier-robust estimation: Hardness,
+minimally tuned algorithms, and applications.
+Transactions on Robotics, 38(1):281301, 2021. 3, 7
+Mosek ApS.
+Mosek optimization toolbox for matlab.
+Users Guide and Reference Manual, Version, 4(1), 2019.
+Timothy D Barfoot, Connor Holmes, and Frederike Dm-
+bgen. Certiably optimal rotation and pose estimation
+based on the cayley map. The International Journal of
+Robotics Research, page 02783649241269337, 2023. 3
+Jonathan T. Barron, Ben Mildenhall, Dor Verbin, Pratul P.
+anti-aliased neural radiance elds. CVPR, 2022. 4, 11
+Jonathan T. Barron, Ben Mildenhall, Dor Verbin, Pratul P.
+grid-based neural radiance elds. ICCV, 2023. 11
+Taylor L Bobrow, Mayank Golhar, Rohan Vijayan,
+Venkata S Akshintala, Juan R Garcia, and Nicholas J
+Durr. Colonoscopy 3d video dataset with paired depth
+from 2d-3d registration. Medical Image Analysis, page
+Aleksei Bochkovskii, Amal Delaunoy, Hugo Germain,
+Marcel Santos, Yichao Zhou, Stephan R Richter, and
+Vladlen Koltun.
+Depth pro: Sharp monocular met-
+ric depth in less than a second.
+arXiv preprint
+Nicolas Boumal.
+An introduction to optimization on
+smooth manifolds.
+Cambridge University Press, 2023.
+Nicolas Boumal, Bamdev Mishra, P-A Absil, and
+Rodolphe Sepulchre.
+optimization on manifolds.
+The Journal of Machine
+Learning Research, 15(1):14551459, 2014. 3, 6
+Samuel Burer and Renato DC Monteiro. A nonlinear pro-
+gramming algorithm for solving semidenite programs
+via low-rank factorization. Mathematical programming,
+Luca Carlone, David M Rosen, Giuseppe Calaore,
+John J Leonard, and Frank Dellaert. Lagrangian duality
+in 3d slam: Verication techniques and optimal solutions.
+In 2015 IEEERSJ International Conference on Intelli-
+gent Robots and Systems (IROS), pages 125132. IEEE,
+Kunal N Chaudhury, Yuehaw Khoo, and Amit Singer.
+Global registration of multiple point clouds using
+semidenite programming. SIAM Journal on Optimiza-
+Ashley Chow, Eduard Trulls, HCL-Jevster, Kwang Moo
+matching
+challenge
+Frank Dellaert and GTSAM Contributors. borglabgtsam,
+Frank Dellaert, David M Rosen, Jing Wu, Robert Ma-
+Shonan rotation averaging:
+Global optimality by surng so (p) n so (p) n.
+Computer VisionECCV 2020: 16th European Confer-
+Part VI 16, pages 292308. Springer, 2020. 7
+Taosha Fan, Joseph Ortiz, Ming Hsiao, Maurizio Monge,
+Jing Dong, Todd Murphey, and Mustafa Mukadam. De-
+centralization and acceleration enables large-scale bundle
+adjustment. arXiv preprint arXiv:2305.07026, 2023. 2
+Martin A Fischler and Robert C Bolles. Random sample
+to image analysis and automated cartography. Commu-
+nications of the ACM, 24(6):381395, 1981. 3
+Mercedes Garcia-Salguero and Javier Gonzalez-Jimenez.
+Certiable planar relative pose estimation with gravity
+prior. Computer Vision and Image Understanding, 239:
+Mercedes Garcia-Salguero, Jesus Briales, and Javier
+Gonzalez-Jimenez. Certiable relative pose estimation.
+Image and Vision Computing, 109:104142, 2021. 7
+Connor Holmes and Timothy D Barfoot.
+An efcient
+global optimality certicate for landmark-based slam.
+IEEE Robotics and Automation Letters, 8(3):15391546,
+Connor Holmes, Frederike Dmbgen, and Timothy D
+Barfoot. Sdprlayers: Certiable backpropagation through
+polynomial optimization problems in robotics.
+preprint arXiv:2405.19309, 2024. 7
+Berthold KP Horn.
+Closed-form solution of absolute
+orientation using unit quaternions. Josa a, 4(4):629642,
+Jos Pedro Iglesias, Carl Olsson, and Fredrik Kahl.
+Global optimality for point set registration using semidef-
+inite programming.
+In Proceedings of the IEEECVF
+conference on computer vision and pattern recognition,
+Michel Journe, Francis Bach, P-A Absil, and Rodolphe
+Sepulchre. Low-rank optimization on the cone of positive
+semidenite matrices.
+SIAM Journal on Optimization,
+Shucheng Kang, Xiaoyang Xu, Jay Sarva, Ling Liang,
+and Heng Yang. Fast and certiable trajectory optimiza-
+tion. arXiv preprint arXiv:2406.05846, 2024. 3
+Bernhard Kerbl, Georgios Kopanas, Thomas Leimkhler,
+and George Drettakis. 3d gaussian splatting for real-time
+radiance eld rendering. ACM Transactions on Graphics,
+42(4), July 2023. URL
+3d-gaussian-splatting. 12
+David G Lowe.
+Object recognition from local scale-
+invariant features. In Proceedings of the seventh IEEE
+international conference on computer vision, volume 2,
+pages 11501157. Ieee, 1999. 7
+Carl Olsson, Anders Eriksson, and Richard Hartley.
+Outlier removal using duality. In 2010 IEEE Computer
+Society Conference on Computer Vision and Pattern
+Linfei Pan, Dniel Barth, Marc Pollefeys, and Jo-
+hannes L Schnberger.
+Global structure-from-motion
+revisited. In European Conference on Computer Vision,
+pages 5877. Springer, 2025. 2
+Alan Papalia, Andrew Fishberg, Brendan W ONeill,
+Jonathan P How, David M Rosen, and John J Leonard.
+Certiably correct range-aided slam. IEEE Transactions
+on Robotics, 2024. 3
+Akshay Paruchuri, Samuel Ehrenstein, Shuxian Wang,
+Inbar Fried, Stephen M Pizer, Marc Niethammer, and
+Roni Sengupta. Leveraging near-eld lighting for monoc-
+ular depth estimation from endoscopy videos.
+preprint arXiv:2403.17915, 2024. 12
+Luigi Piccinelli, Yung-Hsu Yang, Christos Sakaridis,
+Mattia Segu, Siyuan Li, Luc Van Gool, and Fisher Yu.
+In Proceedings of the IEEECVF Conference on Com-
+puter Vision and Pattern Recognition, pages 10106
+Jie Ren, Wenteng Liang, Ran Yan, Luo Mai, Shiwen Liu,
+and Xiao Liu. Megba: A gpu-based distributed library for
+large-scale bundle adjustment. In European Conference
+on Computer Vision, pages 715731. Springer, 2022. 2
+David M Rosen.
+Scalable low-rank semidenite pro-
+gramming for certiably correct machine perception. In
+Algorithmic Foundations of Robotics XIV: Proceedings of
+the Fourteenth Workshop on the Algorithmic Foundations
+of Robotics 14, pages 551566. Springer, 2021. 7
+David M Rosen, Luca Carlone, Afonso S Bandeira, and
+John J Leonard. Se-sync: A certiably correct algorithm
+for synchronization over the special euclidean group. The
+International Journal of Robotics Research, 38(2-3):95
+Johannes Lutz Schnberger and Jan-Michael Frahm.
+Structure-from-motion revisited. In Conference on Com-
+puter Vision and Pattern Recognition (CVPR), 2016. 2
+Kristy Sim and Richard Hartley.
+Removing outliers
+using the norm.
+In 2006 IEEE Computer Society
+Conference on Computer Vision and Pattern Recognition
+(CVPR06), volume 1, pages 485494. IEEE, 2006. 3, 7
+Julian Straub, Thomas Whelan, Lingni Ma, Yufan Chen,
+Erik Wijmans, Simon Green, Jakob J. Engel, Raul
+Mingfei Yan, Brian Budge, Yajie Yan, Xiaqing Pan,
+June Yon, Yuyang Zou, Kimberly Leon, Nigel Carter,
+Jesus Briales, Tyler Gillingham, Elias Mueggler, Luis
+The Replica dataset:
+A digital replica of indoor spaces.
+arXiv preprint
+J. Sturm, N. Engelhard, F. Endres, W. Burgard, and
+D. Cremers. A benchmark for the evaluation of rgb-d
+slam systems. In Proc. of the International Conference
+on Intelligent Robot Systems (IROS), Oct. 2012. 12
+Edgar Sucar, Shikun Liu, Joseph Ortiz, and Andrew J
+Davison.
+real-time. In Proceedings of the IEEECVF international
+conference on computer vision, pages 62296238, 2021.
+Yulun Tian, Kasra Khosoussi, David M Rosen, and
+Jonathan P How.
+Distributed certiably correct pose-
+graph optimization. IEEE Transactions on Robotics, 37
+Henry Wolkowicz, Romesh Saigal, and Lieven Vanden-
+berghe. Handbook of semidenite programming: theory,
+ence  Business Media, 2012. 5
+Heng Yang.
+Semidenite optimization and relaxation.
+Working draft edition,
+Heng Yang and Luca Carlone. Certiably optimal outlier-
+robust geometric perception: Semidenite relaxations and
+scalable global optimization.
+IEEE transactions on
+pattern analysis and machine intelligence, 45(3):2816
+Heng Yang, Jingnan Shi, and Luca Carlone. Teaser: Fast
+and certiable point cloud registration. IEEE Transac-
+tions on Robotics, 37(2):314333, 2020. 2, 19
+Lihe Yang, Bingyi Kang, Zilong Huang, Xiaogang Xu,
+Jiashi Feng, and Hengshuang Zhao.
+Depth anything:
+Unleashing the power of large-scale unlabeled data. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 1037110381,
+Lihe Yang, Bingyi Kang, Zilong Huang, Zhen Zhao,
+Xiaogang Xu, Jiashi Feng, and Hengshuang Zhao. Depth
+anything v2. arXiv:2406.09414, 2024. 17
+Wei Yin and Mu Hu. Metric3D: A toolbox for zero-shot
+metric depth estimation.
+Xihang Yu and Heng Yang. Sim-sync: From certiably
+optimal synchronization over the 3d similarity group to
+scene reconstruction with learned depth. IEEE Robotics
+and Automation Letters, 2024. 3, 4
+Zihan Zhu, Songyou Peng, Viktor Larsson, Weiwei Xu,
+Hujun Bao, Zhaopeng Cui, Martin R Oswald, and Marc
+Pollefeys. Nice-slam: Neural implicit scalable encoding
+for slam. In Proceedings of the IEEECVF conference on
+computer vision and pattern recognition, pages 12786
+APPENDIX A
+A. Proof of Proposition 2
+(3) in its vectorized form:
+wik Ri(siuik)  ti pk2
+ik I3)vec (siRi)  ti pk
+where wik denotes the weight assigned to each term.
+Let ei RN be a vector of zeros except for the i-th entry,
+which is set to 1. Similarly, let ek RM be a vector of zeros
+except for the k-th entry, which is set to 1. Furthermore, dene
+the following concatenated vectors: t  [t1; . . . ; tN] R3N
+for translations, p  [p1; . . . ; pM] R3M for landmark
+vectorized scaled rotations.
+With these denitions, we simplify the objective function
+as L(t, p, r).
+i ui,k) I3)r  (eT
+i I3)t (eT
+rT (Q1 I3) r  tT (Q2 I3) t  pT (Q3 I3) p
+2rT (V1 I3) t 2rT (V2 I3) p 2tT (V3 I3) p
+where Q1, Q2, Q3, V1, V2, V3 are as follows
+wik(ei ui,k)(eT
+wik(eieT
+i ) RNN,
+wik(ekeT
+wik(ei ui,k)eT
+wik(ei ui,k)eT
+We now solve out t and p by taking the gradient of L(t, p, r)
+w.r.t. t and p respectively. Let y
+. We can represent
+L(t, p, r) using y, r as follows:
+L(y, r)  rT (Q1 I3) r 2rT (Vtp I3) y
+yT (Qtp I3) y
+where Qtp, Vtp are as follows:
+R(NM)(NM)
+R3N(NM).
+set yL(y, r)  0 we obtain
+(Qtp I3)y  (Vtp I3)Tr.
+Let G denote the view-graph. Next we prove Qtp can be
+represented as:
+Qtp  L(G)
+where L(G) is the Laplacian of G:
+Lemma 13. Qtp is the Laplacian of G.
+(q) for the set of edges incident to a vertex q, and we  wqp
+for e  (q, p), the Laplacian of G is:
+if q  p,
+if (q, p) E,
+if (i, j) E.
+On the other hand, by expanding (35) and compare it with
+(39), we nish the proof.
+Calling y  [t2; . . . ; tN; p1; . . . ; pNM] R3(NM)3 and
+Qtp  [c2; . . . ; cNM] R(NM)(NM1) where ci is the
+i-th column of Qtp. We prove when x s1  1, R1  I3,
+t1  0, y has a unique solution:
+( Qtp I3)y  (Vtp I3)Tr
+Since rank (L(G))  N  M 1 and P
+then span(c1, ..., cn)  span(c2, ..., cn) and rank
+N  M 1 which implies that Qtp has full column rank.
+tp Qtp)1 QT
+Together with t1  0,
+(A I3) r
+tp Qtp)1 QT
+Now we have a closed form solution of y. Plug in the solution
+of y into (34), we obtain:
+rT ATQtpA  VtpA  ATV T
+Note that
+r  [vec (s1R1) ; . . . ; vec (sNRN)]  vec (U)
+Then L(r) is equivalent to
+vec (U)T ATQtpA  VtpA  ATV T
+Rewriting this in a more compact matrix representation yields:
+tp  Q1 S3N
+concluding the proof.
+TABLE X: Results of different Depth Estimation Model on the Mip-Nerf datasets.
+Unidepth
+Depth-pro
+DepthAnything-v2
+Metric3D-v2
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Solver Time
+Processing Time
+Kitchen-279
+Garden-185
+Bicycle-194
+Room-311
+B. Proof of Proposition 3
+of (8), then it is also a global optimizer of (4).
+SO(3). Thus, we have:
+From (9) and the denition R
+i )  det( R
+This implies that U is also a feasible solution to (4). By (47),
+U is therefore the global optimizer of (4).
+C. Proof of Proposition 5
+Let X  U TU. By denition, we have xTXx  (Ux)TUx
+0 for all x R3N, which implies that X 0.
+i I3 I3. This ensures that the feasible set of (11) is broader
+than that of (8), conrming that it is indeed a relaxation.
+Next we prove if rank (X)  3, we can extract the global
+minimizer of (8) from X. Let X ( U )T U , then U is
+rank 3. We can decompose U as
+Since X is feasible, we have R
+i  I3  s2
+i I3, which
+implies that R
+i si O(3).
+Dene U  RT
+it follows that U is the global minimizer of (8).
+D. Proof of LICQ condition
+(19), we have RT
+k Rk  kI3, k > 0. Therefore, rank(Rk)
+We show the structure of the {Ai}m
+i1 matrices guarantees
+LICQ. Recall {Ai}m
+i1 enforces the diagonal 3  3 blocks of
+X in (19) to be scaled identity matrices (for the rst block
+an additional constraint enforces the diagonal entries to be 1).
+i1 has the following form
+where the matrix is all zero except in the k-th 3  3 block:
+Due to this structure, A5k4U T
+r is entirely zero except for
+rows 3k2 through 3k. So A5k4U T
+r for different values of
+k are clearly linearly independent since their nonzero regions
+do not overlap. Hence, we only need to investigate LICQ given
+a xed k.
+Proof by contradiction: suppose there exists ,  1, . . . , 5
+such that
+k is row full-rank, we have P5
+and thus  0, . This proves that {AiU T
+i1 must be
+linearly independent.
+APPENDIX B
+DEPTH MODELS
+We compare the performance of different depth estimation
+models on the Mip-Nerf datasets. The models we consider are
+Metric3D-v2 . We evaluate these models using ATERTE
+and runtime as detailed in Section V. The results are shown in
+Table X.
+All four models produce accurate results, demonstrating
+the robustness of our XM-SfM pipeline to different depth
+models. Unidepth is the fastest, while DepthAnything-V2
+and Metric3D-v2 are slightly slower but occasionally more
+accurate. Depth-Pro is the slowest yet consistently stable in
+accuracy.
+APPENDIX C
+BREAKDOWN PLOT OF RUN TIME
+We present time breakdown plots (Fig. 11, Fig. 12, Fig. 13),
+for three different cases. Depth estimation scales linearly with
+FILTER  XM2
+Fig. 11: Breakdown Results on the Replica
+dataset (2000 frames)
+FILTER  XM2
+Fig. 12: Breakdown Results on the
+Replica dataset (100 frames)
+Fig. 13: Breakdown Results on the Mip-
+Nerf dataset
+the number of frames, making it more signicant in smaller
+datasets. Matching and indexing become dominant in larger
+with the number of frames. Solver time remains consistently
+minimal across all datasets.
+APPENDIX D
+SCALE REGULARIZATION
+Due to inaccuracies in real-world data, the scale of frames
+frame4. As a result, the global minimum tends to collapse
+all cameras 2, . . . , N into a single point to avoid large errors
+in their estimates. To mitigate this, we introduce a scale
+regularization term in the objective function of (11).
+XS3Ntr (QX)
+subject to Ai, X bi, i 1, . . . , 5N  1
+This modication does not violate the previously established
+theorems; Slaters Condition and strong duality remain valid,
+and the optimality condition remains unchanged. However, the
+Z(y) matrix is modied to
+To prove this, we rst write (51) in the standard form:
+min Q, X F(X)
+s.t. X 0
+4Anchored to be 1.
+F(X) is a quadratic term dened by F(X)
+1)2. This is still a convex problem and the Lagrangian is:
+L(X, y, Z) Q, X F(X)
+yi(Ai, Xbi) Z, X
+yiAi Z, X F(X)
+The KKT condition is:
+Z  Q  F(X)
+Note that L is linear in the off-diagonal elements of X
+and quadratic in the diagonal elements. To ensure a nite
+yiAi Z  F(X)
+denition
+i yiAiZ)3j,3j
+1. So we plug in X then we get the
+dual problem:
+i yiAi Z)2
+yiAi Z)3j,3j
+s.t. Z 0
+yiAi Z)ij  0,
+Fig. 14: Accuracy (ATE-T) and the nal Ceres objective value
+of Replica and Mip-NeRF datasets as the depth noise level
+increases. When  < 1.5 they fall into the same local minima.
+The SDP relaxation breaks at   5 for Replica and never for
+Mip-NeRF.
+APPENDIX E
+SUBOPTIMALITY FOR SDP
+In (16), we established suboptimality when (11) is solved
+to global optimality. However, in practice, numerical errors
+to increased suboptimality. Here, we provide a rigorous proof
+for computing suboptimality in SDP problems and apply it
+directly to the scale regularization problem in (51).
+Theorem 14. Given the primal problem (51) we have
+SDP max(0, min(Z))tr(X)  dual
+yiAi  F(x), X
+yibi  F(X) F(X), X
+dual value
+max(0, min(Z))tr(X)  dual
+and we have SDP
+SDP and max(0, min(Z))tr(X)  dual can be directly
+evaluated within the algorithm. A small gap between them
+indicates that SDP is close to
+problem has been solved to global optimality. We dene this
+new suboptimality gap as:
+max(0, min(Z))tr(X) dual
+1  max(0, min(Z))tr(X)  dual.
+Fig. 15: Convergence rate of XM on different datasets. BAL
+datasets show quadratic convergence. The other two enter
+quadratic convergence after a slow convergence region.
+APPENDIX F
+CONVERGENCE AND NOISE ANALYSIS
+A. Convergence Rate
+We show the convergence rate of our algorithm on different
+datasets. From Riemannian trust-region algorithm with trun-
+cated conjugate gradient (Rtr-tCG) we already know that it has
+local quadratic convergence [11, 1]. Our experimental results
+(Fig. 15) veried this.
+B. Noise Analysis
+We test our pipeline to investigate tolerance for noise in
+depth estimation. Specically, we add a noisy scaling factor s
+to the depth of each observation, dened as s  (1  )x, x
+U(1, 1), where  controls the noise level. Fig. 14 right plots
+the relationship between  and the reconstruction accuracy.
+The pipeline breaks at   1.5 which shows robustness against
+inaccurate depth. The SDP relaxation does not break until
+APPENDIX G
+The classical absolute Trajectory Error (ATE) and Relative
+Pose Error (RPE) are dened as:
+ATEi  Ti Ti2
+RPEij  ( Tj Ti)1TiT 1
+where Ti represents ground truth pose and Ti represents
+estimated transformation. Because of the potential transfor-
+mation between ground truth and estimation, an alignment
+between the two trajectories is required. The alignment is done
+by solving a point-cloud registration problem5 between two
+clusters of cameras.
+5We ignore the rotation in each camera frame and align position of cameras
+through TEASER .

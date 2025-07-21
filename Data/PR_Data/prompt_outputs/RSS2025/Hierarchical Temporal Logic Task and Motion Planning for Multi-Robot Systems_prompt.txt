@@ -1,0 +1,1388 @@
+=== PDF文件: Hierarchical Temporal Logic Task and Motion Planning for Multi-Robot Systems.pdf ===
+=== 时间: 2025-07-21 14:03:09.064972 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Hierarchical Temporal Logic Task and Motion
+Planning for Multi-Robot Systems
+Zhongqi Wei,1, Xusheng Luo,1 and Changliu Liu1
+Equal contributions
+Robotics Institute, Carnegie Mellon University, Pittsburgh, PA 15213, USA
+{zhongqi2, xushengl, cliu6}andrew.cmu.edu
+AbstractTask and motion planning (TAMP) for multi-robot
+motion planning, remains a challenging problem in robotics.
+Existing TAMP approaches often struggle to scale effectively
+for multi-robot systems with complex specifications, leading to
+infeasible solutions and prolonged computation times. This work
+addresses the TAMP problem in multi-robot settings where tasks
+are specified using expressive hierarchical temporal logic and task
+assignments are not pre-determined. Our approach leverages
+the efficiency of hierarchical temporal logic specifications for
+task-level planning and the optimization-based graph of convex
+sets method for motion-level planning, integrating them within a
+product graph framework. At the task level, we convert hierarchi-
+cal temporal logic specifications into a single graph, embedding
+task allocation within its edges. At the motion level, we represent
+the feasible motions of multiple robots through convex sets in the
+configuration space, guided by a sampling-based motion planner.
+This formulation allows us to define the TAMP problem as a
+shortest path search within the product graph, where efficient
+convex optimization techniques can be applied. We prove that our
+approach is both sound and complete under mild assumptions.
+To enhance scalability, we introduce a pruning heuristic that
+reduces the product graph size, enabling efficient planning for
+high-dimensional multi-robot systems. Additionally, we extend
+our framework to cooperative pick-and-place tasks involving
+object handovers between robots. We evaluate our method
+across various high-dimensional multi-robot scenarios, including
+simulated and real-world environments with quadrupeds, robotic
+our approach outperforms existing methods in execution time and
+solution optimality while effectively scaling with task complexity.
+I. INTRODUCTION
+Multi-robot systems often need to collaborate effectively
+and manage complex tasks. This has led to a growing demand
+for planning systems that can enable robots to efficiently
+execute long-horizon, intricate tasks. This challenge is com-
+monly framed as a task and motion planning (TAMP) problem,
+formulated as a combination of discrete task planning and
+continuous motion planning . TAMP is known as an NP-
+hard problem, particularly challenging for high-dimensional
+multi-robot systems tasked with complex and long-horizon
+operations. Traditionally, researchers in various fields have
+addressed these problems separately. To simplify the issues,
+certain assumptions are often employed, such as the exis-
+tence of low-level controllers for task planning or the use
+of pre-defined tasks in motion planning. However, in real-
+world scenarios, predicting the feasibility of motion planning
+given a specific task specification is difficult. A feasible task
+Fig. 1: Given the hierarchical temporal logic specifica-
+tions (14), which specify transferring the yellow, blue, and red
+objects in order, our approach efficiently generates collision-
+free trajectories for four robotic manipulators, with a total of
+28 degrees of freedom, to collaboratively complete the task in
+the shared workspace.
+description might cause an infeasible motion planning result.
+efficient ways to search the space of tasks [2, 3].
+issues by integrating task and motion planning. The combi-
+natorial complexity of TAMP can be partially mitigated if
+the problem is properly formulated [46]. However, those
+methods either scale poorly to complex, long-horizon tasks
+or struggle with local minima due to the non-convex nature
+of the problem. A recent study  introduced an innovative
+framework that combines Linear Temporal Logic , as an
+expressive specification language for long-horizon tasks, with
+the Graph of Convex Sets (GCS) , a near-optimal motion
+planner. This unified approach demonstrates scalability to
+high-dimensional systems with up to 30 degrees of freedom.
+extending it to multi-robot systems is challenging due to
+the NP-hard nature of task allocation. Additionally, the LTL
+specifications are computationally intensive. For instance, the
+task of sequentially collecting five keys and opening five
+doors in  required over 40 minutes, with 32 minutes dedi-
+cated solely to handling the LTL specifications, reflecting the
+double-exponential complexity inherent to this process. More
+of handling such specifications. While their planning algorithm
+claims to scale to scenarios involving up to 30 mobile robots
+under hierarchical LTL specifications, it does not address
+collision avoidance and collaboration among robots.
+In this work, we address the problem of integrated task
+and motion planning (TAMP) for multi-robot systems under
+hierarchical temporal logic specifications, encompassing task
+efficiency of hierarchical temporal logic specifications at the
+task level and the Graph of Convex Sets (GCS) at the motion
+ideas from , we formulate TAMP under hierarchical tempo-
+ral logic specifications for multi-robot systems as a shortest-
+path problem within a product graph. Our proposed approach
+tackles several key challenges: converting hierarchical tempo-
+ral logic specifications into a graph, addressing the task alloca-
+tion complexities introduced by multiple robots, and efficiently
+connecting nodes for multiple robots in the graph of convex
+setsextending beyond the existing work  that deals with
+at most two robots. The shortest-path problem in the product
+graph is formulated as a mixed-integer convex programming
+(MICP) problem, which can be efficiently solved using convex
+relaxation techniques . We theoretically prove that our
+approach is both sound and complete under mild assumptions,
+and we empirically demonstrate its efficiency through case
+studies involving four robotic manipulators. To manage the
+complexity of the product graph, we implement a pruning
+strategy based on the structure of the tasks. Additionally, we
+extend the framework to scenarios involving multiple robotic
+manipulators that require handovers, where the necessity for
+handovers is not predetermined. The primary contributions of
+this work are as follows:
+1) We formulate the multi-robot hierarchical temporal logic
+task and motion planning (TAMP) problem as a shortest-
+path problem in a product graph.
+2) At the task level, we construct a graph for hierarchical
+temporal logic specifications and encompass the task
+allocation within the edges. To construct the GCS at
+the motion level, capturing the dynamics of multi-robot
+efficiently connects the motion space.
+3) We develop a heuristic to prune the product graph,
+significantly improving the computational efficiency of
+our method.
+4) To address collaborative multi-robot pick-and-place tasks,
+we adapt the product graph to incorporate handover
+constraints and solve the shortest-path problem using
+mixed-integer convex programming (MICP).
+5) We provide theoretical analyses to prove the soundness
+and completeness of our approach under mild assump-
+6) We demonstrate the efficiency of our proposed method for
+long-horizon tasks, complex task specifications, and high-
+dimensional systems through several examples in both
+simulation and hardware. Additionally, we provide open-
+source code to reproduce our results.
+The remainder of this paper is organized as follows. Section
+II reviews related work on task and motion planning and
+temporal logic specifications. Section III provides the back-
+ground information on graphs of convex sets, linear temporal
+problem and the underlying assumptions are presented in
+Section IV. Our main approach to the problem is described
+in Section V. Section VI offers proof of the soundness and
+completeness of the proposed approach. The multi-robot task
+and motion planning examples are described in Section VII.
+provides the conclusion of our approach.
+II. RELATED WORKS
+A. Task and Motion Planning
+The task and motion planning (TAMP) aims to identify a
+sequence of symbolic actions and corresponding motion plans.
+An extensive review of TAMP can be found in [12, 13].
+TAMP typically focuses on single-robot scenarios. In this
+task allocation is not applicable to a single robot. The primary
+focus in multi-robot TAMP is on the pick-up and placement of
+multiple objects by multiple manipulators, with the objective
+of determining which manipulator should pick up which
+objects and in what manner. One approach within this category
+employs search-based methods. This includes Conflict Based
+Search (CBS) , Monte-Carlo Tree Search (MCTS) ,
+search in hyper-graphs , and search based on satisfiability
+modulo theories (SMT) solvers . Another approach utilizes
+optimization-based methods. For example,  proposed the
+logic-geometric program (LGP), which integrates continuous
+motion planning and discrete task specifications into opti-
+mization problems. Similarly,  implicitly assigns actions
+based on the solution to a nonlinear optimization problem. Our
+work diverges from multi-robot TAMP in that most TAMP
+studies do not consider logical or temporal constraints, with
+only a handful addressing dependency constraints that emerge
+from handover operations. Our approach incorporates these
+B. Control Synthesis under Temporal Logic Specifications
+Temporal logic specifications play various critical roles in
+control synthesis, particularly within the realm of single-robot
+systems. Primarily, temporal logic formulas are utilized to
+define task specifications. For instance,  employs tempo-
+ral logic to articulate temporally extended objectives and to
+respond to failures during learning from demonstrations.
+implement skill repair mechanisms when existing skills are
+insufficient to satisfy LTL specifications. Similarly,  fo-
+cuses on transferring skills across different LTL specifications.
+Beyond task definition, temporal logic formulas are also
+effective in representing constraints that dynamical systems
+must adhere to. For instance,  introduces LTLDoG, a
+diffusion-based policy for robot navigation that complies with
+LTL constraints.  utilizes temporal logic to define dy-
+namic constraints, ensuring the stability of walking trajectories
+in bipedal robots. Additionally,  uses temporal logic to
+impose constraints on switching protocols, enabling a single
+agent to robustly track multiple targets.
+In the realm of multi-robot systems governed by LTL
+task specifications or constraints, LTL formulas are generally
+categorized into local and global forms. One strategy, as
+demonstrated in studies such as [2527], involves assigning
+LTL tasks locally to each individual robot within the team.
+the entire team. When global LTL specifications are employed,
+they may either explicitly allocate tasks to specific robots [28
+robots [3741]. This latter approach aligns with the problem
+addressed in our current work.
+Global specifications that do not explicitly assign tasks
+to robots typically require decomposition to facilitate task
+allocation. This decomposition can be achieved through three
+primary methods: (a) The most common technique, used in
+works such as [4251], involves breaking down a global
+specification into multiple tasks by leveraging the transition
+relations within the automaton, which graphically represents
+an LTL formula. (b) As demonstrated in [38, 52], the second
+approach utilizes BMC techniques  to develop a Boolean
+Satisfaction or Integer Linear Programming (ILP) model. This
+model simultaneously handles task allocation and implicitly
+decomposes tasks within a unified framework. (c) The third
+tree of LTL formulas to divide the global specification into
+a hierarchical framework, where task allocation is determined
+first followed by low-level plan synthesiswithout ensuring
+the feasibility at the low levelor they employ a simultaneous
+task allocation and planning approach to guarantee complete-
+action models, which may be suitable for mobile robots but
+are not applicable to robotic arms. In contrast, our work
+distinguishes itself by performing simultaneous task allocation
+and planning while directly considering continuous dynamics.
+III. PRELIMINARY
+{1, . . . , K} represent the set of integers from 1 to K, respec-
+A. Linear Temporal Logic
+Linear Temporal Logic (LTL)  is a type of formal logic
+whose basic ingredients are a set of atomic propositions
+temporal operators, next and until U. LTL formulas over
+AP abide by the grammar
+For brevity, we abstain from deriving other Boolean and
+temporal operators, e.g., disjunction , implication , always
+, eventually , which can be found in .
+An infinite word  over the alphabet 2AP is defined as an
+infinite sequence   01 . . . (2AP), where  denotes
+an infinite repetition and k 2AP, k N. The language
+Words()  {  } is defined as the set of words that
+satisfy the LTL formula , where (2AP)   is the
+satisfaction relation. In this work, we focus on a particular
+subset of LTL formulas known as syntactically co-safe LTL, or
+sc-LTL for short . As established by , any LTL formula
+encompassing only the temporal operators and U and written
+in positive normal form (where negation is exclusively before
+atomic propositions) is classified under syntactically co-safe
+formulas. Sc-LTL formulas can be satisfied by finite sequences
+followed by infinite repetitions. This characteristic makes sc-
+LTL apt for modeling and reasoning about systems with finite
+LTL formula can be converted into a Deterministic Finite
+Automaton (DFA).
+Definition 3.1: (Deterministic Finite Automaton (DFA) )
+A DFA A of a sc-LTL formula  over 2AP is defined as a
+tuple A()
+Q is the set of states;
+2AP is an alphabet;
+QQ is the transition relation with (q, ) 1
+for all states q Q and all symbols  ;
+q0 Q is the unique initial state;
+QF Q is a set of accepting states.
+A finite run  of A over a finite word   01 . . . h
+is a sequence   q0q1 . . . qh1 such that (qi, i, qi1) ,
+i  0, . . . , h. A run  is called accepting if qh1 QF .
+The words  that produce an accepting run of A constitute
+the accepted language of A, denoted by LA. Then  proves
+that the accepted language of A is equivalent to the words of
+, i.e., LA  Words().
+B. Hierarchical sc-LTL
+The work  incorporates a hierarchical structure into LTL
+over finite traces. In this paper, we focus on hierarchical sc-
+also be applied to sc-LTL.
+Definition 3.2: (Hierarchical sc-LTL ) Hierarchical sc-
+LTL is structured into K levels, labeled L1, . . . , LK, arranged
+from the highest to the lowest. Each level Lk with k [K]
+contains nk sc-LTL formulas. The hierarchical sc-LTL speci-
+fication is represented as
+k  k [K], i [nk]
+k denotes the i-th sc-LTL formula at level Lk. Let k denote
+the set of formulas at level Lk, and let Prop(i
+k) represent the
+set of propositions appearing in formula i
+k. The hierarchical
+sc-LTL follows these rules:
+1) There is exactly one formula at the highest level: n1  1.
+2) Each formula at level Lk consists either entirely of atomic
+k) AP, or entirely of formu-
+las from the next lower level, i.e., Prop(i
+3) Each formula at level Lk1 appears in exactly one for-
+mula at the next higher level: i
+j[nk] Prop(j
+and Prop(j1
+k ) Prop(j2
+k )  , for j1, j2 [nk] and
+Example 1: (Hierarchical sc-LTL)
+The following hierar-
+chical sc-LTL specifications state that completing tasks a and
+b and c, and c should not be the last one to be finished:
+The symbol i
+k is referred to as composite proposition if it is
+inside a formula, and is referred to as specification otherwise.
+Definition 3.3: (Specification hierarchy tree ) The spec-
+ification hierarchy tree, denoted as Gh
+(Vh, Eh), is a
+tree where each node represents a specification within the
+hierarchical sc-LTL, and an edge (u, v) indicates that specifi-
+cation u contains specification v as a composite proposition.
+Any hierarchical sc-LTL specifications can be turned into a
+specification hierarchy tree.
+A specification is termed as a leaf specification if the
+associated node in the graph Gh does not have any children.
+Let denote the set of leaf specifications. Note that not all
+leaf specifications necessarily reside at level LK.
+C. Shorest paths in Graphs of Convex Sets (GCS)
+In this section, we introduce the shortest path formulation
+in GCS. It is introduced in  and applied to robot motion
+planning problems in . The goal is to find the minimum-
+cost path from a start vertex to a target vertex in a graph.
+defines a Graph of Convex Sets as a directed graph G  (V, E)
+with vertices V and edges E. Each vertex v V is associated
+with a convex set Sv and a point sv
+e  (u, v) E is associated with a non-negative and convex
+function le(su, sv) and a convex constraint (su, sv) Se. For
+a fixed start vertex s and target vertex t, we are seeking a path
+p as a sequence of vertices that connect the start vertex s and
+t through the subset Ep of the edges E. Denoting the set of all
+paths in the graph G as P, the shortest path problem in GCS
+states as follows:
+e(u,v)Ep
+le(su, sv)
+(su, sv) Se,
+e  (u, v) Ep.
+Although the shortest path problem (SPP) in the GCS is
+formulation was proposed in . This MICP has a very tight
+convex relaxation, meaning the optimal result can be tightly
+approximated by the solution of the convex optimization. The
+GCS has been further extended to robotic motion planning
+around obstacles, as detailed in . The results demonstrate
+that GCS is a robust trajectory optimization framework, capa-
+ble of encoding various costs and constraints.
+D. Convex Set (CS)-based Transition System
+For simplicity, we assume that the configuration space
+dimension for each robot is the same, denoted by d. For
+a multi-robot system composed of n robots, the CS-based
+transition system is defined as follows.
+Definition 3.4: (CS-based Transition System) A CS-based
+multi-robot transition system (TS) is defined as T
+S Rnd represents the set of convex sets of configura-
+tion states where all robots are guaranteed to be collision-
+S  S is the transition relation, where (S, S)
+if the sets S and S are either overlapping or adjacent.
+two configuration states within the same convex set to
+the same sets of labels, i.e., L(s)  L(s)  L(S) for
+all S S and for any s, s S. With a slight abuse of
+the convex set.
+S is the convex set that includes the initial
+configuration state (s0
+Given the presence of multiple specifications in hierarchical
+with a sc-LTL specification that a specific robot is executing.
+Definition 3.5: (State-Specification
+Sequence
+state-specification sequence with a horizon h, represented
+n)) is the collective state-
+specification pairs of n robots at the i-th timestep, where
+n) is the configuration state, and i
+with  indicating the systems non-involvement in any leaf
+specification at that time.
+A state-specification sequence is considered to satisfy the
+given hierarchical sc-LTL specifications if the root specifica-
+1 is fulfilled; we refer the reader to  for further
+details.
+IV. PROBLEM FORMULATION
+In this section, we introduce the problem formulation for
+multi-robot hierarchical temporal logic task and motion plan-
+Definition 4.1: (Trajectory) A trajectory for robot i defined
+as i : R Rd is a function that maps any t R in time
+to a robot configuration s Rd.
+Problem 1: Consider a n-robot system with initial con-
+figuration s0  (s0
+n) Rnd, and hierarchical sc-
+LTL specifications , the hierarchical temporal logic task and
+motion planning problem requires finding the collision-free
+robot trajectories   [1, . . . , n] with minimum-cost that
+satisfy the hierarchical sc-LTL specifications. The planning
+problem is shown as follows:
+Trace()  ,
+i(t) j(t)  ,
+i(t) O  ,
+i [n], t R,
+where O represents obstacles, and Trace returns the trace of
+trajectories by applying labeling function L to each state in
+the trajectories .
+We assume the cost J in (4a) is smooth and strictly convex.
+It can be any convex function of trajectory . For example, the
+cost can be the path length and include derivatives of states.
+The first constraint (4b) ensures the trajectories satisfy the task
+specification expressed as hierarchical sc-LTL specifications.
+The second constraint (4c) and third constraint (4d) ensure
+non-convex collision-avoidance constraints, requiring the robot
+to avoid collisions with itself and the surrounding environment.
+To deal with those non-convex collision-avoidance constraints,
+inspired by trajectory optimization , we mitigate those
+collision avoidance constraints by requiring the robot to move
+through a collection of safe convex sets S1, S2, ... Rnd that
+do not collide with obstacles. The last constraint (4e) imposes
+initial conditions for each robot.
+V. APPROACH
+In this section, we present our approach to Problem 1. The
+basic idea of our method involves several key steps: First,
+we construct the labeled convex set regions in configuration
+space to apply hierarchical sc-LTL specification to multi-robot
+motion planning. To ensure the existence of a feasible path
+between these convex set regions, we proposed a rapidly
+exploring random tree (RRT)-guided method to construct
+the connected convex set regions to connect those labeled
+convex set regions. Using these convex sets and their labels,
+Fig. 2: An architecture for hierarchical temporal logic task
+and motion planning, where the transition system can be
+precomputed offline.
+Algorithm 1: Construct a labeled convex set
+atomic proposition
+convex set Slabel
+1 slabel CalLabeledConfiguration() ;
+2 Slabel IRIS-NP(plant, slabel) ;
+3 return slabel, Slabel;
+we then construct the CS-based transition system for multi-
+each hierarchical sc-LTL formula into a Deterministic Finite
+Automaton (DFA) and create a product graph by taking the
+product of the CS-based transition system and the DFAs,
+as described in Section V-B. Note that while our approach
+can model robot collaboration and collision avoidance, these
+aspects are not considered in . Next, to mitigate the
+computational complexity associated with the potentially large
+product graph, we implement a graph pruning technique to
+simplify the problem based on task specifications, as outlined
+in Section V-C. Finally, in Section V-D, we solve the pruned
+product graph using the mixed integer convex program (MICP)
+and extend our optimization framework to handle multi-robot
+handover tasks. The overall architecture of our multi-robots
+task and motion planning algorithm is illustrated in Fig. 2.
+For a static environment, the CS-based transition system can
+be precomputed offline, while the remaining modules are
+computed online.
+A. Construct CS-based Transition System for Multi-robots
+To build a CS-based transition system defined in Def. 3.4,
+we begin by constructing labeled convex sets, represented as
+L(Slabel)  . Subsequently, given any two labeled convex sets
+label and Sj
+connect to establish a feasible pathway between
+label and Sj
+The process of constructing labeled convex sets, as outlined
+in Alg. 1, proceeds as follows: Initially, for a multi-robot
+system and a given atomic proposition , we compute a con-
+figuration slabel that satisfies the specified atomic proposition
+[line 1]. This configuration is typically determined through
+robot inverse kinematics. Following this, we generate a labeled
+convex set Slabel starting with slabel as the seed point, meaning
+that this configuration is contained within the convex set.
+Fig. 3: An example of generating the labeled convex region
+for a multi-robot system. The atomic proposition is target a.
+In Fig. 3(a), the atomic proposition  is used to compute
+the labeled joint configuration slabel through robot inverse
+kinematics. In this configuration, the bottom robot reaches
+the position labeled as target a, while the configurations of
+the remaining robots are unconstrained. Using slabel as a seed
+that contains this seed point. The sampled configurations inside
+the convex region are shown in Fig. 3(b). Note that not all
+configurations of the bottom robot ensure reaching target a.
+Fig. 3(c) illustrates the labeled convex region Slabel generated
+by adding the bottom robots end-effector position constraints
+in IRIS-NP algorithm, ensuring that all configurations in the
+labeled convex region satisfy the atomic proposition target a.
+Algorithm 2: IRIS-RRT
+label and target configuration sj
+1 path RRT(si
+label) ;
+connect IRIS-NP(plant, si
+label) ;
+4 while sj
+label is not in convex sets Si,j
+connect do
+maximize
+distancealongpath(sold
+subject to snew
+seed Si,j
+connect and snew
+seed path ;
+Siris IRIS-NP(plant, snew
+connect Si,j
+connect {Siris} ;
+seed snew
+10 return Si,j
+connect;
+In this work, convex sets are constructed using the IRIS-NP
+convex set is free from collisions. However, IRIS-NP does not
+guarantee that every configuration in the convex set satisfies
+the atomic proposition . To address this limitation, we
+incorporate additional configuration constraints in the IRIS-NP
+algorithm to ensure that all configurations within Slabel satisfy
+the atomic proposition  [line 2]. An example of this algorithm
+applied to a four-robot manipulator system is depicted in
+Fig. 3. One such additional constraint is requiring a specific
+robots end-effector to reach a designated position.
+After generating the labeled convex sets S, we construct a
+sequence of connected convex sets Si,j
+connect to ensure connectiv-
+ity between any two labeled convex sets, if possible. For high-
+Fig. 4: A 2D example for collision-free convex set construc-
+tion. The orange blocks represent obstacles. Given the robots
+start configuration sstart and goal configuration starget, IRIS-
+RRT algorithm uses RRT path (black line) as a guide to
+approximate the connected convex sets to connect the start
+and goal configurations. In the graph, sseedi represents the seed
+configuration anchoring the i-th convex set, which is depicted
+as a rectangle surrounded by dashed lines. Each pair of seed
+configuration and its corresponding convex set is highlighted
+in the same color. Note that the seed configurations typically
+lie at the intersections of the path generated by RRT and the
+previous convex sets. Moreover, the path generated by RRT
+does not need to be smooth or optimal, as it primarily serves
+to guide the construction of convex sets.
+dimensional degree-of-freedom (DoF) multi-robot systems,
+generating these connected convex regions randomly in the
+robot configuration space might not successfully establish
+connections between the labeled convex sets, and the optimal
+solution might not traverse these convex sets. To address this
+Alg. 2. Initially, Alg. 2 uses Rapidly-exploring Random Tree
+(RRT) method  to find a feasible path between the two
+labeled configurations [line 1]. Subsequently, it constructs a
+set of connected convex sets along this path, spacing the seed
+configuration states at maximum intervals along the feasible
+path to minimize the number of connected convex sets [lines 4-
+9]. To this end, starting with the initial configuration state
+label is used to initialize Si,j
+connect. The
+next step involves identifying another configuration state along
+the feasible path that is the farthest from si
+label yet still within
+connect. This configuration state then serves as a new seed,
+and the process is iteratively continued to extend Si,j
+connect until
+it contains the goal configuration sj
+label. Note that the RRT
+method in Alg. 2 could be replaced by any motion planning
+algorithm. A 2D example of the construction of convex sets
+by IRIS-RRT is shown in Fig. 4.
+B. Construct Product Automaton
+In what follows, let (q, q) denote the propositional logic
+formula that enables the transition from q to q in DFA. We
+begin by addressing the challenge of constructing a graph,
+referred to as the total product DFA, for hierarchical sc-LTL
+specifications. First, for a set of specifications that have the
+same level, we construct their product DFA.
+Definition 5.1: (Product DFA (PDFA)) Consider a DFA
+k ) of the i-th specification i
+at level k. The PDFA for level k, denoted as Ak
+(Qk, k, k, q0,k, QF
+k ), is defined as follows:
+k  . . .  Qnk
+is the Cartesian product of
+automaton states across the specifications at level Lk;
+is the combined set of symbols
+from all DFAs at this level, where i
+k  2Prop(i
+k is a non-leaf specification, representing the child
+specifications of i
+k at the immediate lower level k  1;
+k QkkQk is the transition relation, where a tran-
+k exists if (qi
+k for all i [nk];
+automaton;
+. . .  QF,nk
+is the set of accepting states.
+Note that, by designing k to be the product of individual
+transition occurs.
+Definition 5.2: (Total PDFA (TPDFA))
+The TPDFA A
+(Q, , , q0, QF ) for hierarchical sc-LTL specifications is de-
+tailed as follows:
+Q  QK  . . .  Q1 represents the set of product states
+across all levels;
+K  . . .  1 denotes the set of symbols;
+Q    Q defines the transition relation, where a
+transition ((qK, . . . , q1), (K, . . . , 1), (q
+is valid if:
+(qk, k, q
+k) k for each k [K];
+k ) for all k [K], with i
+k1 Prop(i
+k1} if i
+k is a non-
+leaf specification, representing the child specifica-
+tions of i
+k at the immediate lower level k  1 that
+are fulfilled given qk1; otherwise, i
+q0  (q0,K, . . . , q0,1) is the initial product state;
+QF  {q Q  q1
+} is the set of accepting
+product states where the root specification 1
+1 is satisfied.
+The transition relation in Def. 5.2 is constructed iteratively,
+starting from the bottom level upwards. For leaf specifica-
+whereas for non-leaf specifications, transitions are defined
+by the truth of composite propositions from the immediately
+lower level.
+Example 1: continued (TPDFA) The corresponding DFAs
+for each specification and the TPDFA for the hierarchical sc-
+LTL specified in (2) are depicted in Fig. 5.
+Definition 5.3: (Product Automaton (PA))
+The product
+automaton combining TPDFA and TS is denoted as P
+(QP, P, P, qP,0, QF
+P), where:
+S  Q represents the set of product states,
+combining the states of TS and TPDFA;
+P   is the set of symbols used in the transitions;
+P QP P QP is the transition relation, as defined
+in Def. 5.5;
+(d) TPDFA
+Fig. 5: The DFAs corresponding to specifications have their
+accepting states highlighted in yellow. In Fig. 5(d), only the
+automaton states for leaf specifications are displayed since the
+states of non-leaf specifications can be deduced from those
+of the leaf specifications in a bottom-up manner. Within the
+derived from two parts: the first component is from 1
+2 and the
+second from 2
+2. There are four paths leading from the initial
+state (init1, init1) to the accepting state (accept4, accept2).
+be fulfilled.
+LP  L is the labeling function that maps states to the
+set of satisfied propositions;
+initial state of TS with that of TPDFA;
+P  S  QF is the set of accepting product states.
+Before we detail the transition relation, we present how to
+determine whether the observations LP(S), produced by n
+) within m leaf specifications, where qi
+the automaton state of the i-th leaf specification. This in-
+corporates the task allocation into the edges of the product
+automaton. The key idea is to verify whether it is possible to
+construct  (1
+) from LP(S) in a manner that
+allows (q, , q
+) as outlined in Def. 5.2.
+Definition 5.4: (Model)
+Given the set of atomic propo-
+sitions LP(S) generated by n robots and the transition
+within m leaf specifications, we deem LP(S) to
+be a model of the propositional logic formulas (q, q
+1) LP(S) does not falsify any propositional logic formula
+), for i [m].
+2) The leaf specifications are divided into two groups v
+and  such that the total number of specifications
+v    m, with v  v. Each group may
+contain any number of specifications, including none.
+3) The set of robots is partitioned into several groups
+groups equals the total number of robots, Pv
+R  n, and each group Ri and R can include zero
+or multiple robots.
+4) For each i [v], there is a one-to-one correspondence
+between a leaf specification i
+v and a group of
+robots Ri, where the atomic propositions generated by
+robots in Rimeet the propositional logic requirement
+, expressed as LR(S)  i
+). Here, LR(S)
+represents the set of atomic propositions related to Ri.
+In this case, i
+5) Robots in R are not assigned any leaf specifications,
+indicating they are idle.
+6) There is no correspondence between any leaf specifica-
+tion in  and any robots, meaning that currently, no
+robots are engaged with the specifications in , but the
+propositional logic for each specification in  can be
+trivially fulfilled by . In this case, i
+Condition 1) requires that no leaf specification is violated by
+the joint robot configuration. Condition 2) categorizes robots
+into those actively executing tasks and those not assigned to
+any task. Similarly, Condition 3) classifies tasks into those
+currently being performed by robots and those temporarily on
+hold. Condition 4) connects robots actively executing tasks
+and tasks currently being performed, allowing for scenarios
+where multiple robots collaborate on a single task, such as
+jointly carrying a heavy load. Conditions 5) and 6) pertain to
+situations involving idle robots and tasks that are not currently
+assigned to any robot, respectively.
+Definition 5.5: (Transition Relation) A transition from one
+product state qP  (S, q) to another q
+P  (S, q) occurs if
+the following conditions are satisfied:
+(S, S) , as specified in Def. 3.4;
+The set of propositions LP(S) is a model of the transition
+), as outlined in Def. 5.4, indicating that the
+observed propositions at S satisfy the transitions at the
+leaf specifications.
+For each level k from 1 to K, the transition (qk, k, q
+C. Prune PA
+To manage the large size of the PA and facilitate the
+optimization process, we implement pruning techniques to
+Algorithm 3: Construct essential PA
+P GetEssentialStates(QP, P) ;
+P QP {qP,0} QF
+4 for qP  (S, q) Q
+P  (S, q) Q
+if q q then
+Sconnect IRISRRT(S, S) ;
+P  (S, q) QP  S
+P  GetTransitions(P, Qe
+10 return Pe  (Qe
+reduce its complexity.
+Definition 5.6: (Essential State) Given a pair of transitions
+P where qP  (S, q) and q
+P  (S, q), the product
+state qP is defined as an essential state if the automaton states
+An essential state marks that there has been progress at
+the task level. Based on this concept, the specifics of the
+pruning process are detailed in Alg. 3. The procedure starts by
+expanding the set of essential states to include both the initial
+and accepting states [lines 1-2]. Using these essential states
+as the product space skeleton, we then establish connections
+between each pair of essential states where possible, utilizing
+intermediate states that navigate the robots through their
+configuration states according to a path determined by the RRT
+[lines 7-8].
+D. Optimization Formulation and Extension for Multi-robot
+Handover
+Upon building the product automaton P, we define a target
+product state qtarget
+, which serves as the endpoint for all
+accepting product states within QF
+P. The graph of the product
+optimization problem by focusing exclusively on the configu-
+ration aspect of the product states, as the automaton aspect of
+the product states shapes the graph structure. This approach
+effectively transforms the problem into motion planning in the
+configuration space . The initial configuration state is de-
+rived from the initial product state, and the target configuration
+state corresponds to qtarget
+. This setup is tackled through an
+optimization problem formulated with convex programming
+as shown in equation (3), aiming to establish a viable path
+from the initial to the target configuration states. In what fol-
+pick-and-place tasks, which include handover interactions, by
+introducing relevant constraints.
+Consider a scenario with l objects. We define binary de-
+cision variables bi,j to indicate whether robot i holds object
+When bi,j
+object j. In contrast, bi,j
+0 indicates that the robot i
+is not engaged in transporting the object j. The handover
+constraints governing the transfer of objects between robots
+are categorized into three types: incoming constraints, conflict
+1) Incoming Constraints: Incoming constraints depict sce-
+narios in which robots transport objects to various (interme-
+diate) locations. For any given vertex v V, these constraints
+depend on whether the robot i, for each i [n], is engaged in
+a handover with another robot. There are two possible cases
+for incoming constraints:
+(a) Robot i is not conducting the handover. This scenario
+is governed by an equality constraint that ensures the conti-
+nuity of possession, meaning object j remains with robot i
+during transit when no handover occurs:
+leading into the vertex v.
+It should be noted that if the optimal path in the product
+graph does not traverse certain vertices, the binary decision
+variables associated with those vertices, bi,j
+and the incoming constraint (5) becomes irrelevant. To ensure
+that the incoming constraint is only applied along the optimal
+path includes the edge from v to v . We adopt the Big-M
+method to establish a connection between the optimal path
+and the binary decision variable bi,j
+v . The revised form of
+the incoming constraint (5), when robot i is not engaged in
+handover within the vertex v, is expressed as follows:
+M(ye 1) (bi,j
+v ) M(1 ye),
+where M is typically a large positive integer. We set M  2
+to ensure a tighter formulation.
+(b) Robot i is conducting the handover. Assume i,
+where i [n], is the robot with which the handover is
+being conducted. The following constraint ensures that the two
+robots successfully transfer object j, j [l], upon reaching
+the location by toggling the decision variables associated with
+each robot at the respective vertices:
+To ensure that the incoming constraint (7) for robot han-
+dovers is applied strictly along the optimal path, we utilize
+the Big-M method to reformulate the handover constraint for
+robot i in the vertex v as follows:
+M(ye 1) (bi,j
+v ) M(1 ye),
+The constraint (8) effectively prevents a handover from occur-
+ring unless the path is optimal.
+2) Conflict Constraints: To ensure that each robot handles
+no more than one object at a time, and each object is managed
+by only one robot simultaneously, the following constraints
+v V, i [n],
+v V, j [l].
+3) Labeled Convex Set Constraints: For a product automa-
+ton P associated with labeled convex set that is labeled with
+a robot, denote by i, whose state aligns with the location of
+object j and the vertex v V:
+Those handover constraints ensure an orderly and conflict-
+free transfer of objects among the robots. Due to the involve-
+ment of binary decision variables in the handover constraints,
+we solve the optimization Problem 1 using mixed-integer
+convex programming (MICP).
+VI. THEORETICAL ANALYSIS
+Theorem 6.1: (Soundness) The returned path p satisfies the
+hierarchical sc-LTL specifications .
+we construct a state-specification sequence  as in Def. 3.5
+from the path p. In the second step, we prove that the state-
+specification sequence  satisfies the hierarchical sc-LTL .
+To obtain the state-specification sequence , the goal is to
+pair each robot with a leaf specification that it is undertaking, if
+any. Note that each point in the path p is a product state q com-
+posed of a configuration state s  (s1, . . . , sn) and a product
+DFA state qP  (qK, . . . , q1) with q (q1
+) for leaf
+specifications. Let q
+1) with q
+denote the next state of qP in the path p. As stated in Def. 5.5,
+LP(S) is a model of (q, q
+). Next, we analyze depending on
+conditions in Def. 5.4. Specifically, condition 1) ensures that
+no leaf specification is violated. Furthermore, we pair the leaf
+specification i
+v with every robot in the corresponding
+set Ri, according to condition 4), otherwise, we pair robot
+i R with null specification  according to condition 5).
+Given the state-specification sequence , the labels gener-
+ated by the sequence of configuration states satisfy not only
+the leaf specifications, but also the non-leaf specifications,
+according to the transition relation in Def. 5.5,. Moreover,
+it reaches an accepting product state where the top-most
+specification 1
+1 is satisfied, implying that the hierarchical sc-
+LTL is satisfied according to semantics in .
+Definition 6.2: (Incompatible specifications) Two sc-LTL
+specifications are considered incompatible if there exists a path
+that satisfies one but inevitably violates the other, regardless
+of how the path is extended.
+For instance, 1  a and 2  a U b are incompatible,
+as a path that produces label a but not label b satisfies 1 while
+violating 2. This path cannot be extended to satisfy 2. We
+say that a hierarchical sc-LTL specification  is considered
+compatible if it does not include any pair of leaf specifications
+that are mutually incompatible.
+Theorem 6.3: (Completeness) Assuming the hierarchical
+sc-LTL  is compatible, up to the space decomposition and
+trajectory parameterization, our approach returns a path that
+satisfies .
+encompasses all possible behaviors of the robot system, while
+the total product of DFAs encompasses all solutions to fulfill
+the hierarchical sc-LTL (Def. 5.2). The construction of PA
+(Def. 5.3) is based on the concept of a model (Def. 5.4). In
+that contradict each other. Since we consider only compatible
+hierarchical sc-LTL specifications, no contradictory proposi-
+tional logic formulas arise. Conditions 2)-6) ensure the exis-
+tence of a feasible task allocation. Consequently, the product
+system (Def. 5.3) includes all behaviors of the robot system
+that conform to the hierarchical sc-LTL. According to , by
+increasing the number of convex sets and the degree of Bzier
+curves to enhance the approximation, the MICP is guaranteed
+to find a path.
+VII. EXPERIMENTS
+We evaluate our approach across a variety of multi-robot
+task scenarios, including planar robot motion planning,
+coordination
+multiple
+manipulators
+several robots and a conveyor system. All experiments
+were conducted using the Drake , and executed on
+a desktop computer equipped with an Intel i9 processor
+Mixed-Integer
+Programming
+interface.
+open-source
+accessed
+labTaskMotionPlanningwithHLTLandGCS.git.
+running times for the algorithm of all scenarios are detailed
+in Table I. We precompute the CS-based transition system
+offline and report computation times for online modules,
+including PA construction, PA pruning, and MICP solving.
+The demonstration video is available at this link.
+A. Planar Motion Planning Case
+The planar motion planning scenario depicted in Fig. 6
+involves a robot tasked with collecting five keys to navi-
+gate through the corresponding doors. This benchmark ex-
+, originally required transforming the sc-LTL formula into
+DFA. The conversion process from sc-LTL to DFA is known
+to exhibit double-exponential complexity , leading to a
+prolonged conversion time. By employing hierarchical sc-
+original standard sc-LTL formula is
+doori U keyi goal.
+The hierarchical sc-LTL specifications are represented as
+2  doori U keyi,
+2  goal.
+Fig. 6: The door puzzle problem, where the blue dot represents
+the initial robot location. [7, 61].
+Hierarchical sc-LTL enhances the efficiency of representing
+temporal logic specifications, resulting in quicker conversion
+times and faster motion planning. This improved efficiency
+is evident in the performance comparison shown in Table II.
+Our approach yields a solution with a cost almost identical to
+that of the method described in , yet it achieves this result
+approximately 40 times faster.
+B. Multi-robot Motion Planning and Handover Case
+To illustrate the scalability of our method in high-
+dimensional spaces, we evaluated it in four systems with
+different tasks: a system involving two robotic manipulators
+(Fig. 7), a system with four robotic manipulators with multiple
+objects(Figs. 8-10), a system with robotic manipulators and
+mobile robots (Fig. 11), and a structured industrial environ-
+ments with robotic manipulators and conveyor (Fig. 12).
+1) Two robotic manipulators: In the initial example, two
+robotic manipulators are tasked to pick up an object from
+target 1 and place it on target 2. The hierarchical sc-LTL
+specifications for this scenario are articulated as follows:
+2  (target1 target2).
+Our planning algorithm uses Bzier splines to navigate a
+valid path, ensuring C2 continuity for smooth trajectories. An
+L2 norm for the length of the joint path is also integrated
+to optimize for the shortest possible route. We evaluate our
+planner in two distinct pick-and-place scenarios. In the first
+equidistant from both robots, our planner decides only the
+TABLE I: Algorithm Running Time.
+Construct PA (s)
+Prune PA (s)
+Solver Time (s)
+two-robot motion planning
+two-robot handover
+four-robot handover (scenario 1)
+four-robot handover (scenario 2)
+four-robot handover with obstacle (scenario 3)
+four-robot handover (scenario 4)
+Spot-robot handover
+two-robots with conveyor
+Time (s)
+Sc-LTL to DFA
+Construct PA
+TABLE II: Performance comparison.
+robot with the shortest path to execute the task, leaving the
+other robot stationary to minimize the total path length. In
+the second scenario, illustrated in Fig. 7(b), each robot ex-
+clusively accesses one of the targets, necessitating a handover
+to complete the task. Consequently, one robot picks up the
+object and passes it to the other, which then places it at target
+2. These tests confirm that our planner adeptly identifies the
+most efficient strategy autonomously, eliminating the need for
+pre-defined orders on robot movement or handover timing.
+2) Four robotic manipulators with multiple objects: The
+second example shows our planner in a more complex scenario
+and task specification that involves four KUKA iiwa robotic
+evaluated our algorithm in several distinct scenarios to assess
+its performance under different task specifications.
+a) Scenario 1: In the first scenario, the robot was aligned
+in a linear arrangement, illustrated in Fig. 1. The robots are
+assigned to pick up three objects from specifically labeled
+pickup positions (targets 1, 2, and 3) and place them in
+corresponding placement positions (targets 4, 5, and 6). The
+hierarchical sc-LTL specification for this task is given by:
+2  (target1 target4)
+2  (target2 target5)
+2  (target3 target6),
+which states that the robot should pick up movable objects
+from targets regions 1, 2, and 3, and place them in regions
+take into account the interactions between the gripper and
+the robot trajectory. Instead, the focus of our planner is on
+identifying a collision-free path in the configuration space that
+satisfies the hierarchical sc-LTL specifications within a 28-
+DOF system. This is a benchmark example proposed in .
+The problem was solved by nonlinear trajectory optimization
+with smoothed discrete variables, solving multi-robot handover
+(a) Both robots can reach the target positions 1 and 2.
+(b) The left robot can only reach target 1, and the right robot can only reach
+target 2. The handover is necessary to complete the task.
+Fig. 7: Example setup with two robotic manipulators with one
+movable object.
+with one object in 36.5 seconds. However, this gradient-based
+method relies on local information and often faces challenges
+in finding feasible trajectories that deviate significantly from
+the initial guess, leading to suboptimal solutions with unnec-
+essary joint movements. In contrast, the considerably more
+complex specification with three objects handover is solved
+by our proposed method in approximately 11.6 seconds. In
+cost solution without relying on an initial guess of the solver.
+b) Scenario 2: In the second scenario, we designed a
+different layout from Scenario 1, with the robots arranged
+in a narrow rectangular formation. The hierarchical sc-LTL
+specifications are still (14). This case is more complex than
+the previous one due to the narrow robot workspace, requiring
+the planner to ensure collision avoidance and determine the
+necessity of handovers between robots. The result is illustrated
+in Fig. 8. Note that in Fig. 8(b) and (c), while two robotic
+manipulators are transferring the yellow and red objects, the
+bottom robot simultaneously moves to transfer the blue object,
+effectively minimizing the overall completion time.
+Fig. 8: Setup involving four robotic manipulators operating in
+a rectangular formation. The robots are tasked with handling
+three movable objects.
+c) Scenario 3: In this scenario, the layout is the same as
+Scenario 2, with the robots arranged in a narrow rectangular
+formation. We introduce a conditional passable region in the
+up two objects from designated pickup positions (targets 1
+and 2), placing them at the corresponding placement positions
+(targets 3 and 4), and returning the object from target 3 to
+target 1 while avoiding the conditional passable region. The
+hierarchical sc-LTL specifications are written as:
+2  (target1 target3)
+2  (target2 target4)
+2  (target3 obstacle U target1).
+Note that in Figs. 9(b) and (c), two robots perform the
+handover of the yellow and blue objects within the passable
+regions to minimize the trajectory length. However, robots
+avoid the passable region when transferring the yellow object
+d) Scenario 4: In the scenario, as illustrated in Fig. 10,
+we consider more complex tasks with 3 levels of hierarchical
+sc-LTL. The robots are assigned two tasks involving picking
+up objects from one location to another. For those tasks, the
+Fig. 9: Setup involving four robotic manipulators operating in
+a rectangular formation with a passable region (red).
+robot is allowed to execute either one of them. The hierarchical
+sc-LTL specifications for this task are as follows:
+3  (target1 target5)
+3  (target2 (target4 target6))
+3  (target1 obstacle U target5)
+3  (target2 (target1 target5))
+The solution prioritizes completing task 2
+trajectory length cost compared to task 1
+2. In addition, in
+Fig. 10(c), the robot places the blue object from target 2 to
+target 1 instead of target 5 to minimize the trajectory length.
+3) Mobile robots and robotic manipulators: In prior ex-
+manipulators. In this example, we explore handovers involving
+mobile robots and robotic manipulators, using a Boston Dy-
+namics Spot robot and a Kuka iiwa robot. The task is to move
+the objects from target 1 to target 2, as depicted in Fig. 11.
+The hierarchical sc-LTL specification are defined as follows:
+2  (target1 target2).
+Given that the iiwa robot can access target 1 but not target 2,
+a handover to the Spot robot is necessary. We assume that the
+Spot robot has a floating base with 3 DoF for movement and a
+6-DoF manipulator for handling tasks. The goal of planning is
+to identify a collision-free trajectory that minimizes both the
+path length (L2 norm) and the total time. Our proposed method
+Fig. 10: Setup involving four robotic manipulators operating
+in a rectangular formation with a passable region (red).
+generated an optimal trajectory in just 0.378 seconds. In this
+performs a continuous handover with the iiwa robot, ensuring
+a transition of the object without any stop.
+Fig. 11: Example setup featuring a mobile robot paired with
+manipulators tasked with handling a single movable object.
+4) Structured industrial environments with robotic manip-
+ulators and conveyor: Lastly, we construct a factory setting
+where two robotic manipulators are integrated with a conveyor
+to demonstrate the capability of our planner in structured
+industrial environments. The task involves transporting three
+objects using robotic manipulators and the conveyor system,
+moving them from targets 1, 2, and 3 to targets 4, 5, and
+6. The hierarchical LTL specifications follow the formulation
+in (14). Each robot has 7 DoF, and the conveyor has one DoF.
+The objective of our planner is to generate a collision-free
+trajectory in 15 DOF that minimizes the L2 norm of the path
+Fig. 12: Example setup featuring two robotic manipulators and
+one conveyor with three movable objects.
+length and the cycle times across all robots and conveyor. Our
+planner successfully finds a time-optimal path in just 1.019
+seconds.
+C. Robot Experiments
+We demonstrate the deployment of our planner on real
+robot hardware, using four WidowX 200 robots equipped
+with two-finger grippers. The hierarchical sc-LTL specifica-
+tions follow the formulation (14). Our planner successfully
+generates collision-free trajectories, which are then executed
+via the ROS-based position controller provided by Tossen
+Robotics . The experimental result is illustrated in Fig. 13.
+Fig. 13: A setup with four manipulators designed for pick-
+and-place tasks.
+D. Scalability
+We assess the scalability of our proposed method by an-
+alyzing solve times as the number of tasks increases, using
+the four-robot manipulator setup described in Scenario 2.
+Each task involves picking and placing a single object. The
+source and target locations of objects are carefully chosen to
+avoid the need for handovers. Tasks are evaluated in two set-
+constraints introduce binary decision variables, the problem
+is solved using mixed-integer convex optimization. In the
+absence of handover constraints, standard convex optimization
+is sufficient. The results in Fig. 14 indicate that solve times
+increase approximately linearly with the number of tasks when
+handover constraints are enforced. In contrast, without han-
+dover constraints, solve times scale more efficiently, exhibiting
+sublinear performance.
+Fig. 14: Scalability results of runtimes w.r.t number of tasks.
+VIII. LIMITATIONS
+In this section, we briefly outline the limitations of our
+proposed approach. A major drawback of our method is
+that the complexity of MICP scales exponentially with the
+number of binary variables . The MICP solution for the
+original shortest path problem in a graph of convex sets has
+a very tight convex relaxation. Therefore, this problem can
+often be solved globally optimally with convex optimiza-
+tion and rounding. However, to handle handover scenarios,
+we introduced additional integer variables, which loosen the
+convex relaxation. As a result, our proposed method uses
+MICP to solve the hierarchical temporal logic TAMP problem
+with handover constraints. With the increasing complexity
+of the hierarchical sc-LTL specification and the number of
+convex sets in the transition system, the MICP scales poorly.
+concern. After simplifying the product graph with our graph
+prune method, the optimal trajectory for a 28-DOF, four-
+robot system, involving 719 integer decision variables, can be
+computed in under 10 seconds.
+Another limitation is that we use the IRIS-NP algorithm
+to generate collision-free space convex sets. The algorithm
+provides iterative procedures for inflating convex regions of
+free space. However, the IRIS-NP algorithm only has proba-
+bilistically certified that the convex region is collision-free, and
+it may take a long time to generate the region. In addition, the
+generated convex region will change when the objects transfer
+from one robot to another. Efficiently generating certified
+collision-free convex regions in the configuration space and
+quickly adapting the region to changes in collision geometry
+are important areas for future research.
+IX. CONCLUSIONS
+We address the multi-robot task and motion planning
+(TAMP) problem subject to hierarchical temporal logic spec-
+ifications. The key idea is to convert the optimal planning
+problem into a shortest path problem in a product graph, which
+is then solved using MICP. Unlike methods based on nonlinear
+trajectory optimization, sampling-based search, or learning-
+based approaches, our approach can handle non-convex multi-
+robot motion planning challenges, delivering solutions with
+sound and complete results within reasonable solve times.
+ACKNOWLEDGMENTS
+The authors would like to thank Prof. Oliver Kroemer for
+providing Trossen robots, as well as to anonymous reviewers
+for their insightful feedback.
+REFERENCES
+Zhigen Zhao, Shuo Cheng, Yan Ding, Ziyi Zhou,
+Shiqi Zhang, Danfei Xu, and Ye Zhao.
+A survey of
+optimization-based task and motion planning: from clas-
+sical to learning approaches. IEEEASME Transactions
+on Mechatronics, 2024.
+Alessandro Saffiotti, and Lars Karlsson. Efficiently com-
+bining task and motion planning using geometric con-
+straints. The International Journal of Robotics Research,
+Marc Toussaint and Manuel Lopes.
+Multi-bound tree
+search for logic-geometric programming in cooperative
+manipulation domains.
+In 2017 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Jimmy Envall, Roi Poranne, and Stelian Coros. Differ-
+entiable task assignment and motion planning. In 2023
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 20492056. IEEE, 2023.
+Rin Takano, Hiroyuki Oyama, and Masaki Yamakita.
+Continuous optimization-based task and motion planning
+with signal temporal logic specifications for sequential
+manipulation.
+In 2021 IEEE international conference
+on robotics and automation (ICRA), pages 84098415.
+Marc Toussaint.
+Logic-geometric programming: An
+optimization-based approach to combined task and mo-
+tion planning. In IJCAI, pages 19301936, 2015.
+Vince Kurtz and Hai Lin. Temporal logic motion plan-
+ning with convex optimization via graphs of convex sets.
+IEEE Transactions on Robotics, 2023.
+Christel Baier and Joost-Pieter Katoen.
+Principles of
+model checking. MIT press Cambridge, 2008.
+Tobia Marcucci, Mark Petersen, David von Wrangel, and
+Russ Tedrake. Motion planning around obstacles with
+convex optimization. Science robotics, 8(84):eadf7843,
+Xusheng Luo and Changliu Liu.
+Simultaneous task
+allocation and planning for multi-robots under hierar-
+chical temporal logic specifications.
+arXiv preprint
+Tobia Marcucci, Jack Umenberger, Pablo Parrilo, and
+Russ Tedrake. Shortest paths in graphs of convex sets.
+SIAM Journal on Optimization, 34(1):507532, 2024.
+Caelan Reed Garrett, Rohan Chitnis, Rachel Holladay,
+Beomjoon Kim, Tom Silver, Leslie Pack Kaelbling, and
+Toms Lozano-Prez. Integrated task and motion plan-
+ning. Annual review of control, robotics, and autonomous
+Huihui Guo, Fan Wu, Yunchuan Qin, Ruihui Li, Keqin
+ning for robotics: A survey. ACM Computing Surveys,
+James Motes, Read Sandstrm, Hannah Lee, Shawna
+tion planning with subtask dependencies. IEEE Robotics
+and Automation Letters, 5(2):33383345, 2020.
+Hejia Zhang, Shao-Hung Chan, Jie Zhong, Jiaoyang Li,
+Sven Koenig, and Stefanos Nikolaidis. A mip-based ap-
+proach for multi-robot geometric task-and-motion plan-
+ning. In 2022 IEEE 18th International Conference on
+Automation Science and Engineering (CASE), pages
+James Motes, Tan Chen, Timothy Bretl, Marco Morales
+robot task and motion planning. IEEE Transactions on
+Tianyang Pan, Andrew M Wells, Rahul Shome, and
+Lydia E Kavraki.
+A general task and motion plan-
+ning framework for multiple manipulators.
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 31683174. IEEE, 2021.
+Jimmy Envall, Roi Poranne, and Stelian Coros. Differ-
+entiable task assignment and motion planning.
+Yanwei Wang, Nadia Figueroa, Shen Li, Ankit Shah,
+and Julie Shah.
+Temporal logic imitation: Learning
+plan-satisficing motion policies from demonstrations. In
+Conference on Robot Learning, pages 94105. PMLR,
+Adam Pacheck and Hadas Kress-Gazit. Physically feasi-
+ble repair of reactive, linear temporal logic-based, high-
+level tasks. IEEE Transactions on Robotics, 2023.
+Xusheng Luo and Michael M Zavlanos. Transfer plan-
+ning for temporal logic tasks.
+In 2019 IEEE 58th
+Conference on Decision and Control (CDC), pages 5306
+Zeyu Feng, Hao Luan, Pranav Goyal, and Harold Soh.
+straints for safe diffusion-based planning. arXiv preprint
+Zhaoyuan Gu, Rongming Guo, William Yates, Yipu
+Signal temporal logic-guided model predictive control
+for bipedal locomotion resilient to external perturbations.
+In 2024 IEEE International Conference on Robotics and
+Automation (ICRA), pages 11211127. IEEE, 2024.
+Duc M Le, Xusheng Luo, Leila J Bridgeman, Michael M
+Single-agent indirect
+herding of multiple targets using metric temporal logic
+switching. In 2020 59th IEEE Conference on Decision
+and Control (CDC), pages 13981403. IEEE, 2020.
+Meng Guo and Dimos V Dimarogonas.
+Multi-agent
+plan reconfiguration under local LTL specifications. The
+International Journal of Robotics Research, 34(2):218
+Jana Tumova and Dimos V Dimarogonas. Multi-agent
+planning under local LTL specifications and event-based
+synchronization. Automatica, 70:239248, 2016.
+Pian Yu and Dimos V Dimarogonas. Distributed motion
+coordination for multirobot systems under ltl specifica-
+tions. IEEE Transactions on Robotics, 38(2):10471062,
+Savvas G Loizou and Kostas J Kyriakopoulos. Automatic
+synthesis of multi-agent motion tasks based on LTL
+specifications. In 43rd IEEE Conference on Decision and
+Control (CDC), volume 1, pages 153158, The Bahamas,
+December 2004.
+Stephen L Smith, Jana Tumov, Calin Belta, and Daniela
+Optimal path planning for surveillance with
+temporal-logic constraints. The International Journal of
+Robotics Research, 30(14):16951708, 2011.
+Indranil Saha, Rattanachai Ramaithitima, Vijay Ku-
+tomated composition of motion primitives for multi-
+robot systems from safe LTL specifications.
+IEEERSJ International Conference on Intelligent Robots
+and Systems, pages 15251532. IEEE, 2014.
+Yiannis Kantaros and Michael M Zavlanos. Sampling-
+based control synthesis for multi-robot systems under
+global temporal specifications.
+In 2017 ACMIEEE
+8th International Conference on Cyber-Physical Systems
+(ICCPS), pages 314. IEEE, 2017.
+Yiannis Kantaros and Michael M Zavlanos. Distributed
+optimal control synthesis for multi-robot systems un-
+der global temporal tasks.
+In Proceedings of the 9th
+ACMIEEE International Conference on Cyber-Physical
+Yiannis Kantaros and Michael M Zavlanos. Sampling-
+based optimal control synthesis for multirobot systems
+under global temporal tasks.
+IEEE Transactions on
+Automatic Control, 64(5):19161931, 2018.
+Yiannis Kantaros and Michael M Zavlanos.
+A temporal logic optimal control synthesis algorithm
+for large-scale multi-robot systems.
+The International
+Journal of Robotics Research, 39(7):812836, 2020.
+Yiannis Kantaros, Samarth Kalluraya, Qi Jin, and
+George J Pappas. Perception-based temporal logic plan-
+ning in uncertain semantic maps. IEEE Transactions on
+Xusheng Luo, Yiannis Kantaros, and Michael M Za-
+vlanos. An abstraction-free method for multirobot tem-
+poral logic optimal control synthesis. IEEE Transactions
+Marius Kloetzer, Xu Chu Ding, and Calin Belta. Multi-
+robot deployment from LTL specifications with reduced
+communication.
+In 2011 50th IEEE Conference on
+Decision and Control and European Control Conference,
+pages 48674872. IEEE, 2011.
+Yasser Shoukry, Pierluigi Nuzzo, Ayca Balkan, Indranil
+poral logic motion planning for teams of underactuated
+robots using satisfiability modulo convex programming.
+In 2017 IEEE 56th Annual Conference on Decision and
+Control (CDC), pages 11321137. IEEE, 2017.
+Salar Moarref and Hadas Kress-Gazit.
+Decentralized
+control of robotic swarms from high-level temporal logic
+specifications.
+In 2017 International Symposium on
+Multi-robot and Multi-agent Systems (MRS), pages 17
+Bruno Lacerda and Pedro U Lima. Petri net based multi-
+robot task coordination from temporal logic specifica-
+tions. Robotics and Autonomous Systems, 122:103289,
+Ziyang Chen and Zhen Kan.
+Real-time reactive
+task allocation and planning of large heterogeneous
+multi-robot systems with temporal logic specifications.
+The International Journal of Robotics Research, page
+Philipp Schillinger, Mathias Brger, and Dimos V Di-
+marogonas. Simultaneous task allocation and planning
+for temporal logic goals in heterogeneous multi-robot
+systems. The International Journal of Robotics Research,
+Philipp Schillinger, Mathias Brger, and Dimos V Di-
+marogonas.
+Decomposition of finite LTL specifica-
+tions for efficient multi-agent planning. In Distributed
+Autonomous Robotic Systems, pages 253267. Springer,
+Fatma Faruq, David Parker, Bruno Laccrda, and Nick
+Hawes. Simultaneous task allocation and planning under
+uncertainty. In 2018 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 3559
+Thomas Robinson, Guoxin Su, and Minjie Zhang. Mul-
+tiagent task allocation and planning with multi-objective
+requirements. In Proceedings of the 20th International
+Conference on Autonomous Agents and MultiAgent
+Xusheng Luo, Shaojun Xu, Ruixuan Liu, and Changliu
+Decomposition-based hierarchical task allocation
+and planning for multi-robots under hierarchical temporal
+logic specifications.
+IEEE Robotics and Automation
+Alberto Camacho, Eleni Triantafillou, Christian J Muise,
+Jorge A Baier, and Sheila A McIlraith. Non-deterministic
+planning with temporally extended goals: Ltl over finite
+and infinite traces. In AAAI, pages 37163724, 2017.
+Alberto Camacho, R Toro Icarte, Toryn Q Klassen,
+Richard Valenzano, and Sheila A McIlraith.
+tion in reinforcement learning. In Proceedings of the 28th
+International Joint Conference on Artificial Intelligence
+(IJCAI), pages 60656073, 2019.
+Philipp Schillinger, Mathias Brger, and Dimos V Di-
+marogonas.
+Hierarchical LTL-task mdps for multi-
+agent coordination through auctioning and learning. The
+International Journal of Robotics Research, 2019.
+Xusheng Luo and Michael M Zavlanos. Temporal logic
+task allocation in heterogeneous multirobot systems.
+IEEE Transactions on Robotics, 38(6):36023621, 2022.
+Zesen Liu, Meng Guo, and Zhongkui Li. Time minimiza-
+tion and online synchronization for multi-agent systems
+under collaborative temporal logic tasks.
+Yunus Emre Sahin, Petter Nilsson, and Necmiye Ozay.
+Multirobot coordination with counting temporal logics.
+IEEE Transactions on Robotics, 2019.
+Armin Biere, Keijo Heljanko, Tommi Junttila, Timo Lat-
+LTL model checking.
+Logical Methods in Computer
+Kevin Leahy, Austin Jones, and Cristian-Ioan Vasile.
+Fast decomposition of temporal logic specifications for
+heterogeneous teams.
+IEEE Robotics and Automation
+Orna Kupferman and Moshe Y Vardi. Model checking
+of safety properties. Formal Methods in System Design,
+Mark Petersen and Russ Tedrake.
+Growing convex
+collision-free regions in configuration space using non-
+linear programming. arXiv preprint arXiv:2303.14737,
+Steven M LaValle and James J Kuffner.
+Rapidly-
+exploring random trees: Progress and prospects: Steven
+m. lavalle, iowa state university, a james j. kuffner,
+jr., university of tokyo, tokyo, japan. Algorithmic and
+computational robotics, pages 303307, 2001.
+Russ Tedrake and the Drake Development Team. Drake:
+Model-based design and verification for robotics, 2019.
+The mosek optimization toolbox. version 9.0, mosek aps,
+comlatesttoolboxintroinfo.html.
+Calin Belta, Boyan Yordanov, and Ebru Aydin Gol.
+Formal methods for discrete-time dynamical systems,
+volume 89. Springer, 2017.
+William Vega-Brown and Nicholas Roy.
+Admissible
+abstractions for near-optimal task and motion planning.
+arXiv preprint arXiv:1806.00805, 2018.
+manipulators.
+Vince Kurtz and Hai Lin.
+A more scalable mixed-
+integer encoding for metric temporal logic. IEEE Control
+Systems Letters, 6:17181723, 2022.

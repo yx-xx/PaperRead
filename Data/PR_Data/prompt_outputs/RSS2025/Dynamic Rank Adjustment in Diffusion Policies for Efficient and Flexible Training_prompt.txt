@@ -1,0 +1,1218 @@
+=== PDF文件: Dynamic Rank Adjustment in Diffusion Policies for Efficient and Flexible Training.pdf ===
+=== 时间: 2025-07-21 14:46:34.121635 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Dynamic Rank Adjustment in Diffusion Policies for
+Efcient and Flexible Training
+Xiatao Sun1, Shuo Yang2, Yinxing Chen1, Francis Fan1, Yiyan (Edgar) Liang2, Daniel Rakita1,
+1Yale University
+2University of Pennsylvania
+Corresponding author
+{xiatao.sun, daniel.rakita}yale.edu
+AbstractDiffusion policies trained via ofine behavioral
+cloning have recently gained traction in robotic motion gener-
+ation. While effective, these policies typically require a large
+number of trainable parameters. This model size affords pow-
+erful representations but also incurs high computational cost
+during training. Ideally, it would be benecial to dynamically
+adjust the trainable portion as needed, balancing representational
+power with computational efciency. For example, while over-
+parameterization enables diffusion policies to capture complex
+robotic behaviors via ofine behavioral cloning, the increased
+computational demand makes online interactive imitation learn-
+ing impractical due to longer training time. To address this
+the Singular Value Decomposition to enable dynamic rank
+adjustment during diffusion policy training. We implement and
+demonstrate the benets of this framework in DRIFT-DAgger, an
+imitation learning algorithm that can seamlessly slide between
+an ofine bootstrapping phase and an online interactive phase.
+We perform extensive experiments to better understand the pro-
+posed framework, and demonstrate that DRIFT-DAgger achieves
+improved sample efciency and faster training with minimal
+impact on model performance. The project website is available
+I. INTRODUCTION
+Diffusion policies have recently emerged as a powerful
+paradigm for robotic motion generation, demonstrating im-
+pressive performance across various manipulation tasks .
+Their strong performance is attributed to overparameterization,
+which has been shown to enhance both the generalization and
+representational capacity of neural networks . However, this
+advantage comes with a signicant drawback, which is the
+inefciency of training overparameterized diffusion models
+. While the machine learning community has made strides
+in addressing this inefciency by leveraging the intrinsic low-
+rank structure of neural networks [25, 26], these approaches
+primarily focus on ne-tuning pre-trained models [13, 6]. In
+making these ne-tuning methods unsuitable.
+To exploit the intrinsic low-rank structure, training from
+scratch in robotics necessitates a dynamic approach to bal-
+ancing the trade-off between overparameterization, which
+provides strong representational power, and the efciency
+gained from reduced-rank training. Ideally, at the beginning of
+capture the general patterns of desired behaviors. As training
+improve training efciency, as the policy shifts to incremental
+Fig. 1: This paper explores balancing overparameterization
+and training efciency in diffusion policies by dynamically
+adjusting the frozen and trainable portions of weight matrices.
+In the top section of the gure, the learner, trained ofine
+via behavior cloning with full-rank training, attempts to insert
+the upper drawer box into the container but fails due to
+collisions with both the container and the lower drawer box.
+In the bottom section, after efcient online adaptation with
+reduced trainable ranks, the learner efciently improves its
+renement. This capability is particularly valuable in scenarios
+like interactive imitation learning (IL) with diffusion policies.
+Before the adoption of diffusion policies, interactive IL
+methods typically used simple and compact network archi-
+tectures as policy backbones. These methods were developed
+to address the sample inefciency of behavior cloning (BC)
+[41, 49], and often involve an ofine bootstrapping stage
+for initial training, followed by an online adaptation stage
+where experts provide corrective interventions to rene the
+policy. However, directly extending these methods to diffusion
+policies is impractical due to their signicantly larger number
+of trainable parameters, which is often an order of magnitude
+greater than those of compact networks and results in substan-
+tially increased training times. This challenge undermines the
+feasibility of online interactive IL with diffusion policies.
+where a large dataset of demonstrations is collected, and
+training occurs in isolation. However, when these policies
+tions targeting the challenging trajectories, provide corrective
+manner. This process is both inefcient and unintuitive, as the
+expert often has limited insight into the trajectories where the
+policy struggles and may nd it difcult to reproduce such
+challenging scenarios.
+To address these limitations, we propose Dynamic Rank-
+adjustable DIFfusion Policy Training (DRIFT), a framework
+designed to enable dynamic adjustments of the number of
+trainable parameters in diffusion policies through reduced-
+rank training. The framework introduces two key components,
+which are rank modulation that leverages Singular Value De-
+composition (SVD)  to adjust the proportion of trainable
+and frozen ranks while maintaining the total rank constant,
+and rank scheduler that dynamically modulates the number of
+trainable ranks during training using a decay function.
+To demonstrate and evaluate the effectiveness of DRIFT, we
+instantiate and implement it into DRIFT-DAgger, an expert-
+gated interactive IL method that incorporates reduced-rank
+training. As shown in Fig. 2, DRIFT-DAgger uses low-rank
+component to speed up training of diffusion policies. By
+freezing a signicant portion of the ranks during online adap-
+interactive IL with diffusion policies more practical.
+Despite being inspired by existing parameter-efcient ne-
+tuning methods, DRIFT-DAgger with rank modulation and
+rank scheduler is specically designed for training diffusion
+policies from scratch and dynamically adjusting the trainable
+components during training. This design enhances stability and
+reduces the time for forward passes during each training batch
+(VI-D). Additionally, we perform extensive ablation studies
+on different variants of rank schedulers (VI-A), and mini-
+mum trainable ranks (VI-B). By combining diffusion policies
+with online interactive IL, DRIFT-DAgger improves sample
+efciency compared to training diffusion policies with BC
+(VI-C). We also validate our methods in real-world scenarios
+(VII). Finally, we discuss the limitations and implications of
+our work (VIII). Our contributions are as follows:
+We propose DRIFT, a framework for diffusion policies
+that includes rank modulation and rank scheduler as novel
+components that exploit the intrinsic low-rank structure of
+overparameterized models, balancing training efciency
+Expert Action
+Learner Action
+Learner Policy for
+Online Adaptation
+Bootstrapped
+Learner Policy
+Offline Demonstrations
+Trainable Rank
+Reduction
+Observation
+Environment
+Action to Environment
+Gating Function
+Fig. 2: DRIFT-DAgger combines ofine policy bootstrapping
+with online adaptation. The gating function, following the
+nomenclature of HG-DAgger , refers to expert intervention
+and demonstration when the learner reaches undesirable states
+during online adaptation. Compared to BC, DRIFT-DAgger
+reduces the need for expert labeling while maintaining high
+performance. The trainable rank reduction accelerates batch
+adaptation for large models without sacricing performance.
+and model performance.
+We instantiate DRIFT into DRIFT-DAgger, an interactive
+IL algorithm that combines ofine bootstrapping with
+efcient online adaptation, enabling effective integration
+of expert feedback during the novice policy training.
+We perform extensive experiments to demonstrate that
+DRIFT-DAgger improves sample efciency and reduces
+training time while achieving comparable performance to
+diffusion policies trained with full rank.
+We provide open-source implementations in Pytorch for
+the DRIFT framework and DRIFT-DAgger algorithm.1
+II. BACKGROUND
+A. Diffusion Policy Primer
+A denoising diffusion probabilistic model (DDPM) [10, 36]
+consists of a forward process and a reverse process. In the for-
+ward process, Gaussian noise is gradually added to the training
+governed by a predened noise schedule, t, which controls
+how much noise is added at each step. Mathematically, the
+forward process is dened as:
+q(x1:T  x0) :
+q(xt  xt1),
+q(xt  xt1) : N(xt;
+1 txt1, tI),
+1 dagger
+where q(xt  xt1) is a Gaussian distribution with a mean of
+1 txt1 and variance t. Intuitively, this step progres-
+sively adds noise to x0, such that by the nal step xT , the
+data is almost entirely noise.
+The reverse process aims to undo this noise, step by step, to
+recover the original data x0. This is parameterized by a neural
+t. Using this prediction, the reverse process reconstructs the
+data from the noisy input xt:
+xt1 p(xt1  xt) : N(xt1; k(xt, (xt, t)), 2
+where k() computes the mean for the denoised data at step
+t 1, and 2
+t is a xed variance term.
+In the context of robotics, a diffusion policy  adapts
+the DDPM framework for visuomotor control by treating
+robot actions as x and conditioning the denoising process
+on robot observations, such as camera images or sensor data.
+noisy action representation xt and the observations as inputs
+and predicts the noise to remove. Architectures like U-Nets
+or transformers  are commonly used for . Diffusion
+policies are typically trained ofine using BC, where the model
+learns to mimic expert demonstrations.
+B. Ranks in Diffusion Models
+The rank of a matrix, dened as the maximum number
+of linearly independent rows or columns , is closely tied
+to the expressiveness and representational power of a model.
+For example, in linear models, the rank of the weight matrix
+determines the dimensionality of the feature space that the
+model can effectively capture. Weight matrices with low ranks
+often correspond to models with limited capacity but faster
+slower training .
+In the context of a diffusion policy that employs a U-
+Net with one-dimensional convolutional blocks as its network
+Rmn can be created by reshaping a corresponding weight
+tensor Wconv RCoutCink via
+W  reshape(Wconv, (m, n)),
+where Cout is the number of output channels, Cin is the number
+of input channels, and k is the kernel size. The reshaping can
+be performed by setting m  Cout k and n  Cin or other
+equivalent view transformations.
+The highest possible rank rmax of this weight matrix is
+bounded by:
+rmax min(m, n).
+C. Problem Statement
+In this work, we investigate diffusion policies that use a
+U-Net backbone composed of one-dimensional convolutional
+with weight W and highest possible rank rmax in a diffusion
+r of a trainable segment of the weight matrix, Wtrain, for
+any r integer satisfying 1 r rmax. We assume all
+weight matrices W throughout the network  will vary
+uniformly based on r. Importantly, r should remain adjustable
+throughout the learning process without introducing instability
+or computational overhead.
+III. RELATED WORKS
+A. Overparameterization and Intrinsic Rank
+than necessary to t the training data, is a key factor behind the
+success of modern machine learning [21, 16]. Large models
+such as diffusion models  and transformers  excel
+in tasks like image synthesis , robotic manipulation ,
+and language generation . Although overparameterized
+models offer impressive performance, their size also poses
+signicant challenges for training and ne-tuning due to high
+computational and memory requirements.
+To tackle these challenges, researchers have observed that
+overparameterized models often reside in a low-dimensional
+subspace [1, 24, 47]. Pre-deep learning approaches like dy-
+namical low-rank approximation  assume a derivable target
+matrix is unknown. More modern techniques like Low-Rank
+Adaptation (LoRA) [13, 6] ne-tune a small low-rank adapter
+while keeping the main model frozen. Although LoRA and its
+variants like DyLoRA  and QLoRA  effectively reduces
+computational costs, it is primarily suited for ne-tuning pre-
+trained models and is less practical for training models from
+scratch due to its xed low-rank structure .
+For LoRA, the need to merge and re-inject adapters during
+rank adjustments and the increased parameters during forward
+pass can destabilize training and increase computational over-
+head. In contrast, the DRIFT framework dynamically adjusts
+trainable ranks without adding new parameters or introducing
+instability. By using SVD to partition weight matrices into
+trainable and frozen components, DRIFT maintains stability
+and efciency, making it well-suited for training overparame-
+terized diffusion policies from scratch.
+B. Imitation Learning and Diffusion Policy
+Imitation Learning (IL) is a widely studied policy learning
+paradigm applied to various robotic scenarios. IL involves
+collecting demonstration data from an expert and training a
+neural network using supervised learning techniques . Be-
+fore the emergence of diffusion policies, IL research focused
+on improving sample efciency and mitigating compounding
+errors through strategic sample collection and labeling .
+Ross et al.  rst address these challenges with an it-
+tional demonstration rollouts using a suboptimal policy and
+renes the trajectories with corrections provided by an expert.
+Building on this work, expert-gated [17, 40] and learner-gated
+[11, 12] methods allow experts or learners to dynamically take
+or hand over control during online rollout collection, which
+further improves data efciency.
+These methods primarily rely on interactive demonstration
+strategies and typically utilize simple neural network architec-
+Long Short-Term Memory (LSTM) networks [2, 14, 46]. His-
+and small MLPs or LSTM, which are constrained by their rel-
+atively small number of parameters, limiting the performance
+of the learned policies.
+Diffusion policies  shift the focus of IL research to
+leveraging the representational power of overparameterized
+models. Inspired by generative models [10, 36], diffusion
+policies use large networks to achieve strong performance in
+various tasks. However, the computational demands of these
+models create challenges for both training and inference. Few
+existing works attempt to integrate interactive IL with diffusion
+models [23, 52]. For example, Lee and Kuo  leverage
+diffusion loss to better handle multimodality; however, this
+work focuses on a robot-gated interactive approach rather
+than an expert-gated one and does not contain real-world
+experiments. Similarly, while Zhang et al.  employ diffu-
+sion as a policy representation, the primary innovation in this
+work lies in using diffusion for data augmentation rather than
+improving the interactive learning process. Notably, neither
+approach addresses the critical issue of reducing batch training
+with large models more practical and usable. Recent efforts
+to accelerate diffusion policies focus on inference through
+techniques like distillation [31, 45], but no existing work
+focuses on improving training efciency. As a result, diffusion
+policy research remains largely conned to ofine training
+scenarios [38, 42, 50].
+IV. DRIFT FRAMEWORK
+A. Overview
+The DRIFT framework is designed to dynamically adjust
+trainable ranks in a diffusion policy, allowing the number of
+trainable parameters to change throughout the training process.
+This exibility enables efcient training from scratch by lever-
+aging the intrinsic low-rank structure of overparameterized
+models. As covered in II-C, the rank adjustment process
+must ensure training stability and avoid introducing additional
+computational overhead. These considerations are critical for
+training from scratch but are often overlooked by existing
+methods like LoRA , which are primarily designed for
+ne-tuning. Applying methods like LoRA for dynamic rank
+adjustment during training from scratch can result in higher
+computational time for forward pass and instability due to the
+need for merging and re-injecting newly initialized low-rank
+To achieve dynamic trainable rank adjustment while main-
+taining training stability, we propose rank modulation. Rank
+modulation uses the Singular Value Decomposition (SVD)
+to partition ranks into trainable and frozen sections.
+This approach avoids introducing new parameters, ensures
+that computational costs for the backward pass decrease as
+the trainable ranks are reduced, and maintains a constant
+computational cost for the forward pass.
+In addition to rank modulation, the framework can incor-
+porate a rank scheduler to coordinate the dynamic adjust-
+ment of trainable ranks. While rank modulation facilitates
+the adjustment itself, the rank scheduler determines how the
+trainable ranks may automatically evolve during training. The
+rank scheduler uses a decay function that calculates the current
+number of trainable ranks based on the training epoch, the
+maximum rank, and the desired terminal rank of the policy.
+The rank modulation and rank scheduler components can
+work together to enable efcient training of diffusion policies
+by dynamically balancing representational power and compu-
+tational efciency.
+B. Rank Modulation
+Rank modulation takes inspiration from LoRA , which
+employs an adapter with small trainable ranks during ne-
+tuning. LoRA achieves this by injecting additional low-rank
+weight matrices into the network layers, allowing only these
+matrices to be updated during backpropagation. For the one-
+dimensional convolution blocks in a U-Net architecture used
+by diffusion models, LoRA would replace the original convo-
+lutional layer with:
+ConvLoRA(x)  Wconv x  ((Wup  Wdown) x),
+where denotes convolution, Wconv is the original convo-
+lution weight tensor of shape (Cout, Cin, k), with Cout and
+Cin denoting the output and input channels, and k is the
+kernel size. Two low-rank matrices, Wdown RrCink and
+Wup RCoutrk, are introduced, where r Cin. A scaling
+factor  further controls the magnitude of the low-rank update.
+During backpropagation, gradients are computed only for
+Wdown and Wup, thus lowering the number of trainable ranks.
+Despite these benets, LoRA has several limitations when
+applied to IL that trained from scratch. Since LoRA is essen-
+tially an approximation of the full-rank weight, it relies on the
+main weight Wconv being thoroughly pre-trained. Otherwise,
+the low-rank approximation may limit the representational
+power of the model and prevent it from fully beneting from
+overparameterization. Furthermore, injecting LoRA blocks
+adds complexity to the forward pass. Due to the merging of
+Wup and Wdown, the additional convolution with LoRA blocks
+results in a time complexity of O(Cout  Cin  r  k), which
+increases computational overhead proportional to the rank r
+compared to the time complexity of the original convolution
+O(Cout Cin k). While this computational overhead is often
+negligible when ne-tuning a pre-trained model with a rank of
+less than 4 , training a model from scratch requires low-
+rank adapters with signicantly higher number of trainable
+ranks to effectively leverage both overparameterization and
+low-rank structure (as we will demonstrate in VI-B). This
+increase in trainable ranks amplies the computational cost
+associated with r, making it a critical consideration in such
+scenarios.
+cussed in IV-C), new LoRA blocks must be injected each time
+the rank changes, introducing freshly initialized parameters
+and destabilizing training. Consequently, repeatedly merging
+and reinjecting LoRA blocks is inefcient when the trainable
+rank is adjusted on the y.
+To address these limitations, we propose rank modulation,
+which leverages an SVD structure to decompose weight ma-
+trices into components designated as either frozen or trainable
+ranks. More specically, consider a weight matrix W Rmn
+that can be created from a corresponding weight tensor
+Wconv RCoutCink for a one-dimensional convolutional layer
+by reshaping, e.g., Cout k becomes m and Cin becomes n (as
+covered in II-B). This matrix can be refactored into three
+matrices using the SVD:
+W  U  V T ,
+where U Rmm,  Rmn, V Rnn. U and V are
+orthonormal matrices that represent rotations or reections,
+while  is a diagonal matrix containing scaling factors. We
+can further split U, , and V at a specied rank r to partition
+trainable and frozen part of each matrix:
+Utrain Ufrozen
+Vtrain Vfrozen
+weight Wfrozen as:
+Wtrain  Utrain train V T
+Wfrozen  Ufrozen frozen V T
+where frozen
+holds smaller singular values than train.
+During training, {Utrain, train, Vtrain} are the only parame-
+ters that receive gradient updates (rank-r subspace), while
+{Ufrozen, frozen, Vfrozen} remain xed.
+The procedure described above, converting Wconv into Wtrain
+and Wfrozen using SVD and partitioning, is performed at
+the start of each epoch if the number of trainable ranks
+has changed since the previous epoch. This procedure also
+reorthonormalizes the U and V matrices. While it is possible
+to reorthonormalize the U and V matrices more frequently
+(such as after each gradient update) using QR decomposition,
+preliminary experiments showed that this introduced signi-
+cant computational overhead without measurable performance
+gains (see Appendix IX-A). Therefore, our implementation
+defaults to reorthonormalizing only via full SVD at the start
+of an epoch whenever the number of trainable ranks changes.
+Unlike LoRA, rank modulation performs a single convolu-
+tion using the full W  Wtrain  Wfrozen via another simple
+view transformation in memory:
+Wconv  reshape(W, (Cout, Cin, k)).
+standard convolution. Because no additional new parameters
+are introduced during the training process, rank modulation
+can also preserve stable updates even when the number of
+trainable ranks changes.
+C. Rank Scheduler
+Building on rank modulation, which dynamically adjusts the
+number of trainable ranks while maintaining stable training,
+we introduce a rank scheduler to further exploit the low-
+rank structure. The rank scheduler, inspired by the noise
+scheduler in diffusion models that dynamically adjusts the
+added noise , is designed to improve training efciency
+without compromising performance.
+The rank scheduler uses a decay function to compute the
+current number of trainable ranks ri based on the current train-
+ing epoch index i, and the maximum and minimum trainable
+ranks are adjusted depending on the low-rank adapters. For
+LoRA blocks and reinstantiating new blocks with the updated
+trainable ranks. In the case of rank modulation, this process
+entails computing the SVD of W to produce updated Wtrain
+and Wfrozen matrices.
+In this work, we implement and evaluate four decay func-
+rmax (rmax rmin)
+rmin  0.5  (rmax rmin)
+(rmax rmin)
+1  e(itm)
+rmin  (rmax rmin)  ei
+where i, T, and tm are the current, total, and midpoint of the
+number of training epochs, respectively,  denotes steepness,
+and is the oor function.
+V. DRIFT-DAGGER
+DRIFT-DAgger combines the sample efciency of interac-
+tive IL with the computational efciency of low-rank training
+interactively.
+Algorithm 1 outlines the DRIFT-DAgger procedure. Similar
+to previous interactive IL methods, DRIFT-DAgger consists
+of an ofine bootstrapping stage followed by an online adap-
+tation stage. The process begins with an initial policy N0,
+parameterized by a neural network that can adjust the number
+of trainable ranks. Although DRIFT-DAgger is proposed as
+an instantiation of the DRIFT framework, the adjustment of
+trainable ranks can be achieved through any kind of low-rank
+adapters other than the rank modulation proposed in IV-B,
+such as LoRA.
+In the ofine bootstrapping stage, DRIFT-DAgger trains the
+policy Ni on an ofine dataset DB over several epochs i using
+these methods, DRIFT-DAgger optionally employs a rank
+scheduler that gradually reduces the number of trainable ranks
+during training. The rank scheduler uses a decay function
+based on the epoch index i, along with the highest possible
+ranks (rmax) and terminal trainable ranks (rmin) for the policy
+network. This approach reduces computational costs while
+maintaining performance. Details of the rank scheduler are
+presented in IV-C.
+If the rank scheduler is not used, the number of trainable
+ranks is set xed at rmin after ofine bootstrapping and before
+transitioning to the online adaptation stage. At the end of
+ofine bootstrapping, the ofine dataset DB is merged into
+a global dataset D for further use in online adaptation.
+During the online adaptation stage, the learner policy inter-
+acts with the environment through rollouts. At each iteration
+expert policy exp detects that the learner has deviated from
+the desired trajectory, the expert intervenes, taking control to
+provide corrective demonstrations. The expert can be a human
+demonstrations are recorded in a dataset specic to the current
+rollout Dj. After each rollout, Dj is merged into the global
+dataset D, and the learner policy NIj is updated using the
+expanded dataset D.
+The full procedure of DRIFT-DAgger leverages low-rank
+training and online interaction to achieve better sample and
+training efciency.
+Algorithm 1: DRIFT-DAgger
+1 procedure DRIFT-DAgger(exp, N0, DB)
+2 for ofine epoch i  1, 2,    , I do
+train Ni on ofine dataset DB
+if use rank scheduler then
+ri  Decay Function(i, rmin, rmax)
+Ni  Rank Reduction(ri, Ni)
+if not use rank scheduler then
+NI  Rank Reduction(rmin, NI)
+10 for online iteration j  1, 2,    , J do
+for timestep t T of online rollout j do
+if exp takes control then
+observation rolloutt
+action exp(observation)
+Dj (observation, action)
+Train NIj on D
+18 return NIJ
+VI. SIMULATION EVALUATION
+We evaluate the proposed DRIFT framework, instantiated
+in the DRIFT-DAgger algorithm, through extensive simula-
+tion experiments and ablation studies. All experiments are
+conducted using the PyTorch framework , with the UNet-
+based diffusion policies that enable RGB perception following
+Iteration
+Success Rate
+Success Rate
+Exp. 0.1
+Exp. 0.5
+Sig. 0.1
+Sig. 0.5
+Iteration
+Number of Trainable Ranks
+Number of Trainable Ranks
+Iteration
+Mean Batch Time
+Mean Batch Time
+Iteration
+Mean Step Loss
+Mean Step Loss
+Fig. 3: Experimental results of DRIFT-DAgger with different
+decay functions for the rank scheduler. We use HG-DAgger
+(HG) as a baseline for comparison.
+TABLE I: Summary of experimental results on mean batch
+training time (MBT) and success rate with different rank decay
+functions for DRIFT-DAgger.
+Function
+(Online)
+(All Stages)
+Exp. 0.1
+Exp. 0.5
+Sig. 0.1
+Sig. 0.5
+the specications from Chi et al. . The batch size and
+learning rate is set to 256 and 104 for all experiments.
+We use Adam  as the optimizer. Training is performed
+on a desktop PC with an AMD PRO 5975WX CPU, 4090
+interactive methods like HG-DAgger  and DRIFT-DAgger,
+we implement BC with an incremental dataset during the
+online phase, similar to the interactive loop of HG-DAgger
+and DRIFT-DAgger.
+A. Decay Functions
+To identify the scheduling strategy that best exploits the
+benets of reduced-rank training while balancing the trade-off
+between training time and policy performance, we evaluate six
+variants of four decay functions for the rank scheduler. These
+functions dynamically adjust the number of trainable ranks as
+training progresses. The decay functions considered include
+with steepness parameters  set to 0.1 and 0.5 for exponential
+and sigmoid.
+We use DRIFT-DAgger with rank modulation and rank
+scheduler for this ablation study. We set rmin to 256 for
+all DRIFT-DAgger variants. Since both BC and HG-DAgger
+employ full-rank training, they should exhibit similar batch
+training times. Given that HG-DAgger outperforms BC in
+terms of sample efciency, we use HG-DAgger as the
+baseline for full-rank training methods.
+To assess performance and training efciency across differ-
+ent decay functions, we evaluate the policys success rate, with
+higher values indicating better task completion. We also track
+the step loss during training as a measure of convergence. To
+assess training efciency, we record the mean batch training
+time per epoch, separately for the ofine stage, online stage,
+and their combination, interpreting it alongside the success
+rate and step loss.
+The ablation study is conducted on a pick-and-place sce-
+nario from the Manipulation with Viewpoint Selection (MVS)
+tasks . The pick-and-place scenario, as illustrated in Fig. 5,
+requires the agent to pick up a green cube and place it in a red
+region. All MVS tasks involve two UFactory xArm7 robots2
+mounted on linear motors, where one arm has a gripper and the
+other is equipped with a camera. Mounted on one end effector,
+the camera enables active perception, working in synergy with
+the gripper on the other end effector to cooperatively execute
+the manipulation task. The state-action space for all MVS tasks
+is a reduced end-effector space for the dual-arm system, with
+automatically computed camera orientation using an additional
+Inverse Kinematics (IK) objective.
+The learning process uses 100 ofine demonstration roll-
+ations. We plot the experimental results by combining the
+number of ofine epochs and online iterations, resulting in
+a total of 150 iterations.
+The results of this experiment are presented in Fig. 3 and
+summarized in Table I. While all decay functions reduce batch
+training time compared to full-rank training represented by
+Table I. Notably, the exponential decay functions, due to their
+aggressive reduction of trainable ranks, underperform relative
+to the other variants, despite yielding the lowest mean batch
+training time.
+The linear decay function, while offering near-perfect policy
+decay functions in balancing training time with performance.
+We observe that the sigmoid functions, particularly with a
+steep decay parameter   0.5, strike the best balance between
+training time and policy performance. These functions main-
+tain a high number of trainable ranks during the early training
+approximation error, as shown in the loss plot in Fig. 3. This
+Iteration
+Success Rate
+Success Rate
+rmin  64
+rmin  128
+rmin  256
+rmin  512
+Iteration
+Number of Trainable Ranks
+Number of Trainable Ranks
+Iteration
+Mean Batch Time
+Mean Batch Time
+Iteration
+Mean Step Loss
+Mean Step Loss
+Fig. 4: Experimental results of DRIFT-DAgger with different
+terminal ranks rmin.
+TABLE II: Summary of experimental results on mean batch
+training time (MBT) and success rate with different values for
+terminal ranks for DRIFT-DAgger.
+(Online)
+(All Stages)
+facilitates more efcient learning of the predominant behavior
+during the early stage of training, while still preserving the
+exibility required for online adaptation.
+B. Terminal Rank
+To explore the effect of different terminal ranks for the
+DRIFT framework, we conduct an ablation study by varying
+the terminal rank rmin in DRIFT-DAgger with rank modulation
+and rank scheduler. We use the same experimental task, setup,
+and evaluation metrics as VI-A, and use sigmoid decay
+function with  set to 0.5 for rank scheduler. The terminal
+rank rmin is set to 64, 128, 256, and 512 for comparison.
+As shown in Fig. 4 and summarized in Table II, decreasing
+the terminal ranks reduces training time but also impacts policy
+degradation occurs due to the diminished representational
+power of the model when the number of trainable ranks is
+reduced. Compared to reduced-rank methods for ne-tuning,
+such as , where ne-tuning with an adapter requires only
+4 trainable ranks, DRIFT-DAgger with reduced-rank training
+from scratch necessitates a signicantly higher number of
+trainable ranks, given that there is a noticeable performance
+drop when rmin is set to 64. This is to fully leverage the benets
+of both better representation power from overparameterization
+and improved computational efciency from intrinsic low
+capture the full representational potential of the model.
+clear benet in terms of policy performance, as the model
+already achieves a perfect success rate. The approximation
+negligible differences between rmin values of 256 and 512.
+We also run rmin sweep for another MVS task, and the results
+follow similar trends as the pick-and-place scenario that rmin
+256 provides the best balance of efciency and performance
+(see Appendix IX-B).
+TABLE III: The congurations of DRIFT-DAgger for all simu-
+lation and real-world tasks. For simulation, we use other neural
+network policies trained with BC as experts, and compare the
+cosine similarity of the expert action and learner action with
+the threshold to determine whether the expert take over or not.
+Rollouts
+Iterations
+Cos. Sim.
+Threshold
+C. Benchmark Comparison
+We perform a benchmark comparison in four environments:
+two from the robosuite  and two from the Manipulation
+with Viewpoint Selection (MVS) tasks . Fig. 5 provides
+illustrations of the four environments. The robosuite envi-
+manipulation tasks, such as lifting a red cube and placing a
+can into a category. The state-action spaces for the robosuite
+tasks are the end-effector space with quaternions for rotation.
+The MVS tasks include opening a microwave, and the same
+pick-and-place scenario we used for previous ablation studies.
+The methods we evaluate in this benchmark comparison in-
+clude Behavior Cloning (BC), HG-DAgger, and three variants
+of DRIFT-DAgger: one that uses LoRA, one that uses LoRA
+with rank scheduler, and one that uses rank modulation and
+rank scheduler. For methods utilizing rank scheduler, we apply
+the sigmoid decay function with steepness  set to 0.5. We
+set rmax and rmin to 2048 and 256, respectively, based on the
+maximum rank of the diffusion policy and prior ablation study
+on the terminal rank. For all methods that use LoRA, we set
+the scaling factor  to 1.0. Experimental parameters related
+to the interactive mechanism, including the number of ofine
+rollouts in DB, bootstrapping epochs I, and online iterations
+During the online iterations, we save checkpoints every
+20 iterations. Each checkpoint undergoes evaluation with 50
+task duration, the number of expert labels, and cumulative
+training time are recorded as metrics for comparison. The
+success rate is used as the primary performance metric. The
+mean and standard deviation of task duration reect how
+consistent and certain a trained policy is in completing a
+given task. A lower mean and standard deviation of task
+duration suggest that the policy is well-trained and converges
+better to the desired behavior. The number of expert labels,
+when considered alongside the other metrics, provides insight
+into the sample efciency of a specic training method. For
+expert labels indicates better sample efciency. The cumulative
+training time is for reecting the training efciency.
+To fairly and efciently evaluate different methods, for
+each scenario, we rst train an expert policy using human-
+collected data from Mandlekar et al.  and Sun et al.
+for robosuite and MVS tasks, respectively. The expert policy
+performs interventions when the cosine similarity between the
+learner actions and expert actions falls below a threshold, as
+detailed in Table III. The thresholds are computed based on
+the mean cosine similarity between consecutive steps in the
+expert training datasets.
+As shown in Fig. 5 and Table IV, DRIFT-DAgger variants
+demonstrate a pronounced reduction in cumulative training
+time compared to BC and HG-DAgger. Additionally, all
+interactive IL methods exhibit superior expert sample ef-
+ciency compared to BC, as evidenced by higher success rates
+with respect to the number of expert labels. An exception
+is observed in the DRIFT-DAgger variant with LoRA and
+rank scheduler, where the merging and re-injection of LoRA
+adapters destabilize training due to the initialization of new
+trainable parameters. In contrast, the DRIFT-DAgger variant
+that instantiates LoRA adapters only once during the transition
+to the online phase, or the variant that combines rank mod-
+ulation and rank scheduler, achieve performance and sample
+efciency comparable to HG-DAgger, which consistently uses
+full ranks instead of reduced ranks. The benets of interactive
+IL are more pronounced in tasks with longer durations. Fur-
+combination of rank modulation and rank scheduler, exhibit
+good stability and better convergence to the desired behavior of
+the task, as indicated by the relatively lower standard deviation
+in task duration.
+D. Batch Training Time
+To better understand and demonstrate the improved training
+efciency of DRIFT-DAgger, we conduct an ablation study on
+the mean batch training time across all stages. The methods
+evaluated in this ablation study include HG-DAgger and three
+DRIFT-DAgger variants: one using LoRA, one combining
+LoRA with a rank scheduler, and one employing rank mod-
+Num. of Exp. Labels
+Success Rate
+Robosuite - Lift
+Num. of Exp. Labels
+Robosuite - Can
+Num. of Exp. Labels
+MVS - Microwave
+Num. of Exp. Labels
+MVS - Pick and Place
+Fig. 5: The upper row shows the simulation scenarios from robosuite and Manipulation with Viewpoint Selection (MVS) tasks.
+The lower row shows the plots of success rate with respect to the number of expert labels. HG, D(L), D(LR), and D(RR)
+represent HG-DAgger, DRIFT-DAgger with LoRA adapters that are only instantiated with rmin when switching to online mode,
+DRIFT-DAgger with LoRA and rank scheduler, and DRIFT-DAgger with rank modulation and rank scheduler.
+TABLE IV: Summary of experimental results from simulation scenarios. The metrics include success rate (SR), mean and
+standard deviation of task duration (MSD), number of expert labels (NEL), and cumulative training time (CT). CT is measured
+in hours, MSD is measured in steps and at the scale of 102, and NEL is at the scale of 104
+Robosuite - Lift
+Robosuite - Can
+MVS - Microwave
+MVS - Pick and Place
+ulation alongside rank scheduler. We use HG-DAgger as the
+baseline for full-rank training.
+This ablation study is performed using the MVS pick-and-
+place scenario, same as VI-A and VI-B. We use 100 ofine
+demonstration rollouts, 100 ofine bootstrapping epochs, and
+50 online iterations for training. We set terminal ranks rmin
+to 256 and use the sigmoid decay function with  set to 0.5
+for DRIFT-DAgger variants applied.
+The results are presented in Fig. 6 and Table V. We observe
+that the DRIFT-DAgger variant with xed-rank LoRA and
+the variant with rank modulation and rank scheduler both
+achieve success rates comparable to the full-rank baseline,
+HG-DAgger. When considering batch training time, the variant
+with rank modulation and rank scheduler reduces the mean
+batch training time across all stages by 11, demonstrating
+improved training efciency without sacricing performance.
+achieves an 18 reduction in batch training time compared
+to the full-rank baseline.
+In contrast, the DRIFT-DAgger variant with LoRA and
+rank scheduler also shows reduced training time. However,
+the success rate signicantly drops compared to HG-DAgger.
+This decline is attributed to the instability caused by merging
+and re-injecting LoRA adapters, which is also reected in
+the higher step loss observed for this variant. Additionally,
+despite the use of a rank scheduler, the batch training time
+for this variant is slightly higher than that of the variant with
+rank modulation, likely due to the additional computational
+overhead introduced by LoRA within the DRIFT framework.
+VII. REAL-WORLD EVALUATION
+To further validate the proposed DRIFT framework, we
+deploy DRIFT-DAgger in three real-world tasks, using a
+human teleoperator as the expert. The robotic system for these
+Iteration
+Success Rate
+Success Rate
+Iteration
+Number of Trainable Ranks
+Number of Trainable Ranks
+Iteration
+Mean Batch Time
+Mean Batch Time
+Iteration
+Mean Step Loss
+Mean Step Loss
+Fig. 6: Experimental results of three DRIFT-DAgger variants
+with HG-DAgger for demonstrating the reduced batch training
+time of DRIFT framework compared to full-rank training,
+while still maintaining equivalent performance.
+TABLE V: Summary of experimental results on mean batch
+training time (MBT) and success rate with full-rank and
+reduced-rank training methods.
+(Online)
+(All Stages)
+Fig. 7: The 17-DOF robotic system for real-world experiments
+aligns with the MVS simulation environments. It includes two
+xArm7 mounted on linear motors, with camera and gripper
+attached to each end effectors.
+simulated MVS tasks. The system comprises two UFactory
+xArm7 robots mounted on linear motors, with a gripper at-
+tached to one arm and a camera to the other. This conguration
+enables simultaneous manipulation and viewpoint adjustment.
+The state-action space is a reduced end-effector space, with
+the orientation of the camera automatically updated via an
+additional IK objective.
+The real-world tasks, depicted in Fig. 8, include block
+of another; drawer assembling, which involves inserting two
+drawer boxes into a drawer container; and drawer interaction,
+which requires the agent to rst get rid of a visual occlusion
+(cardboard box), grasp a red cube from a cluttered area, place
+it in the drawer, and then close the drawer. The blocks and
+drawer components are 3D-printed using models from  and
+. Training congurations for each task are detailed in Table
+over 30 rollouts.
+We use the success rate, mean and standard deviation
+of task duration, number of expert labels, and cumulative
+training time as metrics for the real-world experiments. The
+cumulative training time only measures the active computation
+during training, and not includes any other events between two
+training epochs, such as resetting the robot or recording the
+demonstration interactively.
+with the simulation experiments. All DRIFT-DAgger vari-
+ants show noticeable reduction in cumulative training time.
+Interactive IL methods, except the DRIFT-DAgger variant
+with LoRA and rank scheduler, achieve similar or superior
+performance to BC, with improved sample efciency, as
+indicated by a reduced number of expert labels. Despite using
+reduced-rank training, the other two DRIFT-DAgger variants
+perform comparably to HG-DAgger, which trains in a full-
+rank manner. The advantage of interactive methods becomes
+more pronounced for longer-duration tasks. For example, in
+the block stacking task, which has a mean duration of around
+0.45 minutes, interactive methods improve sample efciency
+by 11.32 to 13.17. In contrast, for the drawer assembling
+sample efciency improves by 14.82 to 17.14.
+These real-world experiments validate that the DRIFT
+framework is effective in real-world settings, offering reduced
+training time, improved sample efciency and robust perfor-
+mance despite employing reduced-rank training.
+VIII. DISCUSSION
+This work introduces DRIFT, a framework designed to
+leverage the intrinsic low-rank properties of large diffusion
+policy models for efciency while preserving the benets
+of overparameterization. To achieve this, we propose rank
+modulation and rank scheduler, which dynamically adjust
+trainable ranks using SVD and a decay function. We instantiate
+DRIFT within an interactive IL algorithm, DRIFT-DAgger,
+and show this efcacy of this method through extensive
+Drawer Assembling
+Drawer Interaction
+Block Stacking
+Fig. 8: The images show the tasks for real-world experiments. The upper row and lower row show the process of each task
+from a third-person perspective and a robot-perception perspective respectively.
+TABLE VI: Summary of experimental results from real-world scenarios. The metrics include success rate (SR), mean and
+standard deviation of task duration (MSD), number of expert labels (NEL), and cumulative training time (CT). CT is measured
+in hours, MSD measured in minutes, and NEL is at the scale of 104.
+Block Stacking
+Drawer Assembling
+Drawer Interaction
+experiments and ablation studies in both simulation and real-
+world settings. Our results demonstrate that DRIFT-DAgger
+reduces training time and improves sample efciency while
+maintaining performance on par with full-rank policies trained
+from scratch.
+A. Limitations
+This work evaluates and demonstrates the DRIFT frame-
+work using DRIFT-DAgger as an instantiation within the IL
+paradigm. However, prior to the adoption of large models,
+online reinforcement learning (RL) approaches [35, 8] were
+also a popular area of research. This work does not explore
+the application of the DRIFT framework in the online RL
+paradigm. Investigating the potential of DRIFT within online
+RL could serve as an valuable direction for future research.
+decay functions for the rank scheduler, the current implemen-
+tation of dynamic rank adjustment in the DRIFT framework
+follows a monotonic schedule. Although we have conducted
+ablation studies on decay functions and terminal ranks, the
+impact of these design choices is likely task-dependent.
+blocks in this work is applied uniformly throughout the U-
+Net backbone, even though different blocks may have varying
+highest possible ranks. Future research could explore more
+adaptive and intelligent strategies for adjusting trainable ranks
+to enhance training efciency and performance, as well as
+identify suitable decay functions and terminal ranks for sce-
+narios beyond those covered in this work.
+B. Implications
+As discussed in III, prior to the era of large models,
+innovations in robot learning primarily focused on learning
+processes with interaction. However, the increasing size of
+models has resulted in signicantly longer training times, mak-
+ing many previous innovations in online interactive learning
+less practical due to the time required for policy updates.
+While the machine learning community has made progress
+in leveraging the intrinsic rank of large models to improve
+training efciency, most of these methods are tailored for ne-
+tuning rather than training from scratch. This distinction arises
+from the availability of foundation models in general machine
+scratch to address scenario-specic tasks.
+Despite years of research in the machine learning com-
+ranks remain relatively underexplored in robotics. This work
+introduces reduced-rank training as a means to address the
+challenges of training efciency, thereby making online in-
+teractive learning methods more feasible in the era of large
+models for robot learning. By bridging these gaps, we aim
+to raise awareness within the robotics community about
+leveraging overparameterization and intrinsic ranks to design
+more efcient learning methods while preserving the powerful
+representations afforded by overparameterized models.
+ACKNOWLEDGMENTS
+This work was supported by Ofce of Naval Research award
+REFERENCES
+Intrinsic dimensionality explains the effective-
+ness of language model ne-tuning.
+arXiv preprint
+Peide Cai, Yuxiang Sun, Yuying Chen, and Ming Liu.
+Vision-based trajectory planning via imitation learning
+for autonomous vehicles.
+In 2019 IEEE Intelligent
+Transportation Systems Conference (ITSC), pages 2736
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau,
+Yilun Du, Benjamin Burchel, Russ Tedrake, and Shuran
+Song. Diffusion policy: Visuomotor policy learning via
+action diffusion. The International Journal of Robotics
+Kevin Clark, Paul Vicol, Kevin Swersky, and David J
+Fleet. Directly ne-tuning diffusion models on differen-
+tiable rewards. arXiv preprint arXiv:2309.17400, 2023.
+Yehuda Dar, Vidya Muthukumar, and Richard G Bara-
+A farewell to the bias-variance tradeoff? an
+overview of the theory of overparameterized machine
+learning. arXiv preprint arXiv:2109.02355, 2021.
+Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and
+Luke Zettlemoyer. Qlora: efcient netuning of quan-
+tized llms (2023). arXiv preprint arXiv:2305.14314, 52:
+Simon Du and Jason Lee.
+On the power of over-
+parametrization in neural networks with quadratic acti-
+vation. In International conference on machine learning,
+pages 13291338. PMLR, 2018.
+Tuomas Haarnoja, Aurick Zhou, Kristian Hartikainen,
+George Tucker, Sehoon Ha, Jie Tan, Vikash Kumar,
+Henry Zhu, Abhishek Gupta, Pieter Abbeel, et al. Soft
+actor-critic algorithms and applications. arXiv preprint
+Minho Heo, Youngwoon Lee, Doohyun Lee, and Joseph J
+mark for long-horizon complex manipulation.
+preprint arXiv:2305.12821, 2023.
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising
+diffusion probabilistic models. Advances in neural infor-
+mation processing systems, 33:68406851, 2020.
+Ryan Hoque, Ashwin Balakrishna, Ellen Novoseller,
+Albert Wilcox, Daniel S Brown, and Ken Goldberg.
+for interactive imitation learning.
+arXiv preprint
+Ryan Hoque, Ashwin Balakrishna, Carl Putterman,
+Michael Luo, Daniel S Brown, Daniel Seita, Bri-
+jen Thananjeyan, Ellen Novoseller, and Ken Goldberg.
+imitation learning. In 2021 IEEE 17th international con-
+ference on automation science and engineering (case),
+pages 502509. IEEE, 2021.
+Edward J Hu, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi
+Low-rank adaptation of large language models.
+International Conference on Learning Representations.
+Jie Huang, Wei Ge, Hualong Cheng, Chun Xi, Jun
+avoidance in robotic manipulation using imitation learn-
+ing. In 2020 16th International Conference on Control,
+Jun Jin, Laura Petrich, Masood Dehghan, and Martin
+Jagersand. A geometric perspective on visual imitation
+learning. In 2020 IEEERSJ International Conference on
+Intelligent Robots and Systems (IROS), pages 51945200.
+Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B
+Alec Radford, Jeffrey Wu, and Dario Amodei.
+ing laws for neural language models.
+arXiv preprint
+Michael Kelly, Chelsea Sidrane, Katherine Driggs-
+active imitation learning with human experts. In 2019
+International Conference on Robotics and Automation
+(ICRA), pages 80778083. IEEE, 2019.
+Michael Kelly, Chelsea Sidrane, Katherine Driggs-
+active imitation learning with human experts. In 2019
+International Conference on Robotics and Automation
+(ICRA), pages 80778083. IEEE, 2019.
+Diederik P Kingma.
+optimization. arXiv preprint arXiv:1412.6980, 2014.
+Othmar Koch and Christian Lubich. Dynamical low-rank
+approximation. SIAM Journal on Matrix Analysis and
+Alex Krizhevsky, Ilya Sutskever, and Geoffrey E Hinton.
+Imagenet classication with deep convolutional neural
+networks.
+Advances in neural information processing
+Alex X Lee, Coline Manon Devin, Yuxiang Zhou,
+Thomas Lampe, Konstantinos Bousmalis, Jost Tobias
+Nimrod Gileadi, David Khosid, et al. Beyond pick-and-
+Annual Conference on Robot Learning, 2021.
+Sung-Wook Lee and Yen-Ling Kuo. Diff-dagger: Un-
+certainty estimation with diffusion policy for robotic
+manipulation. arXiv preprint arXiv:2410.14868, 2024.
+Chunyuan Li, Heerad Farkhoor, Rosanne Liu, and Jason
+Yosinski. Measuring the intrinsic dimension of objective
+landscapes. arXiv preprint arXiv:1804.08838, 2018.
+Yuanzhi Li, Yingyu Liang, and Andrej Risteski. Recov-
+ery guarantee of weighted low-rank approximation via
+alternating minimization. In International Conference on
+Machine Learning, pages 23582367. PMLR, 2016.
+Yuanzhi Li, Tengyu Ma, and Hongyang Zhang.
+gorithmic regularization in over-parameterized matrix
+sensing and neural networks with quadratic activations.
+In Conference On Learning Theory, pages 247. PMLR,
+Shih-Yang Liu, Chien-Yi Wang, Hongxu Yin, Pavlo
+and Min-Hung Chen.
+rank adaptation. arXiv preprint arXiv:2402.09353, 2024.
+Matthias Muller, Vladlen Koltun, and Davide Scara-
+muzza. Learning high-speed ight in the wild. Science
+Ajay Mandlekar, Danfei Xu, Josiah Wong, Soroush
+Silvio Savarese, Yuke Zhu, and Roberto Martn-Martn.
+What matters in learning from ofine human demonstra-
+tions for robot manipulation. In 5th Annual Conference
+on Robot Learning, 2021.
+Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer,
+James Bradbury, Gregory Chanan, Trevor Killeen, Zem-
+ing Lin, Natalia Gimelshein, Luca Antiga, et al. Pytorch:
+An imperative style, high-performance deep learning
+library.
+Advances in neural information processing
+Aaditya Prasad, Kevin Lin, Jimmy Wu, Linqi Zhou,
+and Jeannette Bohg.
+Consistency policy: Accelerated
+visuomotor policies via consistency distillation.
+preprint arXiv:2405.07503, 2024.
+Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+Patrick Esser, and Bjorn Ommer. High-resolution image
+synthesis with latent diffusion models. In Proceedings
+of the IEEECVF conference on computer vision and
+pattern recognition, pages 1068410695, 2022.
+Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-
+mentation. In Medical image computing and computer-
+assisted interventionMICCAI 2015: 18th international
+Stephane Ross, Geoffrey Gordon, and Drew Bagnell. A
+reduction of imitation learning and structured prediction
+to no-regret online learning.
+In Proceedings of the
+fourteenth international conference on articial intelli-
+gence and statistics, pages 627635. JMLR Workshop
+and Conference Proceedings, 2011.
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+algorithms. arXiv preprint arXiv:1707.06347, 2017.
+Jiaming Song, Chenlin Meng, and Stefano Ermon.
+Denoising diffusion implicit models.
+arXiv preprint
+Jonathan Spencer, Sanjiban Choudhury, Arun Venkatra-
+imitation learning: The three regimes of covariate shift.
+arXiv preprint arXiv:2102.02872, 2021.
+Ajay Sridhar, Dhruv Shah, Catherine Glossop, and
+Sergey Levine. Nomad: Goal masked diffusion policies
+for navigation and exploration. In 2024 IEEE Interna-
+tional Conference on Robotics and Automation (ICRA),
+pages 6370. IEEE, 2024.
+Gilbert Strang. Introduction to linear algebra. SIAM,
+Xiatao Sun, Shuo Yang, Mingyan Zhou, Kunpeng Liu,
+and Rahul Mangharam. Mega-dagger: Imitation learn-
+ing with multiple imperfect experts.
+arXiv preprint
+Xiatao Sun, Mingyan Zhou, Zhijun Zhuang, Shuo Yang,
+Johannes Betz, and Rahul Mangharam.
+A benchmark
+comparison of imitation learning-based control policies
+for autonomous racing. In 2023 IEEE Intelligent Vehicles
+Symposium (IV), pages 15. IEEE, 2023.
+Xiatao Sun, Francis Fan, Yinxing Chen, and Daniel
+A comparative study on state-action spaces
+for learning viewpoint selection and manipulation with
+diffusion policy. arXiv preprint arXiv:2409.14615, 2024.
+Mojtaba Valipour, Mehdi Rezagholizadeh, Ivan Kobyzev,
+and Ali Ghodsi. Dylora: Parameter efcient tuning of
+pre-trained models using dynamic search-free low-rank
+adaptation. arXiv preprint arXiv:2210.07558, 2022.
+A Vaswani. Attention is all you need. Advances in Neural
+Information Processing Systems, 2017.
+Zhendong Wang, Zhaoshuo Li, Ajay Mandlekar, Zhenjia
+Yogesh Balaji, Mingyuan Zhou, et al. One-step diffusion
+arXiv preprint arXiv:2410.21257, 2024.
+Yuwei Wu, Xiatao Sun, Igor Spasojevic, and Vijay Ku-
+mar. Deep learning for optimization of trajectories for
+quadrotors. IEEE Robotics and Automation Letters, 2024.
+Yuhui Xu, Yuxi Li, Shuai Zhang, Wei Wen, Botao Wang,
+Wenrui Dai, Yingyong Qi, Yiran Chen, Weiyao Lin, and
+Hongkai Xiong. Trained rank pruning for efcient deep
+neural networks.
+In 2019 Fifth Workshop on Energy
+Efcient Machine Learning and Cognitive Computing-
+NeurIPS Edition (EMC2-NIPS), pages 1417. IEEE,
+Maryam Zare, Parham M Kebria, Abbas Khosravi, and
+Saeid Nahavandi.
+A survey of imitation learning: Al-
+Transactions on Cybernetics, 2024.
+Maryam Zare, Parham M. Kebria, Abbas Khosravi, and
+Saeid Nahavandi.
+A survey of imitation learning: Al-
+Transactions on Cybernetics, pages 114, 2024.
+Yanjie Ze, Gu Zhang, Kangning Zhang, Chenyuan Hu,
+Muhan Wang, and Huazhe Xu.
+3d diffusion policy:
+Generalizable visuomotor policy learning via simple 3d
+representations. In ICRA 2024 Workshop on 3D Visual
+Representations for Robot Manipulation, 2024.
+Huijie Zhang, Yifu Lu, Ismail Alkhouri, Saiprasad Ravis-
+efciency of diffusion models via multi-stage framework
+and tailored multi-decoder architecture. In Proceedings
+of the IEEECVF Conference on Computer Vision and
+Pattern Recognition (CVPR), pages 73727381, June
+Xiaoyu Zhang, Matthew Chang, Pranav Kumar, and
+Saurabh Gupta.
+Diffusion meets dagger: Supercharg-
+ing eye-in-hand imitation learning.
+arXiv preprint
+Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang,
+Xiaolei Wang, Yupeng Hou, Yingqian Min, Beichen
+large language models. arXiv preprint arXiv:2303.18223,
+Mingyan Zhou, Biao Wang, Tian Tan, and Xiatao Sun.
+Developing path planning with behavioral cloning and
+proximal policy optimization for path-tracking and static
+obstacle nudging.
+arXiv preprint arXiv:2409.05289,
+Yuke Zhu, Josiah Wong, Ajay Mandlekar, Roberto
+Yifeng Zhu.
+work and benchmark for robot learning. arXiv preprint
+IX. APPENDIX
+A. Additional Baselines and Variants
+Iteration
+Success Rate
+Success Rate
+Iteration
+Number of Trainable Ranks
+Number of Trainable Ranks
+Iteration
+Mean Batch Time
+Mean Batch Time
+Iteration
+Mean Step Loss
+Mean Step Loss
+Fig. 9: Results of additional baselines and variants on the MVS
+Pick and Place task, comparing DRIFT-DAgger (D) to QLoRA
+(sigmoid decay, steepness 0.5), and four variants: QR (QR
+decomposition per step), FPMO (full-rank ofine, static RM
+with rmin  256 online), MPLO (RM ofine, LoRA online),
+and DSR (ne-tuning last 10 denoising steps online).
+TABLE VII: Summary of experiments for additional baseline
+and variants on the PnP task.
+(Online)
+(All Stages)
+In addition to the baselines considered in the paper, we
+also compare DRIFT-DAgger (D) with QLoRA , and four
+additional DRIFT variants: QR (using QR decomposition per
+gradient step, FPMO (full-rank ofine, static RM with rmin
+256 online), MPLO (RM ofine, LoRA online), and DSR
+(ne-tuning last 10 denoising steps online). The results on
+the MVS Pick and Place (PnP) task can be found in Table VII
+and Fig. 9.
+inferior performance to ours. Also, DIRFT-DAgger with QR
+decomposition reduces training efciency signicantly with
+negligible performance gains. MPLO perform similarly to
+DRIFT-DAgger with RM, further suggesting DRIFT outper-
+forms LoRA-based methods due to instability of LoRA from
+injection and reinstantiation, and its need for well pre-trained
+scratch. FPMO demonstrates slightly worse training efciency
+due to full-rank ofine training.
+DSR causes model collapse during online adaptation despite
+having lower loss due to overtting the last few steps during
+denoising. This is likely because it also originates from
+diffusion models in image generation , which often assume
+well pre-trained models that are unavailable in diffusion policy
+context for robot learning.
+B. Additional Experiments on the Choice of rmin in the
+Microwave task
+Iteration
+Success Rate
+Success Rate
+rmin  128
+rmin  256
+rmin  512
+rmin  64
+Iteration
+Number of Trainable Ranks
+Number of Trainable Ranks
+Iteration
+Mean Batch Time
+Mean Batch Time
+Iteration
+Mean Step Loss
+Mean Step Loss
+Fig. 10: rmin sweep on Microwave task. This task uses 100
+ofine rollouts, 35 ofine epochs, and 100 online iterations
+to train, whereas the PnP task uses 100 ofine rollouts, 100
+ofine epochs, and 50 online iterations for rmin ablation.
+TABLE VIII: SSummary of rmin sweep results on Microwave
+(Online)
+(All Stages)
+We also conducted an rmin sweep on the Microwave task,
+complementing the PnP task sweep in the paper. Fig. 10
+and Table VIII show that, despite differing tasks and training
+rmin  256 converges slightly faster than rmin  128. This
+suggests rmin  256 as a reliable heuristic for manipulation
+tasks with the specication of diffusion policies per .

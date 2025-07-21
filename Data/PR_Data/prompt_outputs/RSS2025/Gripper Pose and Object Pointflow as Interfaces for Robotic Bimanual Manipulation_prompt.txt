@@ -1,0 +1,864 @@
+=== PDF文件: Gripper Pose and Object Pointflow as Interfaces for Robotic Bimanual Manipulation.pdf ===
+=== 时间: 2025-07-21 14:27:03.096405 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Gripper Keypose and Object Pointflow as Interfaces
+for Bimanual Robotic Manipulation
+Yuyin Yang,1,2
+Zetao Cai,1,3
+Yang Tian1,4
+Jia Zeng1
+Jiangmiao Pang1
+1Shanghai AI Laboratory
+2Fudan University
+3Zhejiang University
+4Peking University
+Equal contributions
+Corresponding author
+Task Progress: Grasp the plate and sponge. Use the sponge to clean the plate.
+Prediction
+(ii) continuous-action-based
+i) keyframe-based
+Fail to wipe. Directly
+move from the start
+position to the end.
+Wipe smoothly in
+curved motions.
+Better perception for
+objects localization.
+Fail to pick. Easy to
+overfit the trajectory.
+Success Rate in RLBench2 ()
+3D Diffuser Actor
+Success Rate ()
+Interface Efficacy
+Continuous
+Keyframe
+Continuous
+on Keypose
+Continuous
+on Pointflow
+(iii) ours
+Predict accurate target
+positions to pick.
+Wipe the plate in
+curved motions.
+Spatial Localization
+Restricted Movement
+Handover
+Fig. 1: In contrast to (i) keyframe-based policies, which excel in spatial localization but struggle with movement restrictions
+(e.g., curved motion and collision-free actions), and (ii) continuous-action-based policies, which accommodate diverse
+trajectories but lack strong perception, we introduce a continuous action policy that incorporates two interfaces: target gripper
+poses and object pointflow, balancing task diversity with spatial awareness. Our model, PPI, surpasses previous states of the
+art and consistently outperforms its ablated variants.
+AbstractBimanual manipulation is a challenging yet crucial
+robotic capability, demanding precise spatial localization and
+versatile motion trajectories, which pose significant challenges
+to existing approaches. Existing approaches fall into two cate-
+in keyframes and execute them via motion planners, and con-
+tinuous control methods, which estimate actions sequentially at
+each timestep. The keyframe-based method lacks inter-frame
+perception. To address these issues, this paper introduces an
+end-to-end framework PPI (keyPose and Pointflow Interface),
+which integrates the prediction of target gripper poses and
+object pointflow with the continuous actions estimation. These
+interfaces enable the model to effectively attend to the target
+manipulation area, while the overall framework guides diverse
+and collision-free trajectories. By combining interface predictions
+with continuous actions estimation, PPI demonstrates superior
+performance in diverse bimanual manipulation tasks, providing
+enhanced spatial localization and satisfying flexibility in handling
+movement restrictions. In extensive evaluations, PPI signifi-
+cantly outperforms prior methods in both simulated and real-
+world experiments, achieving state-of-the-art performance with
+a 16.1 improvement on the RLBench2 simulation benchmark
+and an average of 27.5 gain across four challenging real-world
+tasks. Notably, PPI exhibits strong stability, high precision, and
+remarkable generalization capabilities in real-world scenarios.
+I. INTRODUCTION
+Endowing robots with dexterous bimanual skills similar
+to humans has become a main focus in robotic manipula-
+tion [3, 6, 14, 34, 36]. Recent efforts primarily fall into two
+predict actions in the reference frames and execute predictions
+via Inverse Kinematics (IK) solvers and motion planners .
+The other emphasizes continuous and perform naive be-
+havior cloning at each time step. For example, ACT
+and RDT  learn RGB-based manipulation policies from
+multiple cameras, while DP3  integrate 3D scene-level
+representations into a diffusion policy.
+keyframes. This sparse supervision encourages the model to
+focus more on local features, enhancing spatial perception.
+wiping a plate, which requires curved trajectories), keyframes
+are difficult to define and the motion planner [31, 30] tends
+to output near straight-line paths, making such tasks chal-
+lenging to accomplish. For continuous-based methods, they
+are generally applicable to a wide range of tasks. Whereas,
+since they rely on naive behavior cloning with dense su-
+pervision on actions, the model tends to take shortcuts
+by overfitting to seen trajectories (e.g., proprioception). This
+results in weaker spatial perception capabilities. Therefore,
+implementing diverse general bimanual tasks while preserving
+strong perceptual capabilities remains a critical challenge.
+To this end, this paper presents a simple yet effective end-
+to-end interface-based continuous policy that integrates the
+strengths of previous approaches. As illustrated in Figure 1,
+our model predicts continuous actions conditioned on two key
+These interfaces enable the model to capture fine-grained
+spatial features and comprehensively model the interaction
+between the robot and the object. We implement a diffusion
+transformer [13, 46] to process both interfaces, naming our
+approach PPI. By distilling spatial knowledge from these
+and maintaining strong perception capabilities. Leveraging a
+unidirectional attention within the transformer, PPI progres-
+sively infers actions and is trained in an end-to-end manner.
+We conduct extensive experiments on both simulation and
+real-world benchmarks. On the bimanual manipulation bench-
+mark RLBench2 , our method achieves a 16.1 higher suc-
+cess rate across seven representative tasks compared to state-
+of-the-art baselines. We further provide comprehensive visu-
+alizations to validate the effectiveness of the two interfaces.
+real-world tasks , demonstrating superior performance in
+long-horizon task execution, generalization to unseen objects,
+robustness to lighting variations, and resilience against visual
+distractions.
+Our contributions are summarized as follows:
+We present a novel framework that utilizes keyframe
+information to guide continuous action generation, im-
+proving flexibility in addressing movement constraints.
+We propose two effective interfacestarget gripper poses
+and object pointflow to boost spatial localization and
+generalization.
+We provide comprehensive analyses to validate the power
+of two interfaces. We achieve the state-of-the-art perfor-
+mance on a bimanual simulation benchmark and demon-
+strate strong robustness, effectiveness, and generalization
+in real-world long-horizon tasks.
+II. RELATED WORKS
+A. Behavior Cloning in General Bimanual Manipulation Tasks
+Current behavior cloning methods for general bimanual
+manipulation tasks can be broadly classified into two cat-
+egories. The first category involves keyframe-based strate-
+gies [9, 16, 8], where keyframe representations [2, 49, 33] are
+learned and executed through motion planners. Approaches
+such as PerAct2  and VoxAct-B  predict target gripper
+poses in a reference frame using voxel-based representations.
+centric affordances and applies heuristic policies for execution.
+motion planners, which limits their ability to handle tasks
+that require irregular motion trajectories (e.g., dishwashing)
+or strict temporal coordination (e.g., tray lifting). The second
+category involves continuous control, where actions are esti-
+mated sequentially at each time step. For instance, ACT
+uses an action-chunking transformer to predict actions in an
+end-to-end manner, while RDT  employs a diffusion-
+based transformer, pre-trained on large robot datasets and
+fine-tuned on self-collected bimanual data. BiKC , is an
+RGB-based hierarchical framework consisting of a high-level
+keypose predictor and a low-level trajectory generator. Some
+works also extend single-arm manipulation policies [4, 46]
+to the bimanual setting. In contrast to these continuous con-
+trol approaches, our method integrates a 3D semantic neural
+field [37, 38] and predicts pointflow as an additional interface,
+thereby enhancing spatial localization capabilities.
+B. Flow-based Methods in Robotic Manipulation
+Robot manipulation policies have utilized either 2D pixel-
+level motion [12, 32, 25, 41] or 3D point-level flow [47, 20, 5]
+for object interaction. In 2D flow-based approaches, recent
+pixel-tracking algorithms  estimate motion flows in robotic
+video data. Track2Act  integrates a residual strategy atop
+heuristic and flow-based policies, while ATM  learns
+a flow-conditioned behavior cloning policy trained on self-
+duces a data-efficient, fully autonomous flow-conditioned pol-
+transfer. Unlike these 2D methods, PPI leverages 3D point-
+level flow, enhancing spatial localization and enables more
+accurate manipulation. This approach builds upon prior work
+in 3D flow-based policies, which have shown promising results
+in articulated object manipulation , tool use [26, 22], and
+general skill learning . However, these methods typically
+rely on manually designed or heuristic policies during exe-
+cution after estimating 3D flow. In contrast, PPI introduces
+an end-to-end manipulation policy, eliminating the need for
+heuristic post-processing.
+III. METHOD
+In this section, we describe PPI in detail. We begin with
+a brief problem formulation (Section III-A). Next, we discuss
+the perception module (Section III-B) in PPI, involving the
+construction of 3D semantic neural field and initial query
+points. Subsequently, we elaborate on the key interface de-
+signsPointflow and Keypose (Section III-C), enhancing PPI
+spatial localization capabilities. Then, we illustrate the action
+prediction module (Section III-D), which is a diffusion-based
+transformer with unidirectional attention. Finally, we provide
+a detailed implementation details during training and inference
+phases (Section III-E).
+A. Problem Formulation
+At time step t, PPI takes inputs as the language instruction l
+and RGBD images I from K cameras, and outputs a sequence
+of hc continuous actions ac
+t  {at:thc}, where each action
+at represents the target gripper poses and openness for both
+the left and right grippers. Crucially, PPI incorporates two
+intermediate interfaces at keyframe timesteps as additional
+conditions for action prediction. The keyframes tk are defined
+as turning points in the trajectory where there are signifi-
+cant changes in the grippers openness and the arms joint
+states [11, 27]. For the interfaces, the first specifies the target
+gripper poses at the subsequent hk keyframes: ak
+The second interface defines the positions of Nq spatial query
+points at the next hk keyframes: F RhkNq3. At each
+keyframe timestep tk
+denoted as Ftk
+i RN3, with initial positions at the first frame
+given by F0 RN3.
+B. Perception
+3D Scene Representation. As is seen in Figure 2(a), we
+represent the scene using 3D semantic fields, focusing on
+both geometric and semantically meaningful regions. We begin
+by preprocessing the raw point clouds through cropping and
+downsampling. For each sampled 3D point, we project it
+onto 2D RGB images from multiple camera viewpoints to
+extract pixel-wise semantic features using the DINOv2
+model. We fuse these features through a weighted sum, where
+the weights are determined by the points distance from the
+projected surface.
+To mitigate the computational burden of numerous scene
+tokens in the transformer backbone, we downsample scene
+points while preserving their geometric and semantic infor-
+mation. We use a PointNet dense encoder  to obtain a
+compact scene representation St RNs(3D), where each of
+the Ns points encodes spatial coordinates and a D-dimensional
+fused semantic feature. This compressed representation retains
+key geometric and semantic details while enhancing local point
+relationships through the set abstraction of PointNet.
+Initial Query Points Sampling. Instead of directly learning
+the pointflow distribution p(F), we choose to approximate
+the conditional distribution p(FF0), where F0 represents
+the initial query points sampled from the manipulated object
+at the first frame. This approach shifts the models focus
+from inferring global absolute coordinates to capturing overall
+object motion. Consequently, even when the object position is
+out of distribution, PPI can estimate pointflow accurately and
+To get the initial query points F0, we randomly sample
+Nq query points from the object to be manipulated at the
+beginning of the task. We use the Grounding DINO model
+to obtain a bounding box from the language prompt and
+to generate the object mask. We obtain the 3D coordinates
+F0 RNq3 of the Nq pixels sampled from the mask. In
+that in each episode, we will only perform this operation once.
+C. Interface
+Target Gripper Poses. We predict target gripper poses at
+keyframe timesteps as explicit action goals to better guide
+continuous action generation. To supervise the target gripper
+keyframe timesteps in the trajectory. Once a keyframe tk
+i can be directly
+retrieved. If there are fewer keyframes remaining after the
+current timestep than hk, we pad the sequence by repeating
+the action of the last keyframe.
+Object Pointflow. A key challenge in obtaining ground truth
+labels for pointflow is the inevitable occlusion that occurs
+when the object moves or is manipulated. We address this chal-
+lenge by leveraging the objects 6D pose to track the real-time
+points positions. In simulation, we obtain the ground truth
+6D pose label of rigid objects from the RLBench2  dataset,
+while in the real world, we estimate it using BundleSDF
+and Foundation Pose . Given the objects 6D pose at the
+first and each keyframe timestep, we transform the query
+points from the first frame F0 into the objects coordinate
+frame and then back into world coordinates, yielding their
+keyframe positions Ftk
+i RN3, which serve as the ground
+truth for pointflow supervision. Here real-time object 6D pose
+estimation is not required during inference. Overall, object
+pointflow along with target gripper poses effectively model
+the interaction between the object and the robot.
+D. Prediction
+Observation Encoder. PPI processes four types of inputs:
+the 3D semantic neural field St, the language instruction ,
+the robot states ct and the initial positions of point queries F0.
+The language is encoded using a CLIP text tokenizer  and
+projected into a latent space via a three-layer MLP. Similarly,
+Initial Query Points
+3D Sematic Fields
+(a) Perception
+(c) Prediction
+Language
+Noisy Actions
+Noisy [KP]
+Initial Query Points 0
+Diffusion
+Transformer
+Multi-view visual inputs
+Denoising
+Denoised Actions
+PointFlow [PF]
+(b) Interface
+KeyPose [KP]
+Initial Query
+Grounding
+Regression
+Fig. 2: Overview of PPI. (a) Perception. We first construct a 3D semantic neural field St and sample initial query points
+F0 for pointflow prediction. (b) Interface. Next, we define two intermediate interfaces: target gripper poses ak
+t and object
+pointflow F. (c) Prediction. Finally, a diffusion transformer incorporates robot proprio tokens ct, scene tokens St, language
+tokens l, pointflow query tokens F0 and action tokens ak
+t and ac
+t with gaussian noise. Using a carefully designed unidirectional
+the robot states and point queries are projected into the latent
+space through a three-layer MLP.
+Diffusion Transformer. The backbone of the prediction
+module builds upon a diffusion transformer. At the time step t
+and denoising step i, let ak,i
+and ac,i
+be the keyframe action
+t and continuous action ac
+t with noise. The transformer in-
+coporates the scene tokens St, language tokens l, query points
+tokens F0 and noised action tokens ak,i
+and ac,i
+t . Outputs are
+supervised by gaussian noise i
+c via DDPM  training
+and ground truth pointflow F via direct regression.
+ages the interfaces to bridge the gap between input and
+output modalities. As shown in Figure 2(c), all pointflow
+and action tokens attend to the scene and language tokens,
+integrating spatial and semantic knowledge. Moreover, the
+noised keyframe action token ak,i
+attends to the pointflow
+final continuous action token ac,i
+attends to all the previous
+fully utilizing the local and detailed features contained in the
+interfaces.
+We apply relative attention, as introduced in previous
+kens ak,i
+tokens St, enabling the encoding of relative 3D positional
+information in the attention layers. This relative attention relies
+on the relative 3D positions of features and is implemented
+using rotary positional embeddings . For language instruc-
+tions l, we use regular cross and self-attention. The robots
+proprioception ct and denoising timesteps i affect the attention
+through Feature-wise Linear Modulation(FiLM) .
+E. Implementation Details
+Training. For the PPI network , the continuous action loss
+loss LF are computed via L1 loss.
+Lc  (St, F0, , ct, ac,i
+Lk  (St, F0, , ct, ak,i
+LF  (St, F0, , ct, i) F
+Scan the Bottle
+Handover and
+Insert the Plate
+Wipe the Plate
+Carry the Tray
+Task Process
+Fig. 3: Task process visualizations in four real-world tasks.
+The overall training loss is:
+L  w1Lc  w2Lk  w3LF
+where w1, w2, and w3 are hyperparameters set to 0.05,
+0.05, and 1, respectively. We use DDPM with 1000 training
+timesteps for noise scheduling in all experiments. We train 500
+epochs for tasks from RLBench2 benchmark and 5000 epochs
+in real-world tasks, with a batch size of 128 and learning rate
+of 1e-4 with a cosine decay learning rate scheduler. For tasks
+involving 100 episodes, each with 150-250 timesteps, we train
+the model using eight A100 GPUs for approximately 20 hours,
+and use the checkpoint with the lowest average validation loss
+for evaluation.
+Inference. We begin by sampling 200 points on objects
+as query points at the first timestep. Then at each timestep
+keyframe action samples ak
+t from a Gaussian distribution and
+denoise 1000 steps with DDPM in simulation tasks and 20
+steps with DDIM for real-world tasks. In practice, we
+predict 50 continuous actions and 4 keyframe actions and
+pointflow.
+IV. REAL-WORLD EXPERIMENTS
+We carefully design four real-world tasks with high local-
+ization demands and motion constraints to evaluate PPI s
+capabilities in: (1) Effectiveness in long-horizon tasks. (2)
+Robustness under high-intensity disturbances in objects and
+environments.
+A. Real-world Experiments Setup
+Benchmark. We evaluate our method on two Franka Re-
+search 3 robots across four tasks in two distinct scenarios
+(Figure 4). Each scene is equipped with two Eye-on-Hand
+and one Eye-on-Base RealSense D435i cameras. In the first
+desktop environment, we test three long-horizon tasks requir-
+ing high localization accuracy and curved motion execution. In
+the second shelf scenario, we employ Robotiq-2f-85 grippers
+as end-effectors for the final task. Below, we briefly outline
+the process for each of the four tasks (Figure 3), with further
+details provided in the Appendix.
+Real-world Table Scenario Setup
+Real-world Shelf Scenario Setup
+: Franka Research 3  : Eye-on-Hand RealSense D435i
+: Eye-on-Base RealSense D435i  : Robotiq-2f-85 Gripper
+Fig. 4: Two real-world setups.
+1) Carry the Tray. Both arms must collaboratively lift a
+tray stacked with cups or other objects from a lower
+platform and steadily transfer it to a small table. This
+task evaluates the ability to precisely locate the trays
+TABLE I: Real-world main results. We evaluate all the methods with 10 (settings)  3 (repeated trials) rollouts per task. Our
+method achieves better performances among all tasks than baselines. The best results are bolded.
+SR () Loc-SR ()  Normalized Score
+Avg. Success
+Carry the Tray
+Handover and Insert the Plate
+Wipe the Plate
+Scan the Bottle
+3D Diffuser Actor
+centerline and maintain stable, coordinated movements
+throughout the process.
+2) Handover and Insert the Plate. The right arm picks up
+the plate and hands it over to the left arm, which then
+inserts it into an available slot in the rack. This task
+tests temporal coordination during handover and precise
+spatial perception.
+3) Wipe the Plate. Each arm picks up the sponge and
+the plate, respectively, and uses the sponge to wipe
+the plate. After wiping, both objects are returned to
+their original positions. This task evaluates the ability
+to perform curved motions in interactive tasks.
+4) Scan the Bottle. The right arm retrieves the bottle from
+the shelf, while the left arm picks up the scanner from
+the table to scan the bottles barcode. After scanning,
+the bottle is placed into a box. This task assesses 6-DoF
+picking in a more constrained spatial environment and
+the coordination between both arms.
+Expert demonstrations. We constructed two isomorphic
+teleoperation devices GELLO  for the Franka Research
+3 to collect expert demonstrations. We collected 50 demon-
+strations for the task Carry the Tray and 20 for other tasks.
+The limited number of training samples is intended to evaluate
+whether the policies achieve excellent spatial localization and
+perception of objects with minimal data.
+Baselines. We implement an Action Chunking Transformer
+(ACT)  that predicts target joint positions from 2D RGB
+inputs. We also adapt DP3  into a bimanual framework,
+which is a 3D point-cloud-based continuous control policy.
+keyframe-based diffusion policy utilizing 3D semantic fields.
+Metrics. Each method is evaluated across 10 settings, with
+3 trials per setting. Due to the long-horizon and complex
+nature of the tasks, we have established three key metrics:
+Success Rate (SR), Localization Success Rate (Loc-SR), and
+Normalized Score. The Success Rate (SR) is only assigned a
+value of 100 upon the successful completion of the entire
+task. Loc-SR will be recorded 100 if the robots perform
+well to find the object contact positions. Additionally, we
+divide each tasks into 3 or 4 intermediate stages, and the
+Score is progressively accumulated through the completion
+of individual intermediate stages. Given that the number of
+steps varies across these tasks, the score will be normalized
+to a scale of 10. The scoring criteria and other details are
+available in the Appendix.
+B. Real-world Main Results
+As shown in Table I, PPI outperforms all baselines across
+tasks. Compared to state-of-the-art methods, it achieves a
+27.5 increase in average success rate (SR), a 27.5 improve-
+ment in localization success rate (Loc-SR), and a 2.7 point gain
+in Normalized Score. Compared to ACT, which relies on RGB
+As a single-frame observation algorithm, ACT struggles with
+tasks requiring repetitive trajectories (e.g.,Wipe the Plate),
+whereas PPI integrates multistep proprioception, effectively
+leveraging historical information. Compared to DP3, a point-
+cloud-based method prone to overfitting seen trajectories and
+susceptible to noise , PPI exhibits stronger localization
+ability and robustness to noised pointcloud. While 3D Dif-
+fuser Actor, a keyframe-based policy using semantic neural
+fields and heuristic action execution, performs well in Loc-
+lower SR. In contrast, PPI not only inherits the perception
+advantages of keyframe prediction but also effectively respects
+path constraints inherent in training demonstrations.
+C. Real-world Generalization Tests
+As shown in Table II-V and Figure 5-8, We introduce three
+types of generalizations to evaluate the generalizability and
+backgrounds and interference from other objects. In each task,
+we select the setting where each method performed the best
+for generalization testing, and then we record the success rate,
+localization success rate, and normalized score. Each different
+generalization scenario has 3 trials. Details results are available
+in the Appendix.
+TABLE II: Evaluation under object interference in Carry the
+Success  Localization  Normalized Score
+Normal Setting
+Rubiks Cubes
+Colorful Cubes
+3D Diffuser Actor
+In Carry the Tray, we replace the cups with Robiks
+Cubes and colorful cubes to test robustness against object
+interference. These objects differ in size and color, which
+not only affect RGB inputs but also alter depth, influencing
+3D-based policies. Thanks to the two interfaces, particularly
+Object Interference
+Colorful
+Fig. 5: Visualization under object interference in Carry the
+the pointflow, PPI focuses on key object-related regions, such
+as the tray, without being distracted by other objects that
+could affect localization. Interestingly, two 3D-based baselines
+perform poorly, while the 2D-based ACT achieves better
+generalization. This suggests that although objects in this task
+have minimal impact at the pixel level in 2D images, they
+have a greater effect on the 3D scene representation.
+TABLE III: Evaluation under different lighting backgrounds
+in Handover and Insert the Plate.
+Success  Localization  Normalized Score
+Normal Setting
+Environment
+Flickering Lighting
+Environment
+3D Diffuser Actor
+Lighting Backgrounds
+Flickering Lighting
+Fig. 6: Visualization under different lighting backgrounds in
+Handover and Insert the Plate.
+In Handover and Insert the Plate, we evaluate PPI
+s adaptability to varying lighting conditions. In dark and
+flickering lighting environments, RGB-based information is
+severely affected. However, despite using color information
+as inputs, PPI s performance remains stable. This robustness
+probably stems from its reliance on pointflow and keypose,
+both derived mostly from the integration of semantic and posi-
+tional features rather than pure color information. Meanwhile,
+DP3 maintains some success, likely due to its use of colorless
+point clouds.
+TABLE IV: Evaluation under object interference in Wipe the
+Success  Localization  Normalized Score
+Normal Setting
+Colorful Cubes
+Multi-plate
+3D Diffuser Actor
+Object Interference
+Colorful
+Fig. 7: Visualization under object interference in Wipe the
+In Wipe the Plate, we introduce object interference
+separately for the objects manipulated by each arm, leading to
+partial occlusions and various visual distractions. Despite this,
+only PPI maintains robust localization.
+In Scan the Bottle, we evaluate our methods generalization
+to unseen objects. Notably, PPI enables zero-shot manip-
+ulation of new objects by adjusting GroundingDinos
+prompt to obtain novel initial query points F0 for pointflow
+prediction. This is driven by PPI s learned conditional dis-
+tribution p(FF0), which prioritizes object motion changes
+over absolute global coordinates p(F). As a result, even when
+encountering novel rigid objects, PPI effectively estimates a
+rough objects relative transformations, enhancing task com-
+pletion.
+TABLE V: Evaluation under unseen objects in Scan the Bottle.
+Success  Localization  Normalized Score
+Normal Setting
+Yogurt bottle
+3D Diffuser Actor
+Unseen Objects
+Yogurt Bottle
+Fig. 8: Visualization under unseen objects in Scan the Bottle.
+V. SIMULATION EXPERIMENTS
+We evaluate our approach on seven tasks using the bimanual
+simulation benchmark RLBench2 , aiming to address the
+following questions: (1) How well does PPI perform on
+complex bimanual tasks? (2) Are the proposed target gripper
+poses and object pointflow interfaces effective? (3) How do
+these interfaces learn scene features to enhance guidance for
+continuous action prediction?
+A. Simulation Experiments Setup
+Benchmark. RLBench2  is a bimanual manipulation
+benchmark built on CoppeliaSim, encompassing tasks with
+different levels of coupling, coordination, language instruc-
+TABLE VI: Quantitative results on RLBench2. For each task, we present the average performance of three checkpoints
+averaged over 100 rollouts. The metric Avg. Success measures the average success rate across seven tasks. PPI outperforms
+baselines with higher Avg. Success and better results on most tasks. The best results are bolded.
+Avg. Success
+Handover Easy
+3D Diffuser Actor
+TABLE VII: Ablation studies. For all ablated models, we report best performance, while for PPI, we additionally present the
+average performance across three checkpoints. Overall, integrating both keypose and pointflow achieves the highest performance.
+Avg. Success
+Handover Easy
+Continuous
+Keyframe
+Continuous on Keypose
+Continuous on Pointflow
+Ours (Best Ckpt)
+Ours (Averaged)
+and challenging tasks and regenerate the training data. The
+official dataset suffers from significant misalignment between
+training and evaluation, such as robot shadows present in the
+training set but absent during evaluation. Additionally, it lacks
+meta information for acquiring object pointflow.
+Baselines. We use the same three baselines as in the
+real-world experiments: DP3, ACT, and 3D Diffuser Actor.
+previously reported on RLBench2. It employs a Perceiver ar-
+chitecture to voxelize 3D spaces and predict keyframe actions.
+Metrics. Each method is evaluated across 100 rollouts per
+task with varying initial states for each tasks. We report
+both per-task and average success rates, with all performances
+computed from three different checkpoints.
+B. Simulation Main Results
+As shown in Table VI, PPI achieves an average success rate
+of 80.8, significantly outperforming the baselines. Compared
+to ACT (2D-based algorithm), PPI leverages 3D semantic
+neural fields, and provides superior spatial perception. While
+both methods utilize 3D point clouds, PPI outperforms DP3
+by 54 in success rate, demonstrating that PPIs spatial
+information processing is more useful than DP3s approach
+of encoding the entire scene into a single token.
+Actor and PerAct2 by a margin of at least 10. This disparity
+arises from keyframe-based methods offering more effective
+perception capabilities rather than overfitting to trajectories.
+By using keypose as an interface, PPI integrates the spatial
+awareness of keyframe methods with semantic neural fields,
+achieving substantial improvements over continuous-action-
+based approaches.
+Beyond that, keyframe-based policies like 3D Diffuser Ac-
+tor and PerAct2 fall behind our model in tasks with movement
+hands to remain level) and the push box task (which involves
+continuously pushing). This is because our policy provides
+greater flexibility in managing such constraints, enabled by
+PPI s supervision of continuous actions between keyframes.
+as object-picking tasks like Drawer and Handover Easy, our
+model significantly outperforms baselines. This advantage
+stems primarily from the use of object pointflow as an in-
+C. Ablation Study
+As shown in Table VII, we analyze the contributions of
+target gripper poses and object pointflow interfaces on RL-
+Bench2 by comparing different ablated models at their best
+performance.
+We begin by evaluating the vanilla keyframe and contin-
+uous baselines, which predict only keypose or continuous
+such as Handover Easy and Lift Ball, the keyframe-based
+policy demonstrates superior localization. However, in tasks
+involving horizontal lifting (Lift Tray) or curved motion tra-
+jectories (Sweep to Dustpan), the continuous-based approach
+significantly outperforms the keyframe method. These results
+indicate that relying solely on either keyframe or continuous
+actions is insufficient for general manipulation tasks.
+rating target gripper keypose and object pointflow predictions
+Continuous Keypose
+Point Flow
+Scene Point Clouds
+Continuous
+Fig. 9: Heatmap of the attention weights of continuous action tokens. The y-axis represents continuous action tokens as
+queries. The x-axis sequentially displays continuous action, keypose, pointflow, and scene tokens as keys.
+(line 3 and 4 in Table VII). Conditioning on separate interfaces
+improves performance, likely due to the local spatial features
+they provide. Moreover, combining both interfaces yields
+further gains, highlighting the synergy between keypose and
+pointflow in enhancing performance on downstream tasks.
+D. Visualization Analysis
+In this section, we intuitively analyze how the proposed
+interfaces enhance localization accuracy and generalization to
+distractors and task-irrelevant backgrounds.
+As shown in Figure 10, we visualize attention weights
+for our policy and the vanilla continuous-based policy in the
+Lift Tray task on RLBench2. The left image reveals that in
+the continuous-based policy, action tokens fail to consistently
+focus on the traythe key task-relevant object and disperse
+attention across both the tray and the robotic arm. This
+suggests why continuous-based policies often struggle with
+precise localization, as observed in previous experiments.
+In contrast, as shown in the middle and right images,
+PPIs pointflow and keypose tokens strongly attend to the
+edgeswhere the gripper is poised to grasp. Since the initial
+(a) Vanilla Continuous
+(b) PPI Point Flow
+(c) PPI Keypose
+Fig. 10: Visualization of the attention weights of interface
+tokens. We use Lift Tray task on RLBench2 as an example.
+The red area corresponds to larger attention weight, while
+the blue area corresponds to smaller attention weight. Left:
+The attention weights of continuous tokens to the 1024 scene
+tokens in the vanilla continuous-action-based policy. Middle:
+The attention weights of point flow tokens to the scene tokens
+in PPI. Right: The attention weights of keypose tokens in PPI.
+query points are sampled from the tray rather than the cube
+atop it, the model learns to deprioritize the cube. This explains
+why in the Carry the Tray task, replacing in-distribution cups
+with out-of-distribution Rubiks Cubes and colorful cubes does
+not impair PPI s localization performance. By strategically
+selecting initial query points during training, the model learns
+to track the overall objects motion, improving generalization
+under disturbances.
+action prediction. As shown in Figure 9, continuous action
+tokens exhibit significantly higher attention weights toward
+keypose and pointflow tokens than scene tokens, underscoring
+the critical role of interfaces in action prediction. By incorpo-
+rating target gripper poses and object pointflow as interfaces,
+PPI not only maintains focus on task-relevant regions despite
+scene variations but also alleviates the learning burden on
+action tokens by distilling key information, rather than directly
+querying from the entire scene.
+VI. CONCLUSION AND LIMITATION
+We introduce PPI, an end-to-end interface-based manipu-
+lation policy that leverages target gripper poses and object
+pointflow. PPI achieves state-of-the-art performance on the
+RLBench2 simulation benchmark and demonstrates strong
+effectiveness and robustness in real-world experiments.
+Limitation. There remain two main limitations. First, the
+computational cost of visual foundation models and the dif-
+fusion process constrains efficiency. Future work will focus
+on accelerating diffusion sampling and adopting lightweight
+vision models. Second, cross-embodiment evaluation on differ-
+ent robotic platforms is essential to assess PPIs generalization
+across hardware.
+REFERENCES
+Homanga Bharadhwaj, Roozbeh Mottaghi, Abhinav
+point tracks from internet videos enables generalizable
+robot manipulation. In Arxiv, 2024.
+Wen Bowen, Yang Wei, Kautz Jan, and Birchfield Stan.
+of novel objects. In CVPR, 2024.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yev-
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana
+control at scale. In Arxiv, 2022.
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau,
+Yilun Du, Benjamin Burchfiel, Russ Tedrake, and Shuran
+Song. Diffusion policy: Visuomotor policy learning via
+action diffusion. In RSS, 2023.
+Shivin Devgon, Jeffrey Ichnowski, Ashwin Balakrishna,
+Harry Zhang, and Ken Goldberg.
+Orienting novel 3d
+objects using self-supervised learning of rotation trans-
+forms. In CASE, 2020.
+Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch,
+Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid,
+Jonathan Tompson, Quan Vuong, Tianhe Yu, et al. Palm-
+Ben Eisner, Harry Zhang, and David Held. Flowbot3d:
+Learning 3d articulation flow to manipulate articulated
+objects. In RSS, 2022.
+Hao-Shu Fang, Chenxi Wang, Hongjie Fang, Minghao
+and Cewu Lu.
+perception in spatial and temporal domains.
+Markus Grotz, Mohit Shridhar, Tamim Asfour, and Dieter
+Fox. Peract2: A perceiver actor framework for bimanual
+manipulation tasks. In Arxiv, 2024.
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising
+diffusion probabilistic models. In NeurIPS, 2020.
+Stephen James and Andrew J. Davison.
+Enabling efficient learning for vision-based robotic ma-
+nipulation. In IEEE Robotics and Automation Letters,
+Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia
+Tsung-Wei
+Nikolaos
+Katerina
+Fragkiadaki. 3d diffuser actor: Policy diffusion with 3d
+scene representations. In CoRL, 2024.
+Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla:
+An open-source vision-language-action model. In CoRL,
+Alexander Kirillov, Eric Mintun, Nikhila Ravi, Hanzi
+Spencer Whitehead, Alexander C. Berg, Wan-Yen Lo,
+Piotr Dollar, and Ross Girshick. Segment anything. In
+I Liu, Chun Arthur, Sicheng He, Daniel Seita, and Gaurav
+Sukhatme. Voxact-b: Voxel-based acting and stabilizing
+policy for bimanual manipulation. In CoRL, 2024.
+Shilong Liu, Zhaoyang Zeng, Tianhe Ren, Feng Li, Hao
+Jun Zhu, et al.
+Grounding dino: Marrying dino with
+grounded pre-training for open-set object detection. In
+Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan,
+Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun
+Zhu. Rdt-1b: a diffusion foundation model for bimanual
+manipulation. In Arxiv, 2024.
+Maxime Oquab, Timothee Darcet, Theo Moutakanni,
+Huy V. Vo, Marc Szafraniec, Vasil Khalidov, Pierre
+Mido Assran, Nicolas Ballas, Gabriel Synnaeve, Ishan
+mand Joulin, and Piotr Bojanowski. Dinov2: Learning
+robust visual features without supervision.
+In Arxiv,
+Chuer Pan, Brian Okorn, Harry Zhang, Ben Eisner,
+and David Held.
+estimation for robot manipulation. In CoRL, 2023.
+Ethan Perez, Florian Strub, Harm de Vries, Vincent
+with a general conditioning layer. In Proceedings of the
+AAAI Conference on Artificial Intelligence, 2017.
+Carl Qi, Yilin Wu, Lifan Yu, Haoyue Liu, Bowen Jiang,
+Xingyu Lin, and David Held.
+Learning generalizable
+tool-use skills through trajectory generation. In IROS,
+Charles R. Qi, Li Yi, Hao Su, and Leonidas J. Guibas.
+sets in a metric space. In Arxiv, 2017.
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya
+Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen
+models from natural language supervision.
+In Arxiv,
+Nikhila Ravi, Valentin Gabeur, Yuan-Ting Hu, Ronghang
+man Radle, Chloe Rolland, Laura Gustafson, et al. Sam
+In Arxiv,
+Daniel Seita, Yufei Wang, Sarthak J Shetty, Edward Yao
+Robotic manipulation with tools via predicting tool flow
+from point clouds. In CoRL, 2023.
+nipulation. In CoRL, 2022.
+Jiaming Song, Chenlin Meng, and Stefano Ermon. De-
+noising diffusion implicit models. In Arxiv, 2020.
+Jianlin Su, Yu Lu, Shengfeng Pan, Ahmed Murtadha,
+Bo Wen, and Yunfeng Liu. Roformer: Enhanced trans-
+former with rotary position embedding. In Arxiv, 2023.
+Ioan A Sucan, Mark Moll, and Lydia E Kavraki. The
+open motion planning library.
+In IEEE Robotics
+Automation Magazine, 2012.
+Balakumar Sundaralingam, Siva Kumar Sastry Hari,
+Adam Fishman, Caelan Garrett, Karl Van Wyk, Valts
+collision-free robot motion generation. In ICRA, 2023.
+Yang Tian, Jiyao Zhang, Zekai Yin, and Hao Dong.
+Robot structure prior guided temporal attention for
+camera-to-robot pose estimation from image sequence.
+In CVPR, 2023.
+Yang Tian, Jiyao Zhang, Guowei Huang, Bin Wang, Ping
+Robot pose and joint angles estimation via diffusion-
+based 3d keypoint generation. In ICRA, 2024.
+Yang Tian, Sizhe Yang, Jia Zeng, Ping Wang, Dahua
+dynamics models are scalable learners for robotic ma-
+nipulation. In ICLR, 2025.
+Chenxi Wang, Hongjie Fang, Hao-Shu Fang, and Cewu
+Lu. Rise: 3d perception makes real-world robot imitation
+simple and effective. In IROS, 2024.
+Hanqing Wang, Jiahe Chen, Wensi Huang, Qingwei Ben,
+Tai Wang, Boyu Mi, Tao Huang, Siheng Zhao, Yilun
+in a city at scale. In Arxiv, 2024.
+Yixuan Wang, Guang Yin, Binghao Huang, Tarik Ke-
+semantic fields for category-level generalizable diffusion
+policy. In CoRL, 2024.
+Yixuan Wang, Mingtong Zhang, Zhuoran Li, Tarik Ke-
+fields for zero-shot generalizable rearrangement.
+Bowen Wen, Jonathan Tremblay, Valts Blukis, Stephen
+tracking and 3d reconstruction of unknown objects. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 606617, 2023.
+Chuan Wen, Xingyu Lin, John So, Kai Chen, Qi Dou,
+Yang Gao, and Pieter Abbeel.
+Any-point trajectory
+modeling for policy learning. In RSS, 2024.
+Thomas Weng, Sujay Man Bajracharya, Yufei Wang,
+Khush Agrawal, and David Held.
+manual cloth manipulation with a flow-based policy. In
+Philipp Wu, Yide Shentu, Zhongke Yi, Xingyu Lin, and
+Pieter Abbeel. Gello: A general, low-cost, and intuitive
+teleoperation framework for robot manipulators. In IROS,
+Mengda Xu, Zhenjia Xu, Yinghao Xu, Cheng Chi, Gor-
+don Wetzstein, Manuela Veloso, and Shuran Song. Flow
+as the cross-domain manipulation interface.
+In CoRL,
+Dongjie Yu, Hang Xu, Yizhou Chen, Yi Ren, and Jia
+Pan. Bikc: Keypose-conditioned consistency policy for
+bimanual robotic manipulation. In Arxiv, 2024.
+Chengbo Yuan, Chuan Wen, Tong Zhang, and Yang Gao.
+General flow as foundation affordance for scalable robot
+learning. In CoRL, 2024.
+Yanjie Ze, Gu Zhang, Kangning Zhang, Chenyuan Hu,
+Muhan Wang, and Huazhe Xu. 3d diffusion policy. In
+Harry Zhang, Ben Eisner, and David Held. Flowbot:
+Learning generalized articulated objects manipulation via
+articulation projection. In CoRL, 2023.
+Tony Z Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+Finn. Learning fine-grained bimanual manipulation with
+low-cost hardware. In RSS, 2023.
+Yan Zhao, Ruihai Wu, Zhehuan Chen, Yourong Zhang,
+Qingnan Fan, Kaichun Mo, and Hao Dong. Dualafford:
+Learning collaborative visual affordance for dual-gripper
+manipulation. In ICLR, 2023.

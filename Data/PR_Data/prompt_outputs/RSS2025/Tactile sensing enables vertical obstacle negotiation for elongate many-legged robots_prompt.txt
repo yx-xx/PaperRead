@@ -1,0 +1,967 @@
+=== PDF文件: Tactile sensing enables vertical obstacle negotiation for elongate many-legged robots.pdf ===
+=== 时间: 2025-07-21 13:49:15.069831 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Tactile sensing enables vertical obstacle negotiation
+for elongate many-legged robots
+Juntao He, Baxi Chong, Massimiliano Iaschi, Vincent R. Nienhusser, Sehoon Ha and Daniel I. Goldman
+Institute for Robotics and Intelligent Machines
+Georgia Institute of Technology, Email: jhe391gatech.edu
+School of Physics, Georgia Institute of Technology
+School of Mechanical Engineering, Georgia Institute of Technology
+College of Computing, Georgia Institute of Technology
+AbstractMany-legged elongated robots show promise for
+reliable mobility on rugged landscapes. However, most studies
+on these systems focus on planar motion planning without
+addressing rapid vertical motion. Despite their success on mild
+rugged terrains, recent field tests reveal a critical need for
+3D behaviors (e.g., climbing or traversing tall obstacles). The
+challenges of 3D motion planning partially lie in designing
+sensing and control for a complex high-degree-of-freedom system,
+typically with over 25 degrees of freedom. To address the first
+challenge regarding sensing, we propose a tactile antenna system
+that enables the robot to probe obstacles to gather information
+about their structure. Building on this sensory input, we develop a
+control framework that integrates data from the antenna and foot
+contact sensors to dynamically adjust the robots vertical body
+undulation for effective climbing. With the addition of simple,
+low-bandwidth tactile sensors, a robot with high static stability
+and redundancy exhibits predictable climbing performance in
+complex environments using a simple feedback controller. Labo-
+ratory and outdoor experiments demonstrate the robots ability
+to climb obstacles up to five times its height. Moreover, the
+robot exhibits robust climbing capabilities on obstacles covered
+with shifting, robot-sized random items and those characterized
+by rapidly changing curvatures. These findings demonstrate an
+alternative solution to perceive the environment and facilitate
+effective response for legged robots, paving ways towards future
+highly capable, low-profile many-legged robots.
+I. INTRODUCTION
+Mid-sized elongated many-legged robots, ranging from 5 to
+10 cm in height and 1 to 2 kg in weight, demonstrate excep-
+tional mobility in navigating confined spaces and challenging
+terrains. For instance, studies [20, 22] have shown that these
+robots can traverse environments featuring pine straw, robot-
+sized rocks, mud, bushes, and leaves. Despite these advance-
+2D planar motion planning [20, 22, 50, 11, 10, 9, 1, 34, 54].
+Achieving 3D behaviors, such as climbing or steep slope
+environments these robots can navigate. This is particularly
+important for mid-sized robots navigating among real-world
+obstacles (e.g., rocks with height 10 30cm, metal wreckage
+with height 2040cm, and boxestubes with height 2030cm,
+Despite the challenges in many-legged robots, extensive
+climbing studies have been conducted on other few-legged
+Tacitly sensing multilegged robot climbing in different envi-
+ronments. (Top) The robot climbs a large rock, four times its height, in
+a confined space with terrain covered in mud, grass, and scattered boulders.
+(Middle) The robot successfully navigates confined environments with vertical
+climbs obstacles five times its height with rapidly changing curvatures in a
+laboratory setting.
+robots[23, 32, 8, 19, 38, 47, 49]. Quadrupedal robots accom-
+plish impressive parkour tasks by incorporating vision into
+their control frameworks [23, 32, 8]. Hexapod and quadrupedal
+robots utilizing adhesion mechanisms, such as vacuum pumps
+[53, 16, 33], magnetic adhesion [17, 26, 24], and bio-inspired
+claws [47, 49, 19, 3, 42, 7], have demonstrated robust climbing
+capabilities on vertical walls and trees.
+behaviors to many-legged robots presents substantial chal-
+lenge. The first challenge is the vision quality. Climbing in
+quadrupedal robots relies heavily on camera data to recon-
+struct the geometric features of obstacles for motion planning
+[44, 23, 8]. The vision in many-legged robots suffers from the
+inherent poor quality because (i) many-legged robots often
+operate in confined environments where low-light conditions
+obstruct vision [56, 46, 57], (ii) many-legged robots experience
+substantial body orientation oscillation during locomotion,
+which significantly compromise the focus of the vision, and
+(iii) the position of camera is typically positioned too close
+to the ground, limiting the ability to gather whole-terrain
+information. The second challenge is the adhesion design.
+Adhesion-based robots are constrained by their specialized
+foot designs, which limit their deployment to specific surfaces,
+such as metal pipes [17, 26, 24] or smooth glass walls
+[53, 16, 33]. To enable many-legged robots to traverse more
+general terrains, adhesive foot designs are impractical for en-
+hancing climbing capabilities. Finally, 3D motion planning is
+particularly challenging for these complicated high degree-of-
+freedom (DoF) systems, which have over 25 DoF. That is, the
+complexity of their dynamic, whole-body interactions with the
+environment poses additional difficulties in developing robust
+control strategies. Partially because of a lack of systematic
+locomotion research on their biological counterparts, we have
+limited intuition on what to sense and how to respond in
+many-legged systems.
+In addition to vision, tactile sensing offers a reliable short-
+range perception framework [6, 13]. Recent studies [52, 29, 2,
+43] highlight its ability to accurately estimate the geometric
+features of objects at close range. Compared to vision-based
+computational requirements and insensitivity to lighting con-
+Building on these advantages, recent studies have integrated
+tactile sensing into mid-sized robotic systems for tasks such
+as environmental geometry estimation and terrain roughness
+assessment. Bio-inspired tactile antennas [35, 36, 27, 28] have
+been successfully incorporated into robotic control frame-
+Snake robots have demonstrated impressive mobility on com-
+plex terrain using tactile sensing [15, 45]. Similarly, tactile
+sensing has been integrated into hexapod systems [37, 31, 52]
+to support effective gait adaptation in challenging environ-
+ments. Many-legged robots [20, 22, 21] have also employed
+tactile foot contact sensors to adapt their gaits, showing
+significant improvements in speed over rugged terrain. These
+advances suggest that a tactile sensory system is particularly
+well-suited for many-legged robots performing climbing tasks,
+especially in highly rugged and low-light environments.
+In this work, we demonstrate that a mechanically intelli-
+gent many-legged robot, characterized by high static stability
+and redundancy, achieves predictable climbing performance
+in highly complex environments by integrating simple, low-
+bandwidth tactile sensors with a simple feedback controller.
+(10 cm) contact sensing to reconstruct obstacle geometry.
+We then investigate control algorithms for robot climbing,
+including open-loop and feedback-based approaches. Open-
+loop control, which coordinates limb stepping with horizontal
+and vertical body undulation, effectively handles obstacles
+up to twice the robots height but has limited capability. To
+overcome these, we develop a feedback control framework
+that integrates antenna data and foot contact sensors. This
+controller raises the robots head upon detecting an obstacle,
+pitches it downward to position it on top, and guides it along
+the obstacles contour using antenna contact data. Additionally,
+it accelerates the transition of floating segments to stable
+positions through pitch-down motions based on duty factor
+data from foot contact sensors.
+Laboratory and outdoor experiments demonstrate the robots
+ability to climb obstacles up to five times its center height.
+changing curvatures and those covered with shifting, robot-
+sized debris. We also validate the robustness of this climbing
+controller in complex outdoor environments: the robot suc-
+cessfully completed a pipe inspection within a 20 cm radius
+pipe filled with robot-sized rocks and leaves and climbed out
+of a 30 cm gap under a bridge, maneuvering over scattered
+giant rocks, dense weeds, and other vegetation.
+II. BACKGROUND: WAVE TEMPLATES IN MANY-LEGGED
+Robot wave templates: A. Overhead view of the robot: leg
+(shoulder angle) and body (horizontal body joint angle) are determined by
+leg amplitude leg and body amplitude body, respectively. B. Side view of
+the robot: v (vertical body joint angle) is determined by vertical amplitude
+Previous studies [9, 11, 10, 20, 22] have demonstrated that
+successful navigation of many-legged robots over rough terrain
+relies on coordinating leg movements with horizontal and
+vertical body undulations (Fig. 2). Specifically, forward motion
+is achieved by prescribing leg stepping and body undulation
+patterns as sinusoidal traveling waves. In this work, we utilize
+the wave template presented in this section to design an open-
+loop controller. For the feedback controller, we independently
+regulate the pitch motion of two vertical joints while the
+remaining joints follow the wave templates.
+The robots legs provide propulsion by retracting during the
+stance phase to maintain ground contact and protracting during
+the swing phase to disengage. During the stance phase, each
+leg moves from the anterior extreme to the posterior extreme,
+reversing direction during the swing phase. The anterior and
+posterior excursion angles (leg) for a given contact phase (c)
+are modeled using a piecewise sinusoidal function:
+leg cos ( c
+if mod(c, 2) < 2D
+leg cos ( c2D
+where leg is the maximum shoulder angle, and leg,l(c, i)
+and leg,r(c, i) are the shoulder angles for the i-th left and
+right leg, respectively, at contact phase c. The shoulder angle
+peaks (leg  leg) when transitioning from swing to stance
+and reaches its minimum (leg  leg) during the reverse
+transition. Unless otherwise specified, D is assumed to be 0.5.
+Horizontal body undulation is introduced by propagating a
+wave along the robots body from head to tail:
+body(b, i)  body cos(b 2 b
+where body(b, i) is the angle of the i-th body joint at phase
+body. For simplicity, we assume that the number of spatial
+waves in both body and leg movements is equal (b  ),
+allowing the lateral body wave to be parameterized by its phase
+The gait of the many-legged robot is determined by the
+phases of contact (c) and lateral body undulation (b), com-
+bining leg and body waves. Effective coordination, ensuring
+proper leg retraction during motion, is achieved when c
+Vertical body undulation is introduced via a wave propa-
+gated along the robots backbone:
+v(b, i)  Av cos(2b 4 b
+where v(b, i) represents the vertical angle of the i-th body
+joint at phase b, and Av defines the waves amplitude.
+III. TACTILE SENSORY SYSTEMS
+In this section, we introduce two sensory mechanisms inte-
+grated into the climbing feedback control framework. The first
+using its hit data. The second mechanism, the foot contact
+floating state of each robot segment.
+A. Tactile Antenna design
+We developed an antenna equipped with two Force Sensing
+Resistor (FSRs) sensors capable of detecting forces within a
+range of 0 to 10 N. As shown in Fig. 3.A.1, each FSR is
+mounted on a flat surface, with the base of the antenna attached
+Tactile sensory system. A. Antenna design. A1. The base of the
+antenna is attached to a Force Resistive Sensor (FSR) using screws. The inner
+part of the antenna is connected to its tip with two springs, allowing it to
+deform upon contact with obstacles, thereby preventing jamming. A2. Antenna
+contact states: A value of 0 represents no contact (void state), while 1 indicates
+an obstacle has been detected. B. Binary limb contact sensing system. B1.
+Design of a binary contact sensor for each foot, based on capacitive sensing.
+B2. Contact state of the leg: 0 indicates no contact, while 1 indicates contact.
+to the opposite side of the FSR using screws. The inner part
+of the antenna is connected to its tip via two springs, allowing
+it to deform upon contact with obstacles, thereby preventing
+jamming. According to our experiments, the addition of the
+antenna does not limit the robots physical capabilities, such
+as speed or maneuverability.
+The contact states of the antenna are expressed using a
+binary system. When the antenna touches an obstacle, it is in
+the Hit state, represented by 1; otherwise, it is in the Void
+ranging from 0 to 1024 to the onboard controller, based on
+the magnitude of the force detected. In this work, we define a
+Hit state (1) for analog values exceeding 300, corresponding
+to approximately 1 N, and a Void state (0) for values below
+this threshold.
+B. Binary limb contact sensing system design
+We implemented a low-bandwidth binary contact sensor
+system (Fig. 3.B) to monitor foot-ground interaction for each
+and using this information as a feedback into our control
+system. Contact capacitive sensors (MPR121) embedded at
+the tip (highlighted in green in Fig.3.B.1) of each leg detect
+capacitance variance. The toe (highlighted in red in Fig.3.B.1)
+has a slight range of linear motion, resulting in minimal ca-
+pacitance when the leg is suspended and maximal capacitance
+when it is grounded. The analog value shows a significant
+difference between the suspended state (greater than 200) and
+the grounded state (less than 5). Therefore, we classify any
+analog value below 50 as indicating contact.
+IV. CONTROL FRAMEWORK FOR CLIMBING
+This section first examines the limitations of an open-
+loop controller, which coordinates limb stepping and horizon-
+talvertical body undulation wave patterns using the templates
+described in Section II. The open-loop controller is limited
+to overcoming obstacles up to 10 cm in height, equivalent
+to twice the robots height. To address this limitation, we
+propose a feedback controller that adjusts vertical joint motion
+by integrating antenna data and foot contact sensor inputs. This
+feedback controller extends the climbing capability to obsta-
+cles up to five times the robots height. We further demonstrate
+the robustness of this controller in highly unstructured lab-
+based and outdoor environments.
+A. Open-loop control
+The robots belly is naturally elevated above the ground,
+allowing it to overcome low obstacles (with obstacle height
+lower than the belly height, hbelly  5 cm) with the direction-
+ally compliant limbs .
+To test this, we evaluated the robot locomotion performance
+on box-shaped obstacles with heights of 5 cm and 10 cm.
+The obstacle dimensions are 45 cm in width and 120 cm
+in length, with the robot moving forward along the width
+direction. In the experiments, the robot was positioned 5 cm
+in front of the obstacle and allowed to run for 10 motion
+cycles (a total of 30 seconds). The motion was tracked using
+the Opti-Track motion tracking system. Climbing was defined
+as successful if the robots head fully passed to the other
+side of the obstacle. Experimental results showed that the
+robot successfully traversed the 5 cm obstacle. However, when
+attempting the 10 cm obstacle, the robot could only place
+its first two segments on the obstacle before becoming stuck
+(Fig.4.A). Here we set body  18 and leg  6.
+Our choice of gait parameter is based on the preliminary
+work [11, 10, 20] and empirical experiments.
+Open loop experiments. A. Forwardvertical displacement vs. time
+plot showing the robot climbing 5 cm and 10 cm obstacles without vertical
+body undulation. The inset illustrates how the robot becomes blocked without
+the use of vertical waves. B. A forwardvertical displacement vs. time plot
+showing the robot climbing 5 cm and 10 cm obstacles with vertical body
+undulation. The inset demonstrates how introducing vertical body undulation
+raises the robots belly height, increasing its maximum climbing capability.
+To overcome higher obstacles, and building on previous
+success in using vertical waves in rough terrain [11, 20], we
+propose utilizing vertical body undulation, which periodically
+raises a portion of the body. We tested our vertical wave
+modulation on robot experiments. Introducing vertical body
+undulation into the gait raises the belly height (hbelly,v),
+thereby increasing the expected maximum climbing height.
+As discussed in Section II, the maximum vertical joint angle
+is controlled by adjusting the vertical amplitude Av, making
+ble forward motion is 29, corresponding to a max(hbelly,v)
+of 9 cm.
+We conducted experiments on obstacles with heights of 5
+lation. The results show that the robot successfully traverses
+obstacles up to 10 cm in height but is fully blocked by the 15
+cm obstacle.
+In summary, the robot using open-loop control can traverse
+obstacles up to a height of 10 cm (Fig.4).
+B. Feedback control
+To increase the robots maximum climbing height, we
+developed a control framework that independently controls the
+vertical motion of up to two body joints, instead of coupling
+the entire vertical body undulation to a single sinusoidal wave,
+as described in Section II.
+1) Obstacle height estimation using antenna: Climbing
+requires an estimation of an obstacles geometric features.
+estimate obstacle height for subsequent robot control.
+The antenna is programmed to oscillate vertically, with
+its joint angle following a sinusoidal function, Aa sin(wat),
+Fig. 5. Obstacle height estimation. The z-position of the antenna tip relative
+to the head joint can be estimated using a rigid transformation, based on the
+length of the head segment (L1) and the antenna (La), along with the joint
+angle history.
+where Aa represents the oscillation amplitude and wa is the
+temporal frequency. In this study, Aa is set to 518, ensuring
+the antenna can touch the ground when the robot operates on
+flat terrain. The temporal frequency wa is set to 4, enabling
+the antenna to complete one full oscillation cycle within 14
+of the robots gait cycle. The robots vertical motion is also
+adjusted at this frequency.
+As shown in Figure 5, we use the antennas Hit (1) and
+Void (0) information (Fig. 3.A.2) to estimate the obsta-
+cles position relative to the head segment joint. An array
+H  [h(t T), h(t T  1), ..., h(t)] is created to store
+antennas contact history, where T represents the time interval
+for sampling the antennas hit information. For example, at
+time t, if the antenna detects a hit, then h(t)  1 is appended to
+the contact history array H. Otherwise, h(t)  0 is appended
+to H. This process generates a binary sequence that records
+the antennas hit history over time.
+Using the robots dimensions and the joint angle history
+of the head segments vertical joint and the antenna joint,
+the Z-position of the antenna tip relative to the head joint
+is approximated via a rigid transformation (Fig. 5):
+z(t)  L1 sin(v,1(t))  La sin(v,1(t)  a(t)),
+where L1 and La are the lengths of the head segment and the
+joint angles. Since the length ratio between the tip and the
+base is less than 1:5, the error caused by tip deformation can
+be safely ignored. Similar to H, an array Z  [z(tT), z(t
+T  1), ..., z(t)] is created to store the Z-position history of
+the antenna.
+By combining the antenna contact history, H, with the Z-
+position history, Z, we estimate the Z-positions of the hit
+points during probing. For the hit points which have positive Z-
+Zmax. Similarly, for hit points with negative Z-coordinates, the
+lowest three Z-values are averaged to compute Zmin. If no hit
+points have positive Z-coordinates, Zmax left empty. Similarly,
+Zmin is empty if there are no hit points with negative Z-
+coordinates.
+2) Vertical body undulation control: We divide the climb-
+ing process into two phases: raise up (Fig. 6.A) and drag
+(Fig. 6.B). During the raise up phase, the controller inde-
+pendently adjusts the vertical joint angle of the first (head)
+segment to position it quickly atop the obstacle. This motion
+is guided by a proportional (P) controller, which uses antenna
+measurements to estimate the obstacles lowest and highest
+points. We choose to control only the head segment for the
+raise-up phase instead of additional segments for two reasons
+[14, 40, 55]. First, the motors torque capability is sufficient
+to lift only one segment. Second, lifting two segments would
+cause severe instability. The first two segments and the antenna
+account for 45 of the robots weight, making it easy for the
+center of mass to shift outside the base of support, resulting
+in unpredictable yawing and pitching motions. In the drag
+pitching down the vertical joint near the obstacle edge speeds
+up the transition of the subsequent segment from floating to
+resting atop the obstacle.
+Climbing controller working principle. A. Raise-up phase. 1.
+The robot raises its head when the antenna detects an obstacle. 2. The robot
+pitches its head downward to position its legs on top of the obstacle once
+the antenna detects that the robot has cleared the obstacle. B. Drag phase.
+During the drag phase, the robot calculates the duty factor using data from
+ground-foot contact sensors to monitor the percentage of missed steps. A
+segment with a duty factor below the threshold is defined as floating, and the
+segment with the smallest index is identified as the one nearest to the edge.
+The closest vertical joint ahead of this segment then pitches downward, lifting
+the segment to the top of the obstacle. In this sketch, the 3rd segment has
+a duty factor below the threshold, so the second vertical joint is controlled
+to pitch down. C. Special case. The sketch illustrates the special case where
+the antenna detects no obstacle. In this scenario, the robot is assumed to be
+beginning its descent, and a 29 pitch-down motion for the head is hard
+coded to facilitate the process.
+We propose a head controller to regulate the vertical motion
+of the robots head segment for both raise up and drag
+phase. This controller is inspired by the wall-following al-
+gorithm [36, 5]. In wall-following, the robot is controlled to
+maintain a constant distance between its center and the wall.
+motion of the head segment to ensure the head joint maintains
+a constant distance from the contour of the obstacle.
+In the raise-up phase, the controller lifts the head segment
+above the obstacle (Fig. 6.A1) and pitches it downward to
+place the legs on top of the obstacle (Fig 6.A2). In the drag
+segment closely aligned with the obstacles surface, allowing
+the legs to maintain ground contact. Consistent contact with
+the ground is essential, as the robot generates thrust by period-
+ically engaging its legs with the surface [11, 10]. This behavior
+is achieved using a proportional controller that leverages the
+history of H and Z values from the antenna.
+Feedback control framework for climbing. Two parallel controllers
+independently manage the pitch motion of the head segment and a subsequent
+segment. Using the Z-positions (Zmax and Zmin) of the obstacle measured
+by the antenna, the head controller adjusts the head segment to closely follow
+the contour of the obstacle. Based on the duty factors (D1, ..., D5) measured
+by foot contact sensors, the pitch-down controller identifies the appropriate
+floating segment nearest to the edge and pitches it down to accelerate the
+transition from floating to being positioned on top of the obstacle.
+The controller first compares the absolute values of highest
+(Zmax) and lowest (Zmin) Z-position (Fig. 6.A). If Zmax
+is larger, then head segment is raised, with its vertical joint
+angle controlled by Kp(Zmax  a). Here, a is the distance
+between the head joint and the ground when the robot is in its
+initial state (Fig. 5.A). Otherwise, the head segment pitches
+downward to keep a constant distance between the head joint
+and the obstacle contour, with the joint angle controlled by
+Kp(Zmin a).
+In the special case where no hit detection occurs (Fig.
+6.C), it indicates that the robot is descending back to the
+ground. In this scenario, the controller pitches the head seg-
+ment downward by a constant value 0. This hard coded
+downward motion ensures that the robots legs land properly
+on the ground.
+The vertical joint angle of the head segment is dynamically
+computed as:
+for Zmax Zmin,
+for Zmax < Zmin,
+for no hit detects,
+where Kp,1 and Kp,2 are proportional gains, and 0 is a
+constant that pitches the head downward when no contact
+is detected. The constant a accounts for the vertical offset
+between the head joint and the ground, as the local frame (Fig
+5) is defined at the head segment joint, located a cm above
+the ground. The value of a varies depending on the robots
+dimensions.
+During the drag phase, some segments are fully positioned
+on the obstacle, while subsequent segments and legs remain
+floating due to the level change (Fig. 6.B top). This results in
+a slowdown as some legs lose ground contact, reducing the
+overall thrust.
+To accelerate the transition over the obstacle, a localized
+pitch-down motion is applied to the vertical joint nearest to
+the obstacles edge. The duty factor (D) of each segment
+is monitored using data from contact sensors, and segments
+with a duty factor below a threshold are identified as floating.
+Among these, the floating segment with the smallest index is
+considered closest to the edge. The vertical joint immediately
+ahead of this segment is then commanded to pitch downward
+(Fig. 6.B). Note that the index starts from 2, as there is no
+vertical joint ahead of the first segment.
+The pitch-down joint angle is defined as:
+where v,i is the vertical joint angle, Ap is the amplitude of
+the periodic pitch motion, and p is a negative constant that
+biases the motion downward.
+In cases where i  1, both the head controller and the pitch-
+down controller attempt to control the head simultaneously.
+To resolve this conflict, we assign higher priority to the pitch-
+down controller, ensuring that the heads motion is governed
+by it in such situations.
+The overall feedback control framework is illustrated in Fig.
+7. Note that only the pitch motion of the head segment and the
+floating segment closest to the obstacles edge are controlled
+by the controllers, while the limb stepping, horizontal body
+the wave templates described in Section II.
+Sketches for two types of bounds. A. Illustrations of key distances:
+the distance between the head and center of mass of mechanism ahead of the
+head joint (Lc), and the distance between the head joint and the tip hook point
+(Lh). B. When the front legs land on the obstacle, gravity acts as resistance,
+slowing forward motion. This scenario can be approximated as movement on
+a slope, where the effective slope angle  is determined by the obstacle height
+H and robots length L.
+3) Maximal vertical climbing capacity: In this section we
+will explore the upper bound of the vertical climbing capacity
+for our robot. Notably, for this analysis, we assume the
+obstacle has a box-like shape.
+The first bound is determined by robots dimension. In the
+raise-up phase, the head segment is lifted and positioned atop
+the obstacle. We define the pivot point as the point on the
+robot that makes contact with the top of the box. There are
+two possible pivot points: the belly or the leg.
+We first consider the case where the pivot point is on the
+belly. In this scenario, the maximum theoretical height the
+robot can hook onto is determined by Lc, the distance between
+the head joint and the center of mass of mechanism ahead of
+the head joint (Fig. 8). Specifically, we consider a pivot point
+to be stable if it lies on Lc, as pivot points along this line
+ensure that the center of mass of the front mechanism enters
+the obstacles region.
+[48, 12], providing additional anchoring to enhance the head-
+hooking process (Fig.8.A). The corresponding maximum box
+height is denoted as Lh, which represents the distance between
+the head joint and the farthest front legs. This anchoring
+increases the climbing height limit, which can be expressed
+where h0 is the maximum distance between the head joint and
+the ground over gait cycle. Note that, parameter h0 functions
+as an offset that raises the belly above the ground.
+The second bound arises from the mechanics of the robot.
+During the drag phase, the robot naturally forms a slope along
+its backbone due to the level difference between the head and
+tail segments. In this configuration, gravity acts as a resistive
+motion can be conceptualized as movement on an inclined
+plane. When the effective slope angle determined by the
+robots geometry and the obstacle heightexceeds a certain
+define the threshold as 80 of the friction angle and the denote
+the corresponding obstacle height as H. Then the second
+bound H is computed as sin(0.8 tan1())L, where L is
+length between legs on the head and tail segments.
+Given the robots dimension and wave pattern parameters
+in this paper, we have h0  7 cm, Lc  15 cm,  0.5,
+Lh  17 cm, L  95 cm and H  34 cm. Therefore, the
+estimated obstacle height limit is approximately 24 cm.
+C. Experiment results
+We evaluated our climbing feedback controller in both
+laboratory-based and outdoor environments. In these experi-
+Locomotion performance comparison between open-loop and
+feedback controllers across two obstacle types. A. Snapshots of the robot
+traversing a 25 cm bundled-cylinder (five times the robots height) using the
+feedback controller. B. The x indicates the robots forward displacement. The
+left half of the graph corresponds to the box-shaped obstacle, and the right
+half corresponds to the bundled-cylinder obstacle. We conducted 10 trials for
+each experiment. C. This plot illustrates the forward and lateral displacement
+history of the robot as it traverses a 20 cm box-shaped obstacle and a 25 cm
+bundled-cylinder obstacle.
+the vertical wave amplitude (Av) to 9. The wavenumber
+of the three waves is set to 1.5. These parameters were
+chosen to optimize the robots speed while minimizing yaw
+motion during climbing, based on findings from preliminary
+work [11, 10, 20] and empirical experiments. The frequency
+of pitch motion adjustments made by the controllers is every
+quarter cycle of motion. The Kp,1,Kp,2, a and 0 in Eq. 5 are
+set as 2, 1, 6 and 29 in all experiments. Ap and p in Eq.
+6 are set as 12 and 6 respectively. These parameters are
+tuned empirically to be most effective for our experiments.
+1) Single obstacle: For the laboratory experiments, we
+tested the robots ability to navigate box-shaped obstacles
+(120 cm length  45 cm width, Fig. 9.b) with heights of
+15 cm and 20 cm, as well as bundled-cylinder obstacles
+(Fig. 9.b) with heights of 15 cm and 25 cm. The second
+obstacle is a trapezoidal prism constructed by stacking layers
+of cardboard tubes with progressively decreasing widths. The
+base layer consisted of four tubes, each 9 cm in diameter
+and approximately 70 cm in length. The cylindrical shape was
+chosen to evaluate the controllers robustness when navigating
+Fig. 10.
+Robot displacement, obstacle height estimation, and segment
+duty factor tracking history. A. The geometric center history of the robot
+during a single trial on a 15 cm box-shaped obstacle. B. (Top) The history
+of Zmax and Zmin estimated by the antenna. If Zmax or Zmin is empty,
+we set its value to 0 to simplify data visualization. (Bottom) The history of
+the head joint angle determined by the Z-position data. C. The duty factor
+history for each segment. Black indicates duty factors below the threshold
+(D < 0.2), and the red curve connects the floating segment closest to the
+obstacle edge. The index starts from 2 because there is no vertical joint ahead
+of the first segment.
+rapidly changing curvatures. We conducted 10 trials of test on
+each obstacle.
+In each trial, the robot was positioned with its antenna
+5 cm in front of the obstacle. For the experiments on box-
+shaped obstacles, the robot was operated for 14 motion cycles
+(a total of 42 seconds). For the experiments on bundled-
+cylinder obstacles, the robot was operated for 10 motion
+cycles (a total of 30 seconds). The total displacement of those
+experiments are plotted in Fig. 9.B. According to the results,
+the robot successfully climbs a 20 cm box-shaped obstacle,
+which is just below the 24 cm theoretical limit derived in the
+previous section. Additionally, we observe that the climbing
+limit increases when the robot is tested on the bundled-cylinder
+obstacle. This is because the obstacle is not entirely vertical; its
+slope (around 60) raises h0 in Eq.8, thus raises the climbing
+and contact sensor data from a trial in which the robot
+successfully climbed a 15 cm box-shaped obstacle. In this
+the obstacle and ran for 10 motion cycles. This visualization
+is intended to help readers better understand the working
+principles of our controller.
+In Fig. 10, A shows the trajectory of the robots center of
+geometry. The top of B displays the history of Zmax and Zmin,
+as measured by the antenna, while the bottom of B illustrates
+the history of the head segments vertical joint angle, adjusted
+by the controller based on the measured Z-position data. C
+records the duty factor history for each segment, with segments
+shown in black when the duty factor falls below the threshold
+of 0.2. The red curves connect the floating segment closet to
+the obstacles edge. Since the indices of floating segments start
+at 2, the black grids are not connected for the first segment.
+Recall that the head controller raises the head segment when
+the antenna detects an obstacle and subsequently lowers it to
+ensure stable leg contact with the ground. As shown in Fig.
+10.B, during the raise-up phase, the antenna first detects the
+Once the antenna determines that the area ahead of the robot
+is clear, the head pitches down to place the legs securely on
+the ground.
+Following this, the robot transitions into the drag phase as
+the first segment is fully positioned on top of the obstacle. In
+this phase, the head controller regulates the vertical motion of
+the head segment to maintain a consistent distance between
+the robots belly and the contour of the obstacle.
+When the head reaches the far edge of the obstacle and
+begins to leave its surface, the robot enters the descent phase.
+During this phase, the antenna may either detect no obstacle
+or measure a Z-position lower than the head segment joint.
+As expected, the head controller pitches the head downward
+to facilitate a smooth descent.
+In addition, the pitch-down motion controller adjusts the
+floating segment closest to the obstacles edge, pitching it
+downward to expedite its transition from floating to being
+positioned on top of the obstacle. As shown in Fig. 10.C,
+during the drag phase, the index of the floating segments
+shifts sequentially from 2 to 5, indicating that these segments
+become closest to the edge in succession. The pitch-down
+controller dynamically adjusts the nearest vertical joint ahead
+of these segments, facilitating a faster transition.
+Fig. 11.
+Traversal of two consecutive obstacles A. Snapshots showing the
+robot traversing two obstacles (0.15 m and 0.13 m in height, spaced 0.5 m
+apart) within 150 s. B. Forward (x) and vertical (z) displacement across five
+trials. Shaded regions represent the standard deviation.
+2) Multiple obstacles in close succession: To evaluate the
+robustness of the feedback controller in handling multiple
+Fig. 12.
+Robot navigating unstable obstacles. Snapshots show the robot
+traversing a pile of unstable, shifting obstacles  9 cm diameter cylinders of
+varying lengths (5  15 cm), covering a 60 cm  60 cm area and reaching up
+to 20 cm in height.
+(0.15 m and 0.13 m in height), spaced 0.5 m apart (Fig. 11.A),
+ensuring that the tail remained on the first obstacle as the
+head ascended the second. Both obstacles were covered with
+metal beams to increase the complexity of the task. The robot
+successfully traversed both obstacles in all five trials. Tracking
+results for forward and vertical displacement are shown in
+Fig.1.B.
+3) Shifting obstacles: We also tested the robot on a pile of
+shifting cylinders (Fig. 12). The pile covered a 60 cm  60
+cm area and reached a height of up to 20 cm, consisting of 9
+cm diameter cylinders with varying lengths (5  15 cm). In all
+five trials, the robot successfully reached the peak and exited
+the pile. Fig. 12 shows snapshots from a representative trial
+in which the obstacles collapsed and shifted during traversal.
+4) Outdoor test: For the outdoor tests, we evaluated the
+robots climbing ability in confined spaces containing robot-
+sized rocks, mud, and leaves. The robot successfully climbed
+obstacles up to four times its height (20 cm) in these chal-
+lenging environments. Fig. 13 shows the robot traversing a 0.2
+m radius, 3 m long pipe in 80 seconds. The pipe contained
+randomly placed robot-sized rocks, requiring the robot to
+utilize its climbing capabilities, while leaves and pine straw
+introduced entanglement challenges, further increasing task
+complexity. An onboard sports camera mounted on the robot
+captured footage for inspection. A compilation of outdoor tests
+is available in the SI video.
+V. CONCLUSION
+In this work, we identified an alternative approach for
+perceiving and responding to the environment during legged
+trol frameworks. Specifically, we introduced a tactile-based
+antenna design that enabled an elongate many-legged robot to
+sense short-range contact information and reconstruct rough
+geometric features of obstacles. By integrating antenna sens-
+ing with another low-bandwidth foot contact tactile sensor,
+the mechanically intelligent many-legged robot demonstrates
+predictable climbing performance in complex environments.
+climbing capability under open-loop control, achieved by
+coordinating limb stepping with horizontal and vertical body
+undulation wave patterns. Building on this foundation, we
+developed a control framework that integrates antenna data
+and binary foot-ground contact information to dynamically
+plan vertical body undulation, enabling effective climbing.
+Laboratory and outdoor experiments demonstrated the robots
+ability to climb obstacles up to five times its center height and
+navigate challenging terrains, including obstacles with rapidly
+changing curvatures and those covered with flowable, robot-
+sized random items. The robustness of this climbing controller
+was further validated in complex outdoor environments. For
+long pipe filled with robot-sized rocks, leaves, and pine straw.
+These findings underscore the value of integrating tactile
+sensory systems and control frameworks address the chal-
+lenges of 3D motion planning in many-legged robots. Given
+its 3D motion capability in confined spaces, the robot also
+shows strong potential for pipe inspection [25, 51, 39].
+We used GPT to refine our writing.
+VI. LIMITATIONS
+In this work, we focused on how the antenna enables climb-
+ing for a many-legged robot. With its ability to provide short-
+range estimations of obstacle geometry, the antennas potential
+extends beyond climbing to include functionalities such as
+obstacle avoidance [18, 4, 30], which could further enhance the
+robots versatility in complex environments. Exploring these
+additional capabilities is a key area for future research.
+We observed that the robot successfully climbs obstacles
+when no strict height limit is imposed. However, the current
+controller struggles to differentiate between ceilings and
+climbable obstacles, leading to failures in specific scenarios.
+To address this limitation, we plan to develop a filtering
+mechanism in the control framework to correctly interpret such
+terrains.
+The current antenna design (Fig. 3) includes a compliant
+section near its tip. Since the base of the antenna is rigid,
+it occasionally experiences jamming when interacting with
+obstacles. To mitigate this issue, we propose replacing the
+current design with a TPU-printed antenna. This modification
+would enhance flexibility, reduce the impact of environmental
+In our feedback control framework, a linear controller
+adjusts the head segments pitch angle based on Zmax and
+joints is predefined based on missing step information derived
+from the duty factors [D1, ..., D5]. However, the optimal
+mapping from sensory inputs to joint angles is likely more
+complex and nonlinear. In future work, we plan to implement
+reinforcement learning to train a learning-based policy, where
+neural networks will provide a more sophisticated nonlinear
+Fig. 13.
+Robot traverses a pipe. The robot completed an inspection task in 80 seconds within a cylindrical pipe measuring 0.2 m in radius and 3 m in
+length. The pipe contained randomly placed robot-sized rocks, requiring the robots climbing capability, while leaves and pine straw introduced entanglement
+mapping. We anticipate that this RL-based approach will
+further enhance the robots climbing speed.
+In our analysis of climbing capacity, we found that adhesion
+can aid in climbing performance. In future work, we plan
+to explore adhesion-based mechanisms for the robots feet or
+belly to further enhance its climbing ability.
+VII. ACKNOWLEDGMENT
+We thank Daniel Soto and Esteban Flores for the useful
+discussion on the robot mechanical design. We are grateful
+for funding from NSF STTR AWD-2335553, Army Research
+Office Grant AWD-001950, Georgia Research Alliance (GRA)
+Professorship.
+REFERENCES
+Shinya Aoi, Ryoe Tomatsu, Yuki Yabuuchi, Daiki Mo-
+Kazuo Tsuchiya.
+Advanced turning maneuver of a
+many-legged robot using pitchfork bifurcation.
+Transactions on Robotics, 38(5):30153026, 2022.
+Arielle Berman, Kaiwen Hsiao, Samuel E Root, Ho-
+jung Choi, Daniel Ilyn, Chengyi Xu, Emily Stein, Mark
+ditively manufactured micro-lattice dielectrics for mul-
+tiaxial capacitive sensors.
+Science Advances, 10(40):
+Timothy Bretl. Motion planning of multi-limbed robots
+subject to equilibrium constraints: The free-climbing
+robot problem.
+The International Journal of Robotics
+Galit Buchs, Shachar Maidenbaum, and Amir Amedi.
+Obstacle identification and avoidance using the eye-
+individuals.
+In Haptics: Neuroscience, Devices, Mod-
+EuroHaptics 2014, Versailles, France, June 24-26, 2014,
+Ricardo Carelli and Eduardo Oliveira Freire. Corridor
+navigation and wall-following stable control for sonar-
+based mobile robots. Robotics and Autonomous Systems,
+Mark Charlebois, Kamal Gupta, and Shahram Payandeh.
+Curvature based shape estimation using tactile sensing.
+In Proceedings of IEEE International Conference on
+Robotics and Automation, volume 4, pages 35023507.
+Tony G Chen, Stephanie Newdick, Julia Di, Carlo Bo-
+Mark R Cutkosky.
+Locomotion as manipulation with
+reachbot. Science Robotics, 9(89):eadi9762, 2024.
+Xuxin Cheng, Kexin Shi, Ananye Agarwal, and Deepak
+Pathak. Extreme parkour with legged robots. In 2024
+IEEE International Conference on Robotics and Automa-
+tion (ICRA), pages 1144311450. IEEE, 2024.
+Baxi Chong, Yasemin O Aydin, Jennifer M Rieser, Guil-
+laume Sartoretti, Tianyu Wang, Julian Whitman, Abdul
+et al. A general locomotion control framework for multi-
+legged locomotors. Bioinspiration  Biomimetics, 17(4):
+Baxi Chong, Juntao He, Shengkai Li, Eva Erickson,
+Kelimar Diaz, Tianyu Wang, Daniel Soto, and Daniel I
+Goldman. Self-propulsion via slipping: Frictional swim-
+ming in multilegged locomotors.
+Proceedings of the
+National Academy of Sciences, 120(11):e2213698120,
+Baxi Chong, Juntao He, Daniel Soto, Tianyu Wang,
+Daniel Irvine, Grigoriy Blekherman, and Daniel I Gold-
+Multilegged matter transport: A framework for
+locomotion on noisy landscapes.
+Markus Eich, Felix Grimminger, and Frank Kirchner.
+A versatile stair-climbing robot for search and rescue
+applications. In 2008 IEEE international workshop on
+Ronald S Fearing and Thomas O Binford.
+cylindrical tactile sensor for determining curvature. In
+Proceedings. 1988 IEEE International Conference on
+Robotics and Automation, pages 765771. IEEE, 1988.
+Qiyuan Fu and Chen Li.
+Robotic modelling of snake
+traversing large, smooth obstacles reveals stability bene-
+fits of body compliance. Royal Society open science, 7
+Qiyuan Fu and Chen Li. Contact feedback helps snake
+robots propel against uneven terrain using vertical bend-
+ing. Bioinspiration  Biomimetics, 18(5):056002, 2023.
+Xueshan Gao and Koki Kikuchi. Study on a kind of wall
+cleaning robot. In 2004 IEEE International Conference
+on Robotics and Biomimetics, pages 391394. IEEE,
+Xueshan Gao, Zhihong Jiang, Junyao Gao, Dianguo Xu,
+Yan Wang, and HuanHuan Pan. Boiler maintenance robot
+with multi-operational schema.
+In 2008 IEEE Inter-
+national Conference on Mechatronics and Automation,
+pages 610615. IEEE, 2008.
+Alison Gibson, Andrea Webb, and Leia Stirling. Eval-
+uation of a visualtactile multimodal display for surface
+obstacle avoidance during walking. IEEE Transactions
+on Human-Machine Systems, 48(6):604613, 2018.
+G Clark Haynes, Alex Khripin, Goran Lynch, Jonathan
+Koditschek.
+Rapid pole climbing with a quadrupedal
+robot. In 2009 IEEE international conference on robotics
+and automation, pages 27672772. IEEE, 2009.
+Juntao He, Baxi Chong, Jianfeng Lin, Zhaochen Xu,
+Hosain Bagheri, Esteban Flores, and Daniel I Gold-
+man. Probabilistic approach to feedback control enhances
+multi-legged locomotion on rugged landscapes.
+preprint arXiv:2411.07183, 2024.
+Juntao He, Baxi Chong, Zhaochen Xu, Esteban Flores,
+Daniel Soto, and Daniel Goldman.
+Tactile feedback
+enhances multi-legged locomotion on rugged landscapes.
+Bulletin of the American Physical Society, 2024.
+Juntao He, Baxi Chong, Zhaochen Xu, Sehoon Ha,
+and Daniel I Goldman.
+Learning to enhance multi-
+legged robot on rugged landscapes.
+arXiv preprint
+David Hoeller, Nikita Rudin, Dhionis Sako, and Marco
+Hutter. Anymal parkour: Learning agile navigation for
+quadrupedal robots.
+Science Robotics, 9(88):eadi7566,
+Seungwoo Hong, Yong Um, Jaejun Park, and Hae-Won
+Agile and versatile climbing on ferromagnetic
+surfaces with a quadrupedal robot. Science Robotics, 7
+Iszmir Nazmi Ismail, Adzly Anuar, Khairul Salleh Mo-
+hamed Sahari, Mohd Zafri Baharuddin, Muhammad
+of in-pipe inspection robot: A review.
+In 2012 IEEE
+Conference on Sustainable Utilization and Development
+in Engineering and Technology (STUDENT), pages 310
+Giuk Lee, Geeyun Wu, Sun Ho Kim, Jongwon Kim, and
+TaeWon Seo. Combot: Compliant climbing robotic plat-
+form with transitioning capability and payload capacity.
+In 2012 IEEE International Conference on Robotics and
+Jusuk Lee, Simon N Sponberg, Owen Y Loh, Andrew G
+plates and anchors for antenna-based wall following in
+cockroaches and robots. IEEE Transactions on Robotics,
+William A Lewinger, Cynthia M Harley, Roy E Ritz-
+like antennal sensing for climbing and tunneling behavior
+in a biologically-inspired mobile robot. In Proceedings
+of the 2005 IEEE International Conference on Robotics
+and Automation, pages 41764181. IEEE, 2005.
+Hao Li, Chengyi Xing, Saad Khan, Miaoya Zhong, and
+Mark R Cutkosky. Whisker-inspired tactile sensing: A
+sim2real approach for precise underwater contact track-
+ing. arXiv preprint arXiv:2410.14005, 2024.
+Lorena Lobo, Patric C Nordbeck, Vicente Raja, Anthony
+Travieso. Route selection and obstacle avoidance with a
+short-range haptic sensory substitution device. Interna-
+tional Journal of Human-Computer Studies, 132:2533,
+Mindaugas
+Damasevicius.
+A hybrid tactile sensor-based obstacle
+overcoming
+Intelligent Service Robotics, 14:924, 2021.
+Shixin Luo, Songbo Li, Ruiqi Yu, Zhicheng Wang, Jun
+learning framework for legged robots.
+IEEE Robotics
+and Automation Letters, 2024.
+Tohru Miyake, Hidenori Ishihara, and Tatsuya Tomino.
+Vacuum-based wet adhesion system for wall climbing
+robots-lubricating action and seal action by the liquid.
+In 2008 IEEE International Conference on Robotics and
+Naoki Miyamoto, Tetsuya Kinugasa, Tatsuya Amasaki,
+Koichi Osuka, Ryota Hayashi, and Koji Yoshida. Anal-
+ysis of body undulation using dynamic model with
+frictional force for myriapod robot. Artificial Life and
+Jean-Michel Mongeau, Alican Demir, Chris J Dallmann,
+Kaushik Jayaram, Noah J Cowan, and Robert J Full.
+Mechanical processing via passive dynamic properties
+of the cockroach antenna can facilitate control during
+rapid running. Journal of Experimental Biology, 217(18):
+Jean-Michel Mongeau, Simon N Sponberg, John P
+Sensory processing within
+cockroach antenna enables rapid implementation of feed-
+back control for high-speed running maneuvers.
+Journal of Experimental Biology, 218(15):23442354,
+Jakub Mrva and Jan Faigl. Tactile sensing with servo
+drives feedback only for blind hexapod walking robot.
+In 2015 10th International Workshop on Robot Motion
+and Control (RoMoCo), pages 240245. IEEE, 2015.
+Akihiko Nagakubo and Shigeo Hirose.
+Walking and
+running of the quadruped wall-climbing robot. In Pro-
+ceedings of the 1994 IEEE International Conference on
+Robotics and Automation, pages 10051012. IEEE, 1994.
+Ankit Nayak and SK Pradhan. Design of a new in-pipe
+inspection robot. Procedia Engineering, 97:20812091,
+Martin Nilsson. Snake robot-free climbing. IEEE Control
+Systems Magazine, 18(1):2126, 1998.
+Yasemin Ozkan-Aydin, Baxi Chong, Enes Aydin, and
+Daniel I Goldman. A systematic approach to creating
+terrain-capable hybrid softhard myriapod robots. In 2020
+3rd IEEE International Conference on Soft Robotics
+(RoboSoft), pages 156163. IEEE, 2020.
+Christine
+Nicholas Wiltsie, Jeremy Nash, and Brett Kennedy.
+Lemur 3: A limbed climbing robot for extreme terrain
+mobility in space. In 2017 IEEE international conference
+on robotics and automation (ICRA), pages 54675473.
+Zachary Pezzementi, Caitlin Reyda, and Gregory D
+Object mapping, recognition, and localization
+from tactile geometry.
+In 2011 IEEE International
+Conference on Robotics and Automation, pages 5942
+Shuhao Qi, Wenchun Lin, Zejun Hong, Hua Chen, and
+Wei Zhang.
+Perceptive autonomous stair climbing for
+quadrupedal robots.
+In 2021 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 23132320. IEEE, 2021.
+Divya Ramesh, Qiyuan Fu, and Chen Li.
+A snake robot with contact force sensing for studying
+locomotion in complex 3-d terrain. In 2022 International
+Conference on Robotics and Automation (ICRA), pages
+Hazem Rashed, Mohamed Ramzy, Victor Vaquero, Ah-
+mad El Sallab, Ganesh Sistu, and Senthil Yogamani.
+object detection for robust low-light autonomous driving.
+In Proceedings of the IEEECVF International Confer-
+ence on Computer Vision Workshops, pages 00, 2019.
+Aaron Saunders, Daniel I Goldman, Robert J Full, and
+Martin Buehler. The rise climbing robot: body and leg
+design. In Unmanned Systems Technology VIII, volume
+Xingguo Song, Xiaolong Zhang, Xiangyin Meng, Chun-
+jun Chen, and Dashan Huang. Gait optimization of step
+climbing for a hexapod robot. Journal of Field Robotics,
+Matthew J Spenko, G Clark Haynes, JA Saunders,
+Mark R Cutkosky, Alfred A Rizzi, Robert J Full, and
+Daniel E Koditschek. Biologically inspired climbing with
+a hexapedal robot. Journal of field robotics, 25(4-5):223
+Erik Teder, Baxi Chong, Juntao He, Tianyu Wang, Mas-
+similiano Iaschi, Daniel Soto, and Daniel I Goldman. Ef-
+fective self-righting strategies for elongate multi-legged
+robots. arXiv preprint arXiv:2410.01056, 2024.
+Ankush Verma, Ayush Kaiwart, Nikhil Dhar Dubey,
+Farman Naseer, and Swastik Pradhan.
+A review on
+various types of in-pipe inspection robot.
+Materials
+X Alice Wu, Tae Myung Huh, Aaron Sabin, Srinivasan A
+Tactile sensing and
+terrain-based gait control for small legged robots. IEEE
+Transactions on Robotics, 36(1):1527, 2019.
+Wang Yan, Liu Shuliang, Xu Dianguo, Zhao Yanzheng,
+Shao Hao, and Gao Xueshan. Development and applica-
+tion of wall-climbing robots. In Proceedings 1999 IEEE
+international conference on robotics and automation
+(Cat. No. 99CH36288C), volume 2, pages 12071212.
+Kotaro Yasui, Kazuhiko Sakai, Takeshi Kano, Dai Owaki,
+and Akio Ishiguro.
+Decentralized control scheme for
+myriapod robot inspired by adaptive and resilient cen-
+tipede locomotion. PloS one, 12(2):e0171421, 2017.
+Mark Yim, Sam Homans, and Kimon Roufas. Climbing
+with snake-like robots.
+In IFAC workshop on mobile
+robot technology, volume 1, page 2, 2001.
+Zhenqiang Ying, Ge Li, Yurui Ren, Ronggang Wang, and
+Wenmin Wang.
+A new low-light image enhancement
+algorithm using camera response model. In Proceedings
+of the IEEE international conference on computer vision
+Syed Waqas Zamir, Aditya Arora, Salman Khan, Fa-
+had Shahbaz Khan, and Ling Shao.
+Learning digital
+camera pipeline for extreme low-light imaging. Neuro-

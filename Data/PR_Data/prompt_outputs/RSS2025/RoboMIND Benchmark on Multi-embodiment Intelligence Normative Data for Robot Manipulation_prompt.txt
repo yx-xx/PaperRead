@@ -1,0 +1,1773 @@
+=== PDF文件: RoboMIND Benchmark on Multi-embodiment Intelligence Normative Data for Robot Manipulation.pdf ===
+=== 时间: 2025-07-21 14:23:07.263786 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Intelligence Normative Data for Robot Manipulation
+Kun Wu1,, Chengkai Hou2,3,, Jiaming Liu2,3,, Zhengping Che1,,, Xiaozhu Ju1,,,
+Zhuqin Yang1, Meng Li1, Yinuo Zhao1, Zhiyuan Xu1, Guang Yang1, Shichao Fan1, Xinhua Wang1, Fei Liao1,
+Zhen Zhao1, Guangyu Li1, Zhao Jin1, Lecheng Wang1, Jilei Mao1, Ning Liu1, Pei Ren1, Qiang Zhang1,
+Yaoxu Lyu2, Mengzhen Liu2,3, Jingyang He2,3, Yulin Luo2,3, Zeyu Gao3, Chenxuan Li2, Chenyang Gu2,3,
+Yankai Fu2, Di Wu2, Xingyu Wang2, Sixiang Chen2,3, Zhenyu Wang2,3, Pengju An2,3, Siyuan Qian2,3,
+Shanghang Zhang2,3,B, Jian Tang1,B
+1Beijing Innovation Center of Humanoid Robotics
+2State Key Laboratory of Multimedia Information Processing, School of Computer Science, Peking University
+3Beijing Academy of Artificial Intelligence
+RoboMIND
+Trajectories by different
+types of robot
+Avg. trajectories by
+different types of robot
+Trajectory ratio of different
+task categories
+Trajectory ratio of different
+scenarios
+107k trajectories
+479 diverse tasks
+96 various objects
+Single-arm robot
+Dual-arm robot
+Humanoid robot
+Dexterous hands
+Digital twins
+Fig. 1: Overview of RoboMIND. We introduce RoboMIND (Multi-embodiment Intelligence Normative Data for Robot Manipulation), comprising
+107k demonstration trajectories across 479 diverse tasks involving 96 distinct object classes. To ensure consistency and reliability during policy
+represent (a) the total trajectory numbers categorized by different types of robots, (b) average trajectory lengths (frames) categorized by different
+types of robots, (c) trajectory ratio of different task categories (Artic. M.: Articulated Manipulations; Coord. M.: Coordination Manipulations; Basic
+M.: Basic Manipulations; Obj. Int.: Multiple Object Interactions; Precision M.: Precision Manipulations; Scene U.: Scene Understanding), and (d)
+trajectory ratio of different scenarios.
+AbstractDeveloping robust and general-purpose manipula-
+tion policies is a key goal in robotics. To achieve effective
+that encompass a large number of demonstration trajectories
+and diverse tasks. Unlike vision or language data, which can
+be sourced from the internet, robotic datasets require detailed
+observations and manipulation actions, necessitating significant
+investments in both hardware-software infrastructure and human
+labor. While existing works have focused on assembling various
+individual robot datasets, there is still a lack of a unified data col-
+lection standard and insufficient high-quality data across diverse
+RoboMIND (Multi-embodiment Intelligence Normative Data for
+Robot Manipulation), a dataset containing 107k demonstration
+trajectories across 479 diverse tasks involving 96 object classes.
+RoboMIND is collected through human teleoperation and en-
+compasses comprehensive robotic-related information, including
+multi-view observations, proprioceptive robot state information,
+and linguistic task descriptions. To ensure data consistency
+and reliability for imitation learning, RoboMIND is built on
+a unified data collection platform and a standardized protocol,
+covering four distinct robotic embodiments: the Franka Emika
+dexterous hands, the AgileX dual-arm robot, and the UR5e.
+Our dataset also includes 5k real-world failure demonstrations,
+each accompanied by detailed causes, enabling failure reflec-
+tion and correction during policy learning. Additionally, we
+created a digital twin environment in the Isaac Sim simulator,
+replicating the real-world tasks and assets, which facilitates
+the low-cost collection of additional training data and enables
+efficient evaluation. To demonstrate the quality and diversity of
+our dataset, we conducted extensive experiments using various
+imitation learning methods for single-task settings and state-
+of-the-art Vision-Language-Action (VLA) models for multi-task
+scenarios. By leveraging RoboMIND, the VLA models achieved
+high manipulation success rates and demonstrated strong gener-
+alization capabilities. To the best of our knowledge, RoboMIND
+is the largest multi-embodiment teleoperation dataset collected
+on a unified platform, providing large-scale and high-quality
+robotic training data. Our project is at
+robomind.github.io.
+I. INTRODUCTION
+One of the aspirations of any professional in the field of
+robotics is to develop a versatile, general-purpose robotic
+model capable of performing a broad spectrum of real-world
+tasks. Specifically, such models should be generalizable in
+order to execute the intended manipulation tasks under varying
+different objects [77, 50, 51, 65, 64, 14]. To achieve this level
+of generalization, researchers have drawn inspiration from
+the training of large models in computer vision and natural
+language processing, where rich and diverse datasets have
+proven essential [1, 61, 96, 101, 32, 55]. They concluded
+that for training generalizable robotic models, one of the most
+1Beijing
+Innovation
+Humanoid
+{Gongda.Wu, z.che, jason.ju, jian.tang}x-humanoid.com
+2State Key Laboratory of Multimedia Information Processing, School of
+Computer Science, Peking University, Beijing, China shanghangpku.edu.cn
+Co-first authors: Kun Wu, Chengkai Hou, Jiaming Liu, Zhengping Che, and
+Xiaozhu Ju
+Project leaders: Zhengping Che and Xiaozhu Ju
+BCorresponding authors: Shanghang Zhang and Jian Tang
+critical elements is the access to rich and diverse training data
+that encompass varied scenes, tasks, and robot types. Such
+diversity ensures that models learn to perform reliably under
+different conditions and environments [70, 77, 92, 14, 29, 97].
+datasets that capture a broad spectrum of robotic interactions
+and experiences to facilitate training models capable of
+mastering various manipulation policies.
+general-purpose robotic models poses significant challenges.
+In contrast to the acquisition of vision or language data,
+which can often be sourced through web-based collection
+methods [32, 55], collecting robotic data is difficult because
+such data cannot be easily obtained in the same way, as
+it requires controlled environments where the joints and
+end-effector information of robotic systems are meticulously
+recorded. Moreover, scaling up data collection efforts neces-
+sitates considerable investment in both hardware and software
+infrastructure and human labor for oversight, particularly when
+it comes to acquiring and curating high-quality demonstration
+data [77, 102, 50]. Consequently, even the most versatile
+robotic manipulation policies currently in use are predomi-
+nantly trained on datasets gathered within constrained condi-
+tions that offer limited diversity in robot types [77, 50].
+RoboMIND
+(Multi-embodiment
+Intelligence Normative Data for Robot manipulation), is
+an extensive dataset that encompasses a broad range of
+robotic interactions and experiences. RoboMIND features
+107k demonstration trajectories amounting to 305.5 hours
+of interaction data of 4 kinds of robotic embodiments
+including Franka Emika Panda , a humanoid robot
+(i.e., X-Humanoid Tien Kung ), AgileX Cobot Magic
+V2.0 , and UR5e , as shown in Figure 1. Unlike
+the Open X-Embodiment dataset , which was compiled
+from various laboratories with differing data collection
+standards and diverse combinations of robotic platforms,
+RoboMIND is gathered within the same standardized setting,
+adhering to a standardized data collection protocol to ensure
+consistency and reliability. By maintaining uniform data
+collection standards, all data points are captured under similar
+training models that can generalize well across different tasks
+and environments. The standardized procedures also enhance
+the reliability of the dataset, making it easier to validate and
+reproduce experimental results, thereby building trust in the
+trained models and ensuring their consistent performance in
+real-world applications.
+ronments and spans 479 diverse tasks involving 96 various
+object classes. Additionally, we provide a dataset from our
+real-world tasks simulated in the Nvidia Isaac Sim . Robo-
+MIND incorporates data from various robot types, including
+arm robots, 15,187 from Tien Kung humanoid robots, 10,269
+from AgileX Cobot Magic V2.0 dual-arm robots, 25,170 from
+UR5e single-arm robots, and 30,035 from simulation. All these
+TABLE I: Comparison to existing real-world datasets for robot manipulation. All data is drawn from the original paper or
+from the DROID paper . We divide robot types into three categories: single-arm, dual-arm, and humanoid. We report the
+number of unique multi-view trajectories and highlight the advantages of RoboMIND in orange.
+collections. not a dataset in itself, but an aggregation of existing datasets.
+Trajectory
+Dexterous Hand
+Detailed Annotation
+Robot Type
+Public Robot
+Failure Data
+Digital Twin
+Collection
+Pinto and Gupta
+Scripted
+Home-LCA
+Scripted
+BrainRobotData
+Scripted
+Roboturk
+Human Teleoperation
+SingleDual
+Human Teleoperation
+12 Human  78 Scripted
+Scripted
+BridgeData
+Human Teleoperation
+Scripted
+Human Teleoperation
+Human Teleoperation
+BridgeData V2
+85 Human  15 Scripted
+30 Human  70 Scripted
+Human Teleoperation
+Human Teleoperation
+Human Teleoperation
+Human Tool-based
+Open X-Embodiment
+SingleDual
+Dataset Aggregation
+RoboMIND
+SingleDual
+Human Teleoperation
+trajectories are collected through a teleoperation system that
+captures natural human motion patterns and maps them onto
+robots to drive the same motion trajectories. These trajectories
+encompass RGB-D data from distinct viewpoints, detailed
+proprioceptive state information of the robot body, specific
+information regarding the robots end effector, and a linguistic
+description of the task at hand. Containing such comprehensive
+and detailed information, these data are valuable for training
+robotic models to perform complex manipulation tasks.
+At the same time, we not only publish the 107k successful
+trajectories but also document the 5k trajectories of real-
+world failure cases. The robot model can explore the causes
+of failures by learning from these failure case trajectories,
+thereby improving its performance through such learning
+experiences. This technique is representative of Reinforcement
+Learning from Human Feedback (RLHF) [18, 81], where
+human oversight and feedback direct the learning process
+of models, leading the models to produce more desirable
+and accurate outcomes. In addition, we annotate a total of
+10k robot trajectories in RoboMIND with frame-level fine-
+grained language descriptions. These annotated trajectories
+encompass a wide range of robot tasks. To ensure accu-
+racy and reliability, each annotation undergoes verification
+and correction by multiple reviewers. We believe that these
+additional failure cases and fine-grained linguistic annotations
+will further advance research in robot learning, particularly in
+areas such as failure recovery , task planning , visual
+question answering , among others.
+Beyond establishing such a large-scale and diverse dataset,
+we conduct extensive experiments to not only validate the
+datasets effectiveness but also evaluate various algorithms
+task imitation learning methods, including ACT , Dif-
+fusion Policy , and BAKU . Additionally, we assess
+the generalization capabilities and task success rates of Vision-
+Language-Action (VLA) large models such as OpenVLA ,
+demonstrate that RoboMIND can be effectively utilized by
+various single-task imitation learning algorithms and suc-
+cessfully adapted to VLA large models. The high-quality
+information provided by our dataset enables successful task
+execution across different approaches in real-world scenarios.
+full RoboMIND dataset results in significant improvements
+in task performance across multiple robot types. To sim-
+plify the use of RoboMIND, we provide the code scripts
+that adapt RoboMIND files with the open-source LeRobot
+framework  at
+humanoid-training-toolchain.
+II. RELATED WORK
+Robotic Manipulation. Traditional manipulation policies
+typically rely on state-based reinforcement learning [3, 46,
+111]. In contrast, recent works [73, 27, 28] incorporate visual
+observations as input to predict action poses. Imitation learning
+lation skills by imitating an expert through demonstration [23,
+tive models [41, 95, 89], diffusion policy  and subsequent
+works [82, 86, 105] focus on transforming random Gaussian
+noise into coherent action sequences, with methods such as
+DP3  and 3D Diffuser Actor  further enhancing this
+process in 3D space. On the other hand, some Multimodal
+Large Language Models (MLLMs) [2, 25, 43] enable robots to
+comprehend natural language and visual scenes, automatically
+generating task plans. Meanwhile, Vision-Language-Action
+(VLA) models [117, 58, 57, 64, 51] empower MLLMs to
+predict low-level SE(3) poses, demonstrating interpretability
+and generalization in diverse scenarios. Given the critical role
+of 3D spatial information in complex manipulation tasks,
+several works [116, 35, 94, 33] explore the encoding of point
+cloud data or multi-view images for 3D imitation learning.
+datasets or self-collected real-world datasets, and the robotics
+community still lacks a unified large-scale dataset.
+Robotic Learning Datasets. Interacting with spatial con-
+figurations in real-world environments is vital for robots.
+substantial costs [77, 50]. General-purpose simulators [19,
+environments for training policy models, significantly reducing
+the costs and time associated with data collection. To meet
+the training demands of complex and long-horizon tasks, sim-
+ulators based on real-world environments are developed [53,
+built with game engines. However, the sim-to-real gap signifi-
+cantly impacts the manipulation accuracy of imitation learning
+policies. As a result, some research shifts towards directly
+collecting real-world data, including datasets gathered through
+automated scripts or expert agents [83, 38, 54, 10, 22, 47], as
+well as those obtained via human teleoperation [70, 93, 26, 9,
+with representative publicly available real-world datasets for
+robot manipulation. RoboSet  and BridgeData V2
+include over 50k trajectories, but are limited to 6 and 13 skill
+while its data scale is relatively small compared to the others.
+to unify existing robot datasets into a standardized format,
+incorporating data from diverse robots collected through col-
+laboration among 21 institutions. Following this, ARIO
+further integrates real-world and simulated data into a standard
+DROID  collects 76k demonstration trajectories via human
+teleoperation. Although previous large-scale datasets offer di-
+verse scenarios, most focus on a single embodiment typethe
+two-finger gripperand lack dexterous hands, limiting task
+variety. In contrast, our proposed RoboMIND features four
+distinct embodiments, including both grippers and dexterous
+long-horizon dual-arm tasks for complex skill training. Most
+ensuring consistency and minimizing variability.
+Large-scale Policy Learning. Learning robotic policies
+from large and diverse datasets has become a major re-
+search focus in the field of robotics. One series of works
+leverages egocentric human videos [36, 20, 21, 37] to as-
+sist in robot action learning. Leveraging large-scale human
+tations [75, 5], manipulation priors [69, 48], and dexterous
+hand control [68, 107]. Another prominent approach, VLA
+and robot data [9, 72, 91, 103] for co-training or pretraining,
+enhancing the models reasoning and generalization abilities.
+internet data and low-level action data for co-finetuning;
+RoboFlamingo  directly loads the pretrained parameters
+from OpenFlamingo  for visual instruction tuning; Robo-
+Mamba  utilizes high-level common sense and robotics-
+related reasoning data for co-training. Finally, a series of
+works [65, 51, 56] leverage large assembler datasets, such
+as Open X-Embodiment and ARIO, for pre-training. The
+large-scale pre-training significantly enhances the fine-tuning
+efficiency and generalization capability of policy models. Our
+proposed real-world dataset and digital twin simulator provide
+a large-scale pretraining dataset and a high-quality fine-tuning
+dataset for policy learning in real-world applications, whose
+efficacy is demonstrated via abundant experiments.
+III. DATASET COLLECTION AND PROCESSING
+In this work, we primarily introduce how the RoboMIND
+dataset is collected on the robots and detail the process
+of cleaning the RoboMIND dataset. Our dataset is col-
+lected from four different robotic embodiments (Franka Emika
+and UR5e ), totaling 107k trajectories on 479 tasks, 96
+different object classes, and 38 operational skills. To support
+the development of such a large-scale dataset, we develop
+an intelligent data platform designed to collect, filter, and
+process the dataset efficiently. This platform uses a cloud-
+native architecture and distributed computing to handle large-
+scale data processing, offering five main functionalities and
+their corresponding modules:
+1) Data Collection: Collect data from four types of robots
+using teleoperation equipments and then automatically
+transmit the collected data to the data platform;
+2) Data Storage: Package and store the collected dataset
+in a standardized H5 format, including both visual data
+of the robots executed actions and robotic proprioceptive
+data of its movements;
+3) Data Preprocessing: Filter the dataset based on prede-
+fined standards, evaluating task execution accuracy, mo-
+tion trajectory smoothness, and the presence of occlusion
+or motion blur in the visual data;
+4) Data Classification: Categorize the collected dataset by
+robot type and specific tasks performed;
+5) Data Annotation: Perform detailed linguistic annotations
+on the collected dataset.
+A. Data Collection and Storage
+Teleoperation is widely applied in the data collection pro-
+cesses for various types of robots [85, 114, 108, 40, 63,
+cific teleoperation devices for data collection. For example,
+researchers typically use VR headsets and motion capture
+suits to collect humanoid robot motion data. They capture
+the state of human movements and map this motion onto the
+humanoid robot platform, enabling the robot to replicate these
+movements while simultaneously collecting a comprehensive
+dataset [16, 100]. RoboMIND contains teleoperation data in
+real-world and simulation environments from various types of
+UR5e ), dual-arm robots (AgileX Cobot Magic V2.0 ),
+and humanoid robots (X-Humanoid Tien Kung ).
+For the single-arm robots, following the Gello , we
+construct the 3D-printed components and the servo motors that
+match the Degrees of Freedom (DoF) of the robotic arm (see
+Motion Capture Suit
+Auxiliary Robotic Arm
+Operational Robotic Arm
+Servo Motor
+Arm Gripper
+Fig. 2: Visualization of teleoperation methods for different robots. (a) Using 3D-printed components to control the single-arm
+robots. (b) Regulating the main robotic arm from the auxiliary arm for dual-arm operation. (c) Adopting a motion capture suit
+to map onto the humanoid robot for operation.
+Figure 2(a)). The motion of these 3D-printed components is
+mapped to the robotic arms movements, thereby driving the
+arm. Additionally, we use depth cameras to record the RGB-D
+information of the robotic arm movement and simultaneously
+receive the robot state of the robotic arm.
+For the dual-arm robots, we directly utilize a bilateral tele-
+operation device similar to the Mobile ALOHA system
+on the robot to collect the dataset. Figure 2(b) shows that we
+employ a teleoperation structure using an auxiliary robotic arm
+to control the main robotic arm.
+Fig. 3: The Tien
+humanoid
+configura-
+For the humanoid robots, Figure 3
+illustrates the structural design of the Tien
+Kung humanoid robot utilized in Robo-
+MIND. In terms of configuration, it is
+highly modeled after humans. The robotic
+arm is flexible and has a strong load-
+carrying capacity, making it suitable for
+performing operational tasks to collect
+datasets. The dexterous hand is integrated
+with multiple sensors for precise opera-
+tion. With 42 degrees of freedom through-
+out the whole body, it can perform a wide
+variety of movements. In terms of visual
+its head, chest, waist, and back. The head
+is equipped with the Orbbec Gemini 335 , and the other
+parts are equipped with the Orbbec Gemini 335L . These
+cameras use active and passive stereo vision technology to pro-
+vide multiple data streams, accurately record visual perception
+information. Besides Gello-style teleoperation devices, we use
+motion capture suits Xsens  to collect motion data from
+various joints of the human body and then map the human
+joint movements to the corresponding joint movements of a
+humanoid robot. This allows the humanoid robot to perform
+the same actions as the human body, enabling remote operation
+for data collection. Using motion capture suits provides a more
+accurate and direct method for capturing human movement,
+compared to relying on VR headsets  and cameras
+for human pose recognition. Figure 2(c) visualizes how we
+use a motion capture suit to collect data for humanoid robot
+operation.
+TABLE II: Examples of the task definitions for Franka,
+Task Name
+Task Description
+FR-PlaceBreadPlate
+The Franka single-arm robot grasps a
+piece of bread and places it on a plate.
+AX-PackBowl
+The AgileX robot packs the bowls.
+HR-OpenDrawer
+LowerCabinet
+The Tien Kung robot opens the bottom
+drawer of the cabinet.
+To optimize storage efficiency and facilitate dataset organi-
+multi-view RGB-D data, robot proprioceptive state informa-
+body state information, into a single H5 format file.
+B. Data Preprocessing and Classification
+All data is collected from operators controlling the teleoper-
+ation system in real-time, and errors can arise due to physical
+limitations such as fatigue, habits, distractions, or external
+disruptions. To mitigate these issues, we employ a rotation
+rest system for operators and strive to provide a comfortable
+working environment to help them stay focused. Additionally,
+we perform comprehensive quality checks on collected data
+to ensure its reliability. We define quality assurance criteria,
+such as avoiding unnecessary contacts and repeated grabbing
+(see Figure 4). The quality assurance consists of three steps:
+Initial Inspection: Quickly review videos to ensure there
+is no obvious technical issue, such as frame loss or
+freezing.
+Detailed Inspection: Review the video frame-by-frame
+or in slow motion to carefully check if the conditions
+described in Figure 4 are present.
+Data Filtering and Issue Logging: Document specific
+timestamps and descriptions for non-compliant data and
+categorize it for further processing or improvement.
+For data classification, we adopt a task-centric data collec-
+tion protocol, where each task serves as the fundamental unit
+of the dataset. We classify the collected datasets according
+to the task names, and each task name is comprehensively
+Movement not Smooth
+Secondary Grabbing
+Mechanical Arm Shaking
+Touch Excess
+Collision before Grabbing
+Image Distortion
+Failed Placement
+Gripper out of the Camera
+Fig. 4: We define 8 quality assurance criteria in the data collection process. Touch Excess: Unnecessary contact with objects by
+the robotic arm; Movement not Smooth: Noticeable jerking or interruptions in robotic arm movements; Secondary Grabbing:
+Repeated grasping attempts after failures in robotic arm operations; Mechanical Arm Shaking: Abnormal vibrations in the
+robotic arm; Collision before Grabbing: Collision of the gripper with surrounding objects before grasping; Image Distortion:
+Data collection quality issues; Failed Placement: Incorrect placement of objects; Gripper out of the Camera: Frames in
+which the gripper exceeds video frame boundaries. During the data inspection process, all failures were annotated from videos.
+We show 8 trajectory examples that failed to pass the quality assurance due to different reasons. Each example includes three
+images that depict the dynamic process of the trajectory. We use red boxes and markers to highlight the reasons for failure.
+Language description of the entire task process
+Fig. 5: Example of language description annotation. The video of the robotic arm placing the apple in the drawer is divided
+into six segments using Gemini. The language descriptions provided for each segment were initially generated by Gemini and
+subsequently refined through manual revision.
+defined by four key components: (1) the specific robotic em-
+bodiment utilized; (2) the manipulation skill being executed;
+(3) the objects involved in the task; and (4) detailed scene
+and environmental constraints or interfering elements. Table II
+shows examples of the task definition.
+This structured task-based framework ensures systematic
+data collection and enables fine-grained analysis of robotic
+manipulation capabilities across different scenarios and tasks.
+C. Data Annotation
+While the visual and robot proprioceptive information can
+be extracted directly from the collected videos and trajectories,
+we need to provide better semantic information from the data
+to aid model training. For each collection task, its detailed and
+accurate linguistic descriptions are provided. These linguistic
+annotations can be utilized for training currently popular VLA
+models. In addition, RoboMIND collection tasks encompass
+numerous long horizon tasks, where a uniform linguistic
+description may be insufficient to capture the full complexity
+and nuances of the entire task. Thus, we offer detailed fine-
+grained linguistic annotations for each movement occurring
+within a trajectory, as illustrated in Figure 5. We annotate 10k
+successful robot motion trajectories, which are contained in
+long horizon manipulation tasks. The annotation process in-
+volves two primary steps. First, we use Gemini  to segment
+each video based on the sequence of operations and generate
+detailed text descriptions for each segment. These descriptions
+accurately capture the operational steps and relevant context.
+the following key aspects:
+Identifying key manipulated objects;
+Detecting and describing all critical actions in the video;
+Ensuring accurate description of operational details;
+Applying reasonable granularity in temporal segmenta-
+Maintaining consistent temporal logic.
+This thorough process enhances the precision and reliability
+of the language annotations for the collected trajectories. We
+show the annotation of a video of a Franka Emika Panda
+arm picking the apple and placing it in the drawer using
+the above standard procedure in Figure 5. The results show
+that our annotation scheme can accurately segment the key
+actions in the video and provide precise language descriptions
+of these key actions. These detailed descriptions can be used
+for training models like RT-H .
+IV. DATASET ANALYSIS
+Based on a standardized procedure, we collected a large-
+dataset consists of 107k high-quality trajectories across 4
+robotic embodiments, 479 tasks, 96 object classes, and 38
+skills. Robotic data diversity plays a crucial role in model
+ware and environmental settings. In this section, we perform
+a thorough quantitative analysis of key diversity dimensions,
+including robot variety, task length variation, task diversity,
+and object diversity. We analyze RoboMIND across these di-
+learn generalizable manipulation policies. Furthermore, unlike
+previous works [77, 50], RoboMIND offers unique data types,
+such as language descriptions and failure case demonstrations,
+which enhance the policy models ability to perform fine-
+grained task planning and reflect on failure actions.
+A. Quantitative Analysis
+Heterogeneous Embodiments. A manipulation dataset
+with different robotic embodiment types improves generaliza-
+tion to various actions and joint DoFs in downstream tasks.
+We select four mainstream hardware platforms, each paired
+with different actuators: the single-arm robots, Franka Emika
+Panda and UR5e with grippers; the dual-arm robot AgileX
+Cobot Magic V2.0 with grippers; and the humanoid robot
+Tien Kung equipped with dexterous hands. Figure 1(a) shows
+the distribution of trajectories across different embodiments in
+our dataset. Franka accounts for 49.2 of the total trajectories,
+with over 26,070 simulation-based trajectories from our digital
+twin environment and 26,866 real-world trajectories collected
+via human teleoperation. The remaining three embodiments
+consist solely of real-world demonstrations. Specifically, the
+dual-arm data enhances the datasets diversity and complexity,
+supporting the training of coordination skills and more long-
+horizon tasks. Additionally, the humanoid robot with dexterous
+Skills per Trajectory
+Frequency
+Tien Kung
+(a) Skill number distribution histogram for each embodiment. We
+observe that over 70 of the Franka tasks involve only a single
+two or more skills, indicating that these dual-arm tasks are mostly
+long-horizon tasks.
+Hand-over
+(b) The AX-PutCarrot task with the AgileX robot is visual-
+Fig. 6: Analysis and visualization of skill distribution across
+different robotic embodiments.
+a series of complex, human-like manipulation skills. The het-
+erogeneous set of embodiment data collected under a unified
+standard can provide pretraining data for policy models with
+different action spaces [65, 51], as well as experimental data
+for the cross-embodiment transfer research [110, 15].
+Tasks with Various Horizon Lengths. In addition to
+the diversity across robot, the varied task horizons in the
+dataset directly impact the temporal generalization capabilities
+of policies in real-world scenarios. We calculate the average
+task horizon (the number of time steps in one trajectory) for
+each embodiment, as shown in Figure 1(b). Tasks collected
+by Franka and UR have shorter trajectories (fewer than 200
+time steps), making them ideal for training primitive skills.
+In contrast, tasks from Tien Kung and AgileX have longer
+trajectories (over 500 time steps), better suited for long-
+horizon task training and skill composition. Since each task
+involves a varying number of skills, we computed the skill
+number distribution for each embodiment in Figure 6(a),
+offering a clearer view of task horizons. AgileX tasks typically
+involve two or more combined skills, while Tien Kung tasks
+Fig. 7: Distribution of objects in RoboMIND, categorized as domestic, industrial, kitchen, office, and retail. The y-axis uses a
+logarithmic scale for counts above 500, with exact numbers shown for values exceeding it.
+vary in length, with some incorporating up to five skills per
+task. To provide a clearer explanation of long-horizon task
+and visualize its dual-arm trajectory in Figure 6(b). First, the
+left and right arms perform the pick skill on the carrot and
+blue plate, respectively. Next, the left arm hands the carrot
+to the right arms plate. Finally, the right arm places the blue
+plate onto the black plate. The entire process involves complex
+coordination and long-horizon manipulation.
+Task Classification. Unlike the previous dataset categoriz-
+ing tasks based on de-duplicated verbs , we categorize
+tasks by summarizing the manipulation skills from task lan-
+guage descriptions, considering various axes such as actions,
+to multiple task types, with only the primary type being
+counted for each trajectory. As shown in Figure 1(c), tasks
+are categorized into six types:
+1) Articulated Manipulations (Artic. M.): Opening, clos-
+2) Coordination Manipulations (Coord. M.): Dual-arm
+coordination between the robots arms;
+3) Basic Manipulations (Basic M.): Fundamental skills like
+4) Multiple Object Interactions (Obj. Int.): Interaction
+with multiple objects, e.g., pushing one cube across
+another;
+5) Precision Manipulations (Precision M.): Complex ma-
+nipulation and control skills, such as pouring liquid into
+a cup or inserting a battery;
+6) Scene Understanding (Scene U.): Actions with major
+challenges related to the semantic understanding of the
+or placing four large blocks of different colors into
+corresponding colored boxes.
+By breaking down the language descriptions into fine-
+grained tasks based on verb-noun combinations, RoboMIND
+includes 479 distinct tasks. In summary, RoboMIND en-
+compasses a range of skills (i.e., verbs from descriptions)
+beyond basic manipulations, significantly enhancing the policy
+models manipulation robustness in handling complex and
+long-horizon tasks.
+Diverse Objects. A generalized policy needs to learn not
+only a variety of task skills but also how to execute each skill
+consistently when interacting with different objects. Robo-
+MIND includes over 96 object categories from five usage
+provide a detailed overview, we summarize trajectories for all
+objects categorized by usage scenario in Figure 7. In each
+items such as strawberries, eggs, bananas, and pears, along
+with articulated objects like oven doors and bread machines;
+Domestic scenarios feature both rigid objects like tennis balls
+and deformable objects like toys; Office and industrial sce-
+narios include small objects that require precise control, such
+as batteries and gears. This wide variety of objects increases
+the datasets complexity and supports better generalization to
+unseen objects in downstream tasks.
+B. Qualitative Analysis
+Standardized Settings. RoboMIND features standardized
+settings to form a large-scale real-world manipulation dataset.
+As shown in Figure 8, we compare our dataset with Open X-
+though Open X-Embodiment contains a vast amount of data,
+the significantly different settings make it difficult to learn
+efficient manipulation policies across the entire dataset. In
+signed standardized procedure, making it ready-to-use for
+other roboticists. Meanwhile, its heterogeneous embodiments,
+diverse tasks, and various skills are suitable for training
+generalizable policies, whether for primitive skills or long-
+horizon manipulations.
+Failure Case Demonstrations. We also release 5k tra-
+jectories of the robot task failure cases. The failure cases
+documented include scenarios where different types of humane
+operators failed to complete their assigned tasks, as well as in-
+Open X-Embodiment
+RoboMIND (Ours)
+Heterogeneous Embodiments Enable Diverse Tasks and Skills
+Ready-to-use Dataset Collected through a Standardized Procedure
+Integrating Various Datasets with Significant Different Settings
+Fig. 8: Comparison between Open X-Embodiment and Robo-
+MIND. RoboMIND features heterogeneous embodiments with
+diverse tasks and skills while providing ease of use due to
+standardized settings.
+Fig. 9: Visualization of failed data collection cases. We present
+two examples of failure from Franka and AgileX. In the
+FR-PlacePlateInPlateRack task (the second row), the
+Franka arm fails to align with the slot, causing the plate to slip
+due to operator interference. In the AX-PutCarrot task (the
+fourth row), the AgileX gripper unexpectedly opens, dropping
+the carrot. These failure cases were filtered out during quality
+inspection to maintain the dataset quality.
+stances where robots encountered failures during the execution
+of operational tasks. We present the visualization examples
+from the Franka and AgileX robots of these failure cases
+in Figure 9. For the FR-PlacePlateInPlateRack task
+performed by Franka, a successful execution shows the robotic
+arm accurately placing a plate into the plate rack. In the failure
+the plate to slip out of the rack, likely due to visual occlusion
+or interference from the operator. For the AX-PutCarrot
+task performed by AgileX, successful execution demonstrates
+the robots collaborative manipulation to place a carrot onto
+the plate. In the failure case, the robots gripper unexpectedly
+Robotiq Gripper
+RealSense D435i
+Franka Emika
+Inspire-Robots
+Dexterous Hands
+Orbbec Gemini 335
+X-Humanoid
+Tien Kung
+AgileX Cobot Magic V2.0
+Orbbec Astra
+RealSense D435i
+Robotiq Gripper
+Fig. 10: Robotic real-world setup. For the Franka robot, we
+use cameras positioned at the top, left, and right viewpoints to
+record the visual information of the task trajectories. For the
+Tien Kung and AgileX robots, we use their built-in cameras
+to record visual information. For the UR robot, we use an
+external top camera.
+task failure-presumably due to accidental gripper activation by
+the operator. During the data quality inspection process, these
+failed trajectories are identified, categorized, and documented,
+further enhancing the overall quality of the dataset.
+The failure data is intended to advance research in areas like
+failure detection and recovery, data augmentation, and reward
+generation for reinforcement learning. For instance, training
+a binary classifier on successfailure data can aid failure
+failure data, and the RLHF approach  uses failure data as
+negative examples to learn accurate patterns. Our failure data
+can be used seamlessly in these works.
+V. ANALYZING ROBOT LEARNING WITH ROBOMIND
+Following the detailed description of RoboMINDs collec-
+tion process and an in-depth analysis of its characteristics, we
+conducted a series of comprehensive experiments employing
+various robot manipulation learning methods. RoboMIND
+serves as a benchmark to evaluate the performance and
+limitations of these methods. In the subsequent experiments,
+we assessed the performance of single-task imitation learning
+models (ACT , Diffusion Policy , and BAKU ),
+as well as VLA large models (RDT-1B , OpenVLA ,
+and CrossFormer ), which can perform multiple tasks
+with RoboMIND. Subsequently, we validated the ability of
+the VLA models to generalize across various scenarios and
+manipulate different types of objects. Additionally, we ap-
+plied RoboMIND to pre-train the aforementioned VLA large
+embodiment task execution for the VLA large models. Finally,
+we provided some failure case analyses and validated the ef-
+fectiveness of our digital twin simulation data via co-training.
+A. Experiment Setup
+Real-world Robotic Setup. Our real-world robotic setup
+is shown in Figure 10. The robotic platforms used in this
+study are equipped as follows: (1) Franka Emika Panda
+FR-LampOff
+FR-CloseTrashBin
+FR-SideCloseDrawer
+FR-PlacePickThrow
+FR-PlacePlateRack
+HR-CloseDrawerLowerCabinet
+HR-PlaceCupFrontMachine
+HR-PlaceTennisBallBox
+HR-PutPotatoBluePot
+HR-UprightCup
+AX-PickPlate
+AX-BrushCup
+AX-PackCup
+AX-PotatoOven
+AX-TakeCorn
+UR-CloseTopWhiteDrawer
+UR-OpenTopDrawer
+UR-CloseTrashCan
+UR-CoverPotLid
+UR-PickUpGreenPepper
+Fig. 11: Diverse task examples across 4 robotic embodiments in RoboMIND. The dataset features tasks performed by four
+distinct robotic embodiments: Franka (the first row), Tien Kung (the second row), AgileX (the third row), and UR (the fourth
+row). For each robotic embodiment, we have selected 5 representative task scenarios.
+features three Intel RealSense D435i cameras  (left, top,
+and right) with resolutions of 480  640, 720  1280, and
+480  640 pixels, respectively, and a Robotiq gripper. (2) Tien
+Kung  utilizes two Inspire-Robots RH56DFX dexterous
+hands and Orbbec Gemini 335 cameras  on the head
+and chest, both at 480  640 resolution. (3) AgileX Cobot
+Magic V2.0  is fitted with two hand-eye Orbbec Astra
+cameras  and one front-facing camera, all at 480  640
+resolution. (4) UR5e  is paired with a top-mounted Intel
+RealSense D435i camera at 480  640 resolution and employs
+a Robotiq gripper.
+Representative Tasks. RoboMIND encompasses a diverse
+collection of 479 distinct manipulation tasks collected across
+four different robot embodiments. Representative examples of
+these tasks are illustrated in Figure 11. Below, we provide a
+representative task for each robot to elucidate the nomenclature
+and functionality associated with these operations.
+FR-SideCloseDrawer. This task requires the Franka
+robotic arm to locate the outer edge of a cabinet door
+accurately. The robot needs to make contact with the door
+edge and push it along a curved path. The goal is to
+completely close the cabinet door.
+HR-UprightCup. In this task, the Tien Kung humanoid
+robot needs to grasp a cup that is lying on its side. The
+robot must then execute a 90-degree rotation movement
+to bring the cup to an upright position. Finally, it needs
+to place the upright cup on the table surface gently.
+AX-TakeCorn. For this task, the AgileX robot must first
+use its left hand to locate and open the pot lid. The robot
+then extends its right hand into the pot to grip the corn.
+and place it onto a plate.
+UR-CloseTopWhiteDrawer. This task is performed
+by the UR5e robot, wherein the robot is required to close
+the uppermost drawer of a set of stacked white drawers.
+B. Single-task Imitation Learning Models
+Experimental Task Design. We carried out our single-task
+experiments on a large set of single tasks. We used a total of
+45 tasks which were grouped based on the robots performing
+them. Franka, Tien Kung, AgileX, and UR5e carried out 15,
+to include a wide variety of actions collected in RoboMIND.
+These actions ranged from simpler tasks like picking up
+different objects and placing them in specified spots, to more
+complex tasks like pulling and pushing articulated objects.
+Additional tasks involved dual-arm coordination and precise
+ties of the models.
+Training and Evaluation Setup. In terms of the imi-
+tation learning algorithms, we used three well-known and
+commonly used methods: ACT , Diffusion Policy ,
+and BAKU . For ACT and BAKU, we followed the
+default model settings as recommended in their original pa-
+pers. For Diffusion Policy, we followed the implementation in
+DROID . Using the three algorithms, we trained the single-
+task model from scratch for each dataset. After training, we
+FR-PickStrawberryInBowl
+FR-PlaceBreadPlate
+FR-SlideCloseDrawer
+FR-SideOpenDrawer
+FR-PickPearBowl2
+FR-PlacePearBowl
+FR-PlaceBlockPlate
+FR-OpenTrashCan
+FR-SideCloseDrawer
+FR-PlacePlateRack
+FR-PlaceBreadTable
+FR-PlacePickThrow
+FR-PickPearBowl1
+FR-LampOff
+FR-PickPlateRack
+HR-CloseTrashBin
+HR-CloseDrawerLowerCabinet
+HR-PlaceTennisBallBox
+HR-OpenTrashBin
+HR-PressDownToaster
+HR-OpenDrawerLowerCabinet
+HR-PlaceCupFrontMachine
+HR-PutPotatoBluePot
+HR-UprightCup
+HR-PlaceBreadPlate
+AX-PutCorn
+AX-PutPepper
+AX-AppleYellowPlate
+AX-AppleBluePlate
+AX-CarrotGreenPlate
+AX-PutCarrot
+AX-PackBowl
+AX-PutEgg
+AX-AppleGreenPlate
+AX-PackPlate
+AX-UnpackBowl
+AX-TakePotato
+AX-TakePumpkin
+AX-TakeEgg
+AX-PotatoOven
+UR-CloseTopWhiteDrawer
+UR-PickRoundBread
+UR-OpenTrashCan
+UR-CloseTrashCan
+UR-PickLongBread
+Success Rate
+Tien Kung
+Diffusion Policy
+Fig. 12: Success rates of ACT, Diffusion Policy, and BAKU on RoboMIND.
+Bimanual Manipulation Tasks
+AX-TakePotato
+AX-PutPepper
+AX-AppleYellowPlate
+AX-AppleBluePlate
+AX-PackBowl
+Single-arm Manipulation Tasks
+FR-OpenTrashCan
+FR-SideCloseDrawer
+FR-SideCloseDrawer
+FR-PickStrawberryInBowl
+FR-PlaceBreadPlate
+HR-OpenDrawerLowerCabinet
+HR-PressDownToaster
+HR-OpenTrashBin
+HR-CloseTrashBin
+HR-CloseDrawerLowerCabinet
+Humanoid Manipulation Tasks
+Fig. 13: Visualization of the selected tasks on single-arm, dual-arm, and humanoid robots used in experiments of the vision-
+language-action models.
+directly deployed the models in real-world environments for
+evaluation. We assessed the performance of each model using
+its success rate in the tasks. Each model was tested ten times,
+and the testers recorded the success or failure of each test and
+the reasons if there were any failures. This thorough process
+gave us valuable insights for further developments.
+Experimental Results. Figure 12 presents the performance
+of ACT , Diffusion Policy , and BAKU  across
+45 tasks using four types of robots, evaluated in terms of the
+success rate. In Figure 12, we found that ACT achieves an
+average success rate of 55.3 across 15 tasks on AgileX,
+outperforming Franka (30.7), UR5e (38.0), and Tien Kung
+(34.0). Additionally, ACT also showed promising results on
+several humanoid robot tasks, including a 60 success rate on
+HR-CloseDrawerLowerCabinet. These results not only
+illustrated that ACT shows robust performance in complex
+dexterous hand manipulation tasks but also underscored the
+high quality of data gathered in RoboMIND. Similarly, Dif-
+fusion Policy also demonstrated its capacity to learn complex
+Kung. Therefore, we believe that the single-arm, dual-arm,
+and dexterous hand datasets in RoboMIND can serve as high-
+quality training sets to improve the performance of single-
+task imitation learning, thereby advancing the development
+of the entire imitation learning field. On the other hand,
+BAKU exhibits lower success rates across most tasks. This
+discrepancy could be attributed to the hyper-parameter settings
+from the original BAKU paper, which is primarily optimized
+for simulation environments rather than real-world robotic
+platforms tested in our experiments. The significant perfor-
+mance gap underscores the challenges in directly transferring
+models from simulated settings to physical robots.
+C. Vision-Language-Action Large Models
+Experimental Task Design. This section seeks to examine
+the performance of VLA large-parameter robot model when
+applied to RoboMIND. We picked fifteen tasks performed
+by different types of robots from the single-task imitation
+learning experiments. Figure 13 illustrates the tasks we chose
+for Franka single-arm robot, the Tien Kung humanoid robot,
+and the AgileX dual-arm robot. For the Franka single-
+arm robot, these selected tasks encompass common robotic
+arm operations, such as picking and placing, pushing and
+accurately positioning the robotic arm to open a trash bin lid.
+For the Tien Kung humanoid robot, the tasks are divided into
+two main categories. The first category consists of tasks similar
+to those performed by the single-arm Franka robot, which are
+intended to evaluate the models performance across different
+robot types. The second category involves using the humanoid
+robots dexterous hands to perform precise operations, such
+as flipping a toaster switch to toast bread, to assess the
+models accuracy in positioning and manipulation. For the
+AgileX dual-arm robot, we chose dual-arm tasks that involve
+coordinated actions, such as the left arm retrieving a plate from
+a rack and the right arm placing an apple on the plate. This
+selection emphasizes the unique capabilities and coordination
+required in dual-arm operations.
+Training and Evaluation Setup. We evaluated the per-
+formance of three models (OpenVLA , RDT-1B ,
+and CrossFormer ) fine-tuned by the demonstrations from
+RoboMIND in completing various real-world tasks. Given
+that the VLA large model exhibits excellent generalization
+multitask demonstrations for fine-tuning the VLA models.
+fine-tuned them on the multitask datasets for each type of
+task to determine the extent of generalization achieved, by
+conducting ten trials for each task. We tested ten trials for
+each experiment. For OpenVLA , which involves fine-
+tuning the Llama 2 model  using a large robotic dataset
+and adapting it to be a 7-DoF VLA model, we only tested it on
+the Franka single-arm robot, since the output of OpenVLA is
+the condition of one end effector and only supports single-arm
+manipulations.
+Experimental Results. Table III presents the success rates
+for various robot tasks performed using the three different
+VLA models. The experimental results show that the VLA
+large models fine-tuned on expert demonstrations from Robo-
+MIND performed well across various different robot tasks. The
+fine-tuned RDT-1B, compared to CrossFormer and OpenVLA,
+demonstrated significantly enhanced performance in executing
+tasks across a range of robot models. This improvement is
+especially notable for dual-arm manipulation tasks, where
+RDT-1B excelled. Although the performance of OpenVLA
+being inferior to that of RDT-1B, it nonetheless achieved a
+TABLE III: Success rates of the VLA models in the fine-tuning
+settings using RoboMIND. Color boxes represent the first
+best performance in all tables of this paper.
+Single-arm Manipulation Task
+CrossFormer
+FR-PlaceBreadPlate
+FR-PickStrawberryInBowl
+FR-OpenTrashCan
+FR-SideCloseDrawer
+FR-SideOpenDrawer
+Humanoid Manipulation Tasks
+CrossFormer
+HR-OpenDrawerLowerCabinet
+HR-CloseDrawerLowerCabinet
+HR-OpenTrashBin
+HR-CloseTrashBin
+HR-PressDownToaster
+Bimanual Manipulation Task
+CrossFormer
+AX-TakePotato
+AX-PutPepper
+AX-AppleYellowPlate
+AX-AppleBluePlate
+AX-PackBowl
+comparable task success rate for straightforward tasks like
+FR-PlaceBreadPlate and FR-SlideCloseDrawer.
+strated performance improvements in tasks executed by single-
+arm and humanoid robots, compared with no success in all
+tasks without fine-tuning.
+D. Leveraging RoboMIND to Enhance VLA Large Models
+Training and Evaluation Setup. Currently, most VLA
+large models are trained with datasets from robots with arms
+and grippers and can only be applied to the same types of
+robots. It is noting that RoboMIND contains valuable data
+from diverse robots including the Tien Kung humanoid robots
+with dexterous hands, and we applied this dataset in the pre-
+training of the RDT-1B and CrossFormer models to enhance
+their ability to handle real-world dexterous manipulation tasks.
+After that, we fine-tuned the VLA large models using the
+expert multitask datasets, which is a small subset (about 1)
+of RoboMIND. We conducted ten tests for each model on each
+pre-trained and expert data fine-tined models.
+Experimental Results. Table IV presents the experimen-
+tal results of RDT-1B and CrossFormer that were first
+trained on the entire RoboMIND dataset and then fine-
+tuned on the expert multitask dataset, compared to those
+fine-tuned directly on the expert multitask dataset. The re-
+sults show that training different VLA models using the
+full RoboMIND dataset led to significant improvements in
+task success rate across a variety of robot tasks. Espe-
+cially for dual-arm tasks on the CrossFormer, training with
+the full RoboMIND dataset significantly enhanced its per-
+formance. The training effect improved from being unable
+to complete each dual-arm task to achieving nearly every
+test success on AX-TakePotato, AX-PutPepper, and
+AX-AppleBluePlate.
+HR-PressDownToaster
+from humanoid manipulation tasks, training CrossFormer us-
+ing RoboMIND also achieved a 100 task success rate. This
+improvement underscores the robustness and versatility of
+RoboMIND in facilitating more effective and reliable robotic
+TABLE IV: Success rates of the VLA models before and after training with RoboMIND. The notation (origin) indicates
+models fine-tuned directly on the expert multitask dataset without training on RoboMIND, while (RoboMIND) denotes models
+first trained on the entire RoboMIND dataset and subsequently fine-tuned on the expert multitask dataset.
+Single-arm Manipulation Task
+RDT-1B (origin)
+RDT-1B (RoboMIND)
+CrossFormer (origin)
+CrossFormer (RoboMIND)
+FR-PlaceBreadPlate
+FR-PickStrawberryInBowl
+FR-OpenTrashCan
+FR-SideCloseDrawer
+FR-SideOpenDrawer
+Humanoid Manipulation Tasks
+RDT-1B (origin)
+RDT-1B (RoboMIND)
+CrossFormer (origin)
+CrossFormer (RoboMIND)
+HR-OpenDrawerLowerCabinet
+HR-CloseDrawerLowerCabinet
+HR-OpenTrashBin
+HR-CloseTrashBin
+HR-PressDownToaster
+Bimanual Manipulation Task
+RDT-1B (origin)
+RDT-1B (RoboMIND)
+CrossFormer (origin)
+CrossFormer (RoboMIND)
+AX-TakePotato
+AX-PutPepper
+AX-AppleYellowPlate
+AX-AppleBluePlate
+AX-PackBowl
+TABLE V: Success rates of RDT-1B pre-trained with and
+without the humanoid data.
+Success Rate
+RDT-1B (wo Humanoid)
+RDT-1B (w Humanoid)
+FR-PlaceBreadPlate
+FR-PickStrawberryInBowl
+FR-OpenTrashCan
+FR-SideCloseDrawer
+FR-SideOpenDrawer
+manipulations.
+Ablation Studies on Humanoid Data. The standardized
+data across diverse combinations of robotic platforms eases
+investigations on cross-embodiment generalization and im-
+provements. For example, it is worth exploring whether the
+humanoid data is helpful for policy learning for other robots,
+such as the single-arm Franka. We conducted an ablation
+study by pre-training the RDT-1B model using an incomplete
+RoboMIND dataset excluding the humanoids data (19k of
+107k in RoboMIND) and fine-tuning the model on the expert
+multitask datasets. Table V shows that the humanoid data
+enhances the performance of RDT-1B on the unimanual tasks,
+especially the difficult tasks. Overall, training with the full
+RoboMIND dataset obtained a 13.3 relative improvement
+(0.68 v.s. 0.6) of success rates against the incomplete dataset
+without humanoid data.
+E. Generalization of VLA Large Models
+Evaluation Setup. We conducted tests to validate the
+generalization of using RoboMIND to fine-tune the VLA
+large models, assessing their ability to generalize across real
+task scenarios with varying backgrounds and different objects
+of manipulation. Specifically, we evaluated the generalization
+performance on the FR-PlaceBreadPlate task of Open-
+on the Franka multitask dataset in Section V-C. Both RDT-
+1B and CrossFormer are trained on the entire RoboMIND
+dataset and subsequently fine-tuned using the Franka expert
+TABLE VI: Generalization results of VLA large models on
+the FR-PlaceBreadPlate-related tasks.
+Generalization of Backgrounds and Objects
+CrossFormer
+FR-PlaceBreadPlate
+FR-PlaceCornPlate
+FR-PlaceBananaPlate
+FR-PlaceApplePlate
+FR-PlaceBreadPlate (Unseen Background 1)
+FR-PlaceBreadPlate (Unseen Background 2)
+FR-PlaceBreadPlate (Unseen Background 3)
+multitask dataset. OpenVLA, in contrast, is directly fine-
+tuned using the Franka expert multitask dataset. As shown
+in Figure 14, we executed the FR-PlaceBreadPlate task
+on three tablecloths with different unseen background patterns
+and replaced the grasped bread object with an apple, a banana,
+and a corn. We tested ten trials for each experiment.
+Experimental Results. As presented in Table VI, both
+RDT-1B and CrossFormer exhibited good generalizations for
+manipulating objects, especially for objects like bananas that
+are similar in shape to the bread-like objects in the train-
+ing data. However, when it comes to generalizing across
+unseen backgrounds, RDT-1B, OpenVLA, and CrossFormer
+performed relatively poorly in the FR-PlaceBreadPlate
+F. Failure Case Analysis on Real-world Experiments
+During the testing phase, we recorded not only whether the
+models task execution was successful but also the reasons
+for any failures. We predefined nine failure categories: (1)
+Inaccurate Positioning; (2) Cannot Close Gripper; (3) Cannot
+Approach Object; (4) Early Gripper Release; (5) Object Drop;
+(6) Cannot Release Gripper; (7) Cannot Return to Home Pose;
+(8) Collision Recovery Failure; (9) Excessive Speed.
+In Figure 15, we showed the distribution of failure reasons
+for the ACT across 45 single tasks performed on the four
+robotic embodiments, as described in Section . We presented
+Various Objects
+Various Backgrounds
+Fig. 14: Unseen objects and backgrounds used to evaluate the generalization ability of the VLA large models.
+Failure Ratio ()
+Fig. 15: Top five failure reasons for each embodiment of the
+ACT algorithm. The x-axis denotes the proportion for each
+failure among all unsuccessful test cases. The y-axis denotes
+different embodiments.
+the top five most frequent failure reasons for each robotic
+embodiment. Firstly, we observe that, for ACT, Inaccurate
+Positioning is the most common failure reason across all
+rollouts. For instance, in the humanoid robot tasks, failures
+due to Inaccurate Positioning accounted for as much as
+48. This highlights the critical importance of accurately
+positioning the robotic arm in 3D space to execute skills
+success. It can be noted that the improper gripper actions,
+such as Cannot Close Gripper and Object Drop, were
+significant contributors to overall task failures. This issue
+arises because the number of frames used for gripper actions
+is typically limited, thereby complicating the learning process.
+From a data perspective, which is often overlooked by
+researchers and developers, the reasons for failure provide
+insights into improving data quality. The collected data fre-
+quently fall short of the task designers expectations due to
+various factors such as hardware limitations, physical state,
+external interference, and communication issues. For instance,
+inaccurate localization may stem from non-random placement
+of objects in the dataset, despite instructions for random
+placement. To address this, we can collect additional data
+from previously neglected locations to better represent the
+task environment and improve the success rate. Similarly,
+gripper non-closure is likely due to the data collector moving
+too quickly when closing the jaws, resulting in insufficient
+frames being captured. This makes training more challenging.
+To mitigate this, we can instruct collectors to slow down
+during jaw closure to ensure adequate data capture. By refining
+data collection practices, we can enhance the robustness and
+reliability of the imitation learning algorithms, ultimately
+leading to better performance in real-world applications.
+G. Real and Simulation Data
+To validate the effectiveness of simulation data in Robo-
+Co-training with Real and Simulation Data. Firstly,
+we combined both real-world and simulation data for train-
+ing. We selected a complex Franka robotic arm task,
+rotate nearly 90 degrees, insert its gripper horizontally into
+the cups opening, and restore an overturned cup to its upright
+position. As shown in Figure 16, we constructed a digital
+twin simulation environment that closely mirrors the real-
+world setup, including the robotic arm, table surface, objects,
+and cameras. We collected 100 real-world trajectories and 500
+trajectories in the simulation. We then trained and evaluated
+the ACT model using different ratios of real-world to simula-
+tion data, including real-world data only, simulation data only,
+and mixed ratios of 100:100, 100:200, 100:300, 100:400, and
+techniques but instead directly combined both types of data for
+co-training. Figure 17 shows the success rates of ACT in both
+Left View
+Right View
+Top View
+Left View
+Right View
+Top View
+Simulation
+Fig. 16: Experimental setup in real-world and simulation
+environments. The top and bottom rows show observations
+from the left view, right view, and top view in the real-
+world and simulation environments, respectively. We can see
+that the two environments are very similar, as the simulation
+environment was constructed to mirror the real environment.
+Ratio of Real and Simulation Training Data
+Success Rates
+Evaluations in Real Env.
+Evaluations in Sim Env.
+Fig. 17: Success rates of models trained with different ratios
+of real-world and simulation data.
+real-world and simulation environments under different exper-
+imental settings. Our observations revealed that increasing the
+proportion of simulation data improved success rates in both
+real-world and simulation environments, thanks to our highly
+accurate simulation environment that closely resembles real-
+world conditions. However, we also discovered that simulation
+data alone is insufficient for real-world performance, with
+real-world data playing a crucial role. For instance, while the
+combination of 100 real-world trajectories and 500 simulation
+trajectories achieved a 90 success rate in the simulated en-
+decrease to a 10 success rate in the real world. The primary
+cause of failure was the cup slipping from the gripper during
+rotation due to insufficient grip closure. This suggests that
+significant disparities exist between simulated and real-world
+improvement in simulation fidelity.
+Performance Correlations between Real and Simula-
+tion Environments. We further experimented to validate the
+correlations between performance in the real and simulation
+environments of the same model We selected five tasks, trained
+single-task ACT and Diffusion Policy with real-world data,
+and evaluated them in both the real world and the digital twin
+simulation environment. Table VII shows positive correlations
+of the sim-real test results. This aligns with findings in prior
+research  and confirms the positive correlation between
+TABLE VII: Success rates of ACT and Diffusion Policy tested
+in real and simulation environments.
+Tests in Different Environments
+Diffusion Policy
+FR-PickStrawberryInBowl
+FR-PlaceBreadPlate
+FR-SlideCloseDrawer
+FR-PlacePearBowl
+FR-PlaceBlockPlate
+Pearson Correlation Coefficient
+simulation and real-world results.
+VI. DISCUSSION AND FUTURE WORK
+In this work, we introduce RoboMIND, a large-scale, multi-
+embodiment dataset for robot manipulation. RoboMIND in-
+cludes four distinct embodiments, 107k high-quality demon-
+strations across 479 tasks, 96 objects, and 38 unique skills,
+collected through an intelligent data platform with a carefully
+designed quality assurance process.
+We present quantitative analyses of RoboMIND, highlight-
+ing its heterogeneous embodiments, diverse episode lengths,
+broad task coverage, and a wide range of objects drawn from
+five common scenarios: domestic, industrial, kitchen, office,
+and retail. We also compare RoboMIND qualitatively with the
+Open X-Embodiments dataset, considering factors such as uni-
+form settings, multiple viewpoints, and embodiment diversity.
+These analyses underscore the richness of RoboMIND and its
+potential to advance research in robot manipulation.
+We conduct experiments on several popular imitation learn-
+ing robot models, assessing their pre-training performance and
+generalization capabilities on RoboMIND. Our results indicate
+an urgent need to enhance accurate positioning and precise
+control in current algorithms, especially for long-horizon tasks.
+For potential investigations, we suggest that the high-quality,
+diverse data of RoboMIND is especially suitedbut not lim-
+itedto fostering cross-embodiment generalization, adapting
+imitation learning models to downstream tasks, and exploring
+data augmentation strategies for improved visual- and task-
+level generalization.
+As an ongoing research project, we continue to expand
+RoboMIND using standardized collection and quality assur-
+ance procedures. Therefore, we believe RoboMIND can serve
+as a ready-to-use dataset and consistently boost progress in
+embodied AI research.
+VII. LIMITATIONS
+One limitation of RoboMIND is the relatively simple back-
+ground environments. While our primary focus has been on
+constructing a large-scale, high-quality set of robotic trajecto-
+more complex backgrounds can enhance the models manip-
+ulation performance, either through data generation or further
+collection efforts. Additionally, although RoboMIND covers
+a broad range of robot tasks and environments, it currently
+lacks data from mobile manipulation scenarios. However, since
+two of our robotic embodiments are mobile, we plan to
+expand RoboMIND to include mobile manipulation tasks in
+the future. Additionally, RoboMIND can be further enriched
+by adding more informative annotations such as high-level
+planning instructions and annotations of trajectory quality.
+ACKNOWLEDGMENTS
+This dataset and benchmark for robotic arm manipulation
+tasks represent a complex system engineering effort that
+required extensive collaboration among numerous researchers
+across multiple domains. The development of this work would
+not have been possible without the dedication and expertise of
+many individuals who contributed their time and knowledge
+throughout various stages of the project.
+We would like to extend our deepest gratitude to the
+following individuals for their invaluable help in this work:
+Dapeng Wang, Gang Han, Haifang Huang, Jialiang Shu, Jian
+Kai Yang, Kun Niu, Lili Chen, Manzhan Wang, Musen Zhang,
+Peng Guo, Qiu Cui, Shuyi Zhang, Yaowen Xu, Yijie Guo,
+Yingjuan Tang, Yizhang Liu, Yue Zhao, Yuheng Zhang, Zehui
+ciate the dedication and effort of numerous contributors who
+assisted with data collection, quality assurance, annotation,
+and testing procedures. Their collective efforts and expertise
+have been instrumental in making this research possible. We
+sincerely appreciate their commitment to advancing the field
+of robotic manipulation through this collaborative endeavor.
+This work was in part supported by the National Natural
+Science Foundation of China (62476011).
+AUTHOR CONTRIBUTIONS
+Project Leaders: Zhengping Che and Xiaozhu Ju
+Project Coordinators: Kun Wu, Zhuqin Yang, Chengkai
+Data Collection and Processing: Zhiyuan Xu, Guang
+Lecheng Wang, Kun Wu, Meng Li, and Pei Ren
+Dataset Annotation: Yulin Luo, Zeyu Gao, Zhenyu
+Algorithm Development:
+Diffusion Policy: Kun Wu, Jilei Mao, and Xinhua
+Chenyang Gu, and Yankai Fu
+Paper Writing: Chengkai Hou, Jiaming Liu, Kun Wu,
+Meng Li, Yinuo Zhao, Mengzhen Liu, Xinhua Wang,
+Zhengping Che, and Shanghang Zhang
+Project Support: Zhuqin Yang, Kun Wu, Chengkai
+Shichao Fan, Pei Ren, Qiang Zhang, Mengzhen Liu, and
+Pengju An
+Project Advisors: Jian Tang and Shanghang Zhang
+REFERENCES
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Michael Ahn, Anthony Brohan, Noah Brown, Yevgen
+Chuyuan Fu, Keerthana Gopalakrishnan, Karol Haus-
+Do as i can, not as i say: Grounding
+language in robotic affordances.
+In Proceedings of
+The 6th Conference on Robot Learning, volume 205
+of Proceedings of Machine Learning Research, pages
+Alex Ray, et al. Learning dexterous in-hand manipula-
+tion. The International Journal of Robotics Research,
+Anas Awadalla, Irena Gao, Josh Gardner, Jack Hessel,
+Yusuf Hanafy, Wanrong Zhu, Kalyani Marathe, Yonatan
+autoregressive vision-language models. arXiv preprint
+Shikhar Bahl, Russell Mendonca, Lili Chen, Unnat Jain,
+and Deepak Pathak. Affordances from human videos as
+a versatile representation for robotics. In Proceedings
+of the IEEECVF Conference on Computer Vision and
+Pattern Recognition, pages 1377813790, 2023.
+Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda
+Stanislav Fort, Deep Ganguli, Tom Henighan, et al.
+Training a helpful and harmless assistant with reinforce-
+ment learning from human feedback.
+arXiv preprint
+Suneel Belkhale, Tianli Ding, Ted Xiao, Pierre Ser-
+Jonathan
+Debidatta
+hierarchies
+language.
+Homanga Bharadhwaj, Jay Vakil, Mohit Sharma, Ab-
+hinav Gupta, Shubham Tulsiani, and Vikash Kumar.
+manipulation via semantic augmentations and action
+chunking. In 2024 IEEE International Conference on
+Robotics and Automation (ICRA), pages 47884795.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yev-
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana
+Control at Scale. In Proceedings of Robotics: Science
+and Systems, Daegu, Republic of Korea, July 2023.
+Serkan Cabi, Sergio Gomez Colmenarejo, Alexander
+Konrad Zolna, Yusuf Aytar, David Budden, Mel Ve-
+sketching and batch reinforcement learning.
+ceedings of Robotics: Science and Systems, July 2020.
+Remi Cadene, Simon Alibert, Alexander Soare, Quentin
+robotics in pytorch.
+The Beijing Humanoid Robot Innovation Center.
+humanoid tien kung, 2024. URL
+Angel Chang, Angela Dai, Thomas Funkhouser, Maciej
+Andy Zeng, and Yinda Zhang. Matterport3d: Learning
+from rgb-d data in indoor environments.
+International Conference on 3D Vision (3DV), pages
+Chi-Lam Cheang, Guangzeng Chen, Ya Jing, Tao Kong,
+Hang Li, Yifeng Li, Yuxiao Liu, Hongtao Wu, Jiafeng
+language-action model with web-scale knowledge for
+robot manipulation. arXiv preprint arXiv:2410.06158,
+Lawrence Yunliang Chen, Kush Hari, Karthik Dhar-
+berg. Mirage: Cross-embodiment zero-shot policy trans-
+fer with cross-painting.
+In Proceedings of Robotics:
+Science and Systems, 2024.
+Xuxin Cheng, Jialong Li, Shiqi Yang, Ge Yang, and
+Xiaolong Wang.
+immersive active visual feedback. In 8th Annual Con-
+ference on Robot Learning, 2024.
+Cheng Chi, Siyuan Feng, Yilun Du, Zhenjia Xu, Eric
+fusion policy: Visuomotor policy learning via action
+diffusion. RSS, 2023.
+Paul F Christiano, Jan Leike, Tom Brown, Miljan Mar-
+ment learning from human preferences.
+Advances in
+neural information processing systems, 30, 2017.
+Erwin Coumans and Yunfei Bai.
+module for physics simulation for games, robotics and
+machine learning, 2016.
+Giovanni
+Scaling egocentric vision:
+The epic-kitchens dataset.
+In Proceedings of the
+European conference on computer vision (ECCV),
+Giovanni
+Antonino
+Evangelos
+Jian Ma, Davide Moltisanti, Jonathan Munro, Toby
+100. International Journal of Computer Vision, pages
+Sudeep Dasari, Frederik Ebert, Stephen Tian, Suraj
+Large-scale multi-robot learning.
+In Conference on
+Robot Learning, pages 885897. PMLR, 2020.
+Mingdi Deng, Zhijun Li, Yu Kang, CL Philip Chen,
+and Xiaoli Chu. A learning-based hierarchical control
+scheme for an exoskeleton robot in humanrobot coop-
+erative manipulation. IEEE transactions on cybernetics,
+Ria Doshi, Homer Rich Walke, Oier Mees, Sudeep
+Scaling cross-embodied
+comotion and aviation. In 8th Annual Conference on
+Robot Learning, 2024.
+Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch,
+Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid,
+Jonathan Tompson, Quan Vuong, Tianhe Yu, et al.
+Proceedings of the 40th International Conference on
+Machine Learning, ICML23. JMLR.org, 2023.
+Frederik Ebert, Yanlai Yang, Karl Schmeckpeper,
+Bernadette Bucher, Georgios Georgakis, Kostas Dani-
+Boosting Generalization of Robotic Skills with Cross-
+Domain Datasets. In Proceedings of Robotics: Science
+and Systems, New York City, NY, USA, June 2022. doi:
+Ben Eisner, Harry Zhang, and David Held. FlowBot3D:
+Learning 3D Articulation Flow to Manipulate Articu-
+lated Objects. In Proceedings of Robotics: Science and
+Hao-Shu Fang, Chenxi Wang, Hongjie Fang, Minghao
+grasp perception in spatial and temporal domains. IEEE
+Transactions on Robotics, 2023.
+Hao-Shu Fang, Hongjie Fang, Zhenyu Tang, Jirong Liu,
+Chenxi Wang, Junbo Wang, Haoyi Zhu, and Cewu Lu.
+diverse skills in one-shot. In 2024 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Zipeng Fu, Qingqing Zhao, Qi Wu, Gordon Wetzstein,
+and Chelsea Finn. Humanplus: Humanoid shadowing
+and imitation from humans. In 8th Annual Conference
+on Robot Learning, 2024.
+Zipeng Fu, Tony Z. Zhao, and Chelsea Finn. Mobile
+low-cost whole-body teleoperation.
+In 8th Annual
+Conference on Robot Learning, 2024.
+Samir Yitzhak Gadre, Gabriel Ilharco, Alex Fang,
+Jonathan Hayase, Georgios Smyrnis, Thao Nguyen,
+Ryan Marten, Mitchell Wortsman, Dhruba Ghosh, Jieyu
+of multimodal datasets. Advances in Neural Information
+Processing Systems, 36, 2024.
+Theophile Gervet, Zhou Xian, Nikolaos Gkanatsios,
+and Katerina Fragkiadaki.
+transformers for multi-task robotic manipulation. In 7th
+Annual Conference on Robot Learning, 2023.
+Franka Robotics GmbH. Franka robotics, 2024. URL
+Ankit Goyal, Jie Xu, Yijie Guo, Valts Blukis, Yu-Wei
+for 3d object manipulation.
+In Conference on Robot
+Ebrahimi
+una Kim, Valentin Haenel, Ingo Fruend, Peter Yianilos,
+Moritz Mueller-Freitag, et al. The something some-
+thing video database for learning and evaluating visual
+common sense. In Proceedings of the IEEE interna-
+tional conference on computer vision, pages 58425850,
+Kristen Grauman, Andrew Westbury, Eugene Byrne,
+Zachary Chavis, Antonino Furnari, Rohit Girdhar, Jack-
+son Hamburger, Hao Jiang, Miao Liu, Xingyu Liu, et al.
+In Proceedings of the IEEECVF Conference
+on Computer Vision and Pattern Recognition, pages
+Adithyavairavan
+Prakashchand
+Robot learning in homes: Improving generalization and
+reducing dataset bias. Advances in neural information
+processing systems, 31, 2018.
+Siddhant Haldar, Zhuoran Peng, and Lerrel Pinto.
+learning. In The Thirty-eighth Annual Conference on
+Neural Information Processing Systems, 2024.
+Ankur Handa, Karl Van Wyk, Wei Yang, Jacky Liang,
+Yu-Wei Chao, Qian Wan, Stan Birchfield, Nathan
+operation of dexterous robotic hand-arm system.
+2020 IEEE International Conference on Robotics and
+Automation (ICRA), pages 91649170. IEEE, 2020.
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising
+diffusion probabilistic models. NeurIPS, 2020.
+URL https:
+sharegpt.com.
+Wenlong Huang, Chen Wang, Ruohan Zhang, Yunzhu
+3d value maps for robotic manipulation with language
+models. In 7th Annual Conference on Robot Learning,
+Intel. Depth camera d435i.
+Eric Jang, Alex Irpan, Mohi Khansari, Daniel Kap-
+Chelsea Finn. Bc-z: Zero-shot task generalization with
+robotic imitation learning.
+In Conference on Robot
+Shirin Joshi, Sulabh Kumra, and Ferat Sahin. Robotic
+grasping using deep reinforcement learning. In 2020
+IEEE 16th International Conference on Automation
+Science and Engineering (CASE), pages 14611466.
+Dmitry Kalashnikov, Jacob Varley, Yevgen Chebotar,
+Benjamin Swanson, Rico Jonschkowski, Chelsea Finn,
+Sergey Levine, and Karol Hausman. Mt-opt: Continu-
+ous multi-task robotic reinforcement learning at scale.
+arXiv preprint arXiv:2104.08212, 2021.
+Aditya Kannan, Kenneth Shaw, Shikhar Bahl, Pragna
+tuning for hand policies. In 7th Annual Conference on
+Robot Learning, 2023.
+Tsung-Wei Ke, Nikolaos Gkanatsios, and Katerina
+Fragkiadaki.
+3d diffuser actor: Policy diffusion with
+3d scene representations. In 8th Annual Conference on
+Robot Learning, 2024.
+Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ash-
+win Balakrishna, Sudeep Dasari, Siddharth Karam-
+Lawrence Yunliang Chen, Kirsty Ellis, et al. DROID:
+A large-scale in-the-wild robot manipulation dataset.
+In RSS 2024 Workshop: Data Generation for Robotics,
+Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+Ethan Foster, Grace Lam, Pannag Sanketi, et al. Open-
+8th Annual Conference on Robot Learning, 2024.
+Nathan Koenig and Andrew Howard.
+Design and
+use paradigms for gazebo, an open-source multi-robot
+simulator.
+In IEEERSJ International Conference on
+Intelligent Robots and Systems, volume 3, pages 2149
+Eric Kolve, Roozbeh Mottaghi, Winson Han, Eli Van-
+Yuke Zhu, Abhinav Gupta, and Ali Farhadi.
+Sergey Levine, Peter Pastor, Alex Krizhevsky, Julian
+Learning hand-eye coor-
+dination for robotic grasping with deep learning and
+large-scale data collection. The International journal of
+robotics research, 37(4-5):421436, 2018.
+Jeffrey Li, Alex Fang, Georgios Smyrnis, Maor Ivgi,
+Matt Jordan, Samir Gadre, Hritik Bansal, Etash Guha,
+Sedrick Keh, Kushal Arora, et al.
+In search of the next generation of training sets for
+language models.
+In The Thirty-eight Conference on
+Neural Information Processing Systems Datasets and
+Benchmarks Track, 2024.
+Qixiu Li, Yaobo Liang, Zeyu Wang, Lin Luo, Xi Chen,
+Mozheng Liao, Fangyun Wei, Yu Deng, Sicheng
+vision-language-action model for synergizing cognition
+and action in robotic manipulation.
+arXiv preprint
+Xiaoqi Li, Mingxu Zhang, Yiran Geng, Haoran Geng,
+Yuxing Long, Yan Shen, Renrui Zhang, Jiaming Liu,
+and Hao Dong. Manipllm: Embodied multimodal large
+language model for object-centric robotic manipulation.
+In Proceedings of the IEEECVF Conference on Com-
+puter Vision and Pattern Recognition, pages 18061
+Xinghang Li, Minghuan Liu, Hanbo Zhang, Cunjun Yu,
+Jie Xu, Hongtao Wu, Chilam Cheang, Ya Jing, Weinan
+language foundation models as effective robot imitators.
+In The Twelfth International Conference on Learning
+Xuanlin Li, Kyle Hsu, Jiayuan Gu, Karl Pertsch, Oier
+Evaluating real-world robot manipulation policies in
+simulation. arXiv preprint arXiv:2405.05941, 2024.
+Jacky Liang, Wenlong Huang, Fei Xia, Peng Xu, Karol
+Code as policies: Language model programs for em-
+bodied control. In 2023 IEEE International Conference
+on Robotics and Automation (ICRA), pages 94939500.
+Bin Lin, Yang Ye, Bin Zhu, Jiaxi Cui, Munan Ning,
+Peng Jin, and Li Yuan. Video-LLaVA: Learning united
+visual representation by alignment before projection.
+In Proceedings of the 2024 Conference on Empirical
+Methods in Natural Language Processing, pages 5971
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae
+Visual instruction tuning.
+Advances in neural
+information processing systems, 36, 2024.
+Huihan Liu, Soroush Nasiriany, Lance Zhang, Zhiyao
+in-the-loop autonomy and learning during deployment.
+The International Journal of Robotics Research, page
+Jiaming Liu, Mengzhen Liu, Zhenyu Wang, Pengju An,
+Xiaoqi Li, Kaichen Zhou, Senqiao Yang, Renrui Zhang,
+Yandong Guo, and Shanghang Zhang.
+Efficient vision-language-action model for robotic rea-
+soning and manipulation. In The Thirty-eighth Annual
+Conference on Neural Information Processing Systems,
+Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai
+and Jun Zhu. RDT-1b: a diffusion foundation model for
+bimanual manipulation. In The Thirteenth International
+Conference on Learning Representations, 2025.
+Zeyi Liu, Arpit Bahety, and Shuran Song. REFLECT:
+Summarizing robot experiences for failure explanation
+and correction.
+In 7th Annual Conference on Robot
+Viktor Makoviychuk, Lukasz Wawrzyniak, Yunrong
+et al. Isaac gym: High performance GPU based physics
+simulation for robot learning. In Thirty-fifth Conference
+on Neural Information Processing Systems Datasets and
+Benchmarks Track (Round 2), 2021.
+Priyanka Mandikal and Kristen Grauman.
+Learning
+dexterous grasping with object-centric visual affor-
+In 2021 IEEE international conference on
+robotics and automation (ICRA), pages 61696176.
+Priyanka Mandikal and Kristen Grauman.
+Learning dexterous grasping with human hand pose
+priors from video. In Conference on Robot Learning,
+pages 651661. PMLR, 2022.
+Ajay Mandlekar, Yuke Zhu, Animesh Garg, Jonathan
+A crowdsourcing platform for robotic skill learning
+through imitation. In Conference on Robot Learning,
+pages 879893. PMLR, 2018.
+Junhua Mao, Jonathan Huang, Alexander Toshev, Oana
+and comprehension of unambiguous object descriptions.
+In Proceedings of the IEEE conference on computer
+vision and pattern recognition, pages 1120, 2016.
+Oier Mees, Lukas Hermann, Erick Rosete-Beas, and
+Wolfram Burgard. Calvin: A benchmark for language-
+conditioned policy learning for long-horizon robot ma-
+nipulation tasks. IEEE Robotics and Automation Let-
+Kaichun Mo, Leonidas J Guibas, Mustafa Mukadam,
+Abhinav Gupta, and Shubham Tulsiani.
+From pixels to actions for articulated 3d objects.
+Proceedings of the IEEECVF International Conference
+on Computer Vision, pages 68136823, 2021.
+Movella.
+Chelsea Finn, and Abhinav Gupta. R3m: A universal
+visual representation for robot manipulation.
+Annual Conference on Robot Learning, 2022.
+NVIDIA. Nvidia isaac sim: Robotics simulation and
+synthetic data, 2023. URL
+isaac-sim.
+Abby ONeill, Abdul Rehman, Abhinav Gupta, Abhi-
+ram Maddukuri, Abhishek Gupta, Abhishek Padalkar,
+Abraham Lee, Acorn Pooley, Agrim Gupta, Ajay Man-
+Open x-embodiment: Robotic learning
+datasets and rt-x models : Open x-embodiment col-
+laboration0.
+In 2024 IEEE International Conference
+on Robotics and Automation (ICRA), pages 68926903,
+structured
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida,
+Carroll Wainwright, Pamela Mishkin, Chong Zhang,
+Sandhini Agarwal, Katarina Slama, Alex Ray, et al.
+Training language models to follow instructions with
+human feedback. Advances in neural information pro-
+cessing systems, 35:2773027744, 2022.
+Tim Pearce, Tabish Rashid, Anssi Kanervisto, Dave
+carcel Macua, Shan Zheng Tan, Ida Momennejad, Katja
+sion models. ICLR, 2023.
+Lerrel Pinto and Abhinav Gupta.
+Supersizing self-
+robot hours.
+In 2016 IEEE international conference
+on robotics and automation (ICRA), pages 34063413.
+Yuzhe Qin, Wei Yang, Binghao Huang, Karl Van Wyk,
+Hao Su, Xiaolong Wang, Yu-Wei Chao, and Dieter Fox.
+hand teleoperation system.
+In Robotics: Science and
+Daniel Rakita, Bilge Mutlu, and Michael Gleicher. A
+motion retargeting method for effective mimicry-based
+teleoperation of robot arms. In Proceedings of the 2017
+ACMIEEE International Conference on Human-Robot
+Moritz Reuss, Maximilian Li, Xiaogang Jia, and Rudolf
+Lioutikov.
+Goal conditioned imitation learning using
+score-based diffusion policies. In Robotics: Science and
+AgileX Robotics.
+Agilex cobot magic, 2024.
+Universal Robots. Universal robots ur5e, 2024. URL
+Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+Patrick Esser, and Bjorn Ommer. High-resolution image
+synthesis with latent diffusion models. In Proceedings
+of the IEEECVF conference on computer vision and
+pattern recognition, 2022.
+Abhishek
+Oleksandr
+platform for embodied ai research.
+In IEEECVF
+International Conference on Computer Vision, Oct
+Pierre Sermanet, Tianli Ding, Jeffrey Zhao, Fei Xia,
+Debidatta Dwibedi, Keerthana Gopalakrishnan, Chris-
+tine Chan, Gabriel Dulac-Arnold, Sharath Maddineni,
+Nikhil J Joshi, et al. Robovqa: Multimodal long-horizon
+reasoning for robotics.
+In 2024 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Nur Muhammad Mahi Shafiullah, Anant Rai, Haritheja
+and Lerrel Pinto.
+On bringing robots home.
+preprint arXiv:2311.16098, 2023.
+Pratyusha Sharma, Lekha Mohan, Lerrel Pinto, and Ab-
+hinav Gupta. Multiple interactions made easy (mime):
+Large scale demonstrations data for imitation.
+Conference on robot learning, pages 906915. PMLR,
+Mohit Shridhar, Lucas Manuelli, and Dieter Fox.
+manipulation. In Conference on Robot Learning, pages
+Jiaming Song, Chenlin Meng, and Stefano Ermon. De-
+noising diffusion implicit models. ICLR, 2021.
+Gemini Team, Rohan Anil, Sebastian Borgeaud, Jean-
+Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan
+et al. Gemini: a family of highly capable multimodal
+models. arXiv preprint arXiv:2312.11805, 2023.
+Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+open-source generalist robot policy. In Proceedings of
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov,
+Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al.
+Llama 2: Open foundation and fine-tuned chat models.
+arXiv preprint arXiv:2307.09288, 2023.
+Homer Rich Walke, Kevin Black, Tony Z Zhao, Quan
+dre Wang He, Vivek Myers, Moo Jin Kim, Max Du,
+et al. Bridgedata v2: A dataset for robot learning at
+scale. In Conference on Robot Learning, pages 1723
+Chen Wang, Haochen Shi, Weizhuo Wang, Ruohan
+and portable mocap data collection system for dexterous
+manipulation. In 2nd Workshop on Dexterous Manipu-
+Weihan Wang, Qingsong Lv, Wenmeng Yu, Wenyi
+for pretrained language models. In Advances in Neu-
+ral Information Processing Systems, volume 37, pages
+Zhiqiang Wang, Hao Zheng, Yunshuang Nie, Wenjun
+Xuewen Cheng, Wanxi Dong, et al.
+All robots in
+Junjie Wen, Yichen Zhu, Jinming Li, Minjie Zhu, Kun
+Yaxin Peng, et al. Tinyvla: Towards fast, data-efficient
+vision-language-action models for robotic manipulation.
+IEEE Robotics and Automation Letters, 2025.
+Kun Wu, Ning Liu, Zhen Zhao, Di Qiu, Jinming Li,
+Zhengping Che, Zhiyuan Xu, and Jian Tang. Learning
+from imperfect demonstrations with self-supervision
+for robotic manipulation. In 2025 IEEE International
+Conference on Robotics and Automation (ICRA), 2025.
+Kun Wu, Yichen Zhu, Jinming Li, Junjie Wen, Ning
+ing disentangled action space for multi-task robotic
+manipulation. In 2025 IEEE International Conference
+on Robotics and Automation (ICRA), 2025.
+Philipp Wu, Yide Shentu, Zhongke Yi, Xingyu Lin, and
+Pieter Abbeel. Gello: A general, low-cost, and intuitive
+teleoperation framework for robot manipulators.
+2024 IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 1215612163, 2024.
+Yueh-Hua Wu, Jiashun Wang, and Xiaolong Wang.
+Learning generalizable dexterous manipulation from
+human grasp affordance.
+In Conference on Robot
+Yuqiang Wu, Pietro Balatti, Marta Lorenzini, Fei Zhao,
+Wansoo Kim, and Arash Ajoudani. A teleoperation in-
+terface for loco-manipulation control of mobile collabo-
+rative robotic assistant. IEEE Robotics and Automation
+Fanbo Xiang, Yuzhe Qin, Kaichun Mo, Yikuan Xia,
+Hao Zhu, Fangchen Liu, Minghua Liu, Hanxiao Jiang,
+Yifu Yuan, He Wang, Li Yi, Angel X. Chang,
+Leonidas J. Guibas, and Hao Su. Sapien: A simulated
+part-based interactive environment. In IEEECVF Con-
+ference on Computer Vision and Pattern Recognition
+(CVPR), Jun 2020.
+Mengda Xu, Zhenjia Xu, Cheng Chi, Manuela Veloso,
+and Shuran Song.
+discovery.
+In Conference on Robot Learning, pages
+Denis Yarats, Rob Fergus, Alessandro Lazaric, and
+Lerrel Pinto.
+Mastering visual continuous control:
+Improved data-augmented reinforcement learning.
+International Conference on Learning Representations,
+Maryam Zare, Parham M Kebria, Abbas Khosravi, and
+Saeid Nahavandi.
+A survey of imitation learning:
+Transactions on Cybernetics, 2024.
+Yanjie Ze, Gu Zhang, Kangning Zhang, Chenyuan Hu,
+Muhan Wang, and Huazhe Xu.
+3d diffusion policy:
+Generalizable visuomotor policy learning via simple 3d
+representations.
+In Proceedings of Robotics: Science
+and Systems (RSS), 2024.
+Tianhao Zhang, Zoe McCarthy, Owen Jow, Dennis Lee,
+Xi Chen, Ken Goldberg, and Pieter Abbeel.
+imitation learning for complex manipulation tasks from
+virtual reality teleoperation. In 2018 IEEE international
+conference on robotics and automation (ICRA), pages
+Tianle Zhang, Dongjiang Li, Yihang Li, Zecui Zeng,
+Lin Zhao, Lei Sun, Yue Chen, Xuelong Wei, Yibing
+for household tasks. arXiv preprint arXiv:2405.18860,
+Tony Z. Zhao, Vikash Kumar, Sergey Levine, and
+Chelsea Finn.
+Learning Fine-Grained Bimanual Ma-
+nipulation with Low-Cost Hardware. In Proceedings of
+Brianna Zitkovich, Tianhe Yu, Sichun Xu, Peng Xu, Ted
+Ayzaan Wahid, et al.
+models transfer web knowledge to robotic control. In
+7th Annual Conference on Robot Learning, 2023.

@@ -1,0 +1,1040 @@
+=== PDF文件: Debiasing 6-DOF IMU via Hierarchical Learning of Continuous Bias Dynamics.pdf ===
+=== 时间: 2025-07-21 14:26:46.201928 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Debiasing 6-DOF IMU via Hierarchical Learning of
+Continuous Bias Dynamics
+Ben Liu1, Tzu-Yuan Lin2, Wei Zhang1, and Maani Ghaffari2
+Corresponding Author
+1Southern University of Science and Technology
+2University of Michigan
+AbstractThis paper develops a deep learning approach to
+the online debiasing of IMU gyroscopes and accelerometers.
+Most existing methods rely on implicitly learning a bias term
+to compensate for raw IMU data. Explicit bias learning has
+recently shown its potential as a more interpretable and motion-
+independent alternative. However, it remains underexplored and
+faces challenges, particularly the need for ground truth bias data,
+which is rarely available. To address this, we propose a neural
+ordinary differential equation (NODE) framework that explicitly
+models continuous bias dynamics, requiring only pose ground
+the canonical NODE framework to the matrix Lie group for IMU
+kinematics with a hierarchical training strategy. The validation
+on two public datasets and one real-world experiment demon-
+strates significant accuracy improvements in IMU measurements,
+reducing errors in both pure IMU integration and visual-inertial
+odometry.
+I. INTRODUCTION
+Inertial Measurement Units (IMUs) are essential in robotic
+surements that support various state estimation tasks. A no-
+table use of IMUs is in Visual-Inertial Odometry (VIO)
+[32, 33, 34, 15, 39], where IMU and camera data are fused
+to estimate a robots orientation, velocity, and position. How-
+promise VIO performance. This becomes even more critical
+in scenarios where cameras fail due to adverse environmental
+conditions [6, 27], leaving the IMU as the sole source of
+odometry information. In such scenarios, the odometry output
+heavily depends on the accuracy of IMU data. Therefore,
+deriving accurate measurements from raw IMU data that is
+noisy and biased is critical for robust state estimation.
+To address the inaccuracies inherent in raw IMU data, cali-
+bration methods are utilized to enhance measurement accuracy
+for a specific IMU device . The typical method uses a
+linear model to model axis misalignment and scale factors,
+while the bias is often modeled as a constant or a Brownian
+motion process [35, 37]. However, the IMU model is complex
+and difficult to represent accurately, particularly because the
+bias can be time-varying and influenced by factors such as
+temperature and vibration. With the advancement of deep
+difference
+Existing Method (Discrete)
+Ours (Continuous)
+IMU Kinematics
+on Lie algebra
+Hard to Get!
+Easy to Get!
+Ground truth
+Ground truth
+Backpropagation
+Fig. 1: Training process for the explicit evolution of bias. The subscript
+notation un:k represents un, un1, ..., uk. The existing method  models
+bias evolution using a discrete approach, which requires ground-truth bias
+values during training. In contrast, our method employs a continuous model
+to capture bias dynamics and does not rely on ground-truth bias for training.
+calibrate IMUs, aiming to capture ignored or simplified com-
+ponents in model-based methods. Brossard et al.  employs
+a convolutional neural network to directly learn a correction
+term for the gyroscope based on local windows of IMU data.
+Similar methods have been extended to both gyroscopes and
+accelerometers . However, it has been noted that such
+methods may not effectively distinguish whether the network
+learns deviation characteristics from the motion pattern or from
+the IMU itself . To address this issue, Buchanan et al.
+proposed explicitly modeling the IMU bias evolution using
+a neural network to achieve motion-independent calibration.
+sensor fusion with other sensors like LiDAR or cameras. The
+accuracy of bias estimation thus depends heavily on the fusion
+non-trivial.
+In this work, we propose a framework to model the contin-
+uous dynamics of the bias without the need for ground truth
+bias data. The contributions of this work can be summarized
+as follows:
+1. We propose a novel loss formulation that bypasses the re-
+quirement for bias ground truth during training. Moreover,
+its hierarchical structure makes network design and tuning
+more efficient.
+2. We model the bias dynamics as a vector field in the Lie
+algebra with a learning approach, allowing us to utilize
+canonical neural ordinary differential equation tools effec-
+tively. The vector field formulation allows us to obtain
+continuous dynamics of the bias, resulting in lightweight
+networks that deliver superior performance.
+3. We evaluate our method on two public datasets and one
+real-world experiment, demonstrating that the proposed
+method provides more accurate IMU measurements than
+existing methods and has generalization capability.
+4. We offer an open-source project available at
+comUMich-CURLYDebias IMU.git.
+II. RELATED WORK
+We review some learning-based methods in IMU estimation
+and their relationship with our method.
+A. Learning Motion Pattern from IMU
+One direction is to extract the motion pattern information
+from IMU data. Early work Yan et al.  utilized a combi-
+nation of Support Vector Machine (SVM) and Support Vector
+Regression (SVR) to predict a persons motion displacement
+based on local windowed IMU data. Building on this approach,
+the same authors later employed a neural network to perform
+a similar task . Both studies only focused specifically on
+2D motion scenarios. Subsequently, Liu et al.  advanced
+this line of research by integrating the learned displacement
+into an Extended Kalman Filter (EKF), using the displace-
+ment estimates as updates with IMU-based predictions. These
+methods assume that motion within a given category exhibits
+finite patterns that can be effectively regressed using IMU data.
+and are sensitive to the motion context ; for instance, a
+model trained on flat-ground motion may not generalize well
+to stair-climbing scenarios. Therefore, when the training data
+is not sufficient and motion contexts are complex, device-
+specific calibration is necessary. In addition, some of these
+methods use calibrated IMU data as input [20, 30], focusing
+on incorporating the motion information to improve estimation
+accuracies. On the contrary, our method focuses on denoising
+and debiasing the raw IMU measurements.
+B. Learning Calibration Model for IMU
+Another line of research assumes that neural networks can
+provide accurate IMU measurements from raw inaccurate data,
+typically restricted to a single device. These refined IMU
+measurements can be used in inertial-based odometry, such
+as VIO, or to learn motion patterns as in prior methods.
+Esfahani et al.  introduced a Long Short-Term Memory
+(LSTM) framework to denoise gyroscope data and directly
+estimate orientation, where the orientation integration process
+is implicitly learned by the neural network. Similarly, Sun et al.
+applied an LSTM to predict both orientation and position.
+To improve short-term accuracy, they incorporated an extra
+EKF that uses raw IMU data to correct orientation, observing
+that the LSTM performs well over long durations but poorly
+in shorter timeframes. These methods combine denoising and
+integration into a single framework, which is hard to separate.
+In contrast, Brossard et al.  focused solely on gyroscope
+denoising by modeling bias and noise as a single term. By
+compensating for this term, the clean angular velocity can be
+obtained and can subsequently be numerically integrated into
+orientation. Their approach uses a dilated convolutional neural
+network that takes windowed IMU data as input. Building
+on this framework, Huang et al.  explored the use of a
+temporal convolutional network structure and demonstrated
+improved performance, while Liu et al.  extended the
+approach to handle both gyroscope and accelerometer data
+simultaneously. To ensure the generality, Zhang et al.
+construct the loss function based on partial integration terms
+and employ a recurrent neural network to estimate accurate
+IMU measurements. All these methods implicitly learn the
+noise or bias of IMU data, regardless of whether the numerical
+integration is explicitly processed or implicit embedded in the
+neural network.
+More recently, Buchanan et al.  proposed explicitly
+modeling bias evolution using a transformer or LSTM, which
+is embedded within a Maximum-a-Posteriori (MAP) frame-
+work alongside other sensor inputs. While this explicit bias
+modeling demonstrates generalizability across motion patterns,
+it relies on accurate bias ground truth derived from additional
+sensor fusion algorithms, which are challenging to obtain and
+sensitive to the fusion method.
+In this work, we also focus on explicitly learning the bias
+evolution process but with a different approach: modeling the
+continuous dynamics of the bias. This framework reduces
+neural network complexity and eliminates the need for bias
+ground truth, making it lightweight and more practical.
+III. PROBLEM STATEMENT
+A. IMU Model
+An IMU measures angular velocity, denoted as t, and
+linear acceleration (include gravity), denoted as at, both ex-
+pressed in the IMU frame. A commonly adopted measurement
+model for these quantities is presented in [4, 18, 25]:
+t  t  bg
+at  at  ba
+where the superscript
+() indicates measured quantities.
+t and na
+t are the Gaussian noise. bg
+t R3 are the biases
+of the gyroscope and accelerometer, respectively. The bias is
+modeled as a Brownian motion as
+where g and a follow the zero-mean Gaussian distribution.
+the true behavior, resulting in inaccurate estimates of wt, at.
+The IMU measurements are often utilized with the following
+kinematics of a single rigid body :
+vt  Rtat  g,
+where Rt SO(3) is the orientation of the body frame. SO(3)
+is the special orthogonal group. vt R3 is the linear velocity
+of the body frame expressed in the world frame, pt R3 is
+the position of the body frame. () : R3 so(3) is a cross-
+product operator that satisfies ab  ab, a, b R3, where
+so(3) is the vector space of 3-by-3 skew-symmetric matrices
+which is also the Lie algebra of SO(3). g R3 is the gravity
+expressed in the world frame. In this work, we assume the
+IMU frame is the body frame.
+Accurate pose (represented as a triple (R, v, p) in the paper)
+is critical in robotics applications, which often involve inte-
+grating IMU measurements. However, direct integration of the
+measured t and at in (3) leads to rapidly accumulating errors
+in pose over time due to noise and biases. Therefore, to get
+accurate integration results, it is necessary to develop a filter
+to give accurate or clean angular velocity and acceleration
+from raw IMU data.
+For simplicity of notation, we will use the subscript xk to
+represent the value of x at time tk, indicating the discretization
+of the continuous variable xt throughout the rest of the paper.
+B. Problem Formulation
+To describe the problem of getting the accurate IMU data
+from raw measurements, we can formulate it as follows:
+Problem 1: Consider true t and at as deterministic param-
+eters. Given the raw discrete measurement 0:k and a0:k from
+the initial time t0 to current time tk, find a suitable estimator
+for k and ak:
+(k, ak)  F(0:k, a0:k),
+where F represents the estimator.
+We aim to develop a casual estimator that can operate
+online using only the past IMU measurements during inference
+time. This is an open problem that remains to be explored
+and is also challenging due to several factors. First, even
+small errors in wt and at can accumulate into significant
+pose errors due to the integration process, which requires
+the estimator to meet strict accuracy standards. Second, the
+estimator uses only IMU information rather than fusing it with
+other sensors. The information resource is limited, requiring
+us to carefully design a suitable IMU measurement model for
+the estimator. Third, obtaining ground truth for t and at is
+often impractical, making it challenging to establish a suitable
+evaluation metric for the estimator. In addition, this makes
+data-driven approaches particularly difficult, as they depend
+on suitable loss and reliable ground truth for training.
+IV. LEARNING BIAS DYNAMICS
+In this section, we propose an estimator for problem 1 by
+using a neural ordinary differential equation framework
+for bias dynamics modeling.
+A. IMU Measurement Model
+Adopting (1), we model the IMU measurements as cor-
+rupted by some biases and additive Gaussian noise. Instead of
+modeling the bias dynamics as Brownian motions, we consider
+the bias bg
+t and ba
+t to be some deterministic variables with
+nonlinear dynamics as:
+t  fg(bg
+t  fa(ba
+where ut : (t, at) denotes the raw IMU measurements.
+Since ut serves as the control input to the bias dynamics, (5)
+can be viewed as input-dependent vector fields. As a result,
+with known initial conditions, one can simply integrate the
+deterministic dynamics to obtain the bias at any time.
+With the known bias from (5), combining model (1), we
+can obtain an estimate of wt, at as
+at  at ba
+This estimation can be regarded as that the noise is negligible.
+Such an estimator is reasonable because the estimation in (6)
+corresponds to a Least-Squares Estimation (LSE) applied to
+the model tbg
+t using only a single measurement.
+A more comprehensive treatment of the noise term can be
+achieved by integrating additional sensor data within a multi-
+sensor fusion framework such as [40, 28]. In this work,
+leaving noise handling as the future work.
+According to (5) and (6), estimating the true wt, at at time t
+only requires IMU measurements and the initial condition. The
+initial bias condition can always be determined from stationary
+IMU data. Therefore, this provides a solution to problem 1.
+Remark 1: Compared to the stochastic differential equation
+(SDE) model for bias in conventional assumption, our method
+can be regarded as only considering the drift of the SDE,
+which reduces to an ordinary differential equation.
+B. Neural Ordinary Differential Equations
+We model the vector fields in (5) with a neural ordinary
+differential equation (NODE) architecture introduced in .
+The NODE seeks to model the dynamics of a state as zt
+f(zt; ) using a neural network, where  is the parameters of
+the network. Instead of directly fitting zt, the loss L() of the
+network is defined based on zt through an ODE solver:
+L(zT )  L(z0
+f(zt; )dt),
+where the integral can be solved by an ODE solver with
+methods such as the Euler method, RK45, etc. Therefore, the
+NODE framework takes the initial condition z0 and time tT ,
+and outputs the state zT after integration. To train this network,
+the gradient can be calculated by numerical backpropagation
+or memory-efficient adjoint method [10, 24]. Such a NODE
+framework allows us to use the sequence of observations of
+the state z0, z1, ..., zT to fit the dynamics zt.
+The ODE in (5) depends on additional control inputs ut,
+which can not be handled by the canonical NODE framework.
+rather than a continuous formulation. To address this issue, we
+utilize the idea of neural controlled differential equations .
+The discrete control input ui Rn can be interpolated using
+a continuous spline S : [t0, tT ] Rn such that S(ti)  ui,
+where t0 ti tN. Therefore, the control input can be
+modeled as a function of t given discrete ui. To maintain
+consistency with the formulation in (7), where the dynamics
+do not explicitly depend on t, the time t can be augmented to
+the original state as zaug  [zt, t].
+Define bt : (bg
+t ) and apply a continuous spline de-
+scribed above to handle the discrete control input ui, we can
+reformulate the underlying bias dynamics (5) in the NODE
+framework as
+f(bt, Su(t); )
+Using this ODE, the bias at time tT is given by
+f(bt, Su(t); )dt.
+t can be ignored in the loss function since it does not depend
+on network parameters. After defining suitable networks and
+the loss function of bt, we can use the NODE framework to
+learn the bias dynamics.
+V. NETWORK STRUCTURE AND IMPLEMENTATION
+We have outlined the general concept of our proposed
+method; in this section, we present the detailed learning
+framework. The overall process is illustrated in Fig. 2.
+A. Neural Network Structure and Input Spline
+To model the bias vector field, we utilize a simple multilayer
+perceptron with residual connections  for both gyroscope
+and accelerometer, which can be represented as
+t  fg(bg
+t  fa(ba
+where  represents the parameters of neural networks and is
+omitted in the rest of this paper for simplicity. The explicit
+modeling of the bias vector field allows the network to remain
+methods. This reduced model complexity lowers computa-
+tional resource requirements. In our experiments, we find the
+residual connections can accelerate the model convergence.
+In (10), we include additional derivatives t and at as the
+information allows us to model the components of bias that
+depend on t and at. For example, if the measurement is linear
+in the true value as t  At, where A R33 is invertible,
+the bias dynamics should be
+dt(t t)  (I A1) t,
+which is a function of t. This demonstrates the importance
+of including t and at, as the linear model is often used to
+model axis misalignment in an IMU [35, 5].
+To handle the input into a continuous function of time t as
+(9), we utilize a cubic Hermite spline with the rule of backward
+differences  to interpolate the discrete input. This is a cubic
+spline Su satisfying the following:
+St(ti)  ui,
+St(ti)  (ui ui1)(ti ti1),
+where (ti, ui) is the discrete data. Therefore, the continuous
+spline for IMU measurements is given by (t, at)  Su(t).
+Such a spline has continuous derivatives, which can benefit the
+convergence of the NODE . More importantly, this spline
+is causal, which means the spline up to ti will not depend
+on ui1. This enables the spline to be generated in real-time
+as new measurements are received, allowing the network to
+perform online inference.
+B. Loss Construction
+To train the NODE (9), a straightforward loss could be
+defined as a scalar function of estimated bias and the true
+bias L(bt, bt). However, obtaining the true bias is challenging.
+One can use multi-sensor fusion to estimate bias , but this
+requires extra resources and depends on the accuracy of the
+estimation algorithm. We proposed directly using the pose
+ground truth to construct the loss for learning bias dynamics.
+Combining the bias dynamics (5) and the IMU kinematics
+(3), we can get the ODE as
+Rt  Rt(t bg
+t  fg(bg
+vt  Rt(at ba
+t  fa(ba
+By solving the entire ODE, we can construct the loss function
+using the pose ground truth. For orientation, we apply a mean-
+squared error (MSE) loss defined as
+Log( RkRT
+where Log() : SO(3) R3 is the vectorized logarithm of
+SO(3) , Rk is the solution by solving (13), Rk is the
+ground truth. For velocity and position, we also use an MSE
+2  vk vk2
+where pk, vk are the solution form (13) and pk, vk are the
+ground truth. Therefore, the total loss for training NODE (13)
+is given by
+L  LR  Lv,p.
+By coupling the bias dynamics and the IMU kinematics in
+(13), the neural networks parameters of bias dynamics can
+be optimized using the loss (16) that only depend on pose
+ground truth.
+Lie Algebra ODE
+Biased Gyro. Dynamics
+Biased Acc. Dynamics
+Explicit bias vector filed
+Explicit bias vector filed
+Continuous bias
+trajectory
+Lie algebra
+Continuous bias
+trajectory
+Hierarchical Neural ODE Framework
+Cubic Hermite Spline
+Discrete
+IMU Data
+Continous
+Fig. 2: The framework for learning bias dynamics. The bias dynamics are modeled by NODE, trained in a hierarchical manner. We first train the gyroscope
+the bias dynamics. Given initial conditions, the pose and bias along the trajectory are obtained through integration, with only the pose contributing to the loss
+function. The ODE on the manifold SO(3) is reformulated as a Lie algebra ODE, enabling an efficient solution via canonical NODE.
+C. Solving ODE on Lie Group via Lie Algebra
+Embedding the ODE (13) within the standard NODE frame-
+work presents a challenge since it involves the manifold
+SO(3), whereas the standard NODE framework is designed
+for Euclidean spaces. To address this, we utilize a Lie group
+linear space naturally compatible with the NODE framework.
+In this section, we focus on addressing the first equation in
+(13), the non-Euclidean part, which can be easily integrated
+into the original ODE (see Sec. V-D). Consider the following
+differential equation:
+where t is a function that only depends on t. The following
+theorem holds:
+Theorem 1: The solution of the differential equation (17)
+with initial condition R(0)  R0 is given by Rt  R0Exp(t),
+where t R3 is the solution of
+as long as t< 2. J1
+R33 is the inverse of the right
+Jacobian of SO(3) [1, 11], which is well-defined under the
+condition t< 2.
+The proof is given in the Appendix. The proof generally
+follows [12, Theorem 7.1], however, which gives a left deriva-
+tive version for the general Lie groups. Here we provide the
+right derivative version with matrix formulation, which is more
+compatible with IMU kinematics.
+The theorem indicates we can obtain the local solution of
+ODE (17) by solving an ODE in Euclidean space. To solve
+the ODE on SO(3) over time, we need to change the chart
+by resetting Rn as the initial condition and t to zeros before
+the Jacobian approaches the singularity, i.e., t2. The
+general idea can be summarized as follows: parameterize the
+point R0 on SO(3) into R3 using the local chart around R0,
+solving the corresponding ODE in R3 to determine the next
+desired point, and then map the point in R3 back to SO(3) to
+get R1. Repeat this process then we can get the solution Rt,
+see Algorithm 1.
+Algorithm 1 Solving ODE for rotation kinematics
+t  ODESolver{ t  J1
+Rt  R0Exp(t)
+if t>  then R0 Rt, t 0
+Increase t (adaptive or fixed step, t  t0, t1, ..., tT )
+Compared to the canonical Euclidean ODE, our approach
+introduces only an additional chart transition as t approaches
+the singularity. We present a PyTorch-based ODE solver
+that extends the standard NODE framework to accommodate
+SO(3) dynamics. The gradient of this NODE is computed
+using numerical backpropagation. The corresponding adjoint
+method for calculating gradient is beyond the scope of this
+Remark 2: The singularity issue in Theorem 1 typically
+requires changing the chart at each integration step to ensure
+well-definedness. However, in our application, the angular
+velocity will not jump too much. Therefore, we relax this
+condition and only change the chart when closes to  to
+improve the computation efficiency. If singularities still occur,
+the threshold can be reduced further until chart updates are
+triggered at each step.
+D. Hierarchical Training Framework
+The NODE framework for learning bias dynamics can be
+regarded as a continuous recurrent neural network (RNN)
+, which is hard to train. To address this, we propose a
+hierarchical strategy to make neural networks converge faster.
+Under our hypothesis, the biases of the gyroscope bg
+accelerometer ba
+are independent of each other. We can adopt a two-stage
+training process by leveraging the IMU kinematics in (3),
+which indicates that velocity and position are dependent on
+rotation but not vice versa. First, we train bg
+t for the rotational
+t to train ba
+For the rotational component, we use the method described
+in the previous section and solve the following ODE:
+r (t)(t bg
+t  fg(bg
+where Rt can be recovered by Rt  R0Exp(t). The loss
+function LR is defined in (14). Once this stage is complete,
+the network parameters of fg are fixed, and we proceed by
+combining (19) with the following equations to handle the
+accelerometer component:
+vt  R0Exp(t)(at ba
+t  fa(ba
+where Rt  R0Exp(t) has been substituted. The correspond-
+ing loss function Lv,p is defined as (15). The entire training
+process is illustrated in Fig. 2.
+In each training stage, the most straightforward approach
+would be to train the neural ODE by integrating over the entire
+ters. However, this method is computationally expensive and
+To address these limitations, we adopt the approach proposed
+the sequence. Instead of integrating over the entire sequence,
+we compute the vector field by integrating over multiple short
+time intervals, significantly reducing computational cost and
+memory usage. This approach can be expressed as:
+( R, v, p)s:sN  ODEINTSO(3)(Rs, bg
+where s represents the initial time step of short time intervals
+and N represents the length of the intervals. In the imple-
+sufficiently long to effectively learn the vector field and short
+enough to avoid excessive training time. This training strategy
+requires the initial condition for each interval. Usually, we can
+get the pose ground truth but hard to the biased ground truth.
+We utilize an approximation of the initial bias condition as
+k  k Log(RT
+k Rk1)(tk1 tk)
+k  ak RT
+k ((vk1 vk)(tk1 tk) g),
+where Rk, vk is assumed known as the ground truth. The
+initial bias for each time interval, determined in this manner, is
+affected by noise from IMU measurements and pose estimates.
+certainty. In this context, the noise in the bias initialization
+can be regarded as data augmentation.
+VI. EXPERIMENTAL RESULTS
+In this section, we demonstrate the proposed methods ac-
+curacy in angular velocity and acceleration. We compare pure
+IMU integration and its application in visual-inertial odometry
+against other methods on two public datasets. We also evaluate
+its generalization capability on a real-world experiment.
+A. Public Datasets and Training Platform
+1) EUROC : This is a VIO dataset for a micro aerial
+vehicle (MAV). It comprises 11 trajectories with lengths rang-
+ing from approximately 36.5 to 130.9 meters and durations
+between 99 to 182 seconds. The IMU used is the ADIS16448,
+operating at 200 Hz, providing the angular velocity and the
+linear acceleration. The dataset includes stereo camera data at
+20 Hz. Ground truth poses are provided by a motion capture
+system and a laser tracker.
+2) TUM-VI : This is a handheld VIO dataset. It con-
+tains 28 sequences, covering a total distance of approximately
+20 km, with both indoor and outdoor scenes. The IMU used is
+the Bosch BMI160, which also provides the angular velocity
+and the linear acceleration at a frequency of 200 Hz. The
+dataset contains the stereo camera data at 20 Hz. Ground
+truth poses are obtained from a motion capture system but
+are available only for the indoor environment, resulting in
+some sequences with incomplete pose ground truth. For our
+the longest ground truth data, each lasting 23 minutes.
+3) Data Arrangement and Platform: We divide the data
+into training, validation, and test sets for both the EUROC
+and TUM-VI datasets. For training and validation, we use the
+same sequences, with the first 80 designated for training and
+the last 20 for validation. The test set consists of entirely
+unseen sequences. In the EUROC dataset, following , we
+use 6 sequences for training and the remaining 5 for testing.
+For the TUM-VI dataset, 3 sequences are used for training
+and 3 for testing.
+For both datasets, the data is assumed to be synthesized,
+with raw IMU data serving as the networks input. Dif-
+ferent from EUROC, TUM-VI also provided model-based
+calibrated IMU data. The training is processed on a laptop
+with RTX4060, 8G memory. We choose the Adam-optimizer
+with a StepLR scheduler for the learning rate. The epoch
+is chosen 1800 for all trainings. For the EUROC dataset,
+the learning rate is set as 0.005 for both the gyroscope and
+Absolute Error
+Relative Error
+Alignment
+Fig. 3: Absolute error and relative error.
+accelerometer. We set nearly the same parameters for TUM-
+VI dataset. The integration method chosen is the Euler method
+for fast training.
+B. Evaluation Metric
+We utilize the absolute error and relative error  as the
+1) Absolute Error: After the alignment of the estimated
+trajectory and ground trajectory, the Absolute Orientation
+Error (AOE) is defined as
+where Rk is the estimated orientation and Rk is the ground
+truth. The Absolute Position Error (APE) is defined as
+where pk is the estimated position and pk is the ground truth.
+2) Relative Error: The idea of relative error is to compare
+multiple sub-trajectories of two trajectories rather than the
+entire ones. To define the relative error, all sub-trajectories
+whose length is d m will be collected using the ground
+p. The increment for each sub-trajectory will be calculated
+using Xs  X1
+s0 Xs1. Then the difference between the
+estimation and ground truth for each sub-trajectory is defined
+as Xe,s  X1
+s Xs. Extracting the orientation and position
+Orientation Error (ROE) and Relative Position Error (RPE)
+as follows:
+Log(Re,s)2
+Fig. 3 shows the difference between absolute errors and
+relative errors. Since absolute error is sensitive to the time that
+errors occur [43, 15], relative error provides more informative
+insights into the comparison of two trajectories.
+C. Compared Methods
+In each experiment, the IMU data from the following
+sources are used.
+1) Raw IMU: Raw uncalibrated data.
+2) Linear: A simple linear model with constant biases,
+Ag   bg, a  Aaa  ba. The parameters A and b are
+modeled using a single linear layer network, which is
+trained by considering b 0 in the proposed framework.
+3) M.B. : A CNN-based neural network, which implicitly
+inference the bias using a window of IMU raw data.
+rameters for their method are set to the defaults provided
+in their open-source project.
+4) Proposed: The calibrated IMU data by the proposed
+D. Debiasing Results on EUROC and TUM-VI
+To demonstrate that the proposed method provides more ac-
+curate angular velocity and acceleration estimates, we present
+two types of results. First, we integrate the IMU measurements
+alone and evaluate the orientation and position errors. Second,
+we substitute the debiased IMU data into a VIO algorithm
+and examine the resulting orientation and position errors. The
+brief IMU grades are shown in Tab. III for a more intuitive
+understanding of the improvements of the proposed method.
+The absolute and relative pose errors from pure IMU
+integration are shown in Table I and II, respectively. Since the
+method in  only provides angular velocity estimates, raw
+acceleration data is used. This scenario reflects cases where
+camera data is unavailable, only IMU provides odometry
+information for a VIO. It can be found that raw IMU data
+is unreliable, implying it is necessary to have a calibration for
+IMU. The proposed method outperforms other approaches in
+both absolute and relative error metrics. Notably, orientation
+errors are significantly smaller than position errors. Our find-
+ings show that pure integration with debiased IMU data yields
+accurate orientation along the test trajectories, see Fig. 4. The
+comparison of different method for orientation is shown in
+Fig. 5a and 5b, which only shows the error of estimations
+for better visualization. Calibrated IMU generally gives good
+results and the proposed method gives better results than
+other compared methods. However, position estimates remain
+unreliable due to the inherent challenges of double integration
+and sensitivity to orientation estimation. Instead, we present
+the velocity estimation in Fig. 6a and 6b. The result from
+the M.B. method  is omitted, as it does not account for
+accelerometer debiasing. The velocity estimation is reliable
+only over short intervals, while long-term integration leads
+to divergence. The significant velocity error is partly due to
+its dependence not only on accelerometer measurements but
+also on the accuracy of orientation estimation. The velocity
+along the z-axis (yaw axis) exhibits the smallest error. A
+possible reason is that z-axis velocity is influenced by pitch
+and roll, which tend to be less aggressive than yaw during
+most motions. Although pure integration over long trajectories
+is rare in practice, these results highlight the strengths of the
+proposed method.
+We also employ our network to provide clean IMU mea-
+surements as input to OpenVINS , a VIO algorithm,
+instead of using raw IMU data. This approach has greater
+practical relevance. The absolute errors and relative errors are
+presented in Table I and Tab. II. Fig. 7 and 8 further plot the
+TABLE I: Absolute Orientation Error (AOE) and Absolute Position Error (APE) of pure IMU integration and a VIO for EUROC and TUM-VI. Less is better.
+The pure integration results in position from raw IMU data have been removed due to significant errors.
+AOE  APE of IMU Integration (deg  m)
+AOE  APE of VIO (deg  m)
+Proposed
+Proposed
+TABLE II: Relative Orientation Error (ROE) and Relative Position Error (RPE) of pure IMU integration and a VIO for EUROC and TUM-VI. Less is better.
+Len. represents the given distance for finding evaluation pairs.
+Len. (m)
+ROE  RPE of IMU Integration (deg  m)
+ROE  RPE of VIO (deg  m)
+Proposed
+Proposed
+Roll (deg)
+Ground Truth
+Proposed
+Pitch (deg)
+Time (s)
+Yaw (deg)
+Fig. 4: The Euler angles obtained by only integrating the IMU data. The
+results are very close to the ground truth, which implies that the debiased
+gyroscope yields good performance.
+orientation errors and positions of different methods in VIO
+settings. The performance improvements with our method are
+not as significant compared to pure IMU integration since
+the extra vision sensor can also provide pose estimation
+itself. It is worth noting that using raw IMU data from the
+TUM-VI dataset causes the VIO algorithm to fail under our
+experimental settings, which gives significant errors. Although
+the raw IMU data performance is bad in pure IMU integration,
+it performs well in the Euroc dataset, primarily due to the
+bias estimation capabilities of the VIO algorithm. However,
+this bias estimation is not always reliable, as demonstrated
+by its failure with raw IMU data in the TUM-VI dataset.
+From the tables, the proposed method yields better results in
+both absolute and relative errors within the VIO framework,
+where the IMU is coupled with other vision sensors. This
+demonstrates that the accurate IMU measurements provided
+by our debiasing method can also contribute to improved
+performance in inertial-based odometry.
+TABLE III: IMU Grades
+IMU Model
+ADIS16448
+Industrialtactical
+Bosch BMI160
+Consumerlow-cost
+Not declared
+Consumerlow-cost
+E. Debiasing Results on Real-world Experiment
+To further demonstrate the generalization capability of the
+proposed method, we also apply it to a real-world dataset
+an indoor mobile robot, including six sequences with sim-
+ple motion patterns, each lasting 30-40 seconds, and one
+longer trajectory with random motion lasting approximately
+90 seconds. We use the longest trajectory for testing and the
+remaining sequences for training. The experiment platform is
+shown in Fig. 9.
+To demonstrate the practicality of our method, we used
+the same network parameters on FETCH as for the EUROC
+dataset. Results in Table IV show that our method also works
+well for real-world dataset, consistent with its performance
+on public datasets. The orientation and velocity estimation is
+shown in Fig. 5c and 6c, respectively. It is surprisingly found
+that the linear model performs comparably to the proposed
+method and even achieves better positional accuracy. This
+can be attributed to the simplicity of motion patterns in
+log-x (deg)
+Linear Model
+Proposed
+log-y (deg)
+Time (s)
+log-z (deg)
+(a) EUROC: MH 04. Pure integration orientation errors.
+log-x (deg)
+Linear Model
+Proposed
+log-y (deg)
+Time (s)
+log-z (deg)
+(b) TUM: Room4. Pure integration orientation errors.
+log-x (deg)
+Linear Model
+Proposed
+log-y (deg)
+Time (s)
+log-z (deg)
+(c) FETCH: 05 random. Pure integration orientation errors.
+Fig. 5: The coordinates of the errors, Log(RT
+gt R). The estimates are obtained
+by only integrating the IMU data. The unit is converted to a degree. Closer
+to zero yields better results.
+the FETCH dataset, as we argue that learning-based meth-
+ods would inevitably capture and leverage such patterns. To
+support this interpretation, we analyze the performance of
+the linear model on the more diverse EUROC and TUM-
+VI datasets, which contain a wider range of motion patterns.
+In these cases, the linear model performs worse than the
+learning-based method in both cases, with a particularly poor
+performance on the TUM-VI dataset, which involves human
+motion patterns, further validating our hypothesis. Based on
+v-x (ms)
+Ground Truth
+Linear Model
+Proposed
+v-y (ms)
+Time (s)
+v-z (ms)
+(a) EUROC: MH 04. Pure integration velocity estimation.
+v-x (ms)
+Ground Truth
+Linear Model
+Proposed
+v-y (ms)
+Time (s)
+v-z (ms)
+(b) TUM: Room4. Pure integration velocity estimation.
+v-x (ms)
+Ground Truth
+Linear Model
+Proposed
+v-y (ms)
+Time (s)
+v-z (ms)
+(c) FETCH: 05 random. Pure integration velocity estimation.
+Fig. 6: The Velocity estimation obtained by only integrating the IMU data.
+Closer to the ground truth yields better results.
+these findings, we recommend first attempting a linear model
+for IMU calibration to assess whether it meets the desired
+accuracy requirements. If not, a learning-based approach can
+then be implemented to achieve better performance.
+F. Discussion on Implementation
+Integration Method: There is no significant performance
+difference between the Euler method and more advanced
+integration methods. This is likely because the high frequency
+of IMU data and the coupling of integration errors with
+log-x (deg)
+Linear Model
+Proposed
+log-y (deg)
+Time (s)
+log-z (deg)
+(a) EUROC: MH 04. VIO orientation errors.
+log-x (deg)
+Linear Model
+Proposed
+log-y (deg)
+Time (s)
+log-z (deg)
+(b) TUM: Room4. VIO orientation errors.
+Fig. 7: The coordinates of the errors, Log(RT
+gt R). The estimates are obtained
+by VIO with debiased IMU data. The unit is converted to a degree. Closer to
+zero yields better results.
+TABLE IV: Absolute Orientation Error (AOE) and Absolute Position Error
+(APE) of pure IMU integration for FETCH. Less is better.
+AOE  APE of IMU Integration (deg  m)
+Proposed
+05 random
+unknown noise in IMU measurements diminish the impact of
+the integration method used.
+Integration Interval Length: While longer integration
+windows generally produce smoother bias estimates, simply
+increasing the window length does not improve accuracy, see
+Data Pre-processing: Pre-processing plays a critical role.
+We observed that the ground truth in the TUM-VI dataset is
+noisier than in the EUROC dataset, resulting in noisier initial
+bias conditions. Applying an appropriate smoother to refine
+the initial bias conditions leads to better training outcomes.
+Method Limitations: Although the proposed method is
+a device-specific calibration approach with some robustness
+across varying motion patterns, it still learns motion pattern
+characteristics during training. As a result, when the available
+motion pattern information is limited, the method may perform
+similarly to a simple linear model, losing the advantages in ac-
+curacy. Another limitation is that the training time and memory
+Linear Model
+Proposed
+Time (s)
+(a) EUROC: MH 04. VIO position errors.
+Linear Model
+Proposed
+Time (s)
+(b) TUM: Room4. VIO position errors.
+Fig. 8: The position error, p pgt. The estimates are obtained by VIO with
+debiased IMU data. Closer to the ground truth yields better results.
+Fig. 9: Fetch experiment platform. Fetch is a mobile manipulation, the base
+equips a low-cost IMU. A motion capture collects the pose ground truth.
+consumption will increase as the integration interval lengthens,
+which is a common issue in RNN-like networks. The memory
+consumption issue can be mitigated by developing the adjoint
+method in the future.
+The accuracy is poor with short integration lengths mainly due
+to noises. The accuracy can improve as the integration length
+Since both training time and GPU memory consumption grow
+TABLE V: Ablation Study on Integration Length. We present results on the EUROC dataset showing how performance varies with different integration lengths.
+AOE and APE are computed from pure integration. Since position drifts quickly, we report APE on velocity instead.
+Integration Length N
+AOE (deg)
+APE (velocity) (ms)
+Training Time (s)
+GPU Memory (MB)
+Integration Length N
+AOE (deg)
+AOE vs Integration Length N
+Integration Length N
+APE (of velocity) (ms)
+APE (of velocity) vs Integration Length N
+Integration Length N
+Training Time (s)
+Training Time vs Integration Length N
+Training Time
+Integration Length N
+GPU Memory (MB)
+GPU Memory vs Integration Length N
+GPU Memory
+roughly linearly with the integration length, we set N  16
+in our experiments to balance accuracy and resource usage.
+Our findings are consistent with , where GPU memory
+consumption scales as O(N) when the adjoint method is not
+VII. CONCLUSION
+In this work, we propose a learning-based method to obtain
+accurate angular velocity and acceleration using only raw IMU
+measurements. The proposed method explicitly learns the bias
+dynamics of the IMU using a NODE framework without the
+need for the bias ground truth. With the known bias dynamics,
+we can compensate for the bias and obtain a clean IMU
+measurement. Experiments on two popular datasets and one
+real-world experiment demonstrate that the proposed method
+outperforms the existing approach and has practical meaning.
+In the future, this work can be extended to incorporate co-
+variance propagation through the learned dynamics, allowing
+integration with any existing IMU-based odometry systems.
+Although the current work does not fully address bias propa-
+gation with covariance, one promising application is to use the
+unbiased IMU data within the invariant extended Kalman filter
+IMU kinematics [3, 2, 8]. Additionally, the backpropagation
+of the NODE on Lie algebra formulation can be extended into
+more efficient adjoint method.
+ACKNOWLEDGMENT
+Ben Liu would like to thank Hongbo Zhu for his invaluable
+assistance in this work. Wei Zhang was supported by the
+Guangdong Science and Technology Program under Grant
+No. 2024B1212010002 and 2019QN01X793 for this work.
+M. Ghaffari was supported by AFOSR MURI FA9550-23-1-
+APPENDIX
+A. Proof of Theorem 1
+We need to show Rt meets the differential equation and
+Rt(0)  R0. First, we need the derivative of the exponential
+map for SO(3) [17, Theorem 5.4]:
+where ad R33 is the adjoint map. This can be expressed
+in further simplified formulation [1, eq. 7.77a]:
+Exp()(Jr() )
+which can be substituted into Rt  R0Exp(t), then
+Rt  R0Exp(t)(Jr()J1
+r (t)t)  Rt
+with the initial condition: Rt(0)  R0Exp(0)  R0.
+REFERENCES
+Timothy D Barfoot. State estimation for robotics. Cambridge
+University Press, 2017.
+Axel Barrau and Silvere Bonnabel. Invariant kalman filtering.
+Annual Review of Control, Robotics, and Autonomous Systems,
+Axel Barrau and Silvere Bonnabel.
+The invariant extended
+kalman filter as a stable observer.
+IEEE Transactions on
+Automatic Control, 62(4):17971812, 2017. doi: 10.1109TAC.
+Michael Bloesch, Marco Hutter, Mark A Hoepflinger, Stefan
+Siegwart. State estimation for legged robots-consistent fusion
+of leg kinematics and imu. Robotics, 17:1724, 2013.
+Martin Brossard, Silvere Bonnabel, and Axel Barrau. Denois-
+ing imu gyroscopes with deep learning for open-loop attitude
+estimation. IEEE Robotics and Automation Letters, 5(3):4796
+Russell Buchanan, Varun Agrawal, Marco Camurri, Frank Del-
+visual-inertial odometry with factor graphs. IEEE Robotics and
+Automation Letters, 8(1):4148, 2022.
+Michael Burri, Janosch Nikolic, Pascal Gohl, Thomas Schnei-
+Roland Siegwart. The euroc micro aerial vehicle datasets. The
+International Journal of Robotics Research, 35(10):11571163,
+Paul Chauchat, Axel Barrau, and Silvere Bonnabel. Invariant
+smoothing on lie groups.
+In 2018 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS), pages
+Changhao Chen and Xianfei Pan.
+Deep learning for inertial
+portation Systems, 2024.
+Ricky TQ Chen, Yulia Rubanova, Jesse Bettencourt, and
+David K Duvenaud.
+Neural ordinary differential equations.
+Advances in neural information processing systems, 31, 2018.
+Gregory S. Chirikjian. Stochastic Models, Information Theory,
+and Lie Groups, Volume 2. Birkhauser Boston, MA, 2012.
+Christian Lubich Ernst Hairer, Gerhard Wanner.
+Geometric
+Numerical Integration. Springer Berlin, Heidelberg, 2006.
+Mahdi Abolfazli Esfahani, Han Wang, Keyu Wu, and Shenghai
+Yuan. Orinet: Robust 3-d orientation estimation with a single
+particular imu. IEEE Robotics and Automation Letters, 5(2):
+Christian Forster, Luca Carlone, Frank Dellaert, and Davide
+Scaramuzza. On-manifold preintegration for real-time visual
+inertial odometry. IEEE Transactions on Robotics, 33(1):121,
+Patrick Geneva, Kevin Eckenhoff, Woosik Lee, Yulin Yang, and
+Guoquan Huang.
+inertial estimation.
+In 2020 IEEE International Conference
+on Robotics and Automation (ICRA), pages 46664672. IEEE,
+Michael Grupp.
+of odometry and slam.
+Brian C. Hall. Lie Groups, Lie Algebras, and Representations.
+Springer Cham, 2015.
+Ross Hartley, Maani Ghaffari, Ryan M Eustice, and Jessy W
+Grizzle. Contact-aided invariant extended kalman filtering for
+robot state estimation. The International Journal of Robotics
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Deep residual learning for image recognition. In Proceedings
+of the IEEE conference on computer vision and pattern recog-
+Sachini Herath, Hang Yan, and Yasutaka Furukawa.
+Robust neural inertial navigation in the wild: Benchmark,
+In 2020 IEEE International
+Conference on Robotics and Automation (ICRA), pages 3146
+Fengrong Huang, Zhen Wang, Luran Xing, and Chunyan Gao.
+A mems imu gyroscope calibration method based on deep learn-
+ing. IEEE Transactions on Instrumentation and Measurement,
+NovAtel Inc. Apn064 bulletin.
+core.windows.netpublicNovatelassetsDocumentsBulletins
+APN064APN064.pdf, 2025. Accessed: 2025-03-23.
+Patrick Kidger, James Morrill, James Foster, and Terry Lyons.
+Neural controlled differential equations for irregular time series.
+Advances in Neural Information Processing Systems, 33:6696
+Patrick Kidger, Ricky TQ Chen, and Terry J Lyons.  hey, thats
+not an ode: Faster ode adjoints via seminorms. In ICML, pages
+Joon-Ha Kim, Seungwoo Hong, Gwanghyeon Ji, Seunghun
+robot state estimation with dynamic contact event information.
+IEEE Robotics and Automation Letters, 6(4):67336740, 2021.
+Diederik P Kingma. Adam: A method for stochastic optimiza-
+tion. arXiv preprint arXiv:1412.6980, 2014.
+Tzu-Yuan Lin, Ray Zhang, Justin Yu, and Maani Ghaffari.
+Legged robot state estimation using invariant kalman filtering
+and learned contact events.
+In 5th Annual Conference on
+Robot Learning, 2021. URL
+yt3tDB67lc5.
+Tzu-Yuan Lin, Tingjun Li, Wenzhe Tong, and Maani Ghaffari.
+Proprioceptive invariant robot state estimation. arXiv preprint
+Huakun Liu, Xin Wei, Monica Perusqua-Hernandez, Naoya
+proving inertial-based odometry via deep imu online calibration.
+IEEE Transactions on Instrumentation and Measurement, 2023.
+Wenxin Liu, David Caruso, Eddy Ilg, Jing Dong, Anastasios I
+IEEE Robotics and
+Automation Letters, 5(4):56535660, 2020.
+James Morrill, Patrick Kidger, Lingyi Yang, and Terry Lyons.
+On the choice of interpolation scheme for neural cdes. Trans-
+actions on Machine Learning Research, 2022(9), 2022.
+Anastasios I Mourikis and Stergios I Roumeliotis. A multi-state
+constraint kalman filter for vision-aided inertial navigation. In
+Proceedings 2007 IEEE international conference on robotics
+and automation, pages 35653572. IEEE, 2007.
+Tong Qin, Peiliang Li, and Shaojie Shen. Vins-mono: A robust
+and versatile monocular visual-inertial state estimator.
+transactions on robotics, 34(4):10041020, 2018.
+Tong Qin, Shaozu Cao, Jie Pan, and Shaojie Shen. A general
+optimization-based framework for global pose estimation with
+multiple sensors. arXiv preprint arXiv:1901.03642, 2019.
+Joern Rehder, Janosch Nikolic, Thomas Schneider, Timo Hinz-
+extrinsics of multiple imus and of individual axes. In 2016 IEEE
+International Conference on Robotics and Automation (ICRA),
+pages 43044311. IEEE, 2016.
+Yulia Rubanova, Ricky TQ Chen, and David K Duvenaud.
+Latent ordinary differential equations for irregularly-sampled
+time series. Advances in neural information processing systems,
+David Schubert, Thore Goll, Nikolaus Demmel, Vladyslav
+The tum vi
+benchmark for evaluating visual-inertial odometry.
+IEEERSJ International Conference on Intelligent Robots and
+Systems (IROS), pages 16801687. IEEE, 2018.
+Scott Sun, Dennis Melamed, and Kris Kitani. Idol: Inertial deep
+orientation-estimation and localization. In Proceedings of the
+AAAI Conference on Artificial Intelligence, volume 35, pages
+Pieter van Goor and Robert Mahony. Eqvio: An equivariant fil-
+ter for visual-inertial odometry. IEEE Transactions on Robotics,
+David Wisth, Marco Camurri, and Maurice Fallon.
+robots. IEEE Transactions on Robotics, 39(1):309326, 2023.
+Hang Yan, Qi Shan, and Yasutaka Furukawa. Ridi: Robust imu
+double integration. In Proceedings of the European conference
+on computer vision (ECCV), pages 621636, 2018.
+Ming Zhang, Mingming Zhang, Yiming Chen, and Mingyang
+Li. Imu data processing for inertial aided navigation: A recurrent
+neural network based approach.
+In 2021 IEEE International
+Conference on Robotics and Automation (ICRA), pages 3992
+Zichao Zhang and Davide Scaramuzza. A tutorial on quanti-
+tative trajectory evaluation for visual (-inertial) odometry. In
+2018 IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 72447251. IEEE, 2018.

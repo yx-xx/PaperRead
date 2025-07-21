@@ -1,0 +1,1105 @@
+=== PDF文件: DexWild Dexterous Human Interactions for In-the-Wild Robot Policies.pdf ===
+=== 时间: 2025-07-21 13:45:55.195285 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：In-the-Wild Robot Policies
+Tony Tao, Mohan Kumar Srirama, Jason Jingzhou Liu, Kenneth Shaw, Deepak Pathak
+Carnegie Mellon University
+Equal contribution
+Fig. 1: DexWild enables dexterous policies to generalize to new objects, scenes, and embodiments. This is achieved by leveraging large-scale,
+real-world human embodiment data collected in many scenes and co-trained with a smaller robot embodiment dataset for grounding.
+a promising path toward enabling dexterous manipulation policies
+to generalize to novel environments, but acquiring such datasets
+presents many challenges. While teleoperation provides high-
+fidelity datasets, its high cost limits its scalability. Instead, what if
+people could use their own hands, just as they do in everyday life,
+to collect data? In DexWild, a diverse team of data collectors uses
+their hands to collect hours of interactions across a multitude
+of environments and objects. To record this data, we create
+DexWild learning framework co-trains on both human and robot
+training on each dataset individually. This combination results in
+robust robot policies capable of generalizing to novel environments,
+data. Experimental results demonstrate that DexWild significantly
+improves performance, achieving a 68.5 success rate in unseen
+environmentsnearly four times higher than policies trained
+with robot data onlyand offering 5.8 better cross-embodiment
+generalization. Video results, codebases, and instructions at https:
+dexwild.github.io
+I. INTRODUCTION
+Roboticists have long dreamed of creating robots that can
+perform tasks with the same dexterity and adaptability as
+humans. We would like robots to deftly generalize to many
+different objects, environments, and embodiments-yet this
+vision of truly versatile robot behaviors remains a formidable
+challenge. While there have been many breakthroughs in large
+language models (LLMs)
+[53, 51, 3] and vision language
+models (VLMs)
+[24, 48], the key to their success lies in
+harnessing vast datasets. In contrast, robotics faces a critical
+foundation models do not yet exist.
+In recent years, a key approach to collecting robot datasets
+has been through teleoperation, which provides high-precision,
+high-quality action data that a policy can directly train on.
+[8, 21, 54]. However, acquiring this data requires highly-
+trained human operators working with specialized robot setups.
+Gathering data in diverse environments presents additional
+challenges such as physically relocating the robot to each new
+location. This data collection process is both labor-intensive
+and expensive, making it difficult to scale to the volume of data
+needed for dexterous generalization in unseen environments.
+Another approach to scaling robot datasets is to leverage
+internet-scale video data from platforms like YouTube, which
+provide vast and diverse visual grounding in real-world environ-
+ments [15, 10]. However, utilizing this data effectively presents
+significant challenges. First, publicly available videos often
+lack the fine-grained accuracy needed to capture detailed hand
+states because vision-based body detection modules are noisy
+and unreliable. Additionally, these videos are not inherently
+structured with categorized episodes for task-specific learn-
+[18, 1, 40]. While some data collection efforts exist with more
+accurate and structured data, [60, 2], they dont have enough
+environment diversity. We seek to collect data with tracking
+accuracy and environment diversity to enable generalizable
+dexterous behavior.
+To overcome these barriers, some have explored collecting
+accurate in-the-wild human demonstrations by equipping
+users with a wearable gripper that directly maps their hand
+movements to robot actions . However, this approach is
+constrains the collected data to a specific embodiment. Other
+works  propose using dexterous hands and gloves, but they
+do not scale to in-the-wild environments.
+In this paper, we present DexWild, a system that enables
+effective learning of robust dexterous manipulation policies
+through co-training on human and robot demonstrations. Our
+key contributions include:
+1) Scalable Data Collection System: A novel human-
+embodiment DexWild-System that enables untrained op-
+erators to quickly collect 9,290 demonstrations across
+93 diverse environments, achieving 4.6 speedup over
+conventional robot-based methods
+2) Efficient Co-training Framework: An approach that
+optimally combines human and robot demonstrations,
+significantly improving policy generalization to achieve
+68.5 success rate in novel environments, nearly four
+times higher than robot-only policies.
+3) Strong Cross Embodiment and Cross Task Perfor-
+co-training framework achieves of 5.8 improvement in
+cross-embodiment transfer over baselines and effective
+skill transfer across tasks.
+II. RELATED WORKS
+A. Generalization for Imitation Learning
+Learning generalizable policies for robot manipulation has
+seen rapid progress, driven largely by advances in visual
+representation learning and imitation learning from large-scale
+datasets. On the visual side, embodied representation learning
+has benefited from egocentric datasets such as Ego4D  and
+leveraging these datasets to train scalable visual encoders.
+robot demonstrations to train control policies.
+In parallel, robot-only demonstration datasets have grown
+significantly in scale and diversity [21, 8, 54], fueling research
+in behavior cloning and enabling generalist policy architec-
+tures [49, 8, 22]. While these policies show impressive per-
+formance across many tasks, they often struggle to generalize
+to unseen object categories, scene layouts, or environmental
+conditions . This lack of robustness remains a key limitation
+of current systems.
+B. Data Generation for Robot Manipulation
+Overcoming the robot data bottleneck has become a central
+challenge in robot learning.
+One approach leverages internet videos to extract action
+information. Several works, such as VideoDex  and HOP
+, utilize large scale human videos to learn an action prior
+through retargeting, which they use to bootstrap policy training.
+latent action representations that can be used for downstream
+tasks. While these video-based schemes enjoy vast visual
+level motor commands needed for real-world manipulation.
+Simulation enables rapid generation of action data at scale.
+tasks and addressing the sim-to-real gap is challenging. Recent
+successes in transferring manipulation policies from simulation
+have been confined to tabletop settings and lack the
+generalization needed for deployment in diverse environments.
+Direct teleoperation on physical robots yields the highest
+dexterity and efficient learning in fixed scenarios [59, 56, 41,
+19], yet collecting enough demonstrations to generalize across
+diverse scenes quickly becomes prohibitively expensive.
+purpose-collected high quality human embodiment data without
+the tedious teleoperation. We discuss these approaches in the
+next section.
+C. Human Action Tracking Systems
+In order to acquire high-quality data from human motions,
+accurate hand and wrist tracking is of paramount importance. To
+bypass the complexities of hand pose estimation, several works
+equip users with handheld robot grippers [7, 12, 46]. While
+this approach simplifies retargeting, it constrains users to the
+specific morphology of the robot gripper, limiting the diversity
+of captured behavior. Moreover, many of these systems rely on
+SLAM-based wrist tracking, which can fail in feature-sparse
+environments or when occlusions occur [7, 23]such as during
+drawer opening or tool use.
+Other approaches aim to estimate both hand and wrist poses
+directly from visual input [29, 35, 5, 45, 28, 20, 32]. These
+methods are easy to deploy and require no instrumentation, but
+their performance degrades significantly under occlusionan
+unavoidable situation in manipulation. Alternative strategies
+for wrist tracking, such as IMU-based [9, 50] and outside-
+in optical systems , come with their own limitations:
+IMUs are lightweight and portable but prone to drift, while
+optical systems are accurate yet require laborious calibration
+and controlled environments.DexWild leverages calibration-
+free Aruco trackingsignificantly improving reliability and
+minimizing setup time as it requires a single monocular camera.
+While vision-based methods often attempt to track both the
+wrist and fingers simultaneously, many recent systems decouple
+the two to improve accuracy. Kinematic exoskeleton gloves
+can provide high-fidelity joint measurements and even haptic
+Fig. 2: Left: DexWild efficiently capture high-fidelity data using an individuals own hands across various environments. Right: Robot hands
+are equipped with cameras aligned with the human cameras. We test DexWild on two distinct robot hands and robot arms.
+use. Instead, DexWild, along with prior works [41, 55], adopts
+a lightweight glove-based solution that uses electromagnetic
+field (EMF) sensing to estimate fingertip positions. This allows
+for accurate, real-time hand tracking that is robust to occlusions
+and readily retargetable to a wide range of robot hands.
+III. DEXWILD
+Many believe that leveraging large, high-quality datasets is
+the key for creating dexterous robot policies that generalize
+[8, 49, 40, 11]. We introduce DexWild-System, a user-friendly,
+high-fidelity platform for efficiently gathering natural human
+hand demonstrations across diverse real-world settings. Com-
+pared to traditional teleoperation-based approaches, DexWild-
+System enables 4.6 faster data acquisition at scale.
+Building on this system, we propose DexWild, an imitation
+learning framework that co-trains on large-scale DexWild-
+System human demonstrations alongside a small number of
+robot demonstrations. This approach combines the diversity
+and richness of human interactions with the grounding of the
+robot embodiment, enabling policies to robustly generalize
+across new objects, environments, and embodiments. Figure 1
+displays our high level approach.
+A. Data Collection System
+A scalable data collection system for dexterous robot learning
+must enable natural, efficient, and high-fidelity collection across
+diverse environments. To this end, we design DexWild-System:
+a portable, user-friendly system that captures human dexterous
+behavior with minimal setup and training. While previous
+in-the-wild data collection approaches have typically relied
+on sensorized grippers, we aimed to create a more intuitive
+hardware interface that mirrors how humans naturally interact
+with the world. From delicate fine-motor actions to powerful
+manipulation tasks. By learning from this intrinsic capability,
+DexWild-System captures rich, diverse data applicable to a
+broad range of robot embodiments.
+DexWild-System is designed around three core objectives:
+across diverse environments without requiring complex
+calibration procedures.
+High Fidelity: Accurately capture fine-grained hand and
+environment interactions essential for training precise
+dexterous policies.
+human demonstrations to a wide variety of robot hands.
+To collect data in diverse real-world settings, a system must
+be portable, robust, and usable by anyone. We design DexWild-
+System with these goals in mind: it is lightweight, easy to carry,
+and can be set up in just a few minutesenabling scalable
+data collection across many locations.
+As shown in Figure 2, DexWild-System consists of only three
+a battery-powered mini-PC for onboard data capture, and a
+custom sensor pod comprising a motion-capture glove and
+synchronized palm-mounted cameras.
+Unlike traditional motion capture systems [60, 13, 4, 52] that
+often rely on complex outside-in tracking setups that require
+versatile for any scenario and foolproof for untrained operators.
+This is achieved by adopting a relative state-action rep-
+relative difference from the previous time steps pose. This
+eliminates any need for a global coordinate frame, allowing
+the tracking camera to be freely placedeither egocentrically
+or exocentrically. Additionally, the palm cameras are rigidly
+mounted in fixed positions across both human and robot
+embodiments. This ensures visual observations are aligned
+across domains, eliminating the need for further calibration at
+deployment. The external tracking camera, when carefully
+context useful for learning robust policies.
+High Fidelity:
+To learn dexterous behaviors, fine-grained, nuanced motions
+must be captured in the training dataset. Although DexWild-
+System consists of only a few portable components, we make
+no compromises on data fidelity. Our system is designed to
+accurately capture both hand and wrist actions, paired with
+high-quality visual observations.
+For wrist and hand tracking, vision-only methods are easy
+to setup. However, what they gain in portability, they often
+lose in accuracy and robustnessyielding noisy pose estimates
+that degrade policy learning [41, 14, 32, 7].
+For hand pose estimation, we use motion capture gloves,
+which offer high accuracy, low latency, and robustness against
+occlusions . For wrist tracking, we mount ArUco markers
+on the glove and track them using an external camera. This
+avoids the fragility of SLAM-based wrist tracking, which often
+fails in feature-sparse environments or during occlusion-heavy
+tasks (e.g., drawer opening).
+Unlike many datasets that rely on egocentric or distant
+external cameras, we place two global-shutter cameras directly
+on the palm. As illustrated in Figure 2, these stereo cameras
+capture detailed, localized interaction views with minimal
+motion blur and a wide field of view. This wide field of
+view enables policies to operate using only the onboard palm
+To ensure the longevity and versatility of DexWild data,
+we aim for it to remain useful across different robot embod-
+imentseven as hardware platforms evolve. Achieving this
+goal requires careful alignment of both the observation space
+and the action space between humans and robots.
+We begin by standardizing the observation space. Although
+our palm-mounted cameras have a wide field of view, we
+intentionally position them to focus primarily on the environ-
+the camera placement is mirrored between the human and
+robot hands. As shown in Figure 3, this design yields visually
+consistent observations across embodiments, allowing the
+policy to learn a shared visual representation that generalizes
+across both human and robot domains.
+For action space alignment, we build on insights from prior
+work [17, 44], optimizing robot hand kinematics to match the
+fingertip positions observed in human demonstrations. We note
+that this method is general and can work for any robot hand
+embodiment. It operates with fixed hyperparameters across
+users and is robust to variations in hand sizeeliminating the
+need for user-specific tuning.
+Collecting data using natural human hands offers benefits
+beyond ease of use. The diversity in hand morphology across
+human demonstrators introduces useful variation, which we
+hypothesize helps policies learn more generalizable grasping
+strategiesparticularly important given the inherent mismatch
+between human and robot hand kinematics.
+In summary, DexWild is a portable, high quality, human-
+centric system that can be worn by any operator to collect
+human data in real-world environments. Next, we explain how
+Fig. 3: DexWild aligns the visual observations between humans and
+robots to bridge the embodiment gap. This incentivizes the model to
+learn a task-centric rather than embodiment-centric representation.
+we use the data collected by DexWild to enable dexterous
+policies to generalize to in-the-wild scenarios.
+B. Training Data Modalities and Preprocessing
+Generalization in dexterous manipulation demands both
+scale and embodiment grounding. With this goal, DexWild
+collects two complementary datasets: a large-scale human
+demonstration dataset DH using DexWild-System, and a
+smaller teleoperated robot dataset DR. Human data offers broad
+task diversity and ease of collection in real-world settings, but
+lacks embodiment alignment. Robot data, while limited in scale,
+provides crucial grounding in the robots action and observation
+spaces. To harness the strengths of both, we co-train policies
+using a fixed ratio of human and robot data within a batch,
+(wh, wr)balancing diversity with embodiment grounding to
+enable robust generalization during deployment.
+At each training iteration, we sample a batch consisting of
+transitions xh and xr from DH and DR, respectively, according
+to the co-training weights. Each transition xi at timestep i
+Observation oi: An observation at a given timestep
+consists of two synchronized palm camera images
+Ipinky and Ithumb captured at the current timestep,
+as well as a sequence of historical states, sampled
+at a step size up a given horizon H, comprising of
+{pi, pistep, ..., piH}. Each p consists of relative
+historical end-effector positions.
+Action ai:in1: An action chunk of size n that includes
+actions {ai, ai1, . . . , ain1}, where ai is the action at
+the current timestep. Specifically, ai is a 26-dimensional
+vector consisting of:
+effector position (3D) and orientation (6D).
+joint position targets of the robot hand.
+Fig. 4: Using DexWild-System, humans can effortlessly collect accurate data with their own hands across a wide range of environments.
+This data is directly used to train any robot hand to perform dexterous manipulation in a human-like way in any environment. We validate
+this approach on five representative tasks. Please see videos of these tasks on our website at
+For bimanual tasks, the observation and action spaces are
+observation to facilitate coordination.
+While our retargeting procedure brings human and robot
+trajectories into a shared action space, a few additional steps
+are necessary to make the human and robot datasets compatible
+for joint training:
+Action Normalization: The actions of human and robot
+data are normalized separately to account for inherent
+distribution mismatches.
+Demo Filtering: Since human demonstrations are col-
+lected by untrained operators in uncontrolled environments,
+we apply a heuristic-based filtering pipeline to automati-
+cally detect and remove low-quality or invalid trajectories.
+This filtering step significantly improves dataset quality
+without manual labeling.
+C. Policy Training
+Through the careful design of our hardware, observation, and
+action interfaces, we are able to train dexterous robot policies
+using a simple behavior cloning (BC) objective [31, 37, 36]. To
+effectively learn from our multimodal, diverse data, our training
+pipeline leverages large-scale pre-trained visual encoders and
+shows strong performance across different policy architectures.
+Visual Encoder: Training on DexWild data exposes our
+policy to significant visual diversityacross scenes, objects,
+and lightingrequiring an encoder that generalizes well to
+such variability. To address this, we adopt a pre-trained Vision
+Transformer (ViT) backbone, which has shown superior perfor-
+mance over ResNet-based encoders on in-the-wild manipulation
+tasks [16, 23]. Pre-trained ViTs, especially those trained
+on large internet-scale datasets, are particularly effective at
+extracting rich, transferable features [27, 33, 47, 11], making
+them well-suited for our setting.
+Policy Class: While several imitation learning architectures
+have been proposed recently [59, 6], we adopt a diffusion-
+based policy. Diffusion models are particularly well-suited
+for dexterous manipulation, as they can capture multi-modal
+action distributions more effectively than alternatives such
+as Gaussian Mixture Models (GMMs) or transformers. This
+capability becomes increasingly important in DexWild, where
+demonstrations are collected from multiple humans with diverse
+the dataset scales, modeling this variability becomes critical for
+robust policy learning. Specifically, DexWild uses a diffusion
+U-Net model  to generate action chunks.
+Algorithm 1 DexWild Imitation Learning Procedure
+Sample a batch of transitions {xh}, {xr} from DH, DR using
+weights {h, r}
+for each transition xi in the batch do
+Extract observation oi
+Encode images: Zi  vit(oi)
+Sample noise scale t U(1, T)
+Add noise t N(0, t) to ai:in1
+Predict noise   (Zi, ai:in1  t, t)
+Compute diffusion loss L  t 2
+Update policy parameters
+An important finding in our training framework is that tuning
+the human-to-robot data weighting significantly affects real-
+world performance. We discuss these effects in Section V-A.
+IV. EXPERIMENTS
+Our experimental evaluation encompasses extensive real-
+world deployment across diverse environments and robots, uti-
+lizing both human demonstrations and robot teleoperation data.
+Fig. 5: We collect data using a diverse set of objects across categories. Spray Bottle Task  25 Train, 11 Test; Toy Cleanup Task  64 Train,
+9 Test; Pour Task  35 Train, 5 Test; Florist Task - 6 Train, 2 Test; Clothes Folding Task - 17 Train, 6 Test.
+A. Scaling up Data Collection
+Our hardware system was deployed to 10 untrained users to
+collect data across a wide range of real-world environments.
+These settings included indoor and outdoor locations, day and
+night conditions, crowded cafeterias and quiet study areas,
+with varied tables, objects, and lighting setups. The collectors
+themselves varied in hand sizes and demonstration styles,
+enabling us to learn from a wide distribution of environments
+and interactions.
+We constructed two datasets through our collection efforts:
+DH (human-collected data) and DR (robot-collected data). The
+human dataset DH comprises 9,290 demonstrations across five
+for each of the Spray Bottle and Toy Cleanup tasks, 621
+trajectories from 6 environments for the Pour task, 1,545
+demonstrations from 15 environments for the Florist task, and
+Folding task.
+The robot dataset DR includes 1,395 demonstrations: 388
+for Spray Bottle, 370 for Toy Cleanup, 111 for Pour, 236 for
+collected using an xArm and LEAP hand V2 Advanced. Our
+training and test objects are detailed in Figure 5.
+B. Evaluation Tasks
+We evaluate our approach on five diverse manipulation
+task transfer, bimanual coordination, and deformable object
+manipulation. A task visualization is provided in Figure 4.
+In the Spray Bottle task, the robot grasps a spray bottle by
+the handle and sprays a target cloth, testing functional grasping
+and affordance understanding. In Toy Cleanup, the robot
+picks up scattered toys and places them in a bin, evaluating
+generalization and long-horizon planning. The Pouring task
+involves tilting a bottle to pour into a container, demonstrating
+skill transfer from the spray bottle task. In Bimanual Florist,
+the robot hands over a flower between its arms and inserts it
+into a vase, testing precise bimanual coordination. Finally, in
+Bimanual Clothes Folding, the robot uses both hands to fold a
+clothing item, assessing manipulation of deformable objects.
+Full task specifications and scoring criteria for all tasks are
+provided in Appendix VII-A.
+These tasks systematically evaluate DexWilds functional
+grasping capabilities, generalization across object types, trans-
+feral of skills across tasks, coordination between arms, and
+adaptability to deformable objects. Success requires the policy
+to adapt to varying object properties, environmental conditions,
+and task constraints.
+C. Evaluation Environments
+For robot experiments, we employed an xArm robot and
+Franka system, both equipped with either LEAP hand or LEAP
+hand V2 Advanced [38, 41]. Unless explicitly mentioned, xArm
+and LEAP hand V2 Advanced was used. We evaluate our
+approach across three scenarios:
+1) In-Domain: Environments where robot training data was
+2) In-the-Wild: Environments present in DexWild but absent
+from robot training data
+3) In-the-Wild Extreme: Unseen environments absent from
+both datasets.
+V. ANALYSIS AND RESULTS
+In our evaluations, we seek to investigate the following key
+1) How effectively does DexWild leverage human data to
+achieve strong in-the-wild performance?
+2) Does DexWild enable policy transfer across tasks and
+robot embodiments?
+3) Does policy performance scale effectively with increasing
+amounts of DexWild-System data?
+Please see videos of our results at
+A. Zero Shot In the Wild Policies w DexWild
+DexWild enables strong policy generalization in novel
+scenes. We evaluate policies in environments with increasing
+novelty to assess their generalization. As shown in Figure 6,
+policies trained exclusively on robot data perform well in in-
+domain settings (64.7 success rate) but degrade significantly
+in more challenging scenariosin-the-wild (28.5) and in-
+the-wild extreme (22.0). This 36-point performance drop
+suggests that robot-only policies overfit to environment-specific
+features and fail to develop robust, transferable representations.
+In contrast, policies trained only on human data learn high-
+level object affordances and approach objects reliably, even
+In-Domain Performance
+In the Wild Performance
+In the Wild Extreme Performance
+Robot Only
+Co-train 1:1
+Co-train 1:2 (Ours)
+Co-train 1:5
+Human Only
+Fig. 6: How does co-training help with scaling up in the wild performance? We evaluate our policy across three scenarios: (a) In-Domain
+scenes where robot training data was collected but with novel objects, (b) In-the-Wild scenes present in DexWild but not in robot data, and
+(c) In-the-Wild Extreme scenes absent from both datasets. Displayed ratio is Robot:Human.
+in complex scenes. However, without robot-specific action
+resulting in poor performance across all scenarios (3.6 in-
+To combine the strengths of both modalities, we adopt a
+co-training strategyjointly training on both robot and human
+dataa method validated in prior works [8, 49, 21, 20, 32].
+This encourages the policy to learn task-relevant features rather
+than overfitting to specific embodiments or environments. We
+experiment with different robot-to-human data ratios (1:1 to
+1) In Domain: 79.8 vs. 64.7 (robot-only)
+2) In-the-wild: 75.1 vs. 28.5 (robot-only)
+3) In-the-wild Extreme: 62.7 vs. 22.0 (robot-only)
+wild), indicating that robot data remains essential for grounding
+fine-grained control.
+DexWild extends to complex bimanual coordination
+tasks. To evaluate whether DexWild generalizes beyond single-
+arm tasks, we test it on bimanual tasks that demand precise
+coordination between two hands. We compare co-trained
+policies (1:2 ratio) against robot-only policies in in-the-wild
+extreme settings. DexWild policies achieve a strong 68.1
+average success rate, compared to just 13 for the robot-
+only baseline. Even when failures occur, DexWild policies
+exhibit meaningful attempts at task executionwhile robot-
+only policies often produce erratic or unstructured behavior.
+These results demonstrate that DexWild not only enables
+robust generalization across environments but also scales to
+more complex manipulation behaviors.
+B. Robust Cross-Task and Cross-Embodiment Generalization
+DexWild enables transfer of low-level skills across tasks.
+Many manipulation tasks share foundational motor skillssuch
+as lifting, orienting, and rotating objectswhich opens the
+door to skill reuse across related tasks. For example, opening
+a microwave and opening a cupboard both involve similar
+coordination and control. We evaluate this form of cross-task
+transfer using the pouring task, which shares many motion
+primitives with the spray task. Crucially, we use no robot data
+for pouring and instead combine human (DexWild-System)
+demonstrations of pouring with robot demonstrations from
+spraying. This setup enables zero-shot generalization to
+pouring in in-the-wild extreme environments. Using a 1:2
+robot-to-human co-training ratio, our policy achieves a 94
+success rate, far exceeding policies trained with only robot
+(0) or only human data (11).
+DexWild enables transfer across robot embodiments.
+Since DexWild data is not tied to any specific embodiment, it
+naturally supports cross-platform transfer. This prolongs the
+value of our data, as collecting platform-specific data for every
+new robot is resource-intensive and impractical. We test two
+transfer scenarios in in-the-wild extreme scenes:
+arm. We achieve a 37.5 success rate, compared to 4.5
+for the robot-only baselinean 8.3 improvement.
+Advanced to the original LEAP Hand. We achieve 65.3
+success versus 13.3 for the baseline, showing that
+DexWild generalizes not only across arms, but across
+dexterous hands as well.
+These results, shown in Figure 7, demonstrate that DexWild
+enables zero-shot generalization to new tasks and hardware
+embodiments without any additional robot-specific data,
+making it an efficient and general framework for dexterous
+policy learning on many robots.
+C. Scalability of DexWild
+Policy performance scales with dataset size. To understand
+how data scale impacts policy performance in the wild, we
+randomly sample subsets of the full human dataset at varying
+sizes and evaluate the resulting policies. We fix the size of
+the robot dataset. As shown in Figure 7, there is a clear
+positive correlation between dataset size and average task
+performancerising from 28.7 at 20 dataset size to 67.8
+with the full dataset, marking a 2.36 improvement. Interest-
+Cross-Task Performance
+Cross-Hand
+Cross-Arm
+1.0 Cross-Embodiment Performance
+DexWild Dataset Scale ()
+Scaling Performance
+Robot Only
+Co-train 1:1
+Co-train 1:2 (Ours)
+Co-train 1:5
+Human Only
+Fig. 7: Left: Cross-Task Performance  Evaluating DexWild on the pour task using robot data exclusively from the spray task. Middle:
+Cross-Embodiment Performance  Testing DexWild policy on the Original LEAP hand and a Franka robot arm. Right: Scaling Performance
+Demonstrating improved DexWild performance as dataset size increases. Displayed ratio is Robot:Human.
+in the 2550 range, suggesting a critical threshold where the
+policy begins to reliably learn generalizable behaviors.
+to 100 data usage, indicating that the system has not yet
+plateaued. This suggests that even more capable policies could
+be learned with continued data collection.
+DexWild-System enables fast and scalable data collection.
+Given the observed benefits of scaling, we evaluate the data
+collection efficiency of DexWild-System via a comparative
+user study measuring demonstrations per hour. As shown in
+Figure 8, DexWild-System achieves an average collection rate
+of 201 demoshour across five representative tasksnearly
+matching the rate of demonstrations collected using bare hands
+and 4.6 faster than a traditional robot teleoperation system
+based on Gello [41, 56], which achieves just 43 demoshour.
+We identify three key limitations of Gello-based collection
+that our system overcomes:
+1) Lack of haptic feedback: Operators cannot feel objects,
+making fine manipulation difficult for certain tasks.
+2) Scene reset: Resetting the environment is cumbersome
+and often requires a second operator or pauses in data
+collection.
+3) Hardware setup overhead: Robots are heavy and require
+time-consuming setup at each new location, whereas
+DexWild-System is portable and can be set up in minutes.
+Demos per hour
+Data Collection Speed by Method
+Fig. 8: DexWild-System offers 4.6 improvement over robot data
+collection speed and nearly matches the human bare hands data
+collection speed.
+DexWild not only demonstrates strong scaling trends with
+increasing data volume, but also offers a practical and efficient
+path to collecting diverse, high-quality data at scalecrucial
+for real-world generalization.
+VI. CONCLUSION AND LIMITATIONS
+We introduce DexWild, a scalable framework for learning
+dexterous manipulation policies that effectively generalize to
+new tasks, environments, and robot embodiments. We introduce
+device that significantly accelerates dataset creation (4.6
+faster than conventional robot teleoperation). We propose
+DexWild cotraining method, which leverages large scale human
+demonstrations alongside minimal robot data to achieve robust
+generalization-reaching a success rate of 68.5 in completely
+unseen environments, nearly four times higher than methods
+using robot data only. Furthermore, DexWilds embodiment-
+agnostic design enables strong cross-embodiment and cross-task
+transfer capabilities, reducing the need for robot-specific data.
+Despite these strengths, several limitations remain that
+motivate future research: First, our approach still depends on
+a limited number of teleoperated robot data to bridge the gap
+between human and robot actions. Future work could explore
+improved retargeting or online policy adaptation to remove
+the need for teleoperated data. Next, because humans typically
+perform these tasks successfully, their demonstrations seldom
+include error recoverycausing trained policies to struggle to
+recover from unexpected failures. Adding recovery examples or
+adaptive strategies could boost real-world robustness. Finally,
+our method uses only visual and kinematic data, which limits its
+performance in contact-rich tasks. Incorporating tactile or haptic
+sensing could improve the handling of delicate interactions.
+In summary, DexWild represents a significant step toward
+highlight the promise of leveraging human interaction data at
+versatile robots operating in diverse, real-world environments.
+website at
+ACKNOWLEDGMENTS
+We would like to thank Yulong Li, Hengkai Pan, and Sandeep
+Routray for thoughtful discussions. Wed like to thank Andrew
+Wang for setting up the compute used in this project. Wed
+also like to thank Yulong Li for helping with the setup of the
+robot system. Lastly, wed like to express thanks to Hengkai
+data collection team for their efforts in helping us gather the
+data needed for this project. This work is supported in part
+by ONR MURI N00014-22-1-2773, ONR MURI N00014-24-
+Google Research Award.
+REFERENCES
+Shikhar Bahl, Russell Mendonca, Lili Chen, Unnat Jain,
+and Deepak Pathak. Affordances from human videos as
+a versatile representation for robotics. 2023. 2
+Prithviraj Banerjee, Sindi Shkodrani, Pierre Moulon,
+Shreyas Hampali, Shangchen Han, Fan Zhang, Linguang
+multi-view videos.
+arXiv preprint arXiv:2411.19167,
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Advances in neural information processing systems, 33:
+Yu-Wei Chao, Wei Yang, Yu Xiang, Pavlo Molchanov,
+Ankur Handa, Jonathan Tremblay, Yashraj S Narang, Karl
+Van Wyk, Umar Iqbal, Stan Birchfield, et al. Dexycb:
+A benchmark for capturing hand grasping of objects. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 90449053, 2021.
+Xuxin Cheng, Jialong Li, Shiqi Yang, Ge Yang, and
+Xiaolong Wang.
+immersive active visual feedback.
+arXiv preprint
+Cheng Chi, Siyuan Feng, Yilun Du, Zhenjia Xu, Eric
+fusion policy: Visuomotor policy learning via action
+diffusion.
+In Proceedings of Robotics: Science and
+Systems (RSS), 2023. 5, 14
+Cheng Chi, Zhenjia Xu, Chuer Pan, Eric Cousineau,
+Benjamin Burchfiel, Siyuan Feng, Russ Tedrake, and
+Shuran Song.
+Universal manipulation interface: In-
+the-wild robot teaching without in-the-wild robots. In
+Proceedings of the IEEE International Conference on
+Robotics and Automation (ICRA), 2024. 2, 4
+Open X-Embodiment Collaboration, Abby ONeill, Abdul
+Agrim Gupta, Ajay Mandlekar, Ajinkya Jain, Albert Tung,
+Alex Bewley, Alex Herzog, Alex Irpan, Alexander Khaz-
+Ayzaan Wahid, Ben Burgess-Limerick, Beomjoon Kim,
+Bernhard Scholkopf, Blake Wulfe, Brian Ichter, Cewu
+Chenfeng Xu, Cheng Chi, Chenguang Huang, Christine
+Dinesh Jayaraman, Dmitry Kalashnikov, Dorsa Sadigh,
+Edward Johns, Ethan Foster, Fangchen Liu, Federico
+Gregory Kahn, Guangwen Yang, Guanzhi Wang, Hao Su,
+Hao-Shu Fang, Haochen Shi, Henghui Bao, Heni Ben
+Jad Abou-Chakra, Jaehyung Kim, Jaimyn Drake, Jan
+Jiayuan Gu, Jie Tan, Jihoon Oh, Jimmy Wu, Jingpei Lu,
+Jingyun Yang, Jitendra Malik, Joao Silverio, Joey Hejna,
+Jonathan Booher, Jonathan Tompson, Jonathan Yang, Jordi
+Kanishka Rao, Karl Pertsch, Karol Hausman, Keegan
+Kuan Fang, Kunal Pratap Singh, Kuo-Hao Zeng, Kyle
+Lerrel Pinto, Li Fei-Fei, Liam Tan, Linxi Jim Fan,
+Lionel Ott, Lisa Lee, Luca Weihs, Magnum Chen, Marion
+Mingyu Ding, Minho Heo, Mohan Kumar Srirama, Mohit
+Nicolas Heess, Nikhil J Joshi, Niko Suenderhauf, Ning
+Oier Mees, Oliver Kroemer, Osbert Bastani, Pannag R
+Peng Xu, Peter David Fagan, Peter Mitrano, Pierre
+Quan Vuong, Rafael Rafailov, Ran Tian, Ria Doshi,
+Roberto Martin-Martin, Rohan Baijal, Rosario Scalise,
+Rose Hendrix, Roy Lin, Runjia Qian, Ruohan Zhang,
+Russell Mendonca, Rutav Shah, Ryan Hoque, Ryan Julian,
+Samuel Bustamante, Sean Kirmani, Sergey Levine, Shan
+Siddhant Haldar, Siddharth Karamcheti, Simeon Ade-
+Stefan Welker, Stephen Tian, Subramanian Ramamoorthy,
+Sudeep Dasari, Suneel Belkhale, Sungjae Park, Suraj
+Tatsuya Harada, Tatsuya Matsushima, Ted Xiao, Thomas
+Vidhi Jain, Vikash Kumar, Vincent Vanhoucke, Wei Zhan,
+Wenxuan Zhou, Wolfram Burgard, Xi Chen, Xiangyu
+Xiyuan Liu, Xu Liangwei, Xuanlin Li, Yansong Pang,
+Yao Lu, Yecheng Jason Ma, Yejin Kim, Yevgen Chebotar,
+Yifan Zhou, Yifeng Zhu, Yilin Wu, Ying Xu, Yixuan
+Youngwoon Lee, Yuchen Cui, Yue Cao, Yueh-Hua Wu,
+Yujin Tang, Yuke Zhu, Yunchu Zhang, Yunfan Jiang,
+Yunshuang Li, Yunzhu Li, Yusuke Iwasawa, Yutaka
+Robotic learning datasets and RT-X models, 2023. 1, 2,
+Juan Antonio Corrales, Francisco A Candelas, and Fer-
+nando Torres. Hybrid tracking of human operators using
+imuuwb data fusion by a kalman filter. In Proceedings
+of the 3rd ACMIEEE international conference on Human
+robot interaction, pages 193200, 2008. 2
+Dima Damen, Hazel Doughty, Giovanni Maria Farinella,
+Sanja Fidler, Antonino Furnari, Evangelos Kazakos,
+Davide Moltisanti, Jonathan Munro, Toby Perrett, Will
+dataset for recognizing, anticipating, and retrieving hand-
+object interactions.
+In Proceedings of the European
+Conference on Computer Vision (ECCV), pages 802819,
+Sudeep Dasari, Mohan Kumar Srirama, Unnat Jain, and
+Abhinav Gupta. An unbiased look at datasets for visuo-
+motor pre-training. In Conference on Robot Learning.
+Haritheja Etukuru, Norihito Naka, Zijin Hu, Seungjae
+lah. Robot utility models: General policies for zero-shot
+deployment in new environments, 2024. 2
+Zicong Fan, Omid Taheri, Dimitrios Tzionas, Muhammed
+Hilliges. Arctic: A dataset for dexterous bimanual hand-
+object manipulation. In Proceedings of the IEEECVF
+Conference on Computer Vision and Pattern Recognition,
+Authors from UC San Diego and MIT. Open-television:
+An open-source immersive teleoperation system with
+stereo visual feedback. The Robot Report, 2024. 4
+Kristen Grauman, Michael Ryoo, Aljosa Smolic, Minh
+of egocentric video. In Proceedings of the IEEECVF
+Conference on Computer Vision and Pattern Recognition
+Huy Ha, Yihuai Gao, Zipeng Fu, Jie Tan, and Shuran
+Song. UMI on legs: Making manipulation policies mobile
+with manipulation-centric whole-body controllers.
+Proceedings of the 2024 Conference on Robot Learning,
+Ankur Handa, Karl Van Wyk, Wei Yang, Jacky Liang,
+Yu-Wei Chao, Qian Wan, Stan Birchfield, Nathan Ratliff,
+and Dieter Fox.
+of dexterous robotic hand-arm system. In 2020 IEEE
+International Conference on Robotics and Automation
+(ICRA), pages 91649170. IEEE, 2020. 4
+Yafei Hu, Quanting Xie, Vidhi Jain, Jonathan Francis,
+Jay Patrikar, Nikhil Keetha, Seungchan Kim, Yaqi Xie,
+Tianyi Zhang, Zhibo Zhao, et al. Toward general-purpose
+robots via foundation models: A survey and meta-analysis.
+arXiv preprint arXiv:2312.08782, 2023. 2
+Aadhithya Iyer, Zhuoran Peng, Yinlong Dai, Irmak Guzey,
+Siddhant Haldar, Soumith Chintala, and Lerrel Pinto.
+OPEN TEACH: A versatile teleoperation system for
+robotic manipulation. arXiv preprint arXiv:2403.07870,
+Simar Kareer, Dhruv Patel, Ryan Punamiya, Pranay
+Danfei Xu. Egomimic: Scaling imitation learning via
+egocentric video, 2024. 2, 7
+Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ash-
+win Balakrishna, Sudeep Dasari, Siddharth Karamcheti,
+Soroush Nasiriany, Mohan Kumar Srirama, Lawrence Yun-
+liang Chen, Kirsty Ellis, et al.
+in-the-wild robot manipulation dataset. arXiv preprint
+Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla:
+An open-source vision-language-action model.
+preprint arXiv:2406.09246, 2024. 2
+Fanqi Lin, Yingdong Hu, Pingyue Sheng, Chuan Wen,
+Jiacheng You, and Yang Gao.
+Data scaling laws in
+imitation learning for robotic manipulation. In Conference
+on Robot Learning (CoRL), 2024. 2, 5
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae
+Lee. Visual instruction tuning. In NeurIPS, 2023. 1
+Ajay Mandlekar, Danfei Xu, Josiah Wong, Soroush
+matters in learning from offline human demonstrations
+for robot manipulation. arXiv preprint arXiv:2108.03298,
+Mayank Mittal, Calvin Yu, Qinxi Yu, Jingzhou Liu,
+Nikita Rudin, David Hoeller, Jia Lin Yuan, Ritvik Singh,
+Yunrong Guo, Hammad Mazhar, Ajay Mandlekar, Buck
+robot learning environments.
+IEEE Robotics and Au-
+tomation Letters, 8(6):37403747, June 2023.
+Suraj Nair, Aravind Rajeswaran, Vikash Kumar, and
+Chelsea Finn. R3M: A universal visual representation
+for robot manipulation. arXiv preprint arXiv:2203.12601,
+Georgios Pavlakos, Dandan Shan, Ilija Radosavovic,
+Angjoo Kanazawa, David Fouhey, and Jitendra Malik.
+challenge. 2
+Georgios Pavlakos, Dandan Shan, Ilija Radosavovic,
+Angjoo Kanazawa, David Fouhey, and Jitendra Malik.
+Reconstructing hands in 3d with transformers.
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2024. 2
+Alexandra Pfister, Alexandre M West, Shaw Bronner, and
+Jack Adam Noah. Comparative abilities of microsoft
+kinect and vicon 3d motion capture for gait analysis.
+Journal of medical engineering  technology, 38(5):274
+Dean A Pomerleau. Alvinn: An autonomous land vehicle
+in a neural network. Advances in neural information
+processing systems, 1, 1988. 5
+Ri-Zhao Qiu, Shiqi Yang, Xuxin Cheng, Chaitanya
+Ryan Hoque, Lars Paulsen, Ge Yang, Jian Zhang, Sha
+human policy. arXiv preprint arXiv:2503.13441, 2025. 2,
+Ilija Radosavovic, Tete Xiao, Stephen James, Pieter
+robot learning with masked visual pre-training. CoRL,
+Nathan D. Ratliff, Jan Issac, Daniel Kappler, Stan Birch-
+Yu Rong, Takaaki Shiratori, and Hanbyul Joo. Frankmo-
+via regression and integration. In Proceedings of the
+IEEECVF International Conference on Computer Vision,
+Stephane Ross, Geoffrey Gordon, and Drew Bagnell. A
+reduction of imitation learning and structured prediction to
+no-regret online learning. In Proceedings of the fourteenth
+international conference on artificial intelligence and
+ence Proceedings, 2011. 5
+Stefan Schaal. Is imitation learning the route to humanoid
+robots? Trends in cognitive sciences, 3(6):233242, 1999.
+Kenneth Shaw, Ananye Agarwal, and Deepak Pathak.
+Leap hand: Low-cost, efficient, and anthropomorphic hand
+for robot learning. Robotics: Science and Systems (RSS),
+Kenneth Shaw, Shikhar Bahl, and Deepak Pathak.
+Karen Liu, Dana Kulic, and Jeff Ichnowski, editors,
+Proceedings of The 6th Conference on Robot Learning,
+volume 205 of Proceedings of Machine Learning Re-
+Kenneth Shaw, Shikhar Bahl, and Deepak Pathak.
+Conference on Robot Learning, pages 654665. PMLR,
+Kenneth Shaw, Yulong Li, Jiahui Yang, Mohan Kumar
+Deepak Pathak. Bimanual dexterity for complex tasks.
+In 8th Annual Conference on Robot Learning, 2024. 2,
+Himanshu Gaurav Singh, Antonio Loquercio, Carmelo
+Jitendra Malik. Hand-object interaction pretraining from
+Ritvik Singh, Arthur Allshire, Ankur Handa, Nathan
+policies to grasp anything with dexterous hands. arXiv
+preprint arXiv:2412.01791, 2024. 2
+Aravind Sivakumar, Kenneth Shaw, and Deepak Pathak.
+Robotic telekinesis: Learning a robotic hand imitator by
+watching humans on youtube, 2022. 4
+Aravind Sivakumar, Kenneth Shaw, and Deepak Pathak.
+Robotic telekinesis: Learning a robotic hand imitator by
+watching humans on youtube. RSS, 2022. 2
+Shuran Song, Andy Zeng, Johnny Lee, and Thomas
+Funkhouser. Grasping in the wild: Learning 6dof closed-
+loop grasping from low-cost demonstrations. Robotics
+and Automation Letters, 2020. 2
+Mohan Kumar Srirama, Sudeep Dasari, Shikhar Bahl, and
+Abhinav Gupta. HRP: Human affordances for robotic
+pre-training. In Proceedings of Robotics: Science and
+Andreas Steiner, Andre Susano Pinto, Michael Tschan-
+Alexey Gritsenko, Matthias Minderer, Anthony Sher-
+Emanuele Bugliarello, Sahar Kazemzadeh, Thomas Mes-
+Zhai. PaliGemma 2: A Family of Versatile VLMs for
+Transfer. arXiv preprint arXiv:2412.03555, 2024. 1
+OM Team, D Ghosh, H Walke, K Pertsch, K Black,
+O Mees, S Dasari, J Hejna, C Xu, J Luo, et al. Octo:
+An open-source generalist robot policy. Proceedings of
+Yushuang Tian, Xiaoli Meng, Dapeng Tao, Dongquan
+the integration of imu and kinect. Neurocomputing, 159:
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+tiste Roziere, Naman Goyal, Eric Hambro, Faisal Azhar,
+et al. Llama: Open and efficient foundation language
+models. arXiv preprint arXiv:2302.13971, 2023. 1
+Valve Corporation.
+steamvr. [Virtual reality platform]. 3
+A Vaswani. Attention is all you need. Advances in Neural
+Information Processing Systems, 2017. 1
+Homer Walke, Kevin Black, Abraham Lee, Moo Jin Kim,
+Max Du, Chongyi Zheng, Tony Zhao, Philippe Hansen-
+A dataset for robot learning at scale. In Conference on
+Robot Learning (CoRL), 2023. 1, 2
+Chen Wang, Haochen Shi, Weizhuo Wang, Ruohan Zhang,
+Li Fei-Fei, and Karen Liu. Dexcap: Scalable and portable
+mocap data collection system for dexterous manipulation.
+In Robotics: Science and Systems (RSS), 2024. 2, 3
+Philipp Wu, Yide Shentu, Zhongke Yi, Xingyu Lin, and
+Pieter Abbeel. Gello: A general, low-cost, and intuitive
+teleoperation framework for robot manipulators, 2023. 2,
+Seonghyeon Ye, Joel Jang, Byeongguk Jeon, Sejune Joo,
+Jianwei Yang, Baolin Peng, Ajay Mandlekar, Reuben
+pretraining from videos. arXiv preprint arXiv:2410.11758,
+Han Zhang, Songbo Hu, Zhecheng Yuan, and Huazhe
+Xu. Doglove: Dexterous manipulation with a low-cost
+open-source haptic force feedback glove. arXiv preprint
+Tony Z. Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+Finn. Learning fine-grained bimanual manipulation with
+low-cost hardware. In Proceedings of Robotics: Science
+and Systems (RSS), 2023. 2, 5, 14
+Christian Zimmermann, Duygu Ceylan, Jimei Yang, Bryan
+dataset for markerless capture of hand pose and shape
+from single rgb images. In Proceedings of the IEEECVF
+International Conference on Computer Vision, pages 813
+VII. APPENDIX
+Videos of our results, code to recreate our system, and
+hardware instructions are available on our website at https:
+dexwild.github.io
+A. Detailed Task Description and Scoring Criteria:
+We evaluate five dexterous manipulation tasks, each designed
+to assess different capabilities such as functional grasping,
+long-horizon planning, precision, bimanual coordination, and
+deformable object manipulation. Each task is scored according
+to a structured rubric based on discrete completion milestones.
+The task scoring criteria are designed to quantify the
+performance of different robot tasks based on specific com-
+pletion milestones. Each task has a set of defined actions
+with corresponding point values. Higher scores are assigned to
+more complex or functionally successful actions, while partial
+completions and failed attempts receive lower scores. This
+structured scoring system allows for consistent evaluation and
+comparison of task performance.
+Spray Bottle
+This task evaluates functional grasping and affordance under-
+standing. The robot must grasp a spray bottle and orient it to
+spray over a target cloth.
+0.00: Nothing
+0.15: Tries functional grasp but fails
+0.25: Grasp bottle
+0.75: Grasp bottle, orient over cloth
+0.75: Grasp bottle, use functional grasp
+1.00: Grasp bottle, use functional grasp, orient over cloth
+Toy Cleanup
+This task tests long-horizon planning and generalization. The
+robot must collect scattered toys and deposit them in a
+designated bin.
+0.00: Nothing
+0.25: Tries for grasp but fails
+0.50: Grasp object
+1.00: Grasp object, drop into bin
+This task assesses precise motion control and transfer learning
+from the spray bottle task. The robot must pour liquid from a
+bottle into a container.
+0.00: Nothing
+0.15: Tries functional grasp but fails
+0.25: Grasp bottle
+0.75: Grasp bottle, pour into container
+0.75: Grasp bottle, use functional grasp
+1.00: Grasp bottle, use functional grasp, pour into container
+Bimanual Florist
+This task evaluates coordinated control of both hands. The
+robot must pick up a flower, hand it to the other arm, and
+insert it into a vase.
+0.00: Nothing
+0.15: Tries grasp but fails
+0.25: Grasp the bouquet
+Fig. 9: DexWild-System features a simple and easy-to-use interface
+for deployment by untrained data collectors.
+0.75: Grasp the bouquet, handover
+1.00: Grasp the bouquet, handover, insert into vase
+Clothes Folding
+This task tests manipulation of deformable objects using both
+hands. The robot must fold a clothing item placed on a surface.
+0.00: Nothing
+0.25: Tries grasp but fails
+0.50: Grasp with one hand
+0.75: Grasp with both hands
+1.00: Grasp and fold
+B. Data Collection Procedure
+To deploy DexWild-System with untrained data collectors,
+we provide a one-page instruction sheet outlining the task,
+object setup, and system startupshutdown. DexWild-System
+includes three core components: a wrist-tracking camera, a
+battery-powered mini-PC for onboard data capture, and a
+custom sensor pod with a motion-capture glove and palm-
+mounted cameras. At a new site, users simply wear the mocap
+glove and power on the mini-PC with a provided power
+bank. For egocentric tracking, a headstrap holds the tracking
+camera; for exocentric tracking, we provide a collapsible
+tripod. Once booted, users launch our custom desktop app
+and control recording via a Bluetooth clicker or foot pedal.
+The UI (Fig. 9) shows sensor status, SLAM recording, and
+data capture indicators, along with buttons to view the tracking
+camera feed and delete the last episode. Collectors gather 100
+episodes per location. After the day is finished, we upload the
+data to our remote machine for processing.
+C. Downstream Data Processing
+Each episode is stored in its own folder, with subfolders
+organizing individual actions and observations. SVO recordings
+from the Zed Mini cameraused for SLAM and wrist pose
+trackingare saved separately, with each file covering five
+episodes. To begin data processing, we use the Zed SDK
+to decode these SVO files, reconstruct the cameras motion,
+and perform ArUco cube tracking and wrist pose estimation
+using both the left image and stereo depth data. We then
+apply a filtering pipeline to assess tracking quality; episodes
+are discarded if the wrist pose cannot be reliably tracked
+for more than 75 of the duration. Next, we compute the
+action distribution and clip outliers outside the 2nd and 97th
+percentiles. We smooth the trajectories using interpolation and
+Gaussian filtering to ensure fluid motion. Hand motions are
+then retargeted using inverse kinematics in PyBullet, following
+the method in . The entire pipeline is parallelized using
+Ray for efficiency.
+D. Behavior Cloning Policy Architecture and Training Hyper-
+Parameters
+Our behavior cloning policy takes as input RGB images
+and relative state history. We obtain tokens for the image
+observation via a ViT and tokens for relative states via linear
+layers. The weights of ViT is initialized from the Soup 1M
+model from . We decide to include relative states as we
+found it greatly increases the robustness of the policy, and
+enables smoother motions. In particular, for bimanual tasks,
+we find that including the interhand pose (pose of left hand
+relative to right hand) greatly increases success rate in tasks
+like Florist We implement both Action Chunking Transformer
+and Diffusion U-Net  as policy classes, which output
+a sequence of actions. The network outputs actions which
+consists of relative end effector actions and absolute hand joint
+We list the hyper-paramaters that we used for policy training
+using behavior-cloning in this Table V
+E. Low Level Motion Control
+For optimal smoothness of our policies and safety, we employ
+a Riemannian Motion Policy (RMP)  implemented in
+Isaac Lab , where the RMP dynamically generates joint-
+space targets given end effector targets. RMP also has the
+added benefit of incorporating real-time collision avoidance,
+preventing self-collision between the arms and a set table
+height. Although our policies does not rely on RMP to prevent
+F. Comparing Policy Classes
+Does DexWild work with different behavior cloning
+policy classes? Table I compares the performance of ACT
+and Diffusionacross both the In-the-Wild and In-the-Wild
+Extreme settings. Each policy is evaluated in a robot-only
+setting and a co-trained (1:2) setting using the DexWild dataset.
+substantial improvements on the Pour task where the policy
+must generalize across tasks. These results suggest that
+DexWild co-training enables stronger generalization, especially
+when paired with expressive policy architectures like Diffusion.
+G. Cross Hand Extended Results
+Does DexWild generalize across different robot hands?
+Table II reports LEAP Hand performance under both In the Wild
+and In the Wild Extreme conditions. In every case, DexWild
+co-training substantially outperforms the robot-only baseline.
+These results highlight the effectiveness of DexWild in cross
+embodiment generalization even when using a completely
+different robot hand.
+H. Scaling Extended Results
+Does DexWild improve as more DexWild data is added?
+Table III shows steady gains as we scale from 0 to 100 of
+the DexWild dataset. Performance increases steadily with more
+human demonstrations, with a notable jump between 25 and
+50 of the dataset. These results demonstrate that DexWild
+enables scalable learning, where even comparably smaller data
+scales yields substantial gains, and additional data continues
+to enhance generalization
+I. Cotraining Extended Results
+How does DexWild react to different cotraining ratios?
+Table IV groups all three raw metrics: (a) In-Domain, (b) In-
+run on xArm  LEAP Hand V2 Advanced.
+Policy Class
+In the Wild
+In the Wild Extreme
+Robot Only
+Robot Only
+Diffusion
+Toy Cleanup
+Diffusion
+Pour (Cross Task)
+Diffusion
+TABLE I: DexWild Performance on Different Policy Classes
+In the Wild
+In the Wild Extreme
+Robot Only
+Robot Only
+Toy Cleanup
+Pour (Cross Task)
+TABLE II: LEAP Hand Performance on In-the-Wild and In-
+the-Wild Extreme Tasks. Ratio is Robot:Human
+Toy Cleanup
+TABLE III: Performance Scaling with DexWild Dataset Size
+Toy Cleanup
+(a) Performance Across Cotrain Ratios for Varying Deployment
+Conditions. Ratio is Robot:Human
+Toy Cleanup
+(b) In-the-Wild Task Performance
+Toy Cleanup
+Bimanual Florist
+Bimanual Clothes Folding
+(c) In-the-Wild Extreme Task Performance
+TABLE IV: Performance for different cotrain ratios
+Hyperparameter
+Training Configuration
+Optimizer
+Base Learning Rate
+Optimizer Momentum
+Learning Rate Schedule
+Cosine (diffusers)
+Warmup Steps
+Total Steps
+Batch Size
+Environment Frequency
+Observation Settings
+Proprioception Horizon
+1 (Spray, Toy, Pour)
+3 (Florist, Clothes)
+Image Horizon
+1 (all tasks)
+Observation Resolution
+Observation Dim
+9 (Spray, Toy, Pour)
+27 (Florist, Clothes)
+Action Dimension
+26 (Spray, Toy, Pour)
+52 (Florist, Clothes)
+Action Chunk Size
+Action Chunking Transformer
+Encoder Layers
+Decoder Layers
+MHSA Heads
+Feed-Forward Dim
+Hidden Dim (Token Dim)
+Feature Norm
+LayerNorm
+Diffusion U-Net Policy
+Train Diffusion Steps
+Eval Diffusion Steps
+Down Channels
+Kernel Size
+Groups (GN)
+Feature Norm
+TABLE V: Full training and architecture settings used across our
+experiments.

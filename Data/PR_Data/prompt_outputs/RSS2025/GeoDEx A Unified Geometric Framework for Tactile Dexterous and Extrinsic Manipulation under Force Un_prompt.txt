@@ -1,0 +1,989 @@
+=== PDF文件: GeoDEx A Unified Geometric Framework for Tactile Dexterous and Extrinsic Manipulation under Force Un.pdf ===
+=== 时间: 2025-07-21 14:27:07.500766 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Extrinsic Manipulation under Force Uncertainty
+Sirui Chen1,, Sergio Aguilera Marinovic2, Soshi Iba2 and Rana Soltani Zarrin2
+AbstractSense of touch that allows robots to detect con-
+tact and measure interaction forces enables them to perform
+challenging tasks such as grasping fragile objects or using
+tools. Tactile sensors in theory can equip the robots with such
+capabilities. However, accuracy of the measured forces is not
+on a par with those of the force sensors due to the potential
+calibration challenges and noise. This has limited the values these
+sensors can offer in manipulation applications that require force
+control. In this paper, we introduce GeoDEx, a unified estimation,
+as plane, cone and ellipsoid, which enables dexterous as well
+as extrinsic manipulation in the presence of uncertain force
+readings. Through various experimental results, we show that
+while relying on direct inaccurate and noisy force readings from
+tactile sensors results in unstable or failed manipulation, our
+method enables successful grasping and extrinsic manipulation
+of different objects. Additionally, compared to directly running
+optimization using SOCP (Second Order Cone Programming),
+planning and force estimation using our framework achieves a
+14x speed-up.
+I. INTRODUCTION
+Dexterous manipulation capabilities are essential for robots
+to function effectively in human-centered environments, such
+as helping with tasks that involve handling different objects or
+tools . Planning and control methods for such tasks that can
+enable robust and generalizable contact-rich manipulation need
+contact force information. While force sensors can provide
+accurate force readings, physical limitations associated with
+embedding the sensors into the robotic hands, as well as lack
+of high-resolution tactile information limit the use of these
+sensors. On the other hand, recent developments in tactile
+sensors resulted in ever lighter and higher resolution sensors,
+which can be installed on different robot end-effectors such
+as fingertips of a dexterous hand. However, it is still quite
+challenging and expensive to develop tactile sensors that can
+provide accurate force readings, especially in both normal and
+shearing directions. While developing such tactile sensors is
+manipulation require relying on the available tactile sensors
+with the aforementioned shortcomings. Previous works have
+shown that even using binary  or highly discretized
+information from tactile sensors can already significantly im-
+prove performance during in-hand object reorientation. Thus,
+it would be valuable if we could exploit full tactile sensor
+readings to perform force control for dexterous manipulation.
+1Computer Science Department, Stanford University, Stanford, CA 94305,
+USA. ericcsrstanford.edu
+2Honda Research Institute USA, San Jose, CA 95134, USA. corresponding
+ranasoltanizarrinhonda-ri.com
+This work was conducted during an internship at Honda Research Institute
+In this paper, we propose GeoDEx, a unified framework that
+fully utilizes imperfect tactile sensor readings and can be used
+for force planning and control in dexterous grasping and ex-
+trinsic manipulation. GeoDEx formulates finding equilibrium
+forces on multi-point contact problems as optimization prob-
+lems with different geometric primitives such as planes, cones,
+and ellipsoids. It is designed to handle sensor noise as well
+as lack of access to shearing force reading. Through various
+control based dexterous grasping of different objects with
+various numbers of fingers as well as extrinsic manipulation
+such as pivoting a cuboid and a screwdriver.
+II. RELATED WORK
+A. State of Tactile Sensors
+Tactile sensor arrays have shown great potential in robot
+some works focus on building tactile gloves to collect force
+data from humans to teach robots
+[5, 6], other works use
+tactile sensors to directly help robots to sense and control
+contact in applications such as dense packing , grasping
+fragile objects  and pouring water with bimanual dexterous
+hand . As one of the state-of-the-art tactile sensor arrays,
+Xela sensors  is compact, deformable, and can provide 3D
+force direction and magnitude readings with contact locations.
+They have been applied to slip prediction and contact state
+classification [11, 12]. However, force readings from those
+sensors are inaccurate due to their sensitivity to magnetic
+interference and the gap between taxels . Another flexible
+tactile sensor array, Touchlab sensor  uses small piezo-
+electric sensor arrays to detect 1D force in the normal direc-
+less interference. However, we found its force readings are still
+far less accurate compared to traditional force torque sensors
+and directly using its data to perform force control will often
+result in control failure.
+B. Utilizing Tactile Readings
+Given noisy and sparse tactile sensor readings, prior meth-
+ods focus on estimating force and contact points from raw data
+using analytical models such as perturbation observer ,
+sensor deformation analysis , and predictive models .
+For camera-based tactile sensors,  has built depth maps
+from raw images and regressive analytical models to extract
+force data from depth maps. With the help of more accurate
+force-torque sensors to provide data labeling, learning-based
+methods have also been applied to map raw sensor data into
+force readings [18, 19]. Compared to these methods, instead
+of directly working with raw sensor reading, our method
+serves as a post-processing stage after having these inaccurate
+force readings extracted from raw sensor data. Processed force
+readings may still be different from ground truth contact force
+value but can be directly used by downstream controllers to
+perform tasks such as grasp force control in dexterous grasping
+and force control in extrinsic manipulation.
+Sharing the same spirit, another branch of work focuses on
+extracting salient information from tactile sensors.  uses
+inexpensive film pressure sensors to provide binary contact
+signals for helping dexterous manipulation.  only extract
+3-bit discretized force direction from fingertip tactile sensors
+for dexterous object in-hand reorientation. Other works also
+simplify tactile sensor readings to only distinguish sliding
+and slipping using tactile sensor signals  or detect binary
+contact information.. Our work not only can detect contact
+from tactile sensors, but it can also provide relative force
+magnitudes at different contact points, which can be used for
+the challenging tasks mentioned above.
+C. Tactile-Enabled Dexterous Manipulation
+Utilizing force information in planning and control for
+dexterous manipulation enables more robust manipulation by
+considering the quality of grasps in realizing object mo-
+tions [22, 1]. Similarly, successful extrinsic manipulation, such
+as tilting and flipping objects, requires precise control of con-
+tact forces to prevent undesired sliding [23, 24, 25, 26]. Most
+of the existing works focus on contact force and position plan-
+ning and validate the method in simulation only [23, 25, 26].
+performed hardware experiments on flipping and rotating
+different objects; however, their work relies on a complex
+manipulator setup, including both a force-torque sensor and
+a bubble tactile sensor, and interacts with the objects only
+using a single rigid object. Our work enables a dexterous
+hand equipped with tactile fingertips to directly interact with
+different objects, which opens up different capabilities of
+extrinsic manipulation as we can locate and control multiple
+contacts with different fingers.
+III. FORMULATION AND METHODOLOGY
+Fig. 1: System diagram of our proposed method
+Our framework consists of three major components as
+shown in Fig.1: a force planner that generates robust plans for
+TABLE I: Nomenclature of the Proposed Framework
+Notation
+Number of extrinsic contacts
+Number of intrinsic contacts
+ith contact normal
+All contact forces
+f R(nine)3
+Gravity wrench
+Extrinsic contact set
+Intrinsic contact set
+Space of contact forces
+Force equilibrium constraints matrix
+FE-basis
+Coordinate in FE-basis
+Constraint matrix
+Measurement cone edge weight
+Coordinate transformation matrix
+the finger-object contacts with consideration of sensor error; a
+force estimator that uses tactile sensor reading, the robot state
+and the object pose to estimates all contact forces that would
+achieve force equilibrium under quasi-static assumptions; and
+a admittance controller that can track the planned kinematics
+and force trajectories robustly using estimated contact forces.
+In this section, we will first define the necessary concepts
+for our theoretical framework, and then use these concepts
+to address the problems of how to obtain force estimation
+and perform force planning with force observation uncertainty.
+We will end by describing the control architecture of our
+framework. The main notations used in this section are defined
+in Tab. I
+A. Definitions
+We consider manipulation using a multi-finger dexterous
+hand; each fingertip is wrapped with a tactile sensor array
+that can provide contact location and contact force in the
+normal direction. We first define a contact c on the object
+as a tuple of contact position, contact normal, and contact
+force. We denote the set of contacts between objects and
+tactile-enabled fingertips as intrinsic contacts Cint. For the
+set of contacts between the object and the environment or
+other parts of the dexterous hand without tactile sensors, we
+denote it as extrinsic contact set Cext. We only consider quasi-
+static manipulation under gravity without other external forces,
+where the object is in force equilibrium, and all contact forces
+should cancel gravity all the time. We define key concepts for
+our paper as follows:
+Definition 1 (Space of contact forces). Given a set of contact
+points including ni intrinsic and ne extrinsic contact points,
+we stack all forces into a vector f R(nine)3, we define
+space of all possible forces as space of contact force F.
+Definition 2 (FE-plane). All forces that can balance the
+objects gravity lie in a hyperplane in F; we define this
+hyperplane as a Force-Equilibrium plane (FE-plane). Forces
+on FE-plane satisfy linear force equilibrium constraints:
+Where g R6 is gravity wrench and constraint matrix
+Afe has the shape of ((ni  ne)  3, 6). As the number
+of effective constraints imposed on space of contact force is
+rank(Afe), FE-plane has the dimension of dfe  (ni  ne)
+3 rank(Afe).
+Proposition 1 (FE-basis). On the FE-plane, we can construct
+a set of orthonormal vectors that define a basis Bfe
+{b1, ..., bdfe}, bi R(nine)3. Using this FE-basis, we can
+represent any force vector on the FE-plane using a weighted
+sum of these basis vectors ffe  Pdfe
+wibi  f0, where
+f0 is a bias term, a particular solution on force equilibrium
+plane and the weight vector would be the FE-plane coordinate
+(FE-coord) xfe. Using the FE-basis we can construct a
+matrix combining subspace projection matrix and coordinate
+transformation matrix: Pfe  [b1; ...; bdfe] that project any
+vector in force space to FE-plane and express it in FE-
+Definition 3 (Constraint convex set). The constraint convex
+set includes friction cone constraints and minimum force con-
+straints for intrinsic contacts. Using a pyramidal friction cone,
+all constraints can be defined as linear inequality constraints
+in force coordinates; hence, the interior of the constraint set
+is always convex.
+Where constraint matrix is constructed from stacking linear
+friction cone constraints and linear minimum force constraints
+minf] and d  [0[4(neni)], fmin]. We can also
+represent this constraint convex set in FE-coordinate when
+setting Cfe  PfeC:
+Cfexfe d
+Proposition 2 (Perservation of force equilibrium). For any
+force f F on FE-plane, applying a delta force f on the
+plane will result in a new force f  f f still on FE-plane.
+vectors with the same basis, adding these two vectors will
+also result in a vector in the plane spanned by the same basis.
+For intrinsic contact, we can only measure the magnitude
+of non-negative contact force along the contacts normal di-
+rection. Therefore, assume there are only intrinsic contacts; all
+possible measurements lie inside a cone in force space. When
+extrinsic contacts are present, we can also assume there is a
+virtual sensor attached to the contact point that can measure
+force in the normal direction, but we cannot obtain readings
+from those sensors. Mathematically, we represent all possible
+measurements on all contact points as measurement cone (M-
+Definition 4 (M-Cone). Let {n1, n2, .., nnine} be the set of
+contact normal vector. We construct M-Cone in force space as
+the weighted summation of contact normal vectors:
+M  {f : m, f
+mjExtend(nj)}
+Extend operator writes contact normal in full force vector
+tact normal are set to ni while other elements are set to
+zero. For example, in the case there are 3 contact points
+Extend(n1)  [nx
+2; 0; 0; 0]. The measurement cone must go
+through the origin in force space when all weights mi  0, i
+Fig. 2: FE-plane, M-Cone and Constraint convex set
+Fig.2 provides a visualization on the FE-plane, M-Cone and
+constraint convex set in 3D as conceptual illustration.
+B. Force Estimation
+Built upon these concepts, we can solve both force estima-
+tion and planning problems for different scenarios when there
+are different numbers of intrinsic and extrinsic contact points.
+Problem 1 (Force estimation for dexterous grasping). We con-
+sider the problem of finding the best force estimate in dexterous
+grasping. This problem involves only intrinsic contacts and to
+achieve any target wrench, at least two intrinsic contact points
+are needed (ni 2)
+To solve this problem, we need to find a force fest on
+the FE-plane that has a minimum Euclidean distance to the
+observed normal forces fm on M-Cone. We can achieve this
+by projecting fm on to FE-plane:
+xest  Pfe(fm f0)
+fest  P T
+fexest  f0
+Although under ideal conditions, an observation is obtained
+by projecting from the FE-plane to the measurement cone.
+requires back-tracing projection to FE-plane, which will mag-
+nify normal force measurement error. Our projection allows
+changes to normal force magnitude and practically gives
+similar results as we will show in the experimental section.
+Problem 2 (Force estimation for extrinsic manipulation). In
+extrinsic manipulation, there exist non-zero extrinsic contact
+points (ne > 0), which dont have normal force readings.
+We need to estimate intrinsic forces based on intrinsic and
+extrinsic contact locations as well as normal force readings
+from intrinsic contacts.
+Only from intrinsic force measurement we can no longer
+obtain a point of measurement on M-Cone; instead, all pos-
+sible measurement spans a sub-space cone on measurement
+Fig. 3: Illustration of measurement sub-space cone Assume two
+contact points are involved, one intrinsic, one extrinsic. Orange
+ray shows measurement sub-cone as we can only measure force
+magnitude at the intrinsic contact location.
+cone as shown in Fig.3. To find the best force estimate, we
+need to find a force fest on the FE-plane that is close to this
+sub-space cone. Meanwhile, as extrinsic contact points only
+provide minimum contact forces to counteract gravity and
+intrinsic contact forces, such as intrinsic contact forces and
+close to the origin. Therefore, to estimate contact forces, we
+need to solve a quadratic program (QP) that minimizes the
+sum of the distance to the sub-space cone and the origin. To
+lower the complexity of solving QP, we represent fest using
+FE-coord xest, thus distance to the origin can be expressed as:
+dorigin  P T
+To obtain the distance to the sub-space cone, we first need to
+construct basis Bsub for this measurement sub-space cone. As
+each extrinsic contact point contributes to one independent
+DoF in the sub-space cone, we first compute ne linearly
+independent force vectors with each one containing non-zero
+terms from one of the extrinsic contact normals and zeros
+in other directions f i
+sub. Bsub can be constructed from {f i
+using QR decomposition. After obtaining force vectors, we can
+find a weight w of linear combination wif i
+sub  ...  wif ne
+and force estimate can be expressed as a projection of this
+linear combination onto the FE-plane fest  Pfe
+To get the best estimate, we need to solve w that minimizes the
+distance to the origin and subspace plane spanned by {f i
+w fest  Bsubfest
+s.t.fest  Pfe
+C. Force Planning
+Using above mentioned method, we can obtain a force
+measurement that is guaranteed to achieve force closure but
+may have errors compared to ground truth force. If we have
+prior knowledge of the noise range of each tactile sensor,
+we can bound the error using an ellipsoid on FE-plane.
+extrinsic manipulation, we need to consider the potential error
+and make a robust plan that remains feasible regardless.
+Definition 5 (Trusted measurement ellipsoid). For each con-
+tact point, assume normal force measurement error is inde-
+pendent and obeys Gaussian distribution i N(i, 0). If
+we consider measurement within 1 from ground truth as a
+trusted region, all trusted measurements can be parameterized
+as an ellipsoid on M-cone
+D  Diag(12
+When there are extrinsic contacts, we set the variance of
+extrinsic contacts to infinity. While the quadratic formula still
+infinitely elongated.
+Proposition 3. (Propagating ellipsoid to FE-plane) Given an
+ellipsoid with center c expressed in M-cone basis, we can
+project it onto the force equilibrium plane using a projection
+matrix E
+(xfe c)T M(xfe c)
+M  (E)T DE
+To construct measurement projection matrix M we consider
+the following: Any force vector on measurement cone can be
+expressed as f  Pnine
+miExtend(ni)  NMconem
+where N is constructed from extended normal vectors. We
+project this force to FE-plane:
+xfe  PfeNMconem
+As the system is under-determined, we need to set
+QE; Q, R  QR(ET ) (QR decomposition) to get minimum
+norm solution when computing the projection.
+Problem 3. (Force planning for dexterous grasping) Given a
+set of intrinsic contact points, planning a safe dexterous grasp
+requires solving center c of a trusted measurement ellipsoid on
+the force-closure plane such that the entire ellipsoid satisfies
+friction cone and minimum force constraints.
+s.t.xfe, (xfe c)T M(xfe c) 1
+Cfexfe d
+Directly considering the analytical ellipsoid is challenging,
+thus we rewrite constraints of xfe as constraints on c, for each
+linear constraint of from constraint matrix Cfe
+Cfe[i]xfe di
+It can be rewritten as
+Cfe[i]T c
+Cfe[i]T M 1 Cfe[i] bi
+We can then write constraints on the ellipsoid center as:
+Cfe[i]  Cfe[i]
+Cfe[i]T M 1 Cfe[i]
+Fig. 4: Block diagram of the control system.
+lem of c
+s.t. Cfec b
+The force for each fingertip can be obtained by projecting
+optimal x
+fe back to the space of contact force.
+Problem 4. (Force planning for extrinsic manipulation) Given
+a set of intrinsic contact points and a set of extrinsic contact
+similar to 11 with a cost term added to minimize total force
+magnitude
+s.t.xfe, (xfe c)T M(xfe c) 1
+Cfexfe b
+To solve the problem, we can apply a similar re-formulation
+as in 15, because we dont have all contact force readings from
+the tactile sensor, matrix M becomes low rank and pseudo
+inversion should be applied in the place of the matrix inverse.
+D. Controller
+The control loop architecture is presented in Fig. 4. Starting
+with the plant, we consider the system comprised of the
+hand desired joint positions, which will affect the interaction
+forces between the fingertips and the object, and between
+the object and the environment. The state of the system will
+be given by the hands joint angles q, the contact forces f
+and the objects pose. We use the fingertips tactile sensor
+to measure the intrinsic contact forces. Due to the sensors
+measurement error we use the proposed force estimator in
+III-B to get an improved force observation that we use to close
+the control loop. Considering the initial multi-finger grasp,
+we can compute the initial contacts locations and normals,
+and combine them with the objects properties to compute the
+desired force trajectory that will feed the controller desired
+force fdes as described in III-C.
+We use the error e between the desired forces and the
+observations at each contact point along with the fingertips
+Jacobian J to compute direction of motion of the fingertips as
+q  K1JT (q)e
+Where K is a positive-definite gain matrix. We can use this
+q to update the desired joint angles of the hand in the plant,
+which is realized through the hands low-level PD controller.
+IV. EXPERIMENTS AND RESULTS
+We run both simulation and hardware experiments to
+evaluate the performance of our proposed method. For the
+algorithm implementation, we approximate the friction cones
+through a 12 sided pyramidal geometric approximation. Also,
+the constraint matrix Afe is computed through single value
+decomposition to construct the basis. For the experiments,
+we use the Allegro Hand V4 which has 4 fingers, each with
+4 Degrees of Freedom (DoF), and we replaced the original
+fingertips of the hand with custom tactile sensor fingertips
+by Touchlab Limited Inc . We use MuJoCo to simulate
+the arm, hand, and objects kinematics, dynamics, and contact
+interactions. For the hardware experiments, we use a Franka
+FR3 arm to position and move the Allegro hand. An Optitrack
+camera system is used to measure the 6D pose of the robotic
+and 0.05. The interaction between the fingertips and the
+objects is measured using the tactile fingertips which output
+normal forces at the contact location. The hardware setup and
+experiment objects are shown in Fig. 5.
+In each experiment, we start by closing the multi-finger
+hand to grasp the object and acquire the initial tactile readings
+and use these initial measurement of forces to determine the
+contact location and normal. Then, using the objects mass,
+Center of Mass (CoM), and friction, and assuming a quasi-
+static motion, we compute the desired force, fdes, for each
+contact using the Newton-Euler equations of 3D rigid-body
+dynamics to realize the object motion (hold the object still
+in case of grasping) as shown in eq. 1 and considering the
+minimum force constraints as in eq. 3. While we can measure
+the objects mass, for CoM and friction coefficient we use
+an offline parameter estimation. If no good estimation of the
+friction coefficient or CoM is available, a more conservative
+estimation value that shrinks the friction-cone can be used so
+the final computed grasp will be inside the real friction-cone.
+used during force planning, and only the mass is required
+during the force estimation algorithm. To compare the per-
+formance improvement due to the force estimator, we switch
+the feedback signal between the fingertips raw measurements,
+fraw and the estimated force values computed by our proposed
+force estimator, fest. We control the desired contact force in
+an admittance controller framework as described in III-D.
+A. Force Measurement via Tactile Array
+Each tactile fingertip part has an array of 42 small 1D
+piezo-electric sensors (taxels) that are placed on the tip, body,
+and sides of the fingertip. The position of each taxel and its
+orientation (normal vector) relative to the fingertip base are
+known. We define the raw measurement as the values provided
+by each taxel which represent the calibrated normal force
+reading of each taxel. Assuming point contact, the distributed
+forces on each fingertip can be represented by a single raw
+i.e. weighted average of taxels positions times their measured
+force. Similarly, the contact normal of each fingertip is the
+Fig. 5: Hardware setup including Allegro hand equipped with
+Touchlab fingertips, and Franka arm. The 3D-printed sphere and
+used for extrinsic manipulation experiments.
+normalized weighted average of the normal vectors times their
+measured force. Each taxel has been calibrated to measure a
+force between 0.1 20N under full contact conditions.
+Touchlabs tactile fingertips are responsive even to small
+forces and their dense coverage of the fingertip surface, includ-
+ing sides and the top, allows a reliable tactile-based dexterous
+manipulation. However, despite their higher performance com-
+pared to many of the state-of-the-art commercialized tactile
+sensors we have tried, they are still in an early stage in
+terms of providing accurate force measurement. While each
+taxel is calibrated, due to approximations in calibration as
+well as the discrepancy between calibration conditions and
+real-world contact-rich manipulation scenarios, such as partial
+contact in real-world vs full-contact during calibration or
+contact forces not aligned with the taxels normal (applying
+force at an angle), measurements have considerable errors.
+These discrepancies lead to measurement errors in the range
+of 0.1 1N per taxel, which can accumulate when computing
+the fingertips raw force measurement. The characteristics of
+individual taxels can be summarized by the following:
+Activation threshold: Minimum required force that the
+taxel will measure (0.1 0.5N). Effect: As additional
+taxels come into contact, there is a discrete jump in
+the measurements when a force increases over a taxels
+activation threshold.
+0.2N). Effect: As contact shifts, taxels that lose contact
+and should not sense any force, might output a small
+Force error: Due to partial contact or when the interaction
+force is not aligned with the taxel (0.1 0.5N). Effect:
+When adding the taxels forces, we have an offset be-
+tween the ground truth force and the measured value.
+Taxels noise: inherent noise of the piezo-electric taxel
+at steady state (0.01 0.03N). Effect: No major effects
+Fig. 6: Contact force comparison between ground truth (FT sensor),
+hardware tactile measurement and simulated tactile measurement
+once contact has been established.
+We use these characteristics in simulating our tactile re-
+sponses in MuJoCo to have an accurate representation of the
+error and noise of our tactile fingertips when testing our algo-
+rithm in simulation. A comparison between the ground truth
+of the applied force (provided by ATI Nano17 ForceTorque
+sensor), taxels real-world measurement on hardware, and the
+simulated values in MuJoCo are shown in Fig. 6. As seen in
+this figure, the simulated tactile data is able to closely represent
+the characterization of the real tactile data. The main discrep-
+ancy between the simulated and hardware measurements is that
+we consider one uniform characterization for all the fingertip
+taxels in simulation independent of contact size or contact
+change based on the contact location and contact area, and
+the error is different between different fingertips. Nevertheless,
+the simulated behaviors resemblance to real-world readings
+allows us to test our algorithm in simulation.
+B. Simulation Results
+Fig. 7 represents examples from grasping (wrench) and
+extrinsic manipulation (cube) in the simulated environment
+in MuJoCo. Associated hardware experiments will be pre-
+sented in IV-C. For the simulation, we either measured or
+approximated the respective objects properties to their real-
+world counterpart. The simulation uses the same values as
+the hardware for the hand joints PD gains. For the wrench
+grasping simulation, we consider a 0.3kg object, with a friction
+of 0.9 and a tactile sensing noise variance of 0.5N. We
+compared the controller when using the estimated force values
+against the raw measurements, with the results shown in Fig. 8.
+When using the estimated force values, the forces converge
+to their respective desired values. For the experiment using
+the raw measurements, we can see that forces are not able to
+converge as the thumb is under the desired force but the index
+and middle fingers are over the desired force. This exemplifies
+the problem of the error in measurements, where we need the
+thumb to apply more force to reach to its desired value but
+at the same time the index and middle finger should decrease
+their force. Since the thumb opposes the forces applied by the
+index and middle finger, thus they have to increase or decrease
+For extrinsic manipulation simulation, we use an 8cm cube,
+with a mass of 0.15kg, and friction coefficients of 0.8 at the
+fingertip contacts and 0.6 at the table contact. Similar to the
+Fig. 7: Simulation environment in MuJoCo for the wrench grasp
+and cube extrinsic manipulation. Simulated interaction forces at the
+contact points are displayed.
+Fig. 8: Grasping wrench comparison using the force estimation (left)
+and the raw measurements (right).
+wrench simulation, we consider the same hand joints PD
+gains and tactile sensing noise of 0.5N. Here we can show
+that our force planner can generate a sequence of fingertip
+contact location and forces and then have our controller follow
+the trajectory successfully as seen in Fig. 9. It takes a couple
+of seconds to accomplish the force control using the force
+of the sequence. Once the controller converges to the desired
+with an RMS error under 1.
+As part of determining the benefits of our geometric frame-
+work for force planning and estimation, we compared the com-
+putation time of our method, in simulation, to directly running
+optimization using Second Order Cone Programming (SOCP)
+at different lengths on an example grasp force planning of a 3-
+finger grasp experiment of an object. The results are presented
+in Tab. II. According to the results, we can see an improvement
+in computational speed with about a 14 speed-up using our
+framework over the SOCP.
+Fig. 9: Cube turning in simulation
+100 steps
+300 steps
+Geometric
+TABLE II: Execution time comparison between SOCP and Geomet-
+ric optimization.
+Fig. 10: Successfully grasping different objects using the proposed
+C. Hardware Results
+Dexterous Grasping: We will first introduce the underlying
+problem of inaccurate force measurements in hardware by
+presenting a 2-finger pinch grasp of a sphere. Then we will
+study the performance of our algorithm using two experiments,
+1) a 3-finger grasp of a wrench, and 2) a 4-finger grasp of
+a large cylinder. With a three and four-finger grasp, we can
+ensure that force equilibrium can be accomplished and we
+can compare the controllers performance. The used grasps
+are shown in Fig. 10.
+1) 2-finger grasp: To represent the underlying idea of this
+work in a simplified scenario, we consider a two-finger grasp
+of a sphere with a mass of 0.082kg. To accomplish force
+balance for this example, we need the contact forces to have
+equal magnitude and opposite direction. Given the objects
+contact points, we use our force planner to compute the desired
+force that each fingertip should apply to hold the object (as in
+eq. 1) without over-pressuring it (following constraint in eq. 3)
+a feedback signal, the controller can control the forces to their
+respective desired values. As shown in Fig. 11, the estimated
+contact forces converge to the desired value with a mean
+error of 0.1N. In this case, we have achieved force balance
+as the estimated forces have converged to their respective
+values and there is no apparent motion on the object. Now,
+we can take a closer look at the raw measurements, which
+Fig. 11: 2-Finger grasp of sphere.
+throughout the experiment show a close correlation but do
+not have equal magnitude. If we were to control the system
+using the raw measurements as the feedback signal, it becomes
+apparent that we would have to break the force balance that
+was accomplished. Analyzing the end of the experiment, we
+have raw measurements for the thumb fthumb 1 and index
+finger findex 0.6, which would lead to a control output
+where we want to decrease the applied force by the thumb but
+increase the applied force by the index. Since we only have
+two fingers, either both have to increase the applied force or
+both have to decrease it to keep the force balance. Thus, using
+the controller based on the raw measurements would break the
+force balance eventually and the object would start to move.
+2) 3-finger grasp: We use a 3D printed wrench of 300gr
+for this experiment. Similar to the 2-finger grasp, given the
+object properties and contact locations, the force planner
+computes the desired forces required for each fingertip to hold
+the object in force equilibrium. Fig. 12 is a representative
+result of this experiment. We start by controlling the system
+based on the estimated forces. Within the first 5 seconds, the
+system converges to the desired values, with a mean error
+between the fingertips desired force and the estimated values
+of 0.090.04N. We hold the grasp for 20s to show that force
+equilibrium is achieved and the object pose remains static.
+change in the desired object orientation and it is placed back
+successfully at 35s. At 40s, we switch the controller to use
+the raw measurements as observation. We can see that while
+the system tries to control the contact forces of all fingers to
+reach to the desired values, it is not successful. It can be seen
+that equilibrium cannot be achieved since while the thumb
+and middle finger have achieved forces close to desired values
+within an error of 0.20.1N, any attempt to reduce the error
+of the index finger by increasing its generated force would
+yield a reactive force on the thumb that will push thumb away
+from its desired value. Thus an error between 0.5 0.9N
+is observed for the index finger. This force imbalance while
+trying to control the raw measurements, introduces unintended
+object movements such as tilting and thus losing grasp while
+attempting to lift the object.
+We performed the grasp and lift experiment of the wrench
+20 times, 10 using the estimated force, and 10 using the raw
+measurements. We will con sider a grasp to be successful
+if the object does not undergo a noticeable movement (more
+than 1). The success rate along with the mean and standard
+deviation of the force error at the contact points for the success
+and failure cases is presented in table III. We can see that using
+the estimated forces increases the success rate considerably
+compared to the raw measurements experiments. For the two
+experiments that failed using estimated forces, tactile sensors
+were not reacting to contact despite an increase in the exerted
+forces thus leading to overexertion of forces. In the two success
+cases using the raw measurements, we can see that the mean
+force error was very small. This can be the case when by
+chance the individual fingertips read similar measurements
+and close to the estimated values, which allow the fingers to
+Fig. 12: 3-Finger grasp of wrench. From t  0s to t  27s we
+control the estimated forces to the desired values for each finger.
+The controller converges and keeps the forces around the desired
+value. From t  27s we lift the object to show a successful grasp, at
+t  33s we put the object back down and keep stable control. From
+t  40s we try to control the raw force values. The system is not
+able to control all of the fingers to the desired force and the object
+is eventually dropped.
+Success rate
+Mean  std force error
+cylinder
+TABLE III: Success rate for wrench and cylinder grasp experiments
+with the mean and std of the force error of the grasps when it was
+successful and when it failed.
+accomplish a successful grasp.
+3) 4-finger grasp: For this experiment, we use a cylinder
+with a mass of 0.360kg and a diameter of 0.11m. The contact
+locations on the object are chosen in such a way that the
+controller has to account for the force balance in all directions.
+forces to their desired values as shown in Fig 13.
+We conducted the experiment 20 times, 10 using the force
+results shown in table III.
+Fig. 13: 4-Finger grasp of cylinder.
+Fig. 14: Cube turning hardware experiment.
+Fig. 15: Screwdriver turning hardware experiment.
+When using the raw measurement, the system was not able
+to converge to the desired grasp and resulted in a force error
+of around 1N, resulting in the tilting of the cylinder or loss
+of the grasp when lifting. Similar to the wrench example, we
+observe a higher success rate when using the estimated force
+values. For the failed experiments using the force estimation,
+in three cases the fingertip sensor had a slightly larger force
+their desired values and when lifting, the object experienced
+a small tilt of 3, but was held successfully. For the
+remaining failure case, the hysteresis of multiple taxels of the
+index finger created the illusion of a large force being sensed
+making the the index finger move away until it detaches.
+Once the hysteresis went down, the index finger was placed
+back onto the cylinder, but at that moment the cylinder had
+already moved considerably.
+Extrinsic Manipulation: We conducted two pivoting ex-
+periments using the contact between the object and the envi-
+one of its edges as shown in Fig. 14; and 2) a 2-finger
+manipulation of a screwdriver pivoting about its tip, shown in
+Fig. 15. While we use a pinch grasp for both experiments, the
+interactions between the object and the environment are quite
+distinct. In both experiments, we use the tactile information to
+estimate the contact location on the object, then compute the
+force equilibrium considering the intrinsic contact (fingertips-
+object) and the extrinsic contact (object-table). The goal is
+for the objects to rotate about a pivot axis on the table. To
+accomplish this, using the distance between the pivot point
+and the contacts, the algorithm precomputes a trajectory for the
+base of the robotic hand to keep the object inside the fingers
+workspace as we move the object to the desired pose. Given
+the initial angle of the object and the desired final angle, we
+plan the forces needed to accomplish the goal at each intrinsic
+contact point throughout the trajectory.
+For the cube experiments, we rotate it about the yaw
+direction from the initial angle position of 58to 30. We also
+tested rotations beyond 30but due to the friction between the
+cube and the table, the cube would start to slip on the table
+and contact would be lost, thus we keep the analysis up to the
+30angle. We present 14 experiments of the cube rotation, 7
+Fig. 16: Mean (solid lines) and standard deviation (transparent areas)
+of yaw angles for cube turning experiments. Blue corresponds to
+the experiments using force estimation, while the red corresponds to
+experiments using raw measurements.
+using the force estimation, and 7 using the raw values. The
+mean trajectory for these experiments are shown in Fig. 16.
+In all of these experiments, the hand follows a predefined
+trajectory about 23 of the desired objects trajectory. This
+is done to show that the rotation is not only enabled by the
+arm moving, but the fingers controller also keeps track of the
+contact planned trajectories and forces.
+When using force estimation, the fingers converge to the
+planned desired forces and bring the cube closer to the desired
+angle. From the error plot in Fig. 16, we can see that the
+angular error during the trajectory tracking is kept under 5.
+For the experiments using the raw measurements, we can see
+that the overall error with respect to the trajectory is larger,
+with values between 5and 10. Once the arm stops moving,
+the fingers are not able to move the object closer to the desired
+angle effectively.
+For the screwdriver experiments, the screwdriver has a mass
+of 0.3kg and we have an approximate value for the friction
+coefficient of 0.6. We tested 14 instances of the screwdriver
+lifting experiment, with 7 experiments using the force estima-
+tion and 7 experiments using the raw force measurements. The
+mean trajectory for these experiments are shown in Fig. 17.
+When using the estimated forces, the system was successful
+in controlling the applied force while moving the hand to
+the final position. Fingers were able to keep the grasp, while
+the screwdrivers tip was always in contact with the table.
+For all the experiments using the estimated forces, the final
+angular error was under 7. When using the raw measurement,
+the controller had trouble converging to the desired forces
+making the screwdriver rotate about its longitudinal axis. In
+two of these experiments, fingertips would end up lifting the
+screwdrivers tip from the table and eventually dropping the
+object as seen in the sudden drops of the angular position. For
+the other experiments where the screwdriver was not dropped,
+Fig. 17: Mean (solid lines) and standard deviation (transparent areas)
+of angles for screwdriver turning experiments. Blue corresponds to
+the experiments using the force estimation, while the red correspond
+to experiments using raw measurements.
+the grasp had shifted considerably, rotating the tool about its
+longitudinal axis, making further manipulation of the object
+very difficult.
+the force estimation to account for measurement noise and
+high success, even when considering extrinsic contacts.
+V. DISCUSSION
+Despite the advancement of tactile sensors over the past
+with low thresholds of activation, and considering their ability
+to be placed on various surfaces such as robotic fingers,
+these sensors can be quite useful in dexterous manipulation
+applications. Thus, expanding the areas of application of these
+sensors and enabling force control in dexterous manipulation,
+has been our motivation for this work.
+By presenting the characterization of the calibrated tactile
+sensors we have used, we intended to provide insight into the
+nature of measurements produced by these sensors. As seen in
+the tactile sensing section, while measured force is similar in
+nature to the ground truth value, the error is unpredictable as it
+depends on the contact location, applied pressure, direction of
+differences in activation threshold, hysteresis, calibration, and
+manufacturing conditions. Thus, modeling and accounting for
+the error is extremely difficult, if not impossible.
+We have shown that controlling the system by relying on
+the raw force measurements is prone to failed grasps due to
+a lack of force equilibrium and overexerting of forces onto
+the object. While it might be possible to achieve successful
+grasps through compliance of the contacts or controller, it does
+not allow precise force control. In our work, we have shown
+that it is possible to use the raw measurements, to estimate
+an approximation of the true force that enables the robot to
+successfully control the applied force by a set of fingertips and
+achieve force equilibrium. As seen in the experimental results
+of grasping the wrench and the cylinder, we have considerably
+improved the success rate of grasping an object. The tactile
+sensor allows us to have a good contact location and direction
+with the object at each fingertip. We can use this contact
+optimal force needed to grasp the object in force equilibrium,
+such that when lifted, the object will not slip out of the grasp
+or lose its desired orientation.
+The main reason for the inability of raw force measurements
+to accomplish equilibrium is the different error behaviors of
+the fingers which also change among interactions. Even when
+we start at force equilibrium (as done in the wrench experiment
+in Fig. 12, at the 40s mark), if the raw measurements errors
+are different, then the controller will have to apply different
+adjustments to each finger, thus breaking the force equilibrium
+and resulting in undesired object movement or loose grasp
+and lost contact. However, depending on the force error, there
+may be scenarios where the grasp can be accomplished, as
+seen in some of the raw measurement control experiments.
+In these cases, different fingers experienced similar errors,
+which allowed converges to the desired values. These grasps
+were probably over-exerting force but were still successful.
+force estimations as seen in some of our experiments. For these
+failure cases, the main element at fault was the saturation of
+the tactile sensors of one or more fingertips. Due to the contact
+direction of the fingers, in some of the experiments, the raw
+measurement was saturated at a certain level despite the torque
+applied by the finger joint. While the other fingers might sense
+an increase in force which would be accounted for by the
+force estimator, the error in measurement increased beyond
+the modeled noise levels, leading to inaccurate behavior,
+overexerting forces, and breaking the force balance. While we
+could increase the models noise to account for these errors,
+this would also affect the value of the desired force, since the
+modeled error is higher, we have to increase the desired force
+to stay further away from the edges of the friction cone to
+accomplish a successful grasp.
+For the extrinsic force estimation, we have shown that
+our method can combine the noisy force measurements at
+contacts along with unknown forces at the contact between
+the object and the environment. In the cube experiment, we
+have accomplished force equilibrium considering the unknown
+environmental contact forces between the cube and the table.
+For the screwdriver, both fingers need to accomplish force
+balance such that they are able to lift the object but not over-
+exert force to avoid a torsional motion about the contact axis.
+VI. LIMITATIONS AND FUTURE WORK
+In this work, we assume that the contact location and contact
+normals are known and are fairly accurate. This assumption
+is not always true as different tactile elements might have
+different measurement errors, thus affecting the accuracy of
+computed center of pressure (contact location) and average
+ings. In our future work, we would like to consider that
+the contact location and direction have noise and need to be
+accounted for when computing the force equilibrium ellipsoid.
+interference were not modeled in our simulation. While the
+hardware experiments showed robustness to these elements,
+we would like to consider them in our future simulations.
+and static grasps where the object is in force equilibrium.
+In our future work, we would like to apply this to more
+dynamic motions as well as scenarios where applying an
+external wrench is desired, e.g. applying torque to turn a bolt
+by the wrench.
+VII. CONCLUSION
+We have presented GeoDEx, a unified framework that
+can take inaccurate force measurements to plan, estimate,
+and control during dexterous manipulation. Given the object
+tactile force measurements, our method computes the optimal
+force required to accomplish a grasp of an object in force
+fingertip in contact, and uses this state estimation to control the
+system successfully. We have presented hardware experiments
+for two-, three-, and four-finger grasps with the hand at differ-
+ent configurations, showing a substantial improvement in grasp
+success rate compared to using direct force measurements
+provided by the calibrated tactile sensors. Our method can
+also take into account extrinsic contacts between the object
+and the environment and combine their effect when planning
+and estimating contact forces on the fingertips. We have shown
+two distinct examples of extrinsic manipulation using the table
+surface to manipulate a cube and a screwdriver successfully.
+REFERENCES
+Rana Soltani Zarrin, Rianna Jitosho, and Katsu Yamane.
+Hybrid learning-and model-based planning and control of
+in-hand manipulation. In 2023 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 87208726. IEEE, 2023.
+Ying Yuan, Haichuan Che, Yuzhe Qin, Binghao Huang,
+Zhao-Heng Yin, Kang-Won Lee, Yi Wu, Soo-Chul Lim,
+and Xiaolong Wang.
+Robot synesthesia: In-hand ma-
+nipulation with visuotactile sensing.
+In 2024 IEEE
+International Conference on Robotics and Automation
+(ICRA), pages 65586565. IEEE, 2024.
+Haozhi Qi, Brent Yi, Sudharshan Suresh, Mike Lambeta,
+Yi Ma, Roberto Calandra, and Jitendra Malik. General in-
+hand object rotation with vision and touch. In Conference
+on Robot Learning, pages 25492564. PMLR, 2023.
+Zhanat Kappasov, Juan Antonio Corrales, and Veronique
+Perdereau.
+Tactile sensing in dexterous robot hands -
+review. Robotics Auton. Syst., 74:195220, 2015.
+Subramanian Sundaram, Petr Kellnhofer, Yunzhu Li,
+Jun-Yan Zhu, Antonio Torralba, and Wojciech Matusik.
+Learning the signatures of the human grasp using a
+scalable tactile glove. Nat., 569(7758):698702, 2019.
+Weichen Wang, Yuanwen Jiang, Donglai Zhong, Zhitao
+Neuromorphic sensorimotor loop embodied by mono-
+lithically integrated, low-voltage, soft e-skin.
+Bo Ai, Stephen Tian, Haochen Shi, Yixuan Wang, Che-
+ston Tan, Yunzhu Li, and Jiajun Wu. Robopack: Learning
+tactile-informed dynamics models for dense packing.
+arXiv preprint arXiv:2407.01418, 2024.
+Youcan Yan, Zhe Hu, Zhengbao Yang, Wenzhen Yuan,
+Chaoyang Song, Jia Pan, and Yajing Shen. Soft magnetic
+skin for super-resolution tactile sensing with force self-
+decoupling. Science Robotics, 6(51):eabc8801, 2021.
+Toru Lin, Yu Zhang, Qiyang Li, Haozhi Qi, Brent Yi,
+Sergey Levine, and Jitendra Malik. Learning visuotactile
+skills with two multifingered hands.
+arXiv preprint
+Xela robotics.
+Willow Mandil, Kiyanoush Nazari, et al. Action condi-
+tioned tactile prediction: a case study on slip prediction.
+arXiv preprint arXiv:2205.09430, 2022.
+Xingru Zhou, Zheng Zhang, Xiaojun Zhu, Houde Liu,
+and Bin Liang. Learning to predict friction and classify
+contact states by tactile sensor.
+In 2020 IEEE 16th
+International Conference on Automation Science and
+Engineering (CASE), pages 12431248. IEEE, 2020.
+Touchlab limited.
+Adria Colome, Diego Pardo, Guillem Alenya, and Carme
+Torras. External force estimation during compliant robot
+manipulation. In 2013 IEEE international conference on
+robotics and automation, pages 35353540. IEEE, 2013.
+Chia-Hsien Lin, Jeremy A Fishel, and Gerald E Loeb.
+Estimating point of contact, force and torque in a
+biomimetic tactile sensor with deformable skin.
+Touch LLC, 2013.
+Loc Niederhauser, Ahalya Prabhakar, Dominic Reber,
+and Aude Billard. A predictive model for tactile force
+estimation using audio-tactile data. IEEE Robotics and
+Automation Letters, 9(2):15961603, 2024.
+Yaonan Zhu, Shukrullo Nazirjonov, Bingheng Jiang,
+Jacinto Colan, Tadayoshi Aoyama, Yasuhisa Hasegawa,
+Boris Belousov, Kay Hansel, and Jan Peters.
+tactile sensor based force estimation for position-force
+teleoperation.
+In 2022 IEEE International Conference
+on Cyborg and Bionic Systems (CBS). IEEE, 2023.
+Balakumar Sundaralingam, Alexander Sasha Lambert,
+Ankur Handa, Byron Boots, Tucker Hermans, Stan
+learning of tactile force estimation through robot interac-
+tion. In 2019 International Conference on Robotics and
+Automation (ICRA), pages 90359042. IEEE, 2019.
+Zhe Su, Karol Hausman, Yevgen Chebotar, Artem
+Stefan Schaal.
+Force estimation and slip detec-
+tionclassification for grip control using a biomimetic
+tactile sensor.
+In 2015 IEEE-RAS 15th International
+Conference on Humanoid Robots (Humanoids), pages
+Martin Meier, Guillaume Walck, Robert Haschke, and
+Helge J Ritter.
+Distinguishing sliding from slipping
+during object pushing. In 2016 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 55795584. IEEE, 2016.
+Filipe Veiga, Jan Peters, and Tucker Hermans.
+stabilization of novel objects using slip prediction. IEEE
+transactions on haptics, 11(4):531542, 2018.
+Miao Li, Kaiyu Hang, Danica Kragic, and Aude Billard.
+Dexterous grasping under shape uncertainty.
+Robotics
+and Autonomous Systems, 75:352364, 2016.
+Sirui Chen, Albert Wu, and C Karen Liu. Synthesizing
+dexterous nonprehensile pregrasp for ungraspable ob-
+jects. In ACM SIGGRAPH 2023 Conference Proceedings,
+pages 110, 2023.
+Xianyi Cheng, Eric Huang, Yifan Hou, and Matthew T
+Contact mode guided motion planning for
+quasidynamic dexterous manipulation in 3d.
+International Conference on Robotics and Automation
+(ICRA), pages 27302736. IEEE, 2022.
+Albert Wu, Sadra Sadraddini, and Russ Tedrake. R3t:
+Rapidly-exploring random reachable set tree for optimal
+kinodynamic planning of nonlinear hybrid systems. In
+2020 IEEE International Conference on Robotics and
+Automation (ICRA), pages 42454251. IEEE, 2020.
+Gilwoo Lee, Tomas Lozano-Perez, and Leslie Pack
+Kaelbling. Hierarchical planning for multi-contact non-
+prehensile manipulation. In 2015 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 264271. IEEE, 2015.
+Miquel Oller, Dmitry Berenson, and Nima Fazeli.
+Tactile-driven non-prehensile object manipulation via
+extrinsic
+control.
+preprint

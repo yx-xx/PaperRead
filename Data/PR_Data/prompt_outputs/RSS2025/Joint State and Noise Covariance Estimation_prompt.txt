@@ -1,0 +1,1322 @@
+=== PDF文件: Joint State and Noise Covariance Estimation.pdf ===
+=== 时间: 2025-07-21 13:43:44.102273 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Joint State and Noise Covariance Estimation
+Kasra Khosoussi
+School of Electrical Engineering and Computer Science
+The University of Queensland
+St Lucia, QLD, Australia
+k.khosoussiuq.edu.au
+Iman Shames
+School of Engineering
+The Australian National University
+iman.shamesanu.edu.au
+AbstractThis paper tackles the problem of jointly estimating
+the noise covariance matrix alongside states (parameters such
+as poses and points) from measurements corrupted by Gaussian
+noise and, if available, prior information. In such settings, the
+noise covariance matrix determines the weights assigned to
+individual measurements in the least squares problem. We show
+that the joint problem exhibits a convex structure and provide a
+full characterization of the optimal noise covariance estimate
+(with analytical solutions) within joint maximum a posteriori
+and likelihood frameworks and several variants. Leveraging
+this theoretical result, we propose two novel algorithms that
+jointly estimate the primary parameters and the noise covariance
+matrix. Our BCD algorithm can be easily integrated into existing
+nonlinear least squares solvers, with negligible per-iteration
+computational overhead. To validate our approach, we conduct
+extensive experiments across diverse scenarios and offer practical
+insights into their application in robotics and computer vision
+estimation problems with a particular focus on SLAM.
+I. INTRODUCTION
+Maximum likelihood (ML) and maximum a posteriori
+(MAP) are the two most common point-estimation criteria
+in robotics and computer vision applications such as all
+variants of simultaneous localization and mapping (SLAM)
+and bundle adjustment. Under the standard assumption of zero-
+mean Gaussian measurement noiseand, for MAP, Gaussian
+priorsthese estimation problems reduce to least squares; i.e.,
+nding estimates that minimize the weighted sum of squared
+errors between observed and expected measurements (and,
+when priors are available, the weighted squared errors between
+parameter values and their expected priors).
+Each measurement error in the least squares objective is
+weighted by its corresponding noise information matrix (i.e.,
+the inverse of the covariance matrix). Intuitively, more precise
+sensors receive larger weights, thus exerting greater inuence
+on the nal estimate. Moreover, the weight matrices enable
+the estimator to account for correlations between different
+components of measurements, preventing double counting of
+information. Therefore, obtaining an accurate estimate of the
+noise covariance matrix is critical for achieving high estimation
+accuracy. In addition, the (estimated) noise covariance matrix
+also determines the (estimated) covariance of the estimated
+parameter values often used for control and decision making in
+robotics. Consequently, an inaccurate noise covariance estimate
+Also afliated with CSIRO Robotics, Data61.
+can cause overcondence or undercondence in state estimates,
+potentially leading to poor or even catastrophic decisions.
+In principle, the noise covariance matrix can be estimated a
+priori (ofine) using a calibration dataset where the true values
+of the primary parameters (e.g., robot poses) are known (see
+Remark 5). This can be done either by the sensor manufacturer
+or the end user. However, in practice, several challenges arise:
+1) Calibration is a labor-intensive process and may not always
+be feasible, particularly when obtaining ground truth for
+primary parameters requires additional instrumentation.
+2) In many cases, raw measurements are preprocessed by
+intermediate algorithms before being used in the estimation
+problem (e.g., in a SLAM front-end), making it difcult to
+model their noise characteristics.
+3) The noise characteristics may evolve over time (e.g., due
+to dynamic environmental factors such as temperature),
+making the pre-calibrated noise model obsolete.
+Due to these challenges, many applications rely on ad hoc noise
+through trial-and-error tuning. Despite being recognized as one
+of the most critical and widely acknowledged challenges in
+SLAM [14, Sections III.B, III.G, and V], the problem of noise
+covariance estimation remains unsolved and understudied in
+robotics and computer vision literature.
+We present, to the best of our knowledge, the rst algorithms
+for online (i.e., during deployment) joint MLMAP estimation
+of states and noise covariance matrices from noisy measure-
+ments and, when available, prior information. Our approach
+is general and eliminates the need for a separate calibration
+stage across a broad class of estimation problems beyond
+SLAM. We analyze the convergence properties of the proposed
+algorithm and demonstrate that it can be seamlessly integrated
+into existing sparse nonlinear least squares solvers [3, 12, 19],
+with negligible computational overhead.
+Notation
+We use [n] to denote the set of integers from 1 to n. The
+abbreviated notation x1:n is used to denote x1, . . . , xn. The
+zero matrix (and vector) is denote by 0 where the size should
+be clear from the context. Sd
+0 and Sd
+0 denote the sets of
+d  d symmetric positive semidenite and positive denite
+real matrices, respectively. For two symmetric real matrices
+A and B, A B (resp., A B) means A B is positive
+semidenite (resp., positive denite). Aij denotes the (i, j)
+element of matrix A, and Diag(A) denotes the diagonal matrix
+obtained by zeroing out the off-diagonal elements of A. The
+standard (Frobenius) inner product between nn real matrices
+A and B is denoted by A, Btrace(AB). The Frobenius
+norm of A is denoted by A
+Euclidean norm of x given a weight matrix W 0 is denoted
+xWx. The probability density function of the
+multivariate normal distribution of random variable x with mean
+vector  and covariance matrix  is denoted by N(x; , ).
+II. RELATED WORKS
+We refer the reader to [8, 13, 14, 29] for comprehensive
+reviews of state-of-the-art estimation frameworks in robotics
+and computer vision. Sparse nonlinear least squares solvers for
+solving these estimation problems can be found in [3, 12, 19].
+is known beforehand. In contrast, our approach simultaneously
+estimates both the primary parameters (e.g., robots trajectory)
+and the noise covariance matrix directly from noisy measure-
+ments. The importance of automatic hyperparameter tuning
+has recently gained recognition in the SLAM literature; see,
+e.g., [14, Section V] and [15, 16]. We share this perspective
+and present, to the best of our knowledge, the rst principled
+approach for MLMAP measurement covariance estimation in
+SLAM and related problems.
+A. Optimal Covariance Estimation via Convex Optimization
+ML estimation of the mean and covariance from independent
+and identically distributed (i.i.d.) Gaussian samples using the
+sample mean and sample covariance is a classic example
+found in textbooks. Boyd and Vandenberghe [7, Chapter 7.1.1]
+show that covariance estimation in this standard setting and
+several of its variants can be formulated as convex optimization
+problems. However, many estimation problems that arise in
+robotics and other engineering disciplines extend beyond the
+standard setting. While noise samples are assumed to be i.i.d.
+for each measurement type (Section IV-C1), the measurements
+themselves are not identically distributed. Each measurement
+follows a Gaussian distribution with the corresponding noise
+covariance matrix and a unique mean that depends on an
+unknown parameter belonging to a manifold. Furthermore, the
+measurement function varies across different measurements and
+is often nonlinear. We demonstrate that the noise covariance
+estimation problem in this more general setting can also be
+formulated as a convex optimization problem. Similar to ,
+we explore several problem variants that incorporate prior
+information and additional structural constraints on the noise
+covariance matrix. These variants differ from those studied in
+[7, Chapter 7.1.1] and admit analytical (closed-form) solutions.
+B. Covariance Estimation in Robotics and Computer Vision
+Zhan et al.  propose a joint pose and noise covariance
+estimation method for the perspective-n-point (PnP) problem
+in computer vision. Their approach is based on the iterated
+(or iterative) generalized least squares (IGLS) method (see [27,
+Chapter 12.5] and references therein), alternating between pose
+and noise covariance estimation. They report improvements
+in estimation accuracy ranging from 2 to 34 compared to
+baseline methods that assume a xed isotropic noise covariance.
+To the best of our knowledge, before , IGLS had not been
+applied in robotics or computer vision.1 Our work (developed
+concurrently with ) generalizes and extends both IGLS and
+in several keys ways. First, we prove that the joint ML
+estimation problem is ill-posed when the sample covariance
+matrix is singular. This critical problem arises frequently in
+real-world applications, where the sample covariance matrix
+can be singular or poorly conditioned (Remark 4). We address
+this critical issue by (i) constraining the minimum eigenvalue
+of the noise covariance matrix, and, in our MAP formulation,
+(ii) imposing a Wishart prior on the noise information matrix.
+We derive analytical optimal solutions for the noise covariance
+for MAP and ML joint estimation problems and several of
+their constrained variants (Theorem 1). These enable the end
+user to leverage prior information about the noise covariance
+matrix (from, e.g., manufacturers calibration) in addition to
+noisy measurements to solve the joint estimation problem. We
+propose several algorithms for solving these joint estimation
+problems and present a rigorous theoretical analysis of their
+convergence properties. Our formulation is more general than
+IGLS and we show how our framework can be extended
+to heteroscedastic measurements, nonlinear (with respect to)
+noise models, and manifold-valued parameters. Finally, we
+provide insights into the application of our approach to graph-
+structured estimation problems , such as PGO and other
+SLAM variants. These problems present additional challenges
+compared to the PnP problem due to the increasing number of
+primary parameters (thousands of poses in PGO vs. a single
+pose in PnP) and the sparsity of measurements, which reduce
+the effective signal-to-noise ratio.
+Barfoot et al.  and Wong et al.  propose an EM-
+type method for learning the noise covariance matrix as part
+of a variational inference framework. Similar to our work,
+they used an Inverse-Wishart prior on the covariance matrix.
+joint MAPML estimation problems and their constrained
+variants. While the covariance estimation formulation and
+proposed techniques share similarities, our method focuses on
+widely used MAPML point estimation rather than obtaining
+an analytical approximation of the entire posterior, yielding
+signicantly faster solutions (by up to several orders of
+magnitude based on the statistics reported in ). As a result,
+unlike [4, 31], our method can be readily integrated into existing
+nonlinear least squares solvers such as [3, 12, 19] in both online
+and ofine settings with a negligible computational overhead.
+Lu et al.  introduce a covariance autotuning method
+for object measurements in SLAM, employing an alternating
+1We were unable to nd the original reference for IGLS. However, the
+concept was already known and analyzed in the econometrics literature in
+1970s . IGLS is closely related to the feasible generalized least squares
+(FGLS) method which also has a long history in econometrics and regression.
+Scale  I2, DOF  2
+Scale  I2, DOF  10
+Scale  correlated, DOF  10
+Fig. 1: Condence ellipses for 10 samples drawn from the
+Wishart distribution W(P; V, ) with different parameters. The
+scale matrix V is set to identity in the left and middle plots,
+and to a correlated matrix in the right plot. The degrees of
+freedom  are set to 2 (left) and 10 (middle and right). As
+changes the scale of samples as well (cf. left and middle).
+optimization scheme over states and the variances of a diagonal
+covariance matrix. Despite similarities between  and our
+BCD algorithm, the cost function in  differs from standard
+MAPML formulation. Additionally, unlike , our approach
+does not assume that the covariance matrix is diagonal.
+Qadri et al.  propose a bilevel optimization framework
+to learn measurement covariances from a calibration dataset
+with known ground truth. Specically, they seek the covariance
+estimate (outer problem) that minimizes the state estimation
+(inner problem) error. Unlike , our method does not directly
+minimize the estimation error and thus does not require access
+to the ground truth. Instead, we jointly estimate both states and
+covariances directly from observed data (and, optionally, prior
+information on the covariance) in a joint MAPML framework.
+As a result, our method can be used during deployment to learn
+measurement covariances based on the collected measurements.
+C. Noise Covariance Estimation in Kalman Filtering
+The problem of identifying process and measurement noise
+models in Kalman ltering (often referred to as adaptive
+Kalman ltering) has been extensively studied since the late
+1960s; see, e.g., [1, 22, 33, 11, 17] and references therein. While
+our work shares certain similarities with these approaches and
+their underlying principles, such methods are specically de-
+signed for (approximate, when models are nonlinear) recursive
+MAP estimation in linear(ized) models within the ltering
+setting. As a result, they are not readily applicable to batch and
+smoothing formulations, nonlinear measurement models, sparse
+large-scale problems, or (nonlinear) manifold-valued states.
+These features are essential for addressing many estimation
+problems in robotics and computer vision (see, e.g., state-of-
+the-art estimation frameworks for SLAM ).
+III. PROBLEM STATEMENT
+Consider the standard problem of estimating an unknown
+vector xtrue M given k noisy m-dimensional measurements
+i1 corrupted by i.i.d. zero-mean Gaussian noise:
+zi  hi(xtrue) i,
+i N(0m, true),
+where true is the unknown noise covariance. For Euclidean-
+valued measurements (such as relative position of a landmark
+with respect to a robot pose), reduces to addition in Rm.
+For matrix Lie group-valued measurements (such as relative
+pose or orientation between two poses), is equivalent to
+multiplication by Exp(i) where Exp denotes the matrix
+exponential composed with the so-called hat operator. We
+denote the residual of measurement zi evaluated at x M
+with ri(x) zi hi(x). As above, is subtraction in Rm
+for Euclidean measurements, and Log(hi(x)1zi) in the case
+of matrix Lie-group-valued measurements where Log is the
+matrix logarithm composed with the so-called vee operator (in
+this case, m refers to the dimension of Lie algebra).
+In this paper, we refer to xtrue as the primary parameters
+to distinguish them from true. To simplify the discussion, we
+rst consider the case where all measurements share the same
+noise distribution, meaning there is a single noise covariance
+matrix true in (1). See Section IV-C1 for extensions to more
+general cases. In robotics and computer vision applications,
+M is typically a (smooth) product manifold comprised of
+Rd and SO(d) components (d {2, 3}) and other real
+components (e.g., time offsets, IMU biases). We assume the
+measurement functions hi : M Rm are smooth. This
+standard model (along with extensions in Section IV) is quite
+(with various sensing modalities and variants), PGO, point
+cloud registration (with known correspondences), perspective-
+In this paper, we are interested in the setting where the
+noise covariance matrix true 0 is unknown and must be
+estimated jointly with xtrue based on the collected measurements
+i1. For convenience, we formulate the problem in the
+information form and estimate the noise information (or
+precision) matrix Ptrue 1
+true. Without loss of generality,
+we assume a non-informative prior on xtrue which is almost
+always the case in real-world applications (effectively treating
+it as an unknown parameter). We assume a Wishart prior on
+the noise information matrix Ptrue and denote its probability
+density function with W(P; V, ) where V Sm
+0 is the scale
+matrix and the integer  m  1 is the number of degrees
+of freedom; Figure 1 illustrates random samples drawn from
+W(P; V, ). The Wishart distribution is the standard choice for
+prior in Bayesian statistics for estimating the information matrix
+from multivariate Gaussian data (in part due to conjugacy); see,
+e.g., [5, Eq. (2.155)]. In Algorithm 1, we propose a procedure
+for setting the parameters of the prior, V and , when the
+user has access to a prior estimate 0 for the noise covariance
+matrix true (e.g., from prior calibration by the manufacturer
+of the sensor); see Appendix A for a justication.
+The joint MAP estimator for xtrue and Ptrue are the maximiz-
+ers of the posterior. Invoking the Bayes Theorem (and omitting
+Algorithm 1 Setting Wishart Parameters via Mode Matching
+0 0 is a prior estimate for true
+wprior > 0 is the weight assigned to prior relative to
+measurement likelihood
+m is the dimension of 0
+k is the number of measurements
+V (wprior k 0)1
+wprior k  m  1
+return (V, )
+the normalizing constant) results in the following problem:
+maximize
+W(P; V, )
+prior on Ptrue
+measurement likelihood
+N(zi; hi(x), P 1) .
+For any x M, dene the sample covariance at x as follows:
+ri(x)ri(x)0.
+ing constants, dividing the objective by km1, and using
+the cyclic property of trace yields the following equivalent
+problem.
+Problem 1 (Joint MAP).
+minimize
+M(x) kS(x)  V 1
+We also introduce and study three new variants of Problem 1
+by imposing additional (hard) constraints on the noise covari-
+ance matrix . These constraints enable the user to enforce
+prior structural information about the covariance.
+In the rst variant,  (and thus P) is forced to be diagonal.
+This allows the user to enforce independence between noise
+components.
+Problem 2 (Diagonal Joint MAP).
+minimize
+subject to
+P is diagonal.
+In the second variant, we constrain the eigenvalues of
+P 1 to [min, max] where max min > 0. These
+eigenvalues specify the minimum and maximum variance along
+all directions in Rm (i.e., variance of all normalized linear
+combinations of noise components), Therefore, this constraint
+allows the user to incorporate prior knowledge about the
+sensors noise limits. We will also show that in many real-world
+instances (especially with a weak or no prior), constraining
+the smallest eigenvalue of  (or largest eigenvalue of P) is
+essential for preventing  from collapsing to zero.
+Problem 3 (Eigenvalue-constrained Joint MAP).
+minimize
+subject to
+maxI P 1
+The last variant imposes both constraints simultaneously.
+Problem 4 (Diagonal Eigenvalue-constrained Joint MAP).
+minimize
+subject to
+maxI P 1
+P is diagonal.
+Remark 1 (Joint ML Estimation). One can resort to joint
+ML estimation when a prior distribution is not available. The
+negative log-likelihood cost function arising in the joint ML
+estimation problem and its constrained variants (i.e., with
+eigenvalue andor diagonal constraints) takes a form similar to
+F(x, P) dened in (4):
+FML(x, P) log det P  S(x), P,
+where S(x) denotes the sample covariance matrix (3). The
+unconstrained joint ML problem was also derived in .
+Remark 2 (Fixing Noise Covariance). It is worth noting that
+by xing P  P0, Problem 1 reduces to nonlinear least squares
+over x and can be (locally) solved using existing solvers [3,
+function (4) that is a function of x can be written as:
+M(x), P0 1kS(x), P0 const
+ri(x)ri(x), P0
+P0  const,
+where  k   m 1 is the constant that appears in the
+denominator of (5).
+IV. OPTIMAL INFORMATION MATRIX ESTIMATION
+Problems 1-4 are in general non-convex in x because of the
+residuals ris and, when estimating rotations (e.g., in SLAM),
+the SO(d) constraints imposed on rotational components of
+x. In this section, we reveal a convexity structure in these
+problems and provide analytical (globally) optimal solutions
+for estimating the covariance matrix for a given x M.
+A. Inner Subproblem: Covariance Estimation
+Problems 1-4 can be separated into two nested subproblems:
+an inner subproblem and an outer subproblem, i.e.,
+minimize
+subject to
+appropriate constraints on P,
+where the constraints for each problem are given in Problems 1-
+4. The inner subproblem focuses on minimizing the objective
+function over the information matrix P and as a function of
+x M. The outer subproblem minimizes the overall objective
+function by optimizing over x M when the objective is
+evaluated at the optimal information matrix obtained from the
+inner subproblem.
+Remark 3. For (13) to be well dened, we require the
+constraint set to be closed and the cost function to be bounded
+from below. As M(x) is positive denite by construction, the
+cost is bounded from below. The positive semidenite constraint
+guarantees the closedness of the constraint set. However, due
+to the presence of the log det P term in the cost function, if
+a solution exists, the cone constraints are not active at this
+solution. Thus, a singular P can never be a solution to this
+problem.
+B. Analytical Solution to the Inner Subproblem
+The inner subproblem for a xed x can be written as
+minimize
+log det P  M(x), P
+subject to
+appropriate constraints on P.
+Proposition 1. For any x M, the inner subproblem (14) is
+a convex optimization problem and has at most one optimal
+solution.
+The following theorem provides analytical expressions for
+the unique optimal solutions to the inner subproblems (14) in
+Problems 1-4.
+Theorem 1 (Analytical Solution to the Inner Problem). Con-
+sider the inner problem (14) for a given x M. The following
+statements hold:
+1) Inner Subproblem in Problem 1: The optimal solution is
+given by
+P (x)  M(x)1.
+2) Inner Subproblem in Problem 2: The optimal solution is
+given by
+P (x)  Diag(M(x))1
+3) Inner Subproblem in Problem 3: Let
+M(x)  U(x)D(x)U(x)
+be an eigendecomposition of M(x) where U(x) and D(x)
+are orthogonal and diagonal, respectively. The optimal
+solution is given by
+P (x)  U(x)(x)U(x)
+where (x) is a diagonal matrix with the following
+Dii(x) [0, min],
+Dii(x) (min, max),
+Dii(x) [max, ).
+4) Inner Subproblem in Problem 4: The optimal solution is a
+diagonal matrix with the following elements:
+Mii(x) [0, min],
+Mii(x) (min, max),
+Mii(x) [max, ).
+As we saw in Remark 1, the objective function in the
+ML formulation for estimating the noise covariance can be
+written as log det P S(x), Pwhich has a similar form to
+the cost function in (14). However, unlike M(x), the sample
+covariance S(x) can become singular. Therefore, Theorem 1
+readily applies to the ML case (and its constrained variants)
+with an important exception: without the constraint  minI,
+if S(x) becomes singular, the problem becomes unbounded
+from below and thus ML estimation becomes ill-posed. This
+is formally proved in the following theorem.
+Theorem 2. Consider the (unconstrained) joint ML estimation
+problem (Remark 1),
+minimize
+If S(x) is singular, this problem (and the corresponding inner
+subproblem) is unbounded below and thus does not have a
+solution.
+Remark 4. Theorem 2 shows that, without the Wishart prior,
+if S(x) is singular, the unconstrained joint estimation problem
+(specically, without  minI) becomes ill-posed. Similarly,
+singularity of S(x) can make Problems 1 and 2 ill-conditioned
+when the prior is weak (i.e., wprior is small) as the corresponding
+objective function becomes very sensitive in certain directions
+that correspond to the smallest eigenvalues of M(x). The
+sample covariance matrix S(x) could be singular in many
+different situations, but two particular cases that can lead to
+singularity are as follows:
+1) When k < m (i.e., there are not enough measurements to
+estimate true), S(x) will be singular at any x M.
+2) Specic values of x M can lead to singularity in some
+problems. For example, consider the problem of estimating
+odometry noise covariance matrix in PGO. Let xodo be
+the odometry estimate obtained from composing odometry
+Fig. 2: The condence ellipses corresponding to M(x) (in
+blue) and the optimal covariance matrix (x)  P (x)1 as
+given in (18) for Problem 3 (in green). The circles show the
+condence ellipses associated to minI and maxI. Note that the
+principal axes u1(x) and u2(x) of M(x) remain unchanged,
+while its radii (along the principal axes) are adjusted to t
+within the bounds of the circles.
+measurements. At x  xodo, the residuals ri(xodo) (and thus
+S(xodo)) will be zero.
+Theorem 1 has a clear geometric interpretation. For instance,
+the optimal covariance matrix (x)  P (x)1 for Problem 3
+(18) has the following properties: (i) it preserves the eigenvec-
+tors of M(x), which dene the principal axes of the associated
+condence ellipsoid; (ii) it matches M(x) along directions
+corresponding to eigenvalues within the range [min, max]; and
+(iii) it only adjusts the radii of the ellipsoid along the remaining
+principal axes to satisfy the constraint. This is visualized in
+Figure 2. Similarly, the condence ellipsoid associated to (16) is
+obtained by projecting M(x) onto the set of diagonal matrices
+(i.e., axis-aligned ellipsoids). Finally, in the case of (20), the
+radii of the axis-aligned ellipsoid are adjusted to satisfy the
+eigenvalue constraint.
+Remark 5 (Calibration). The inner subproblem (14) also arises
+in ofine calibration. In this context, a calibration dataset Zcal
+is provided with ground truth xcal
+true (or a close approximation).
+The objective is to estimate the noise covariance matrix true
+based on the calibration dataset, which can then be used for
+future datasets collected with the same sensors. Note that this
+approach differs from the joint problems (Problems 1-4), where
+xtrue and true must be estimated simultaneously without the
+aid of a calibration dataset containing ground truth information.
+Applying Theorem 1 at x  xcal
+true directly provides the optimal
+noise covariance matrix for this scenario. If calibration is
+performed using an approximate ground truth xcal xcal
+estimated noise covariance matrix will be biased.
+C. Two Important Extensions
+1) Heteroscedastic Measurements: For simplicity, we have
+so far assumed that measurement noises are identically dis-
+tributed (i.e., homoscedastic). However, in general, there may
+Algorithm 2 Variable Elimination for Joint MAP
+Use a local optimization method to nd
+log det P (x)  M(x), P (x)
+be T distinct types of measurements (e.g., obtained using
+different sensors in sensor fusion problems, odometry vs. loop
+closure in PGO, etc), where the noises corrupting each type
+are identically distributed. In such cases, the inner problem
+(14) decomposes into T independent problems (with different
+M(x)), solving each yields one of the T noise information
+matrices. Theorem 1 can then be applied independently to each
+of these problems to nd the analytical optimal solution for
+each noise information matrix as a function of x.
+2) Preprocessed Measurements and Non-Additive Noise:
+In SLAM, raw measurements are often preprocessed and
+transformed nonlinearly into standard models supported by
+popular solvers. For instance, raw range-bearing measurements
+(corrupted by additive noise with covariance true) are often
+expressed in Cartesian coordinates. As a result, although the
+raw measurements generated by the sensor have identically dis-
+tributed noise, the transformed measurements that appear in the
+least squares problem may have different covariances because of
+the nonlinear transformation. Let true be the covariance of raw
+measurement. In practice, i is approximated by linearization,
+i.e., i JitrueJ
+in which Ji is the (known) Jacobian of
+the transformation. It is easy to verify that Theorem 1 readily
+extends to this case when Jis are full-rank square matrices by
+replacing the sample covariance S(x) as dened in (3) with
+ri(x)ri(x)J
+A similar technique can be used when measurements are
+affected by zero-mean Gaussian noise in a nonlinear manner,
+i.e., zi  hi(xtrue, i) (in that case, the Jacobians of his with
+respect to noise will in general depend on x).
+V. ALGORITHMS FOR JOINT ESTIMATION
+In principle, one can employ existing constrained opti-
+mization methods to directly solve (locally) Problems 1-4.
+highly optimized solvers such as [3, 12, 19] and thus may not
+be ideal. In this section, present two types of algorithms that
+leverage Theorem 1 for solving the joint estimation problems.
+A. Variable Elimination
+We can eliminate P from the joint problems (13) by plugging
+in the optimal information matrix (as a function of x) P (x)
+for the inner subproblem (14) provided in Theorem 1. This
+leads to the following reduced optimization problem in x:
+minimize
+log det P (x)  M(x), P (x).
+and Ptrue, respectively. This suggests the simple procedure
+outlined in Algorithm 2. Note that the reduced problem (23)
+(like Problems 1-4) is a non-convex optimization problem, and
+thus the rst step in Algorithm 2 is subject to local minima.
+Remark 6 (Reduced Problem for Problems 1 and 2). The
+objective function of the reduced problem (23) further simplies
+in the case of Problems 1 and 2. Specically, for any x M,
+the linear term in the objective (i.e., M(x), P (x)) is constant
+for the values of P (x) given in (15) and (16);
+P (x)  M(x)1 M(x), P (x) m,
+P (x)  Diag
+1 M(x), P (x) m.
+to the following:
+minimize
+log det M(x),
+minimize
+log det Diag(M(x)).
+These simplied problems have an intuitive geometric interpre-
+tation (as noted in  for the unconstrained ML estimation
+case): the MAP estimate of xtrue is the value of x M that
+minimizes the volume of condence ellipsoid (in Problem 1)
+and the volume of the projected (onto the standard basis)
+ellipsoid (in Problem 2) characterised by M(x).
+The variable elimination algorithm has the following practi-
+cal drawbacks:
+1) In many real-world estimation problems, the residuals ri
+are typically sparse, meaning each measurement depends
+on only a small subset of elements in x. Exploiting
+this sparsity is essential for solving large-scale problems
+efciently. However, this sparse structure is generally lost
+after eliminating P in the reduced problem (23).
+2) Popular solvers in robotics and computer vision such as
+[3, 12, 19] are primarily nonlinear least squares solvers
+that assume true is known and focus solely on optimizing
+x. Consequently, these highly optimized tools cannot be
+directly applied to solve the reduced problem in (23).
+B. Block-Coordinate Descent
+In this section we show how block-coordinate descent (BCD)
+methods can be used to solve the problem of interest. A BCD-
+type algorithm alternates between the following two steps until
+a stopping condition (e.g., convergence) is satised:
+1) Fix P to its most recent value and minimize the joint MAP
+objective function in Problems 1-4 with respect to x M.
+This results in a standard nonlinear least squares problem
+(where residuals are weighted by P) over M, which can be
+(locally) solved using existing solvers such as [3, 12, 19]
+(see Remark 2).
+2) Fix x to its most recent value and minimize the joint MAP
+objective function with respect to P 0, subject to the
+constraints in (14). This step reduces to solving the inner
+subproblem for which we have analytical optimal solutions
+P (x) provided by Theorem 1.
+Two variants of this procedure are shown in Algorithms 3
+and 4. In Step 1 of Algorithm 3, R(x, P) M(x), P
+denotes the component of the joint cost function F(x, P) that
+depends on x. As demonstrated in Remark 2, minimizing
+this function with respect to x for a xed P is equivalent to
+minimizing the associated weighted nonlinear least squares
+objective. Moreover, while Algorithm 3 uses Riemannian
+gradient descent to update x in Step 1, in principle one can
+use any (trust-region or line-search) optimization method that
+produces a descent iteration such as those already implemented
+in [3, 12, 19].2. Algorithm 4 is applicable to problems where
+in Step 1 of BCD one can exactly minimize F(x, P) over x
+and nd the (unique) minimizer xt for the current value of P.
+The BCD algorithms of the type considered here address
+the limitations of Algorithm 2. Specically, the problem in
+the rst step can be readily solved using standard solvers
+widely used in robotics and computer vision, which are also
+capable of exploiting sparsity in residuals. The second step
+is highly efcient, as it only requires computing the m  m
+matrix M(x) as dened in (5), which can be done in O(km2)
+time. In the case of Problem 3, one must also compute the
+eigendecomposition of M(x). In practice, m (the dimension of
+the residuals) is typically a small constant (i.e., m  O(1); e.g.,
+in 3D PGO, m  6), and therefore the overall time complexity
+of the second step of BCD is O(k), i.e., linear in the number
+of measurements. In a 2D PGO problem (i.e., m  3) with
+k  5,598 measurements, updating the information matrix in
+Step 2 takes about one millisecond on a laptop CPU.
+Before studying the convergence properties of these algo-
+rithms we introduce the necessary assumption below. See
+Appendix E for background information.
+Assumption 1. Let P denote the constraint set for the noise
+information matrix P. The sets M and P are closed and
+nonempty and the function F is differentiable and its level set
+{(x, P) : F(x, P) } is bounded for every scalar .
+Assumption 2 (Lipschitz Smoothness in x). Function R(x, P)
+is continuously differentiable and Lipschitz smooth in x, i.e.,
+there exists a positive constant L such that for all (, )
+M  P and all  M:
+xR(, ) xR(, )L .
+applied to Problems 3 and 4.
+Theorem 3. Let M and P be compact submanifolds of the
+Euclidean space. Under Assumptions 1 and 2 and setting
+2We analyze the convergence properties of Algorithm 3 in Theorem 3 when
+Riemannian gradient descent is used in Step 1.
+Algorithm 3 Hybrid Block-Coordinate Descent for Joint MAP
+x0 xinit
+Initialize the information matrix
+P 0 P (xinit)
+while t  do
+Step 1: Update xt using a descent step using retrac-
+tion Retrxt1(), Riemannian gradient gradx R(, ) with
+respect to x, and step-size  where R(x, P) M(x), P;
+see Theorem 3 and Appendix E.
+xt Retrxt1  gradx R(xt1, P t1)
+Step 2: optimize P (Theorem 1)
+P t P (xt)
+end while
+return (xt, P t)
+Algorithm 4 Block-Exact BCD for Joint MAP
+Initialize the information matrix
+P 0 P (xinit)
+while not converged do
+Step 1: optimize x
+xt argminxM
+i1 ri(x)2
+Step 2: optimize P (Theorem 1)
+P t P (xt)
+end while
+return (xt, P t)
+1eL with eL dened in Lemma 1 in Appendix E, for the
+sequence {(xt, P t)} generated by Algorithm 3 we have
+t[] grad F(xt, P t)C
+F(xinit, Pinit) F(x, P )
+2) where  is given in Lemma 1.
+As can be seen in Algorithm 4, one might be able to
+solve the optimization problems associated with each of the
+coordinate blocks uniquely and exactly. For example, for the
+case where the residuals ri(x) are afne functions of x and
+M is convex, the optimization problem associated with x has
+a unique solution (assuming a non-singular Hessian) and can
+be solved exactly. This case satises the following assumption.
+Assumption 3. For all  P and all  M, the following
+problems have unique solutions:
+xM F(x, ),
+P P F(, P).
+Theorem 4. Under Assumptions 1 and 3, the sequence
+{(xt, P t)} generated by Algorithm 4 is bounded and has limit
+points. Moreover, every limit point (x, P ) is a local minimum
+of the optimization problem.
+[24, Theorem 1].
+VI. EXPERIMENTS
+A. Linear Measurement Model
+We rst evaluate the algorithms on a simple linear measure-
+ment model. Although the joint problem is still non-convex
+in this scenario, the problem is (strictly) convex in x and P
+(Algorithm 4) with analytical solutions (i.e., linear least squares
+and (14)).
+all-ones vector. We generated k  50 measurements, where
+the dimension of each measurement is m  5. Measurement
+zi is generated according to
+zi  Hixtrue  i,
+Each measurement function Hi R520 is a random matrix
+drawn from the standard normal distribution. The Measurement
+noise i N(0, true) where
+true  base  2I,
+in which base 0 is a xed random covariance matrix, and
+2 {102, 101, 1, 10, 102} is a variable that controls the
+noise level in our experiments. We did not impose a prior on
+We conducted 50 Monte Carlo simulations per noise level,
+each with a different noise realization. In each trial, we
+generated measurement noise according to the model described
+above and applied Elimination and BCD (Algorithms 2 and
+4) to estimate xtrue and true under the Problem 1 formulation.
+Both algorithms were initialized with xinit  0 and executed
+for up to 25 iterations. The Elimination algorithm uses the
+Limited-memory BFGS solver from SciPy .
+the accuracy of estimating xtrue. For covariance estimation
+true noise distribution N(0, true) and the estimated noise
+distribution N(0, ):
+W2(Ntrue, N )
+Figure 3a illustrates the value of the objective function in
+Problem 1 during one of the Monte Carlo simulations (  0.1).
+The objective value for BCD is recorded after updating x (Step
+1 of Algorithm 4). This gure demonstrates that both methods
+eventually converge to the same objective value, although BCD
+exhibits faster convergence.
+Iteration
+Joint MLE Objective
+Elimination
+(a) Objective value over iterations
+Noise Level 2 (log scale)
+Avg. RMSE over MC runs
+Elimination
+x MLE w   true
+x MLE w   I
+(b) Average RMSE in estimating xtrue
+Noise Level 2 (log scale)
+Avg. 2-Wasserstein error over MC runs
+Elimination
+MLE w x  xtrue
+(c) Average 2-Wasserstein error for noise
+covariance
+Fig. 3: Results of experiments with linear measurement models (Section VI-A). The results shown in Figures 3b and 3c are
+averaged over 50 Monte Carlo (MC) runs. The error bars in these gures represent the 95 condence intervals.
+Figure 3b presents the average RMSE for the solution x,
+obtained by Elimination and BCD (at their nal iteration),
+across the Monte Carlo simulations for various noise levels.
+The gure also includes average RMSEs for estimates obtained
+using xed covariance matrices:   true (i.e., the true noise
+covariance) and   I (i.e., an arbitrary identity matrix often
+used in practice when true is unknown). The results show that
+Elimination and BCD achieve identical RMSEs across all noise
+under low noise, the accuracy of the solutions produced by these
+algorithms matches that achieved when the true covariance
+matrix true is known. This indicates that the algorithms can
+accurately estimate xtrue without prior knowledge of true. The
+gap between the RMSEs widens as the noise level increases,
+which is expected because the algorithms must jointly estimate
+xtrue and true under a low signal-to-noise ratio. Nonetheless,
+the RMSE trends consistently across noise levels.
+mation of the noise covariance matrix (i.e., xing   I) leads
+to a poor estimate x. However, as the noise level increases,
+the RMSE for this approximation eventually approaches that of
+the case where true is perfectly known. This behavior is partly
+due to the setup in (32): as 2 grows, the diagonal components
+of the covariance matrix dominate, making the true covariance
+approximately isotropic. Since the estimation of xtrue (given
+a xed noise covariance matrix) is invariant to the scaling of
+the covariance matrix, the performance of   I aligns with
+that of   true despite the scaling discrepancy.
+over the Monte Carlo simulations. Similar to the previous gure,
+the covariance estimates obtained by Elimination and BCD
+are consistently close to those derived using x  xtrue. As the
+noise level increases, covariance estimation error also rises,
+widening the gap, as expected.
+B. Pose-Graph Optimization Ablations
+Manhattan dataset , and generated new measurement
+realizations with varying values of the actual noise covariance
+matrix. The dataset consists of 3,500 poses and k  5,598
+relative-pose measurements. This dataset is notoriously poorly
+connected . Therefore, to analyze the effect of connectivity
+on covariance estimation, we also performed experiments on
+modied versions of this dataset, where additional loop closures
+were introduced by connecting pose i to poses i  2 and i  3.
+This modication increased the total number of measurements
+We generated zero-mean Gaussian noise in the Lie algebra
+se(2)  R3 for the following models:
+1) Homoscedastic Measurements: In these experiments, all
+measurements share the same information matrix, given by
+diag(20, 40, 30), where  is a scaling factor that controls
+the noise level (hereafter referred to as the information
+2) Heteroscedastic Measurements: We introduce two distinct
+noise models for odometry and loop-closure edges. The
+true information matrix for odometry noise is xed at
+diag(1000, 1000, 800), while the loop-closure noise infor-
+mation matrix is varied as   diag(20, 40, 30).
+For each value of the information level  {5, 10, 20, 30, 40},
+we conducted 50 Monte Carlo simulations with different noise
+realizations.
+Riemannian gradient descent, we used g2os implementation
+of Powells Dog-Leg method  on SE(2) to optimize x. In
+each outer iteration, our implementation retrieves the residuals
+for each measurement, computes M(x) as dened in (5), and
+updates the noise covariance estimate using Theorem 1. We
+set min  104 and max  104 in all experiments to handle
+cases where the smallest eigenvalue of S(x) is (approximately)
+zero. We then perform a single iteration of Powells Dog-Leg
+method  to update the primary parameters x, initializing
+the solver at the latest estimate of x. To ensure convergence
+across all Monte Carlo trials, we ran 13 outer iterations. In
+this dataset, the per-iteration computational overhead of our
+algorithm (i.e., time spent updating the covariance matrix in
+Step 2 of Algorithm 3 relative to g2o with a given covariance)
+ranged from 0.9 to 1.5 milliseconds on an Intel i7-6820HQ
+We report the results for the following methods:
+1) BCD: In line 11 of Algorithm 3, the noise information
+matrix is estimated using the ML estimate (i.e., no prior)
+subject to eigenvalue constraints. This is equivalent to (18)
+after replacing M(x) with the sample covariance S(x) at
+the current value for x.
+2) BCD (diag): In line 11 of Algorithm 3, the noise informa-
+tion matrix is estimated using the ML estimate (as above),
+subject to both diagonal and eigenvalue constraints. This
+is equivalent to (20) after replacing M(x) with the sample
+covariance S(x) at the current value for x.
+3) BCD (Wishart): In line 11 of Algorithm 3, the information
+matrix is updated according to (18); i.e., using the MAP
+estimate with a Wishart prior and under the eigenvalue
+constraints.
+4) BCD (diagWishart): In line 11 of Algorithm 3, the noise
+information matrix is updated according to (20); i.e., using
+the MAP estimate with a Wishart prior and under the
+diagonal and eigenvalue constraints.
+For BCD (Wishart) and BCD (diagWishart) where a Wishart
+prior was used, we applied our Algorithm 1 to set the prior
+parameters (i.e., V and ), for a prior weight of wprior  0.1
+and a prior estimate of 0  0.002I for both odometry and
+loop-closure edges. Note that this prior estimate is far from
+the true noise covariance value.
+ells Dog-Leg solver in g2o under two xed noise covariance
+(ii) the identity matrix (a common ad hoc approximation
+used in practice). To ensure convergence across all trials, we
+performed eight iterations for these methods. All algorithms
+were initialized using a spanning tree to compute xinit .
+trajectory (positions). In all cases, the rst pose is xed to the
+origin and therefore aligning the estimates with the ground
+truth is not needed. We also use the 2-Wasserstein distance
+(33) to measure the covariance estimation error.
+Figure 4 shows the average RMSE over Monte Carlo trials for
+different values of the information level . Figure 4a presents
+the results for the homoscedastic case, while Figures 4b and
+4c show the results for the heteroscedastic case before and
+after additional loop closures, respectively. The results show
+that our framework, across all variants, succesfully produced
+solutions with an RMSE close to the reference setting where
+the true noise covariance matrix was available (g2o with true).
+For almost all values of  and all experiments, BCD (Wishart)
+and BCD (diagWishart) achieved a lower average RMSE
+compared to the other variants, highlighting the importance
+of incorporating a prior. Notably, this is despite the prior
+being assigned a small weight wprior and the fact that the
+prior estimate 0 is not close to true. Incorporating a prior is
+particularly crucial in PGO, as we observed that the eigenvalues
+of S(x) can become severely small in practice. In such cases,
+Information level
+Avg. RMSE
+BCD (diag)
+BCD (Wishart)
+BCD (diag  Wishart)
+G2O w true
+(a) Homoscedastic Scenario
+Loop-closure information level
+Avg. RMSE over MC runs
+BCD (diag)
+BCD (Wishart)
+BCD (diag  Wishart)
+G2O w true
+(b) Heteroscedastic Scenario
+Loop-closure information level
+Avg. RMSE over MC runs
+BCD (diag)
+BCD (Wishart)
+BCD (diag  Wishart)
+G2O w true
+(c) Heteroscedastic Scenario with extra loop closures
+Fig. 4: Average RMSE obtained by variants of BCD and g2o
+(with xed true and identity covariances) as a function of
+information level .
+without a prior and without enforcing a minimum eigenvalue
+constraint  minI, the ML estimate for the noise covariance
+can collapse to zero, leading to invalid results and excessive
+overcondence. The average RMSE achieved by those variants
+with diagonal and without constraints are generally similar.
+appears to be close to that of their counterparts without this
+Information level
+Avg. 2-Wasserstein error
+BCD (diag)
+BCD (Wishart)
+BCD (diag  Wishart)
+(a) Homoscedastic Scenario
+Loop-closure information level
+Avg. 2-Wasserstein error over MC runs
+Odometry Edges
+Loop-closure information level
+Loop-Closure Edges
+BCD (loop)
+BCD (diag, loop)
+BCD (wishart, loop)
+BCD (diagwishart, loop)
+(b) Heteroscedastic Scenario  odometry (middle) and loop closure (right)
+Fig. 5: Average 2-Wasserstein error achieved by variants of BCD and as a function of information level .
+For some values of  in Figure 4b, the BCD variants with the
+Wishart prior achieved a lower MSE than the reference solution.
+perform better with a larger number of Monte Carlo simulations.
+The RMSE trends look similar in all experiments, with the
+exception of a slight increase for   30 for BCD and BCD
+(diag) in Figure 4b. In terms of RMSE, BCD variants with
+a Wishart prior outperform or perform comparably to the
+baseline with a xed identity covariance in most cases. That
+noise), this nave baseline estimates x quite accurately.
+Figure 5 presents the average 2-Wasserstein distance (33)
+between the noise covariance matrices estimated by various
+BCD variants and the true covariance in both homoscedastic and
+heteroscedastic scenarios. In all cases, BCD variants achieved a
+small 2-Wasserstein error. For reference, the 2-Wasserstein error
+between N(0, true) and the baseline N(0, I) exceeds 1, which
+is more than 20 times the errors attained by our algorithms.
+As noted in Section I, an incorrect noise covariance leads to
+severe overcondence or undercondence in the estimated state
+x (e.g., the estimated trajectory in SLAM), potentially resulting
+in poor or catastrophic decisions.
+The results indicate that, in most cases, diagonal BCD
+variants yield lower errors. This is expected, as the true
+noise covariance matrices are diagonal, and enforcing this
+prior information enhances estimation accuracy. Additionally,
+the MAP estimates obtained by BCD (Wishart) and BCD
+(diagWishart) outperform their ML-based counterparts. This
+is due to the fact that the eigenvalues of the sample covari-
+ance matrix S(x) can be very small, indicating insufcient
+information for accurate noise covariance estimation. In such
+collapse of the estimated covariance. Interestingly, this issue
+was not encountered in  for ML estimation of the noise
+covariance matrix in PnP. This discrepancy may suggest
+additional challenges in estimating noise covariance in SLAM
+(and related) problems, which typically involve a larger number
+of variables and sparse, graph-structured relative measurements.
+In such cases, incorporating a prior estimate may be necessary
+for accurate identication of noise covariance matrices. Finally,
+Figure 5b illustrates that the MAP estimation error is lower for
+the noise covariance of loop closures compared to odometry
+edges. This difference is partly because the prior value based
+on 0 is closer to the true noise covariance matrix for loop
+closures.
+C. RIM Dataset
+In this section, we present qualitative results on RIM, a large
+real-world 3D PGO dataset collected at Georgia Tech . This
+dataset consists of 10,195 poses and 29,743 measurements.
+The g2o dataset includes a default noise covariance matrix, but
+with these default values, g2o struggles to solve the problem.
+after a single iteration, while the Levenberg-Marquardt solver
+completes 10 iterations but produces the trajectory estimate
+shown in Figure 6a.
+We ran BCD without and with the Wishart prior (i.e., ML
+and MAP estimation) for 10 outer iterations, using a single
+Dog-Leg iteration to optimize x in each round. We set the prior
+parameter based on wprior  0.1 and 0  0.01I. The results
+are displayed in Figures 6b and 6c, respectively. It is evident
+that the trajectory estimates obtained by BCD are signicantly
+more accurate than those obtained using the original noise
+covariance values.
+A closer visual inspection reveals that the trajectory estimated
+using the Wishart prior (right) appears more precise than the
+ML estimate (middle). This is expected, as without imposing
+a prior, some eigenvalues of S(x) collapsed until they reached
+the eigenvalue constraint  minI. In contrast, in the MAP
+tained by BCD with the Wishart prior was not. In particular, the
+information matrix component associated with the z coordinate
+was almost twice as large as those of x and y. This likely
+reects the fact that the trajectory in this dataset is relatively
+at. This nding highlights that in this case, in addition to the
+X Coordinate
+Y Coordinate
+(a) g2o w original covariance
+X Coordinate
+Y Coordinate
+(b) BCD  joint ML estimate (wo prior)
+X Coordinate
+Y Coordinate
+(c) BCD  joint MAP estimate w prior
+Fig. 6: RIM Dataset
+estimation of the noise covariance matrix.
+VII. LIMITATIONS
+Algorithm 3, in its current form, is not robust to outliers,
+which limits its applicability in real-world scenarios. However,
+existing robust M-estimation techniques can be readily adapted
+for use with BCD. These methods iteratively reweight residuals
+based on a chosen robust cost function. Our preliminary results
+indicate that incorporating these weights into Step 1 of BCD
+(as is standard) and also into Step 2 (by replacing the sample
+covariance matrix S(x) with a weighted average of residuals)
+yields an outlier-robust variant of BCD for the joint estimation
+problem. We are currently evaluating this approach and aim
+to implement it in real-time LiDAR and visual SLAM and
+odometry systems such as [9, 28].
+result therefore does not immediately apply to problems where
+x contains translational components. However, we believe we
+can address this issue in SLAM and many other geometric
+estimation problems by conning translational components to
+potentially large but bounded subsets of Rd (where d {2, 3}
+is the problem dimension).
+and Feasible GLS (FGLS) conducted as early as 1970s in
+econometrics and statistics, which remain largely unknown
+in engineering; see relevant references in [27, Chapter 12.5]
+and . Exploring this rich literature may result in new
+insights and methods that can further improve noise covariance
+estimation in SLAM and computer vision applications.
+VIII. CONCLUSION
+This work presented a novel and rigorous framework for joint
+estimation of primary parameters and noise covariance matrices
+in SLAM and related computer vision estimation problems. We
+derived analytical expressions for (conditionally) optimal noise
+covariance matrix (under ML and MAP criteria) under various
+structural constraints on the true covariance matrix. Building
+on these solutions, we proposed two types of algorithms
+for nding the optimal estimates and theoretically analyzed
+their convergence properties. Our results and algorithms are
+quite general and can be readily applied to a broad range of
+estimation problems across various engineering disciplines. Our
+algorithms were validated through extensive experiments using
+linear measurement models and PGO problems. The results
+show that the state and the noise covariance matrix can be
+jointly estimated from the measurements (and, optionally, a
+prior on the covariance) with negligible computational overhead
+relative to standard solvers.
+REFERENCES
+Paul D Abramson. Simultaneous estimation of the state
+and noise statistics in linear dynamical systems, volume
+332. National Aeronautics and Space Administration,
+P-A Absil, Robert Mahony, and Rodolphe Sepulchre.
+Optimization algorithms on matrix manifolds. Princeton
+University Press, 2009.
+Sameer Agarwal, Keir Mierle, and The Ceres Solver
+Team. Ceres Solver, 10 2023. URL
+ceres-solverceres-solver.
+Timothy D Barfoot, James R Forbes, and David J Yoon.
+Exactly sparse Gaussian variational inference with appli-
+cation to derivative-free batch nonlinear state estimation.
+The International Journal of Robotics Research, 39(13):
+Christopher M Bishop and Nasser M Nasrabadi. Pattern
+recognition and machine learning, volume 4. Springer,
+Nicolas Boumal.
+An introduction to optimization on
+smooth manifolds. Available online, Aug 2020. URL
+S. Boyd and L. Vandenberghe.
+Convex optimization.
+Cambridge university press, 2004.
+Cesar Cadena, Luca Carlone, Henry Carrillo, Yasir Latif,
+Davide Scaramuzza, Jose Neira, Ian D Reid, and John J
+Leonard. Simultaneous localization and mapping: Present,
+arXiv preprint
+Carlos Campos, Richard Elvira, Juan J. Gomez, Jose
+M. M. Montiel, and Juan D. Tardos. ORB-SLAM3: An
+accurate open-source library for visual, visual-inertial and
+multi-map SLAM. IEEE Transactions on Robotics, 37
+Luca Carlone, Roberto Tron, Kostas Daniilidis, and Frank
+Dellaert. Initialization techniques for 3d slam: A survey on
+rotation estimation and its use in pose graph optimization.
+In 2015 IEEE international conference on robotics and
+automation (ICRA), pages 45974604. IEEE, 2015.
+Zhaozhong Chen, Harel Biggie, Nisar Ahmed, Simon
+Kalman lter auto-
+tuning through enforcing chi-squared normalized error
+distributions with bayesian optimization. arXiv preprint
+Frank Dellaert and GTSAM Contributors. borglabgtsam,
+May 2022. URL
+Frank Dellaert, Michael Kaess, et al. Factor graphs for
+robot perception. Foundations and Trends Rin Robotics,
+Kamak Ebadi, Lukas Bernreiter, Harel Biggie, Gavin Catt,
+Yun Chang, Arghya Chatterjee, Christopher E Denniston,
+Simon-Pierre Deschenes, Kyle Harlow, Shehryar Khattak,
+et al. Present and future of SLAM in extreme environ-
+on Robotics, 2023.
+Alejandro Fontan, Javier Civera, Tobias Fischer, and
+Michael Milford. Look ma, no ground truth! ground-
+truth-free tuning of structure from motion and visual
+SLAM. arXiv preprint arXiv:2412.01116, 2024.
+Alejandro Fontan, Javier Civera, and Michael Milford.
+feature into visual SLAM.
+In Robotics: Science and
+Robin Forsling, Simon J Julier, and Gustaf Hendeby.
+Matrix-valued measures and wishart statistics for target
+tracking applications. arXiv preprint arXiv:2406.00861,
+Kasra Khosoussi, Matthew Giamou, Gaurav S Sukhatme,
+Shoudong Huang, Gamini Dissanayake, and Jonathan P
+Reliable graphs for SLAM.
+The International
+Journal of Robotics Research, 38(2-3):260298, 2019.
+Rainer Kuemmerle, Giorgio Grisetti, Hauke Strasdat,
+Kurt Konolige, and Wolfram Burgard. g2o: A general
+framework for graph optimization. In Proc. of the IEEE
+Int. Conf. on Robotics and Automation (ICRA), 2011.
+Ziqi Lu, Yihao Zhang, Kevin Doherty, Odin Severinsen,
+Ethan Yang, and John Leonard. SLAM-supported self-
+training for 6d object pose estimation. In 2022 IEEERSJ
+International Conference on Intelligent Robots and Sys-
+tems (IROS), pages 28332840. IEEE, 2022.
+Edmond Malinvaud. Statistical methods of econometrics.
+Raman Mehra. Approaches to adaptive ltering. IEEE
+Transactions on automatic control, 17(5):693698, 1972.
+E. Olson, J. Leonard, and S. Teller.
+Fast iterative
+alignment of pose graphs with poor initial estimates. In
+Robotics and Automation, 2006. ICRA 2006. Proceedings
+2006 IEEE International Conference on, pages 22622269.
+Liangzu Peng and Rene Vidal. Block coordinate descent
+on smooth manifolds: Convergence theory and twenty-one
+examples. arXiv preprint arXiv:2305.14744, 2023.
+MJD Powell. A new algorithm for unconstrained opti-
+mization. UKAEA, 1970.
+Mohamad Qadri, Zachary Manchester, and Michael Kaess.
+Learning covariances for estimation with constrained
+bilevel optimization. In 2024 IEEE International Confer-
+ence on Robotics and Automation (ICRA), pages 15951
+George A. F. Seber and C. J. Wild. Nonlinear Regression.
+Tixiao Shan, Brendan Englot, Drew Meyers, Wei Wang,
+Carlo Ratti, and Rus Daniela. Lio-sam: Tightly-coupled
+lidar inertial odometry via smoothing and mapping. In
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 51355142. IEEE, 2020.
+Bill Triggs, Philip F McLauchlan, Richard I Hartley,
+and Andrew W Fitzgibbon. Bundle adjustmenta modern
+synthesis. In International workshop on vision algorithms,
+pages 298372. Springer, 1999.
+Pauli Virtanen, Ralf Gommers, Travis E. Oliphant, Matt
+SciPy 1.0:
+Fundamental Algorithms for Scientic Computing in
+Nature Methods, 17:261272, 2020.
+Jeremy Nathan Wong, David Juny Yoon, Angela P
+with parameter learning applied to vehicle trajectory
+estimation. IEEE Robotics and Automation Letters, 5
+Tian Zhan, Chunfeng Xu, Cheng Zhang, and Ke Zhu. Gen-
+eralized maximum likelihood estimation for perspective-
+n-point problem. IEEE Robotics and Automation Letters,
+Lingyi Zhang, David Sidoti, Adam Bienkowski, Krishna R
+On the identication of noise covariances and adaptive
+kalman ltering: A new look at a 50 year-old problem.
+IEEE Access, 8:5936259388, 2020.
+APPENDIX A
+WISHART PRIOR
+Consider W(P; V, ) as a prior for the information matrix.
+Here we assume  m  1 where m is the dimension of
+covariance matrix and V 0. The mode of this distribution is
+given by
+Let 0 0 be our prior guess for the covariance matrix. We
+set the value of the scale matrix V by matching the mode with
+our prior estimate 1
+Let wprior be the following:
+wprior  m 1
+Then we can rewrite V 1 as
+V 1  wpriork0.
+In the unconstrained case (15), the optimal (MAP) estimate
+(conditioned on a xed value of x) is given by:
+(x) P (x)1  M(x)
+V 1  kS(x)
+wpriork0  kS(x)
+(wprior  1)k
+wprior  10
+wprior  1S(x).
+This shows that the (conditional) MAP estimator simply blends
+the sample covariance matrix S(x) and prior 0 based on the
+prior weight wprior. We directly set wprior (e.g., wprior  0.1 by
+default) based on our condence in the prior relative to the
+likelihood. Large values of wprior will result in stronger priors.
+For the chosen value of wprior,
+wpriork  m  1,
+V  wpriork0.
+This procedure is summarized in Algorithm 1.
+Remark 7 (Wishart Parameters). It is worth noting that
+Algorithm 1 represents just one simple approach to setting the
+prior parameters. Alternative strategies can also be employed,
+such as learning the parameters from an ofine calibration
+(with larger values of  indicating greater condence in the prior
+estimate 0). By explicitly setting a constant value for wprior,3
+the relative inuence of the prior versus the measurements
+remains xed. We adopted this strategy in our experiments for
+3That is, setting the prior parameter  as a function of k in (36).
+simplicity. However, it is important to recognize that setting
+as a function of k violates the Bayesian principle that the prior
+should be specied before observing any data. Consequently,
+when wprior is kept xed, unlike in standard MAP estimation
+the measurements will never completely dominate the prior as
+k increases.
+APPENDIX B
+PROOF OF PROPOSITION 1
+The objective function is strictly convex because log-
+determinant is strictly concave over S0 and the second term is
+linear in P. The equality (diagonal) and linear matrix inequality
+(eigenvalue) constraints are also linear and convex, respectively.
+Since the objective is strictly convex, there is at most one
+optimal solution (i.e., if a minimizer exists, it is unique).
+APPENDIX C
+PROOF OF THEOREM 1
+In the following, we provide primal-dual pairs that satisfy
+the KKT conditions for each variant. Since the problem is
+differentiable and convex, these pairs must be primal-dual
+optimal. Moreover, these solutions are unique because the
+objective function is strictly convex.
+1): For a given x M, the Lagrangian of the inner
+subproblem in Problem 1 is given by
+L(P, Q)  log det P  M(x), PQ, P,
+where Q 0 is the Lagrange multiplier corresponding to
+the semidenite cone constraint. Recall that M(x) 0 by
+construction. Verify that P (x)  M(x)1 and Q  0 trivially
+satisfy the KKT conditions, and thus P (x)  M(x)1 is the
+optimal solution to the primal problem.
+2): For the case of the inner subproblem in Problem 2,
+the problem can be rewritten as
+minimize
+subject to
+The Lagrangian of this problem is given by
+[log i  iMii(x) iqi] ,
+where qi are the Lagrange multipliers corresponding to the
+constraints. The KKT conditions for this problem are
+1i  Mii(x) qi  0,
+It can be observed that since Mii(x) is positive by the virtue
+of M(x) being a positive denite matrix,
+i  Mii(x)1 and
+i  0, i [m], is the solution to the above KKT system.
+3): The Lagrangian of the inner subproblem of Problem 3
+is given by
+L(P, Q, Q)  log det P  M(x), P
+The KKT conditions corresponding to this problem read
+P L(P, Q, Q)  P 1  M(x) Q  Q  0
+Imax P Imin.
+Let Q U(x)(x)U(x)and Q
+U(x)(x)U(x)
+where the elements of diagonal matrices (x) and (x) are
+Dii(x) [0, max],
+Dii(x) max
+Dii(x) (max, ),
+min Dii(x)
+Dii(x) [0, min],
+Dii(x) (min, ).
+It can be observed that the choice of P (x) as in (18) along with
+(x) and Q(x) dened above satisfy the KKT conditions
+and are the primal-dual optimal solutions to the problem. This
+completes the proof.
+4): The solution to the inner subproblem of Problem 4
+can be obtained by a reformulation similar to case 2) above
+and checking the conditions similar to case 3).
+APPENDIX D
+PROOF OF THEOREM 2
+Consider a strictly feasible pair (x0, P0) where x0 M
+and P0 0. Let u0 Rm be any vector in the nullspace
+of S(x0). For any c > 0, the pair (x0, P0  c u0u
+0 ) remains
+strictly feasible. Observe that
+FML(x0, P0  c u0u
+P0  c u0u
+S(x0), P0  c u0u
+P0  c u0u
+S(x0), P0
+log det P0  S(x0), P0
+FML(x0, P0),
+where we used the matrix determinant lemma in (60). Since
+P0 0, we have that u
+u0 > 0. Hence, as c , we
+FML(x0, P0  c u0u
+a solution.
+APPENDIX E
+BACKGROUND INFORMATION FOR SECTION V-B
+Let Y be a smooth submanifold in Euclidean space. Each
+y Y is associated with a linear subspace, called the tangent
+all directions in which one can tangentially pass through y.
+For a formal denition see [2, Denition 3.5.1, p. 34]. A
+smooth function F : Y R is associated with the (Euclidean)
+gradient F(y) of F, as well as the orthogonal projection of
+F(y) onto the tangent space TyY, known as the Riemannian
+gradient of F at y, denoted by grad F(y). See [2, p. 46] for
+more detail. The manifold Y is also associated with a map
+from y along the direction v TyY while remaining on the
+manifold  see [6, Denition 3.47] and [2, Denition 4.1.1]
+for formal denitions.
+A sufcient condition for Assumption 2 to hold is for the
+manifolds to be compact subsets of the Euclidean space. Under
+this assumption we have the following lemma [24, Lemma 1].
+Lemma 1. Let M be a compact submanifold of the Euclidean
+space. Then we have,
+Retr(v) v,
+for some constant . Moreover, if R satises Assumption (2)
+and P is compact, then there exists a positive eL such that for
+all (, ) M  P and all v TM, we have
+R(Retr(v), ) R(, )  gradx R(, ), v
+APPENDIX F
+PROOF OF THEOREM 3
+The proof follows from specializing the proof of [24,
+Theorem 4] to the problem considered in this paper. Specically,
+the compactness of manifolds along with Assumptions 1 and
+2 lead to the existence of of eL as described in Lemma 1. Then
+following the steps of the proof of [24, Theorem 4] and setting
+b  2 completes the proof.

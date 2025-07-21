@@ -1,0 +1,1024 @@
+=== PDF文件: V-HOP Visuo-Haptic 6D Object Pose Tracking.pdf ===
+=== 时间: 2025-07-21 14:45:47.841424 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Hongyu Li1, Mingxi Jia1, Tuluhan Akbulut1, Yu Xiang2, George Konidaris1, and Srinath Sridhar1
+1Brown University
+2The University of Texas at Dallas
+AbstractHumans naturally integrate vision and haptics for
+robust object perception during manipulation. The loss of either
+modality significantly degrades performance. Inspired by this
+multisensory integration, prior object pose estimation research
+has attempted to combine visual and haptictactile feedback.
+Although these works demonstrate improvements in controlled
+environments or synthetic datasets, they often underperform
+vision-only approaches in real-world settings due to poor gen-
+eralization across diverse grippers, sensor layouts, or sim-to-real
+environments. Furthermore, they typically estimate the object
+pose for each frame independently, resulting in less coherent
+tracking over sequences in real-world deployments. To address
+these limitations, we introduce a novel unified haptic represen-
+tation that effectively handles multiple gripper embodiments.
+Building on this representation, we introduce a new visuo-haptic
+transformer-based object pose tracker that seamlessly integrates
+visual and haptic input. We validate our framework in our
+dataset and the Feelsight dataset, demonstrating significant per-
+formance improvement on challenging sequences. Notably, our
+method achieves superior generalization and robustness across
+novel embodiments, objects, and sensor types (both taxel-based
+and vision-based tactile sensors). In real-world experiments,
+we demonstrate that our approach outperforms state-of-the-art
+visual trackers by a large margin. We further show that we
+can achieve precise manipulation tasks by incorporating our
+real-time object tracking result into motion plans, underscor-
+ing the advantages of visuo-haptic perception. Project website:
+I. INTRODUCTION
+Accurately tracking object poses is a core capability for
+robotic manipulation, and would enable contact-rich and dex-
+terous manipulations with efficient imitation or reinforcement
+learning [68, 31, 23]. Recent state-of-the-art object pose
+estimation methods, such as FoundationPose , have sig-
+nificantly advanced visual tracking by leveraging large-scale
+datasets. However, relying solely on visual information to per-
+ceive objects can be challenging, particularly in contact-rich or
+in-hand manipulation scenarios involving high occlusion and
+rapid dynamics.
+The cognitive science findings show that humans naturally
+integrate visual and haptic information for robust object per-
+ception during manipulation [46, 12, 28]. For instance, Gordon
+et al.  demonstrated that humans use vision to hypothesize
+object properties and haptics to refine precision grasps. The
+human sense of touch consists of two distinct senses [42, 6]:
+the cutaneous sense, which detects stimulation on the skin
+and dynamic body posture. This integration, known as haptic
+Fig. 1: Visuo-haptic sensing for 6D object pose tracking. We
+fuse egocentric visual and haptic sensing to achieve accurate
+real-time in-hand object tracking.
+nipulate objects . In robotics, analogous capabilities are
+achieved through tactile sensors (cutaneous sense) and joint
+sensors (kinesthesis) .
+Drawing inspiration from these human capabilities, re-
+searchers have explored the integration of vision and touch
+in robotics for decades. As early as 1988, Allen  proposed
+an object recognition system that combined these modalities.
+More recently, data-driven approaches have emerged to tackle
+object pose estimation using visuo-tactile information [32, 54,
+face two major barriers that hinder their broader applicability:
+(i) Cross-embodiment: Most approaches overfit specific grip-
+pers or tactile sensor layouts, limiting their adaptability. (ii)
+Domain generalization: Compared to visual-only baselines,
+visuo-tactile approaches struggle to generalize, hindered by
+insufficient data diversity and model scalability. Moreover,
+they typically process each frame independently, which can
+result in less coherent object pose tracking over sequences
+in real-world deployments. As a result, existing methods are
+challenging to deploy broadly and often require significant
+customization to specific robotic platforms.
+To address these challenges, we propose V-HOP (Fig. 1):
+a two-fold solution for generalizable visuo-haptic 6D object
+pose tracking. First, we introduce a novel unified haptic
+representation that facilitates cross-embodiment learning. We
+consider the combination of tactile and kinesthesis in the
+form of a point cloud, addressing a critical yet often over-
+looked aspect of visuo-haptic learning. Second, we propose
+a transformer-based object pose tracker to fuse visual and
+haptic features. We leverage the robust visual prior captured
+by the visual foundation model while incorporating haptics. V-
+HOP accommodates diverse gripper embodiments and various
+objects and generalizes to novel embodiments and objects.
+We build a multi-embodied dataset with eight grippers using
+the NVIDIA Isaac Sim simulator for training and evaluation.
+Compared to FoundationPose , our approach achieves 5
+improvement in the accuracy of object pose estimation in terms
+of ADD-S  in our dataset. These results highlight the
+benefit of fusing visual and haptic sensing. In the FeelSight
+optimization-based visuo-tactile object pose tracker, achieving
+a 32 improvement in the ADD-S metric and ten times faster
+run-time speed. Finally, we perform the sim-to-real transfer
+experiments using Barrett Hands. Our method demonstrates
+remarkable robustness and significantly outperforms Founda-
+When integrated into motion plans, our approach achieves 40
+higher average task success rates. To the best of our knowl-
+to demonstrate robust generalization across both taxel-based
+tactile sensors (e.g., Barrett Hand) and vision-based tactile
+sensors (e.g., DIGIT sensors), as well as on novel embodiments
+and objects.
+In conclusion, our contributions to this paper are two-fold:
+1) Unified haptic representation: we introduce a novel
+haptic representation, enabling cross-embodiment learn-
+ing and addressing the cross-embodiment challenge by
+improving adaptability across diverse embodiments and
+objects.
+2) Visuo-haptic transformer: We present a transformer
+model that integrates visual and haptic data, improving
+pose tracking consistency and addressing the domain
+generalization challenge.
+II. BACKGROUND
+In this section, we first define the problem formally and
+then review existing haptic representations and our proposed
+unified representation.
+A. Problem Definition
+We tackle the model-based visuo-haptic 6D object pose
+tracking problem, assuming access to:
+Visual observations: An RGB-D sensor observes the
+object in the environment.
+Haptic feedback: The object is manipulated by a rigid
+gripper equipped with tactile sensors.
+Our approach takes the following as input:
+1) The CAD model Mo of the object.
+2) A sequence of RGB-D images O  {Oi}t
+each observation Oi  [Ii, Di] includes an RGB image
+Ii and a depth map Di.
+3) An initial 6D pose T0  (R0, t0) SE(3), where
+R0 SO(3) is 3D rotation and t0 R3 is 3D trans-
+In practice, the ground-truth initial pose T0 is hard to obtain
+and can only be estimated through pose estimation [72, 62,
+bT0  T0 in the following. At each timestep i, our model
+estimates the object pose bTi given all the inputs with the
+initial pose being the estimate bTi1 at the previous timestep.
+The above inputs are the standard inputs from the model-
+based visual pose tracking problem [66, 7], while the inputs
+below will serve our haptic representation and will be detailed
+in later sections.
+4) Gripper description in Unified Robot Description Format
+5) Gripper joint positions j  {j1, j2, . . . , jDoF }.
+6) Tactile sensor data S, including Positions Sp and read-
+ings Sr of tactile sensors, which will be formally defined
+in the next section.
+7) Transformation between the camera and the robot frames
+obtained through hand-eye calibration .
+B. Haptic Representation
+The effectiveness of haptic learning hinges on its repre-
+sentation. Prior approaches using raw value , image ,
+or graph-based [75, 33, 50] representations often struggle
+to generalize across diverse embodiments. For instance, Wu
+et al.  and Guzey et al.  project tactile signals from
+Xela sensors into a 2D image format. While this allows
+efficient processing with existing visual models, extending
+the method to different grippers or sensor layouts proves
+challenging. Similarly, Li et al.  and Rezazadeh et al.
+employ graph-based mappings, where taxels are represented
+as vertices. However, variations in sensor layouts result in
+different graph distributions, creating significant generalization
+In contrast, we adopt a point cloud representation, which
+naturally encode 3D positions and can flexibly accommodate
+multi-embodiments. We broadly classify tactile sensors into
+taxel-based and vision-based. A more comprehensive review
+on tactile sensors can be found at . Below, we outline how
+they are converted into point clouds in prior works [8, 54, 64,
+13], paving the way for our unified framework.
+Taxel-based Sensors. The tactile data is defined as S
+taxels. The tactile data consists of S  (Sp, Sr):
+Positions (Sp): Defined in the gripper frame and trans-
+formed into the camera frame using forward kinematics.
+Readings (Sr): Capturing contact values. Readings are
+commonly binarized into contact or no-contact states [78,
+The set of taxels in contact is:
+Sc  {si S  Sr(si) > },
+and the corresponding tactile point cloud Sp,c is defined as
+Vision-based sensors. For vision-based tactile sensors [29,
+Positions (Sp): Sensor positions in the camera frame,
+similar to taxel-based.
+Images (SI): Capturing contact states using regular RGB
+image representation. Using the tactile depth estimation
+model [3, 54, 26, 53, 52, 2], we can convert SI into tactile
+point cloud Sp,c.
+Yet we are not the first to employ point cloud representations
+for tactile learning, prior works [8, 54, 64, 13] focus on a
+single type of sensor and overlook the gripper posture. Our
+key contribution is a unified representation spanning both
+taxel-based and vision-based sensors on multi-embodiments,
+empowered by our multi-embodied dataset. We demonstrate
+generalizability on the Barrett hand (taxel-based) during our
+real-world experiments and on the Allegro hand (vision-
+based DIGIT sensor) using the Feelsight dataset . Our
+novel haptic representation seamlessly integrates the tactile
+signals with the gripper posture, enabling more effective
+gripper-object interaction reasoning. In subsequent sections,
+we describe our approach and provide empirical evidence
+demonstrating that our representation improves generalization
+sensor modalities.
+III. METHODOLOGY
+We propose V-HOP, a data-driven approach that fuses visual
+and haptic modalities to achieve accurate 6D object pose
+tracking. Our goal is to build a generalizable visuo-haptic
+pose tracker that accommodates diverse embodiments and
+objects. We first outline the core representations used in our
+haptic modality: gripper and object representations. Our choice
+for the representations follows the spirit of the render-and-
+compare paradigm . Later, we introduce our visuo-haptic
+model and how it is trained.
+A. Gripper Representation
+Tactile signals only represent the cutaneous stimulation,
+while haptic sensing combines tactile and kinesthetic feedback
+to provide a more comprehensive spatial understanding of
+contact and manipulation. We propose a novel haptic rep-
+resentation that integrates tactile signals and gripper posture
+in a unified point cloud representation. This gripper-centric
+representation enables efficient reasoning about spatial contact
+and gripper-object interaction.
+Using the URDF definition and joint positions j, we gen-
+erate the gripper mesh Mh through forward kinematics and
+calculate the surface normals. The mesh is then downsampled
+to produce a 9-D gripper point cloud Ph  {pi}nh
+pi  (xi, yi, zi, nix, niy, niz, c) R9,
+where xi, yi, zi represent the 3-D coordinate of the point.
+is a one-hot encoded point label:
+[1, 0, 0]: Gripper point in contact.
+[0, 1, 0]: Gripper point not in contact.
+[0, 0, 1]: Object point (for later integration with the object
+point cloud).
+To obtain the contact state of each point, we map the tactile
+point cloud Sp,c, representing the contact points detected by
+the tactile sensors (Sec. II-B), onto the downsampled gripper
+point cloud Ph. Specifically, for each point in Sp,c, we find its
+neighboring points in Ph within a radius r. These neighboring
+points are labeled as in contact, while all others are labeled
+as not in contact. The choice of the radius r is randomized
+during training and determined by the measured effective
+radius of each taxel during robot deployment. The resulting
+haptic point cloud, Ph, serves as a unified representation for
+both tactile and kinesthetic data (Fig. 2).
+B. Object Representation
+We denote the object model point cloud as P  {qi}no
+Similar to the gripper point cloud, qi follows the same 9-D
+definitions (Equation 3),
+qi  (xi, yi, zi, nix, niy, niz, c) R9,
+with c  [0, 0, 1] for all object points. At each timestep i > 0,
+we transform the model point cloud into a hypothesized point
+cloud Po  {q
+i1 according to the pose from the previous
+timestep Ti1. For each point q
+i in the hypothesized point
+cloud Po
+To enable reasoning about gripper-object interactions, we
+fuse the gripper point cloud Ph and the hypothesized object
+point cloud Po to create a gripper-object point cloud P,
+P  Ph Po.
+This novel unified representation adopts the principles of the
+render-and-compare paradigm from visual approaches [35, 66,
+hypothesis) is compared against the visual observation. The
+hypothesized object point cloud Po serves as the rendered
+pose hypothesis (Fig. 2). The gripper point cloud Ph represents
+the real observation using haptic feedback, which we used to
+compare with. By leveraging this representation, the model
+captures the contact-rich interactions between the gripper and
+the object by learning feasible object poses informed by haptic
+feedback.
+C. Network Design
+Visual modality. Unlike prior works, which train the whole
+visuo-haptic network from scratch, our approach can effec-
+tively leverage the pretrained visual foundation model. Our
+design extends the formulation of FoundationPose , as
+it demonstrates great generalizability on unseen objects and
+a narrow sim-to-real gap. To harness the high-quality visual
+ResBlock
+Translation
+Rotation
+3D Rotation
+3D Translation
+Positional
+Encoding
+Shared   Weights
+Fig. 2: Network design of V-HOP. The visual modality, based on FoundationPose , uses a visual encoder to process
+RGB-D observations (real and rendered) into feature maps, which are concatenated and refined through a ResBlock to produce
+visual embeddings . The haptic modality encodes a unified gripper-object point cloud, derived from 9D gripper Ph and
+object Po point clouds, into a haptic embedding that captures gripper-object interactions. The red dot in the figure denotes the
+activated tactile sensor. These visual and haptic embeddings are processed by Transformer encoders to estimate 3D translation
+and rotation.
+prior captured by it, we utilize its visual encoder fv and freeze
+it during our training. Using this encoder, We transform the
+RGB-D observation into visual embeddings Zv  fv(O).
+Haptic modality. In parallel, we encode the gripper-object
+point cloud P using a haptic encoder fh, resulting in a haptic
+embedding Zh  fh(P). By representing all interactions in
+point cloud space, our novel haptic representation provides
+the flexibility to utilize any point cloud-based network for
+encoding. For this purpose, we choose PointNet  as
+our haptic encoder fh. To improve learning efficiency, we
+canonicalize the point cloud using the centroid of the gripper
+during processing.
+Visuo-haptic fusion. Integrating visual and haptic modali-
+often apply fixed or biased weightings between these modali-
+ties [32, 54, 8, 59], which can fail under specific conditions.
+For example, when contact is absent, the visual modality alone
+should be leveraged, or when occlusion is severe, haptics
+should be favored. Inspired by the principle of optimal inte-
+gration in human multisensory perception [12, 19, 28, 55, 20],
+where the brain dynamically adjusts the weighting of visual
+and haptic inputs to maximize reliability, we adopt self-
+attention mechanisms  for the adaptive fusion of visual
+and haptic embeddings. This ensures robustness across varying
+To achieve this fusion, we propose haptic instruction-tuning,
+inspired by visual instruction-tuning . While keeping the
+visual encoder fv frozen, we feed both visual embedding
+Zv and haptic embedding Zh into the original visual-only
+Transformer encoders [60, 70], which are initialized with the
+pretrained weights from FoundationPose. We then fine-tune
+the Transformer encoders and the haptic encoder fh together.
+tively using self-attention blocks, and the model dynamically
+adjusts the modality weight based on the context (Fig. 9).
+Following FoundationPose, we disentangle the 6D pose into
+3D translation and 3D rotation and estimate them using two
+output heads (Fig. 2), respectively.
+D. Training Paradigm
+We train our model by adding noise (R, t) to the ground-
+truth pose T  (R, t) to create the hypothesis pose eT
+( eR,et):
+et  t  t.
+The rendered image is generated using eT, while the object
+point cloud is transformed based on eT; in contrast, the RGB-
+D image and gripper point cloud represent actual observations.
+The model estimates the relative pose bT  (bR, bt)
+between the pose hypothesis and observation. The model is
+optimized using the L2 loss:
+LT  bR R2  bt t2,
+where we use quaternion representations for rotations. The
+estimated pose bT  ( bR,bt) is:
+bR  bR  eR,
+bt  bt  et.
+We further incorporate an attractive loss (La) and a penetra-
+tion loss (Lp) to encourage the object to make contact with the
+tactile point cloud Sp,c and avoid penetrating the gripper point
+cloud Ph. We first transform the initial hypothesized object
+pose cloud Po using the estimated pose bPo  bT eT1 Po,
+where Po is in homogenous form.
+Fig. 3: Dataset sample visualization. (Top row) Barrett Hand, Shadow Hand, Allegro Hand, SHUNK SVH. (Bottom row)
+The attractive loss enforces that each activated taxel must
+make contact with the object:
+which can be interpreted as a single-direction Chamfer dis-
+tance between the tactile point cloud and the object point
+The penetration loss avoids penetrations between the object
+and the gripper [76, 77, 4]:
+po  arg min
+emax{0, no(phpo)} 1,
+where po represents the nearest neighbor of each point ph in
+the gripper point cloud Ph. Our overall loss is:
+L  LT  La  Lp,
+where we set   1 and   0.001 empirically. We optimize
+the model using the AdamW  optimizer with an initial
+learning rate of 0.0004 and train the model for 20 epochs.
+IV. EXPERIMENTS
+A. Multi-embodied Dataset
+Existing visuo-haptic datasets were not publicly avail-
+able [8, 33, 61] at the time of completing this work and focused
+on a single gripper , leaving the question of generalization
+to novel embodiments unanswered. Consequently, we develop
+a multi-embodied dataset (Fig. 3) using NVIDIA Isaac Sim
+to enable cross-embodiment learning and thorough evaluation.
+Our dataset comprises approximately 1,550,000 images col-
+lected across eight grippers and thirteen objects. We utilize
+85 of the data for training and the rest for validation. The
+camera trajectories are sampled on the semi-sphere around
+the gripper, which has a random radius between 0.5 and 2.5
+meters. We selected graspable YCB object  and grippers
+used in prior works [9, 45]. Additional details about the dataset
+can be found in the appendix.
+In this paper, we follow the sim-to-real paradigm and utilize
+only synthetic data for training. Increasing real-world training
+data could indeed help mitigate the sim-to-real gap. However,
+as demonstrated in recent work , leveraging a large-scale
+synthetic dataset enriched with domain randomization can
+yield superior real-world performance compared to small-
+scale real-world datasets. Our synthesized dataset exemplifies
+this principle and supports our robust real-world performance.
+Collecting real-world data with comparable scale and diversity
+would be both challenging and resource-intensive. Moreover,
+our unified haptic representation leverages point cloud repre-
+sentation to maintain invariance across various tactile sensors.
+strate robust performance and eliminate the need for costly
+real-world data collection.
+B. Pose Tracking Comparison
+In the following experiments, we evaluate performance
+using the metrics:
+Area under the curve (AUC) of ADD and ADD-S [21,
+72], and
+ADD(-S)-0.1d : ADDADD-S that is less than 10
+of the object diameter.
+We compare V-HOP against the current state-of-the-art
+approaches in visual pose tracking (FoundationPose , or
+FP in short) and visuo-tactile pose estimation (ViTa ).
+To ensure a fair comparison, we finetune FoundationPose
+and train ViTa on our multi-embodied dataset. To verify the
+generalizability of the novel object and novel gripper, we
+exclude one object (pudding box) and one gripper (DClaw)
+during training.
+Due to the absence of a visuo-haptic pose tracking approach,
+we compare V-HOP with ViTa, an instance-level visuo-tactile
+Object Name
+AUC Metric
+master chef can
+sugar box
+tomato soup can
+mustard bottle
+pudding box (Unseen)
+gelatin box
+potted meat can
+power drill
+scissors
+large marker
+large clamp
+TABLE I: Per-object comparison of AUC metrics for ADD
+and ADD-S. The row of novel object is grayed out. Both
+metrics are the higher, the better. The best results are bolded.
+Gripper Name
+AUC Metric
+Allegro Hand
+Barrett Hand
+DClaw (Unseen)
+Inspire Hand
+LEAP Hand
+Robotiq 3-Finger
+SCHUNK SVH
+Shadow Hand
+TABLE II: Per-gripper comparison of AUC metrics for
+ADD and ADD-S. Our dataset contains eight grippers.
+We train the model on seven grippers, leaving one gripper
+(DClaw) unseen.
+pose estimation approach that operates under different settings.
+For ViTa, we provide ground-truth segmentation and train
+a separate model for each object, as it is an instance-level
+method. In contrast, both FoundationPose and V-HOP handle
+novel-object estimation and require training only once. For
+fair evaluation, we run both methods for two iterations per
+tracking step. For V-HOP, we run one visuo-haptic iteration
+and one visual iteration.
+In Tab. I, we show the performance for each object. V-
+ADD-0.1d
+AUC ADD-S
+ADD-S-0.1d
+Without Tactile
+Without Visual
+V-HOP (Ours)
+TABLE III: Ablations of input modalities. Our results
+confirm the effectiveness of combining visual and haptic
+modalities.
+Fusion Type
+ADD-0.1d
+AUC ADD-S
+ADD-S-0.1d
+Late Fusion
+Early Fusion (Ours)
+TABLE IV: Ablations of fusion strategies. We evaluate the
+performance of early fusion and late fusion strategies.
+HOP consistently outperforms ViTa and FoundationPose (FP)
+on most objects with respect to ADD and across all objects
+in terms of ADD-S. On average, our approach delivers an
+improvement of 4 in ADD and 5 in ADD-S compared
+to FoundationPose. Notably, V-HOP demonstrates strong per-
+formance on unseen objects, highlighting the potential of our
+model to generalize effectively to novel objects.
+In line with its object performance, V-HOP outperforms its
+counterparts on most grippers in terms of ADD and across
+all grippers in ADD-S. Moreover, V-HOP demonstrates ro-
+bust performance on unseen grippers, further emphasizing the
+generalizability of our unified haptic representation.
+C. Ablation on Modalities
+We conduct an ablation study on the input modalities
+to evaluate the effectiveness of the haptic representation.
+without tactile feedback and another without visual input, as
+shown in Tab. III. To exclude tactile input, we remove all in
+contact point labels (Equation 3). Our results indicate that
+visual input significantly contributes to performance, likely
+due to the richness of visual information, including texture
+and spatial details. This finding aligns with previous studies
+on human perception systems, which suggest that vision plays
+a dominant role in visuo-haptic integration . Similarly,
+tactile feedback is crucial; without it, performance degrades
+notably because reasoning about gripper-object contact during
+interactions becomes more difficult.
+D. Ablation on Fusion Strategies
+We perform ablation studies on different modality fusion
+to fusion at the input or feature level, the one we presented
+in Fig. 2. Late fusion strategy fuses the visual and tactile
+modalities at the result level, where each modality has a
+separate branch to estimate its result . As shown in Tab. IV,
+the late fusion strategy results in an average ADD score of
+47.56 and an ADD-S score of 70.43, which underperforms
+our early fusion design by 30.97 in ADD and 18.69 in
+ADD-S. The results confirm the necessity to fuse the visual
+and haptic modalities at the feature level.
+Fig. 4: Performance under various occlusion ratios. We
+use the direct ADD and ADD-S metrics (in meters) in this
+experiment.
+ADD-S-0.1d
+NeuralFeels
+V-HOP (Ours)
+TABLE V: Performance on the FeelSight Dataset. For
+consistency with the metric used in NeuralFeels , this
+experiment reports the direct ADD-S metric  (in mm)
+rather than the AUC of ADD-S used in other experiments.
+E. Occlusions Effect on the Performance
+We evaluate the performance of V-HOP and FoundationPose
+across varying occlusion ratios (Fig. 4). The occlusion ratio
+is defined as the proportion of pixels in the segmentation
+mask relative to the total pixels in the rendered object image,
+generated using the ground-truth pose. Our results show that
+V-HOP consistently outperforms FoundationPose in both ADD
+and ADD-S metrics under different levels of occlusion. These
+results underscore the importance of integrating visual and
+haptic information to improve performance in challenging
+occlusion scenarios.
+F. Pose Tracking on FeelSight
+To evaluate the generalizability of V-HOP, we benchmark it
+against NeuralFeels , a recently introduced optimization-
+based visuo-tactile pose tracking approach, using their pro-
+posed Feelsight dataset. Specifically, we focus on the occlu-
+sion subset of the dataset, FeelSight-Occlusion, which
+presents significant challenges due to severe occlusions. This
+subset requires robust generalization capabilities as it includes
+a novel embodiment (the Allegro hand equipped with DIGIT
+fingertips), a novel sensor type (a vision-based tactile sensor),
+and a novel object (a Rubiks cube). For a fair comparison, we
+compare against their model-based tracking approach, which
+uses almost the same inputs as V-HOP but with the ground-
+truth segmentation mask (GT Seg).
+The results are presented in Tab. V. V-HOP achieves a 32
+lower ADD-S error compared to NeuralFeels and has a similar
+ADD-S-0.1d score. It is important to note that NeuralFeels
+leverages the ground-truth segmentation mask, which helps in
+more accurate object localization, whereas V-HOP does not
+have such an input, further underscoring its robustness and
+adaptability.
+In terms of computational efficiency, V-HOP is approxi-
+mately 10 times faster than NeuralFeels, achieving 32 FPS
+compared to NeuralFeels 3 FPS on an NVIDIA RTX 4070
+GPU. This substantial improvement in speed highlights the
+practicality of V-HOP for real-world manipulation applica-
+V. SIM-TO-REAL TRANSFER EXPERIMENTS
+To validate the real-world effectiveness of our approach,
+we perform sim-to-real experiments using our robot platform
+(Fig. 1). Our bimanual platform comprises dual Franka Re-
+search 3 robotic arms  and Barrett Hands BH8-282. Our
+Barrett Hand has 4 degrees of freedom (DoF) and 96 taxels: 24
+taxels on each fingertip and 24 taxels on the palm. Each taxel
+comprises a capacitive cell capable of detecting forces within a
+range of 10 Ncm2 with a resolution of 0.01 N. For egocentric
+visual input, we use a MultiSense SLB RGB-D camera, which
+combines a MultiSense S7 stereo camera and a Hokuyo UTM-
+30LX-EW laser scanner. We utilize FoundationPose to provide
+the initial frame pose estimate and CNOS [47, 25] to provide
+the segmentation task.
+A. Pose Tracking Experiments
+In this experiment (Fig. 5), the gripper stably grasps the
+object while a human operator guides the robot arm along
+a random trajectory. This introduces heavy occlusion and
+high dynamic motion to emulate challenging real-world ma-
+nipulation scenarios. Under these conditions, FoundationPose
+often loses tracking due to reliance on visual input alone. In
+the trajectory, demonstrating the robustness of its visuo-haptic
+sensing.
+B. Bimanual Handover Experiment
+In this experiment (Fig. 6), an object is placed on a table
+within reach of the robots right arm. The task requires the
+robot to perform the following sequence of actions:
+1) Use the right arm to grasp the object and transport it to
+the center.
+2) Use the left arm to grasp the object from the right gripper
+and place it into a designated bin.
+The robot employs model-based grasping, which depends on
+real-time object pose estimation. This task presents two key
+1) If the grasp attempt fails, the robot must detect the
+failure based on the real-time object pose and reattempt
+the grasp.
+2) During transport to the center, the robot must maintain
+precise tracking of the objects pose to ensure that the
+left arm can accurately grasp it. Inaccurate tracking
+results could lead to collision during the handover.
+V-HOP enables the motion planner to handle objects in
+random positions and adapt to dynamic scenarios, such as
+human perturbations. For instance, a human may move the
+object during task execution, remove it from the gripper, or
+reposition it on the table (Fig. 7). Due to the integration of
+Fig. 5: Qualitative results of pose tracking sequences. We verify the performance in the real world using YCB objects. The
+cup and power drill are highlighted in this figure, while the results of more objects are in the appendix.
+Fig. 6: Bimanual handover experiment. In this experiment, the robot performs bimanual manipulation to transport the target
+object to the box. V-HOP integrates visual and haptic inputs to accurately track the pose of the in-hand object in real-time,
+resulting in stable handover performance. Results on more objects can be found in the appendix.
+Sugar Box
+Power Drill
+Tomato Can
+TABLE VI: Success rate on bimanual handover task.
+haptic feedback, V-HOP accurately tracks the objects pose,
+allowing the robot to promptly detect and respond to changes,
+such as the object leaving the gripper. On the contrary,
+FoundationPose loses tracking during handover or grasping
+failure (Fig. 6) and leads to collisions. In Tab. VI, we show
+the success rate for each object for five trials. V-HOP has 40
+higher success rate on average compared to FoundationPose.
+C. Can-in-Mug Experiment
+The Can-in-Mug task (Fig. 8) involves grasping a tomato
+can and inserting it into a mug. The bimanual version requires
+the robot to also grasp the mug and insert the can in the center.
+Successful execution hinges on precise pose estimation for
+both objects, as any noise in their poses can lead to failure.
+Fig. 7: Robustness test for the bimanual handover task.
+(Left) The object is placed at various randomized positions.
+(Right) A human perturbs the object by moving it to a different
+position while the robot attempts to grasp it.
+Can-in-Mug
+Bimanual Can-in-Mug
+TABLE VII: Success rate on Can-in-Mug task.
+(a) Can-in-Mug task.
+(b) Bimanual Can-in-Mug task.
+Fig. 8: Can-in-Mug tasks. (top) The robot grasps the can and
+inserts it into the mug. (bottom) The robot uses bimanual to
+grasp the can and the mug and insert the can into the mug in
+the center.
+Our results (Tab. VII) demonstrate that V-HOP, by integrating
+visual and haptic inputs, delivers more stable tracking and a
+higher overall success rate.
+D. Contribution of each modality
+In this study, we examine the contribution of visual and
+haptic inputs to the final prediction. We adapt Grad-CAM ,
+utilizing the final normalization layer of the Transformer
+encoder as the target layer. Figure 9 illustrates the weight
+distribution across the visual and haptic modalities. Our find-
+ings suggest that when the gripper is not in contact with
+an object, the model predominantly relies on visual inputs.
+Fig. 9: Weights of visual and haptic modalities to the final
+prediction. We overlay the modality weights calculated using
+GradCAM  in the top-right corner.
+becomes more severe, the model increasingly shifts its reliance
+toward haptic inputs. This finding confirms the choice of self-
+attention mechanism to emulate humans optimal integration
+principle.
+VI. RELATED WORKS
+In this work, we consider the problem of 6D object pose
+tracking problem, which has been widely studied as a visual
+problem [66, 35, 70, 7]. In particular, we focus on model-based
+tracking approaches, which assume access to the objects CAD
+model. While model-free approaches [65, 69, 54] exist, they
+fall outside the scope of this work. Visual pose tracking has
+achieved significant progress on established benchmarks, such
+as BOP . Despite these successes, deploying such sys-
+tems in real-world robotic applications remains challenging,
+especially under scenarios with high occlusion and dynamic
+To address these challenges, prior research has explored
+combining visual and tactile information to improve pose
+tracking robustness [32, 54, 8, 61, 50, 59, 14, 33]. These
+approaches leverage learning-based techniques to estimate
+object poses by fusing visuo-tactile inputs. However, these
+methods estimate poses on a per-frame basis, which lacks
+temporal coherence. Additionally, cross-embodiment and do-
+main generalization remain significant hurdles, limiting their
+scalability and practicality for broad deployment.
+More recent works aim to overcome some of these limita-
+tions. For example, Liu et al.  proposes an optimization-
+based approach that integrates tactile data with visual pose
+tracking using an ad-hoc slippage detector and velocity pre-
+dictor. Suresh et al.  extend the model-free tracking frame-
+works BundleTrack  and BundleSDF  by combining
+visual and tactile point clouds within a pose graph optimization
+framework. However, these approaches are only validated on a
+single embodiment and suffer from computational inefficien-
+in dynamic manipulation tasks.
+VII. LIMITATION
+We follow the model-based object pose tracking setting,
+which assumes that a CAD model is available for the object.
+While assuming a CAD model may limit generalization in in-
+the-wild applications, it is a well-established assumption in
+industrial settings, such as warehouses or assembly lines [3,
+54]. One potential direction to overcome this limitation is
+to simultaneously reconstruct the object and perform pose
+and NeuralFeels , which offer promising and compatible
+ways to supply a model to our approach.
+VIII. CONCLUSION
+We introduced V-HOP, a visuo-haptic 6D object pose tracker
+that integrates a unified haptic representation and a visuo-
+haptic transformer. Our experiments demonstrate that V-HOP
+generalizes effectively to novel sensor types, embodiments,
+and objects, outperforming state-of-the-art visual and visuo-
+tactile approaches. Ablation studies highlight the critical role
+of both visual and haptic modalities in the framework. In
+the sim-to-real transfer experiments, V-HOP proved robust,
+delivering stable tracking under high occlusion and dynamic
+conditions. Furthermore, integrating V-HOPs real-time pose
+tracking into motion planning enabled accurate manipulation
+its practical effectiveness.
+ACKNOWLEDGMENTS
+This work is supported by the National Science Foundation
+(NSF) under CAREER grant 2143576, grant 2346528, and
+the Office of Naval Research (ONR) grant N00014-22-1-259.
+We thank Ying Wang, Tao Lu, Zekun Li, and Xiaoyan Cong
+for their valuable discussions. We thank the area chair and
+the reviewers for providing constructive feedback on improv-
+ing the quality and clarity of our paper. This research was
+conducted using computational resources and services at the
+Center for Computation and Visualization, Brown University.
+REFERENCES
+Peter K. Allen. Integrating Vision and Touch for Object
+Recognition Tasks. The International Journal of Robotics
+Rares Ambrus, Vitor Guizilini, Naveen Kuppuswamy,
+Andrew Beaulieu, Adrien Gaidon, and Alex Alspach.
+Monocular Depth Estimation for Soft Visuotactile Sen-
+sors. In 2021 IEEE 4th International Conference on Soft
+Robotics (RoboSoft), pages 643649, April 2021.
+Maria Bauza, Oleguer Canal, and Alberto Rodriguez.
+Tactile Mapping and Localization from High-Resolution
+Tactile Imprints. In 2019 International Conference on
+Robotics and Automation (ICRA), pages 38113817, May
+Samarth Brahmbhatt, Ankur Handa, James Hays, and
+Dieter Fox. ContactGrasp: Functional Multi-finger Grasp
+Synthesis from Contact. In 2019 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 23862393, November 2019.
+Berk Calli, Arjun Singh, Aaron Walsman, Siddhartha
+object and Model set: Towards common benchmarks for
+manipulation research. In 2015 International Conference
+on Advanced Robotics (ICAR), pages 510517, July
+Ravinder S. Dahiya, Giorgio Metta, Maurizio Valle,
+and Giulio Sandini. Tactile SensingFrom Humans to
+Humanoids. IEEE Transactions on Robotics, 26(1):120,
+February 2010.
+Xinke Deng, Arsalan Mousavian, Yu Xiang, Fei Xia,
+RaoBlackwellized Particle Filter for 6-D Object Pose
+Tracking. IEEE Transactions on Robotics, 37(5):1328
+Snehal Dikhale, Karankumar Patel, Daksh Dhingra,
+Itoshi Naramura, Akinobu Hayashi, Soshi Iba, and Nawid
+Jamali. VisuoTactile 6D Pose Estimation of an In-Hand
+Object Using Vision and Tactile Sensor Data.
+Robotics and Automation Letters, 7(2):21482155, April
+Runyu Ding, Yuzhe Qin, Jiyue Zhu, Chengzhe Jia, Shiqi
+operation for Imitation Learning, July 2024.
+Elliott Donlon, Siyuan Dong, Melody Liu, Jianhua Li,
+Edward Adelson, and Alberto Rodriguez.
+A High-Resolution, Compact, Robust, and Calibrated
+Tactile-sensing Finger, May 2018.
+Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov,
+Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner,
+Mostafa Dehghani, Matthias Minderer, Georg Heigold,
+Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An
+Image is Worth 16x16 Words: Transformers for Image
+Recognition at Scale, June 2021.
+Marc O. Ernst and Martin S. Banks. Humans integrate
+visual and haptic information in a statistically optimal
+fashion. Nature, 415(6870):429433, January 2002.
+Pietro Falco, Shuang Lu, Andrea Cirillo, Ciro Natale,
+Salvatore Pirozzi, and Dongheui Lee. Cross-modal visuo-
+tactile object recognition using robotic active exploration.
+In 2017 IEEE International Conference on Robotics and
+Automation (ICRA), pages 52735280, May 2017.
+Yuan Gao, Shogo Matsuoka, Weiwei Wan, Takuya
+Hand Pose Estimation Using Hand-Mounted RGB Cam-
+eras and Visuotactile Sensors. IEEE Access, 11:17218
+A. M. Gordon, H. Forssberg, R. S. Johansson, and
+G. Westling.
+The integration of haptically acquired
+size information in the programming of precision grip.
+Experimental Brain Research, 83(3):483488, February
+Irmak Guzey, Ben Evans, Soumith Chintala, and Ler-
+rel Pinto.
+Dexterity from Touch: Self-Supervised Pre-
+Training of Tactile Representations with Robotic Play. In
+Proceedings of The 7th Conference on Robot Learning,
+pages 31423166. PMLR, December 2023.
+Saskia Golz, Simon Gabl, Florian Walch, Mohamadreza
+mon Haddadin. The Franka Emika Robot: A Reference
+Platform for Robotics Research and Education.
+Robotics  Automation Magazine, 29(2):4664, June
+Xingyi He, Jiaming Sun, Yuang Wang, Di Huang, Hujun
+One-Shot Object Pose Estimation without CAD Models.
+Advances in Neural Information Processing Systems, 35:
+Hannah B. Helbig and Marc O. Ernst. Optimal integra-
+tion of shape information from vision and touch. Exper-
+imental Brain Research, 179(4):595606, June 2007.
+Hannah B. Helbig, Marc O. Ernst, Emiliano Ricciardi,
+Pietro Pietrini, Axel Thielscher, Katja M. Mayer, Jo-
+hannes Schultz, and Uta Noppeney. The neural mech-
+anisms of reliability weighted integration of shape in-
+formation from vision and touch.
+Stefan Hinterstoisser, Vincent Lepetit, Slobodan Ilic,
+Stefan Holzer, Gary Bradski, Kurt Konolige, and Nassir
+Model Based Training, Detection and Pose
+Estimation of Texture-Less 3D Objects in Heavily Clut-
+tered Scenes. In Kyoung Mu Lee, Yasuyuki Matsushita,
+James M. Rehg, and Zhanyi Hu, editors, Computer Vision
+ACCV 2012, Lecture Notes in Computer Science, pages
+Van Nguyen Nguyen, Gu Wang, Eric Brachmann,
+Bertram Drost, Vincent Lepetit, Carsten Rother, and Jiri
+Matas. BOP Challenge 2023 on Detection Segmentation
+and Pose Estimation of Seen and Unseen Rigid Objects.
+Cheng-Chun Hsu, Bowen Wen, Jie Xu, Yashraj Narang,
+Xiaolong Wang, Yuke Zhu, Joydeep Biswas, and Stan
+Birchfield. SPOT: SE(3) Pose Trajectory Diffusion for
+Object-Centric Manipulation, November 2024.
+Tanja Kassuba, Corinna Klinge, Cordula Holig, Brigitte
+share in visuo-haptic object recognition than touch. Neu-
+Alexander Kirillov, Eric Mintun, Nikhila Ravi, Hanzi
+Spencer Whitehead, Alexander C. Berg, Wan-Yen Lo,
+Piotr Dollar, and Ross Girshick.
+Segment Anything.
+Naveen Kuppuswamy, Alejandro Castro, Calder Phillips-
+Based Contact Patch and Pose Estimation for Highly
+Deformable Dense-Geometry Tactile Sensors.
+Robotics and Automation Letters, 5(2):18111818, April
+Stephen Tyree, Stan Birchfield, Jonathan Tremblay,
+Justin Carpentier, Mathieu Aubry, Dieter Fox, and Josef
+Sivic. MegaPose: 6D Pose Estimation of Novel Objects
+via Render  Compare. August 2022.
+Simon Lacey and K. Sathian. Chapter 7 - Visuo-haptic
+object perception. In K. Sathian and V. S. Ramachan-
+Academic Press, January 2020.
+Mike Lambeta, Po-Wei Chou, Stephen Tian, Brian Yang,
+Benjamin Maloon, Victoria Rose Most, Dave Stroud,
+Raymond Santos, Ahmad Byagowi, Gregg Kammerer,
+Dinesh Jayaraman, and Roberto Calandra.
+Novel Design for a Low-Cost Compact High-Resolution
+Tactile Sensor With Application to In-Hand Manipula-
+tion. IEEE Robotics and Automation Letters, 5(3):3838
+Taeyeop Lee, Jonathan Tremblay, Valts Blukis, Bowen
+Adaptation for Category-Level Object Pose Estimation.
+Albert H. Li, Preston Culbertson, Vince Kurtz, and
+Aaron D. Ames.
+Online Planning, October 2024.
+Hongyu Li, Snehal Dikhale, Soshi Iba, and Nawid Ja-
+Estimation With Shape Completion. IEEE Robotics and
+Automation Letters, 8(11):69636970, November 2023.
+Hongyu Li, Snehal Dikhale, Jinda Cui, Soshi Iba, and
+Nawid Jamali. HyperTaxel: Hyper-Resolution for Taxel-
+Based Tactile Signals Through Contrastive Learning. In
+2024 IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 74997506, October
+Hongyu Li, James Akl, Srinath Sridhar, Tye Brady, and
+Taskin Padir. ViTa-Zero: Zero-shot Visuotactile Object
+6D Pose Estimation, April 2025.
+Yi Li, Gu Wang, Xiangyang Ji, Yu Xiang, and Dieter
+Estimation. pages 683698, 2018.
+Yuelong Li, Yafei Mao, Raja Bala, and Sunil Hadap.
+Residual Correlation. pages 1047610486, 2024.
+Jiehong Lin, Lihua Liu, Dekun Lu, and Kui Jia. SAM-
+ject Pose Estimation. pages 2790627916, 2024.
+Toru Lin, Yu Zhang, Qiyang Li, Haozhi Qi, Brent Yi,
+Sergey Levine, and Jitendra Malik. Learning Visuotactile
+Skills with Two Multifingered Hands, April 2024.
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae
+Visual Instruction Tuning.
+Advances in Neural
+Information Processing Systems, 36:3489234916, De-
+cember 2023.
+Yuan Liu, Yilin Wen, Sida Peng, Cheng Lin, Xiaoxiao
+Generalizable Model-Free 6-DoF Object Pose Estimation
+from RGB Images.
+In Shai Avidan, Gabriel Brostow,
+Moustapha Cisse, Giovanni Maria Farinella, and Tal
+Yun Liu, Xiaomeng Xu, Weihang Chen, Haocheng Yuan,
+He Wang, Jing Xu, Rui Chen, and Li Yi.
+Enhancing
+Generalizable 6D Pose Tracking of an In-Hand Object
+with Tactile Sensing.
+IEEE Robotics and Automation
+Jack M. Loomis and Susan J. Lederman. Tactual per-
+ception.
+In Handbook of perception and human per-
+pages 141. John Wiley  Sons, Oxford, England, 1986.
+Ilya Loshchilov and Frank Hutter.
+Decoupled Weight
+Decay Regularization. September 2018.
+E. Marchand, F. Spindler, and F. Chaumette.
+for visual servoing: a generic software platform with
+a wide class of robot control skills. IEEE Robotics
+Automation Magazine, 12(4):4052, December 2005.
+Luis Felipe Casas Murrilo, Ninad Khargonkar, Balakrish-
+nan Prabhakaran, and Yu Xiang. MultiGripperGrasp: A
+Dataset for Robotic Grasping from Parallel Jaw Grippers
+to Dexterous Hands, March 2024.
+Nicolas Navarro-Guerrero, Sibel Toprak, Josip Josi-
+ception for robots: an overview. Autonomous Robots, 47
+Van Nguyen Nguyen, Thibault Groueix, Georgy Poni-
+Strong Baseline for CAD-Based Novel Object Segmen-
+tation. pages 21342140, 2023.
+for 6D Pose Estimation. pages 76687677, 2019.
+Charles Ruizhongtai Qi, Li Yi, Hao Su, and Leonidas J
+Guibas. PointNet: Deep Hierarchical Feature Learning
+on Point Sets in a Metric Space. In Advances in Neu-
+ral Information Processing Systems, volume 30. Curran
+Alireza Rezazadeh, Snehal Dikhale, Soshi Iba, and
+Nawid Jamali. Hierarchical Graph Neural Networks for
+Proprioceptive 6D Pose Estimation of In-hand Objects.
+In 2023 IEEE International Conference on Robotics and
+Automation (ICRA), pages 28842890, May 2023.
+Ramprasaath R. Selvaraju, Michael Cogswell, Abhishek
+Networks via Gradient-based Localization. International
+Journal of Computer Vision, 128(2):336359, February
+Sudharshan Suresh, Zilin Si, Joshua G. Mangelson, Wen-
+zhen Yuan, and Michael Kaess. ShapeMap 3-D: Efficient
+shape mapping through dense touch and vision. In 2022
+International Conference on Robotics and Automation
+(ICRA), pages 70737080, May 2022.
+Sudharshan Suresh, Zilin Si, Stuart Anderson, Michael
+Carlo inference over distributions across sliding touch. In
+Proceedings of The 6th Conference on Robot Learning,
+pages 319331. PMLR, March 2023.
+Sudharshan Suresh, Haozhi Qi, Tingfan Wu, Taosha
+Science Robotics, November 2024.
+Chie Takahashi and Simon Justin Watt.
+Visual-haptic
+integration with pliers and tongs: signal weights take
+account of changes in haptic sensitivity caused by differ-
+ent tools. Frontiers in Psychology, 5, February 2014.
+Ian H. Taylor, Siyuan Dong, and Alberto Rodriguez. Gel-
+Slim 3.0: High-Resolution Measurement of Shape, Force
+and Slip in a Compact Tactile-Sensing Finger. In 2022
+International Conference on Robotics and Automation
+(ICRA), pages 1078110787, May 2022.
+Jonathan
+Balakumar
+Object Pose Estimation for Semantic Robotic Grasping
+of Household Objects.
+In Proceedings of The 2nd
+Conference on Robot Learning, pages 306316. PMLR,
+October 2018.
+Jonathan Tremblay, Bowen Wen, Valts Blukis, Balaku-
+mar Sundaralingam, Stephen Tyree, and Stan Birchfield.
+September 2023.
+Yuyang Tu, Junnan Jiang, Shuang Li, Norman Hendrich,
+Miao Li, and Jianwei Zhang. PoseFusion: Robust Object-
+in-Hand Pose Estimation with SelectLSTM.
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 68396846, October 2023.
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+and Illia Polosukhin.
+Attention is All you Need.
+Advances in Neural Information Processing Systems,
+volume 30, 2017.
+Zhaoliang Wan, Yonggen Ling, Senlin Yi, Lu Qi,
+Wang Wei Lee, Minglei Lu, Sicheng Yang, Xiao Teng,
+Peng Lu, Xu Yang, Ming-Hsuan Yang, and Hui Cheng.
+In Proceedings of
+the 41st International Conference on Machine Learning,
+pages 4992149940. PMLR, July 2024.
+Chen Wang, Danfei Xu, Yuke Zhu, Roberto Martin-
+Fusion. pages 33433352, 2019.
+malized Object Coordinate Space for Category-Level 6D
+Object Pose and Size Estimation.
+pages 26422651,
+David Watkins-Valls, Jacob Varley, and Peter Allen.
+Multi-Modal Geometric Learning for Grasping and Ma-
+nipulation. In 2019 International Conference on Robotics
+and Automation (ICRA), pages 73397345, May 2019.
+Bowen Wen and Kostas Bekris. BundleTrack: 6D Pose
+Tracking for Novel Objects without Instance or Category-
+Level 3D Models, August 2021.
+Bowen Wen, Chaitanya Mitash, Baozhang Ren, and
+Kostas E. Bekris. se(3)-TrackNet: Data-driven 6D Pose
+Tracking by Calibrating Image Residuals in Synthetic
+Domains. In 2020 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 10367
+Bowen Wen, Chaitanya Mitash, Sruthi Soorian, Andrew
+Occlusion-aware Pose Estimation for Objects Grasped by
+Adaptive Hands. In 2020 IEEE International Conference
+on Robotics and Automation (ICRA), pages 62106217,
+May 2020.
+Bowen Wen, Wenzhao Lian, Kostas Bekris, and Stefan
+You Only Demonstrate Once: Category-Level
+Manipulation from Single Visual Demonstration, May
+Bowen Wen, Jonathan Tremblay, Valts Blukis, Stephen
+Tracking and 3D Reconstruction of Unknown Objects,
+March 2023.
+Bowen Wen, Wei Yang, Jan Kautz, and Stan Birchfield.
+ing of Novel Objects. In CVPR, 2024.
+Bing Wu, Qian Liu, and Qiang Zhang. Tactile Pattern
+Super Resolution with Taxel-based Sensors.
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 36443650, October 2022.
+Yu Xiang, Tanner Schmidt, Venkatraman Narayanan, and
+Dieter Fox. PoseCNN: A Convolutional Neural Network
+for 6D Object Pose Estimation in Cluttered Scenes. In
+Zhengrong Xue, Han Zhang, Jingwen Cheng, Zhengmao
+Xu. ArrayBot: Reinforcement Learning for Generalizable
+Distributed Manipulation through Touch, June 2023.
+Akihiko Yamaguchi and Christopher G. Atkeson. Recent
+progress in tactile sensing and sensors for robotic manip-
+Linhan Yang, Bidan Huang, Qingbiao Li, Ya-Yen Tsai,
+Wang Wei Lee, Chaoyang Song, and Jia Pan. TacGNN:
+Learning Tactile-Based In-Hand Manipulation With a
+Blind Robot Using Hierarchical Graph Neural Network.
+IEEE Robotics and Automation Letters, 8(6):36053612,
+June 2023.
+Lixin Yang, Xinyu Zhan, Kailin Li, Wenqiang Xu,
+Jiefeng Li, and Cewu Lu.
+Potential Field to Model the Hand-Object Interaction. In
+2021 IEEECVF International Conference on Computer
+Vision (ICCV), pages 1107711086, October 2021.
+Lixin Yang, Xinyu Zhan, Kailin Li, Wenqiang Xu, Jun-
+ming Zhang, Jiefeng Li, and Cewu Lu.
+Learning a
+Contact Potential Field for Modeling the Hand-Object
+Interaction. IEEE Transactions on Pattern Analysis and
+Machine Intelligence, 46(8):56455662, August 2024.
+Zhao-Heng Yin, Binghao Huang, Yuzhe Qin, Qifeng
+Rotating without Seeing:
+Towards In-hand Dexterity through Touch. volume 19,
+July 2023.
+Wenzhen Yuan, Siyuan Dong, and Edward H. Adelson.
+Estimating Geometry and Force. Sensors, 17(12):2762,
+December 2017.

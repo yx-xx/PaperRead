@@ -1,0 +1,875 @@
+=== PDF文件: Meta-Learning Online Dynamics Model Adaptation in Off-Road Autonomous Driving.pdf ===
+=== 时间: 2025-07-21 13:45:05.430050 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Meta-Learning Online Dynamics Model Adaptation
+in Off-Road Autonomous Driving
+Jacob Levy, Jason Gibson, Bogdan Vlahov, Erica Tevere, Evangelos Theodorou,
+David Fridovich-Keil, Patrick Spieler
+University of Texas at Austin Georgia Institute of Technology
+Jet Propulsion Laboratory, California Institute of Technology
+AbstractHigh-speed off-road autonomous driving presents
+unique challenges due to complex, evolving terrain characteristics
+and the difficulty of accurately modeling terrain-vehicle interac-
+tions. While dynamics models used in model-based control can
+be learned from real-world data, they often struggle to generalize
+to unseen terrain, making real-time adaptation essential. We
+propose a novel framework that combines a Kalman filter-
+based online adaptation scheme with meta-learned parameters
+to address these challenges. Offline meta-learning optimizes
+the basis functions along which adaptation occurs, as well as
+the adaptation parameters, while online adaptation dynamically
+adjusts the onboard dynamics model in real time for model-based
+control. We validate our approach through extensive experiments,
+including real-world testing on a full-scale autonomous off-road
+approaches in prediction accuracy, performance, and safety
+underscore the effectiveness of meta-learned dynamics model
+systems capable of navigating diverse and unseen environments.
+Video is available at:
+I. INTRODUCTION
+High-speed off-road autonomous driving presents a unique
+set of challenges where precise and reliable control is essen-
+tial for traversing complex and unseen environments. These
+settings are characterized by diverse terrain types such as
+conditions like wetness, deformability, and roughness. Such
+variability can significantly alter vehicle dynamics, introducing
+substantial uncertainties [22, 2, 40, 32]. Just as a human driver
+adjusts their driving policy based on how the vehicle responds
+to the terrain, autonomous systems must adapt dynamically to
+maintain both performance and safety.
+Autonomous systems are increasingly relied upon in sce-
+narios where human intervention is impractical, too slow, or
+dangerous. For instance, Mars rovers operate with onboard
+autonomy to identify obstacles and plan safe paths, as com-
+munication delays prevent real-time teleoperation [46, 35].
+On Earth, autonomous vehicles hold significant potential for
+disaster response, where hazardous environments could render
+human operation unsafe [26, 27, 29]. Similarly, in mining and
+resource extraction, they can transport materials across rugged
+and hazardous terrains, improving operational efficiency and
+worker safety . Safety is paramount in these scenarios, as
+entering dangerous zones or tipping the vehicle over could
+have severe consequences for mission success or operational
+Baseline
+Meta-adaptation (ours)
+Path of vehicle
+Rollover limit exceeded
+Trajectories for a single 3-lap run, with insets displaying video
+stills. The baseline configuration shows erratic trajectories with frequent
+course boundary and rollover limit violations. In contrast, our adaptation
+configuration demonstrates more deliberate and compliant trajectories as the
+car learns the terrain dynamics in real time.
+integrity.
+When system dynamics are known, model-based control
+techniques are widely used for the effective control of au-
+tonomous systems. For instance, model predictive path integral
+(MPPI) control  is an algorithm that rolls out sampled
+control inputs on a dynamics model to identify optimal tra-
+jectories. This method has demonstrated significant success
+in off-road autonomous driving applications [8, 19, 28, 16,
+underlying dynamics model. Accurately modeling interactions
+between vehicles and terrain remains a significant challenge,
+particularly in high-speed off-road driving, where changing
+terrain and operational conditions push the vehicle to its
+performance limits. When the dynamics model fails to capture
+these interactions, it can lead to degraded performance and
+compromised safety.
+To address these limitations, hybrid approaches have
+LSTM  FNN
+Multi-step
+Prediction
+Parametric
+Bias Adaptation
+Weight Adaptation
+Algorithm 1
+Predict with
+Meta-learned Parameters
+Optimizer
+Data Collection
+Offline Meta-Learning (Algorithm 2)
+Online Adaptation (Algorithm 1)
+Last Layer Ensemble
+Ensemble Weighting
+Trajectories
+For adaptation
+Predicted
+Meta-learning online dynamics model adaptation. Online, a Kalman filter updates the linear combination of an ensemble of last-layer weights
+(Algorithm 1). Offline, trajectory segments are used to meta-learn model parameters, the last-layer ensemble, and the Kalman filter parameters (Algorithm 2).
+learned components to improve predictive accuracy [12, 25,
+seen terrains or adapt to evolving dynamics during operation.
+This limitation underscores the need for adaptive models
+capable of online adjustment.
+We propose a novel framework (Fig. 2) for meta-learned
+online dynamics model adaptation designed to address these
+challenges. By leveraging meta-learning techniques, our
+method enables efficient and effective adaptation of the dy-
+namics model to real-time sensor data. This approach allows
+the system to adjust to changes in terrain and vehicle behavior
+and efficient control. Our contributions include:
+A meta-learning framework for offline optimization of
+adaptation basis functions and parameters, along with
+dynamics model parameters.
+An efficient Kalman filter-based online adaptation scheme
+to update model parameters in real time, addressing the
+challenges of noisy and delayed state measurements.
+Empirical validation of our method on a full-scale au-
+tonomous off-road vehicle and simulated environments,
+showcasing improved performance and safety metrics
+over baseline approaches.
+By bridging the gap between predictive accuracy and adapt-
+more effective high-speed off-road autonomy.
+II. RELATED WORK
+A. Off-road Autonomous Driving
+State-of-the-art approaches in off-road autonomous driving
+often rely on model-based control strategies, where accurate
+dynamics models are essential for planning and executing
+trajectories effectively [19, 33, 8]. To account for the com-
+plexity of terrain-vehicle interactions, some methods augment
+dynamics models with learned components derived from real-
+world driving data [28, 16]. However, these approaches typ-
+ically assume static terrain conditions and lack mechanisms
+for adapting to changes in terrain type during operation. To
+address the variability of terrain, some methods incorporate
+perceptual information into learned dynamics models to infer
+terrain properties, enabling more informed control [9, 38, 17].
+While effective in many scenarios, these approaches lack the
+ability to adapt when the vehicle encounters previously unseen
+terrain. Our work directly addresses this limitation by intro-
+ducing a framework for online dynamics model adaptation. By
+dynamically adjusting the dynamics model in real time, our
+method allows the vehicle to respond effectively to unseen
+terrain properties and evolving environmental conditions.
+B. System Identification  Adaptive Control
+In offline system identification, the parameters of a dynam-
+ics model are learned from pre-collected data, and the resulting
+model is then used for model-based control during online
+operation. In autonomous driving, this approach has been ap-
+plied to parametric models [1, 4], hybrid models that combine
+learned and first-principles components [9, 16, 11], and even
+full black-box dynamics models . To enable adaptation
+during real-time operation, indirect adaptive control methods
+identify dynamics parameters online and update the dynamics
+model continuously, which is then used for control . Prior
+work has successfully demonstrated indirect adaptive control
+for autonomous driving applications [24, 31, 34, 44]. However,
+these methods rely on manually designed basis functions and
+user-tuned learning rates, requiring significant user effort that
+could lead to suboptimal results. In this work, we use meta-
+learning to automate both, enabling more efficient, accurate,
+and robust online parameter adaptation across diverse terrain
+and driving conditions.
+C. Meta-learning
+enables machine learning models to rapidly adapt to new tasks
+or environments by optimizing for efficient adaptation across
+task distributions [15, 20, 21]. This often involves a two-phase
+for adaptation and an online phase where the model adapts
+to a specific task or environment in real time. In robotics,
+successful applications of meta-learning involve learning adap-
+tation modules that infer latent environment representations
+[47, 52, 43, 7, 51], optimizing controller parameters for rapid
+adaptation [45, 39], and learning to adapt traversability maps
+to changing environments . The closest line of work to
+ours involves using meta-learning to optimize a Kalman filter
+or a recursive least squares  model adaptation scheme
+for model-based control. These methods rely on user-defined
+adaptation rates, whereas our approach utilizes meta-learning
+to dynamically determine optimal rates based on collected
+data. Another related work, , uses meta-learning to op-
+timize Kalman filter parameters that govern adaptation rates.
+adapts a physics-informed dynamics model, incorporating
+physics-based principles into the adaptation process.
+III. PRELIMINARIES
+A. Vehicle Dynamics
+We model the vehicle dynamics according to [18, 17]; a
+brief overview is presented here. The dynamics are a discrete-
+time nonlinear system of the form
+xt1  f(xt, ut, yt),
+where ut R3 is the control input consisting of the throttle,
+input containing roll, pitch, and surface normal vectors at the
+four wheels. The state of the vehicle xt is fully observable and
+composed of xt  [pt, vt, zt] R10, where pt R3 consists
+of the global position and yaw, vt R3 consists of the body-
+frame forward and lateral velocities and yaw-rate, and zt R4
+consists of the brake position, the steering column angle and
+propagate the dynamics with:
+f(xt, ut, yt)  EAR(pt)xt  EB
+where EA and EB, are Euler integration matrices, R() is a
+rotation matrix which rotates velocities from the body frame
+to the global frame, and zt is computed using a pre-trained
+The acceleration vt is predicted with a hybrid parametric
+and learned model:
+vt  M 1X(xt) [Ft  (t; , t)]  Dt,
+where M 1 is the inverse of a mass matrix, X() transforms
+forces from the wheel frame to the body frame, () contains a
+long short-term memory (LSTM) network and a feedforward
+neural network (FNN) with learned parameters  Rn and
+adaptable parameters t Rn which predicts residuals to
+tire forces Ft, and the input to the neural networks t is
+the following concatenation: t  [xt, ut, yt, Ft]. The tire
+forces Ft and the Coriolis and drag accelerations Dt are
+computed using parametric models Ft  gF (xt, ut; ) and
+Dt  gD(xt; ) with parametric model parameters  Rp.
+B. Control Architecture
+We adopt the control architecture in , which is based
+on Model Predictive Path Integral Control (MPPI) [50, 48],
+a sampling-based Model Predictive Control (MPC) method.
+Each time MPPI is called, it estimates the optimal control
+sequence u
+s  {us, . . . , usT } which minimizes the cost
+J(us)  V (xs1T )
+[l(xt, ut, yt)  V (xt)]
+by sampling N sequences of controls {ui
+control sequence on dynamics (1) for T steps, and computing
+the cost of each trajectory with (4). The cost-to-go V () comes
+from a higher-level state lattice planner that computes the
+optimal cost to the target waypoint using Dijkstras algorithm
+Remark 1. MPPI depends on the dynamics model (1); an
+accurate dynamics model is crucial for predicting accurate
+rollouts for the optimization process.
+The stage cost l() is the sum of the following components:
+l(xt, ut, yt)  track(xt)
+rollover(xt, yt)
+other(xt, ut, yt).
+The track cost track() is derived from a grid-based
+traversability map generated using perception data and se-
+mantic terrain classification. Grid cells associated with more
+challenging terrain are assigned higher costs and traversal
+beyond user-defined boundaries incurs a significant cost. The
+rollover cost rollover() is computed as follows:
+rollover(x, y)  Pn
+F L, F R
+; rlimit
+where F L, F R [0, 1] are the mass-normalized normal forces
+acting on the left- and right-side tires, computed from the
+inclination of the ground, and the vehicle mass distribution,
+forward velocity, and steering angle; a value of 0 and 1 corre-
+spond to unloaded and fully loaded, respectively. Pn(; rlimit)
+is a function which exhibits growth proportional to power n
+of the input whenever the input falls below the limit rlimit.
+right wheels fall below the minimum loading threshold. Other
+cost terms such as control effort and wheel slip are grouped
+into other().
+IV. META-LEARNING MODEL ADAPTATION
+In this section, we present our approach (Fig. 2), detailing
+how we design the adaptable components of the dynamics
+the meta-learning framework for optimizing adaptation.
+A. Adaptable Parameters
+Selection of the adaptable parameters  is crucial in online
+dynamics model adaptation. Adapting all parameters  of
+the LSTM and FNN in real-time is impractical for online
+in prohibitively slow updates with respect to the timescale
+of the changing dynamics involved with high-speed off-road
+driving. On the other hand, adapting only the parameters of
+the parametric model  would be insufficient because this
+model cannot fully capture complex terrain interactions that
+the learned model () is designed to address. Adapting only
+the parameters of the last layer of such learned models has
+proven effective in prior work [5, 37, 21]; this approach
+yields adaptable parameters that are linear with respect to the
+To achieve adaptation fast enough for high-speed off-road
+number of adapted parameters n, focusing on only adapting
+the linear combination of an ensemble of last-layer weights
+(Fig. 2). We represent the ensemble of last-layer weights
+in the FNN as a tensor W Rnwnoutnin, where nw
+denotes the ensemble size, and nin and nout are the input
+and output feature dimensions of the last layer, respectively.
+The weight matrices of the ensemble are stacked along the
+first dimension to form this tensor. Now, we express how the
+adapted parameters appear in the learned model with:
+where () Rnin is the output of the second to last
+layer of the FNN, the learned parameters consist of
+[l, w, b, W], and the adaptable parameters consist of
+[w, b]. The learned ensemble weighting w
+adapted by w and the last layer bias b Rnout is adapted
+Remark 2. The dynamics (1) are a linear function of the
+adaptable parameters .
+Remark 3. The tensor W is a set of basis functions, with
+their weighting dynamically adjusted through adaptation of
+Algorithm 1 Online Adaptation
+Hth Compute multi-step Jacobian with (8)
+Pth Pt  Q
+Hth PthHT
+Kth PthHT
+th t  tKthC (xth xth)
+Pth Pth  KthCHth Pth
+B. Online Adaptation
+rithm 1) implemented onboard the vehicle for dynamically up-
+dating the adaptable parameters . We employ a Kalman filter
+to quickly adapt the dynamics model to incoming measure-
+ments since the adaptable parameters are linear with respect
+to the dynamics (Remark 2). Propagation of the dynamics (1)
+occurs at a very quick timescale; we run the Kalman filter
+at a slower rate to improve parameter adaptation by adapting
+parameters every h time steps. This allows us to mitigate the
+impact of noisy and delayed state measurements, account for
+the minimal changes in integrated quantities over single time
+To form the Kalman filter, we assume the following:
+Assumption 1. The adaptable parameters evolve according
+to a random walk: th  t  w
+t with w
+t N(0, Q).
+Assumption 2. Explicitly denoting the dependence on , we
+assume the system dynamics have additive Gaussian noise:
+xt1  f(xt, ut, yt; t)  wx
+t N(0, R).
+With the notation at:th {at, at1, . . . , ath}, where a
+is any variable, we perform an h-step dynamics propagation
+to obtain predicted states xt1:th. Since we propagate the
+dynamics over multiple steps, we compute the multi-step
+Jacobian Hth  xtht with the recursion:
+tiHti1  F
+f(xti, uti, yti; t) and
+f(xti, uti, yti; t).
+By performing a multi-step propagation, we include the dy-
+namics Jacobian Fx in the multi-step Jacobian computation
+(8). This Jacobian captures how the current state influences
+future states, and its recursive incorporation over multiple steps
+provides a richer, long-term understanding of how the adapted
+parameters  influence the dynamics, improving the accuracy
+of adaptation. We make the following assumption to simplify
+computation of the multi-step Jacobian:
+Assumption 3. Changes in the learned model output with
+respect to changes in the state are negligible, i.e., x 0.
+We use the measurement selection matrix C R310 in
+Algorithm 1 to select only the velocity measurements v for pa-
+rameter updates. The position measurements p are disregarded
+because the changes in position within a single Kalman filter
+update are negligible compared to the measurement noise.
+steering states does not depend on the adaptable parameters
+, and the engine state is omitted to simplify the multi-step
+Jacobian. With xt1:th and Hti available, we perform a
+Kalman update with lines 6 to 10 of Algorithm 1. To prevent
+unnecessary parameter updates while the vehicle is moving
+very slowly, we scale the update in line 9 with:
+where  > 0 adjusts the scaling intensity. The updated
+parameters are then used with the controller (Section III-B)
+for the next h time steps.
+C. Offline Meta-learning
+With the adaptation framework established, our goal is to
+optimize the basis functions W and the Kalman filter param-
+eters Ps, Q, R, and  offline to maximize the effectiveness
+of online adaptation. This is achieved through a two-phase
+representative trajectories, followed by a training phase to
+refine the parameterization and basis functions.
+1) Data Collection: We begin by collecting autonomous
+driving data on a diverse set of terrains and conditions. Data
+are collected in discrete runs, with each run defined as a
+continuous period during which the robot is actively operating.
+Each run is subsequently partitioned into potentially overlap-
+ping trajectories, stored in dataset D, where each trajectory is
+represented as {xt:tT , ut:tT , yt:tT }, encapsulating
+the state, control inputs, and external inputs over a period of
+T time steps. Here, each trajectory will be associated to a
+unique reference time t,  is the adaptation length, and T is
+the MPPI prediction length (Section III-B). Each trajectory is
+short relative to the overall duration of the runson the order
+of seconds. Consequently, individual trajectories are generally
+limited to a single terrain type and a specific terrain condition,
+providing focused and localized data.
+2) Training: We perform offline training (Algorithm 2)
+with gradient-based meta-learning , which consists of an
+inner  adaptation phase and an outer loop which optimizes
+,  Ps, Q, R, and  (the tensor W is reshaped as a vector
+and contained within learned parameters ). Given that each
+trajectory typically occurs within a single terrain type and
+Assumption 4. The true value of  is slowly time-varying, i.e.
+approximately constant, for each trajectory.
+Algorithm 2 Offline Meta-Learning
+while D  do
+iterate over entire dataset
+Sample NB trajectories from D wo replacement
+for each trajectory in batch do
+t Run Algorithm 1 from t  to t
+Rollout dynamics (1) from t to t  T with t
+Compute trajectory loss Li from t to t  T
+for each  {, , Ps, Q, R} do
+optimizer step
+For each sampled trajectory, with Assumption 4, we can
+identify the adaptable parameters at the t-th time step, t, by
+running Algorithm 1 for a -step adaptation period from t
+Remark 4. During offline meta-learning, we introduce a
+gradual decay to the adapted parameters with t t,
+(0, 1). This slight modification to Algorithm 1 enhances train-
+ing stability by preventing  from becoming excessively large,
+particularly in the early stages of training when the Kalman
+filter parameters remain uncalibrated.
+Once adaptation is complete, t and the dynamics model
+(1) are used to generate a T-step dynamics prediction
+(xt1:t1T ). The i-th predicted trajectory is then evaluated
+against the corresponding ground truth trajectory using the
+multi-step loss function Li1:
+xt1j xt1j2
+where t is the reference time associated with the i-th trajectory.
+, which enables meta-learning of these parameters through
+backpropagation. During this process, gradients are propagated
+through the entire procedure of Algorithm 1, allowing the
+meta-learning framework to optimize both the adaptation
+dynamics and the underlying Kalman filter parameters effec-
+Remark 5. Since W is optimized through the meta-learning
+in the parameter space along which the Kalman filter can
+adapt. In other words, it specifies the subset of parameters
+that the Kalman filter targets for adaptation, guiding the
+adaptation process to focus on the most relevant and impactful
+aspects of the systems dynamics.
+Remark 6. During the meta-learning process, the covariance
+matrices Q and R are explicitly learned. These matrices play
+a critical role in determining the Kalman filters time constant,
+1For simplicity, we present the mean squared error (MSE) loss, however,
+in practice, we use the negative log-likelihood (NLL) loss from
+Fig. 3: Forward facing camera stills from the dataset highlighting a diverse
+range of terrains: A) flat sandy beach with a mixture of packed wet sand and
+loose dry sand; B) wet dense mud that forms deep ruts; C) dirt trails with low
+dry grass that weave through dense trees; D) mixed vegetation including dry,
+dense vehicle-height grass; E) dense overgrown mixed vegetation ranging in
+crushability; and F) loose gravel, uneven ground, and steep slopes.
+TABLE I: Dataset statistics.
+Fwd. vel. (ms)
+Lat. vel. (ms)
+Yaw rate (rads)
+Pitch (deg)
+Roll (deg)
+as Q reflects the expected variability of the adaptable param-
+in the dynamics model and state observations. Together, Q and
+R govern how quickly the Kalman filter adapts  to changes
+in the environment, directly influencing the responsiveness and
+stability of the adaptation process.
+V. EXPERIMENTS
+We validate our approach through both real-world and
+simulated experiments to investigate the following hypotheses:
+Hypothesis 1. Meta-learned model adaptation reduces the
+dynamics models prediction error during online operation.
+Hypothesis 2. Effective model adaptation enhances closed-
+loop behavior, improving both stability and safety.
+A. Real-World Validation
+1) Experimental Setup: We conducted real-world validation
+of our approach on a full-scale autonomous off-road vehicle:
+a modified Polaris RZR S4 1000 Turbo equipped with a
+1.0L twin-cylinder engine, pictured in Fig. 1. The vehicle is
+outfitted with an extensive suite of onboard computation and
+a localization module that integrates LiDAR and IMU data
+through a GTSAM-based Factor Graph Optimization (FGO)
+framework [14, 36]. A 3D voxel map is constructed by fusing
+geometric and semantic data to generate traversability and
+elevation maps, providing track cost and ground slope . The
+vehicle is controlled via a power-assisted steering actuator, a
+brake pressure pump, and electronic throttle control.
+For offline meta-learning, we collected a dataset comprised
+of approximately 1, 700, 000 trajectories (9.5 hours) of au-
+tonomous driving that includes adverse weather conditions
+like rain. Approximately 60 is from the Mojave Desert near
+CA; 10 from coastal sage near Oceanside, CA; and 5 from
+coastal dunes also nearby Oceanside, CA. At these locations,
+we collect data from a diverse range of terrains that are
+depicted and described in Fig. 3. We also provide statistics
+on key dataset quantities in Table I.
+For each trajectory, we use an adaptation length of
+(5 s), with discrete time steps spaced (0.02 s) apart. Training
+follows Algorithm 2 for NE  20 epochs, starting with a
+5-epoch pretraining phase without meta-learning (disabling
+adaptation by setting t  0), followed by 15 epochs with
+meta-learning enabled. For comparison, a baseline model was
+also trained for 20 epochs on the exact same dataset without
+meta-learning.
+We perform online adaptation (Algorithm 1) at a rate of
+5 Hz by updating every h  10 time steps. For control,
+MPPI (Section III-B) runs at 30 Hz, leveraging the most recent
+set of adapted parameters  for forward predictions. The car
+completes 3 laps around a figure-8 track with additional curves
+added to increase planning difficulty (see Fig. 1). We test the
+Baseline (no adaptation) and Meta-adaptation (ours)
+configurations for 4 repeated runs each.
+To evaluate Hypothesis 1, we calculate the average model
+prediction error over each run, defined as the Euclidean
+distance between the endpoints of the predicted and actual
+trajectories. For performance assessment (Hypothesis 2), we
+log the completion time and average speed of each run. Safety
+(Hypothesis 2) is analyzed by tracking the number of instances
+the car exceeds safety limits, the duration spent outside these
+rollover ratio limit violations.
+2) Results: Figure 4 compares trajectories for the Baseline
+(no adaptation) and Meta-adaptation (ours) configura-
+tions and Fig. 1 shows video stills capturing the adaptation
+configuration in action. The Baseline (no adaptation) con-
+figuration results in erratic behavior, with frequent violations
+of track boundaries and rollover constraints. In contrast, the
+Meta-adaptation (ours) configuration yields more stable
+and compliant motion, as the dynamics model is adapted in
+real-time (Fig. 5).
+The quantitative results in Table II further support the advan-
+tages of adaptation. The adapted model achieves significantly
+lower prediction error, confirming that online adaptation ef-
+fectively learns the terrain dynamics, validating Hypothesis 1.
+only improves performanceachieving faster track comple-
+tion times and higher average speedsbut also enhances
+safety metrics. Specifically, the adapted vehicle crosses safety
+limits (e.g., track boundaries and rollover thresholds) far less
+frequently and spends significantly less time in unsafe states
+compared to the baseline. These improvements translate to a
+dramatic reduction in associated track and rollover costs, high-
+lighting the effectiveness of the adaptation method, confirming
+TABLE II: Real-world validation results. The means and standard deviations over 4 runs of each configuration are displayed.
+Completion
+Prediction
+times crossed limit
+Time exceeds limit, s
+Cost (104)
+Rollover
+Rollover
+Rollover
+Baseline (no adaptation)
+Meta-adaptation (ours)
+Baseline (no adaptation)
+Meta-adaptation (ours)
+Path of vehicle
+Rollover limit exceeded
+Trajectories for all 3-lap real-world runs. The baseline configuration exhibits erratic motion, frequently violating course boundaries and rollover
+limits. In contrast, our adaptation configuration produces more deliberate and compliant trajectories, as the vehicle learns the terrain dynamics in real time.
+Time (sec)
+Fig. 5: Norm of the adapted parameters during one of the real-world runs.
+Hypothesis 2.
+In high-speed off-road driving, an inaccurate dynamics
+model can lead MPPI to generate unsafe trajectories that fail
+to account for real-world dynamics. By incorporating accu-
+enables MPPI to generate control sequences that balance per-
+formance and safety. These results underscore the importance
+of real-time model adaptation in ensuring both reliable and
+secure autonomous vehicle operation in challenging terrains.
+B. Simulated Experiments
+We perform extensive simulated experiments to further
+confirm our hypotheses.
+1) Experimental Setup: The simulated experiments use
+the same baseline and meta-learned models trained for the
+real-world validation (Section V-A1) and identical adaptation
+parameters. However, the physics simulator employs distinct
+dynamics based on the bicycle model, creating a real2sim
+transfer scenario where adaptation must account for the dy-
+namics mismatch between the real-world training data and
+the simulated environment. We procedurally generate four
+diverse maps (Fig. 6), each with unique terrain and obstacle
+configurations. The maps are categorized as shallow-sparse,
+term denotes the steepness of terrain features, and the second
+describes the density of obstacles. This variety ensures that
+the simulated environment tests the adaptation across a wide
+range of scenarios.
+Everything else remains consistent with the real-world
+the maps are open with sufficiently distant boundaries, track
+costs are omitted from the analysis. Next, we evaluate two
+new configurations: Adaptation and Sliding LSQ. In the
+Adaptation configuration, online adaptation is applied to the
+baseline model to assess the impact of not meta-learning the
+basis functions and Kalman filter parameters. For the Sliding
+LSQ configuration, we implement the method of adaptation
+least squares to adapt the weights of an ensemble model in real
+time. To ensure statistical significance, we perform 25 runs per
+TABLE III: Results of the simulated experiments. The means over 25 runs of each configuration are displayed.
+Completion time, s
+Average speed, m s1
+Prediction Error, m
+Steepness
+Obstacle Density
+Baseline (no adaptation)
+Sliding LSQ
+Adaptation
+Meta-adaptation (ours)
+times over rollover limit
+Time exceeding rollover limit, s
+Rollover Cost (104)
+Baseline (no adaptation)
+Sliding LSQ
+Adaptation
+Meta-adaptation (ours)
+Significant best result: bootstrapped 95 confidence intervals of the mean do not overlap with those of any other configuration.
+Procedurally generated maps for the simulated experiments;
+horizontal and vertical axes are in meters.
+configuration on each map.
+2) Results: The results of the simulated experiments are
+summarized in Table III. As expected, prediction errors in
+simulation are generally higher than in real-world testing due
+to the real2sim gap. Nevertheless, all adaptation configurations
+outperform the baseline in prediction accuracy, with the meta-
+learned adaptation mostly achieving the lowest prediction
+In terms of performance, the baseline configuration gen-
+erally achieves shorter completion times and higher aver-
+age speeds. However, this comes at the cost of compro-
+mised safety, with the baseline configuration exhibiting higher
+rollover occurrences, longer time spent exceeding limits, and
+increased safety costs. In contrast, the adaptation configura-
+tions demonstrate significantly improved safety, with the meta-
+learned configuration generally achieving the greatest reduc-
+tions across all safety metrics. These findings align with the
+real-world validation results, further supporting Hypothesis 2.
+figuration and the non-meta-learned adaptation configurations,
+Adaptation and Sliding LSQ, highlights the importance of
+meta-learning. Our configuration generally outperforms in pre-
+diction error and safety metrics across all map types. The non-
+meta-learned configurations rely on suboptimally selected ba-
+sis functions, and the Sliding LSQ configuration requires hand
+tuning of the window length and regularization parameter
+directly influencing the adaptation rate. In contrast, our method
+learns both the basis functions and adaptation dynamics from
+better closed-loop performance, and bridge the substantial
+dynamics mismatch from the real2sim gap.
+VI. CONCLUSION
+In this work, we introduced a meta-learning framework for
+online dynamics model adaptation applied to high-speed off-
+road autonomous driving. By combining a Kalman filter-based
+adaptation scheme with meta-learned parameters, our approach
+addresses the challenges of unseen or evolving terrain dynam-
+Empirical validation through real-world and simulated experi-
+ments demonstrates that our method outperforms baseline and
+non-meta-learned adaptation strategies, particularly in safety-
+critical scenarios. Our method is applicable to a broad range
+of model-based control scenarios beyond off-road autonomous
+in its adaptable parameters and any MPC-type controller.
+This contribution represents a step toward more robust and
+reliable autonomous systems capable of adapting to complex
+and changing environments.
+A. Limitations
+While our approach demonstrates significant improvements
+in prediction accuracy and safety, several limitations remain.
+The initial selection of Kalman filter parameters is still user-
+Another key challenge is the methods reliance on sufficiently
+exciting inputs to effectively identify the adapted parameters.
+For instance, driving straight on flat terrain may not produce
+enough variability for meaningful adaptation. Future work
+could explore active exploration strategies to ensure effective
+parameter identification. Finally, the computational overhead
+during meta-learning is another consideration, as taking gra-
+dients through the adaptation process increases memory us-
+age and training time. To address this, future work could
+investigate techniques to limit gradient propagation through
+only a subset of parameters, such as l, reducing resource
+requirements.
+ACKNOWLEDGMENTS
+The authors would like to thank Trey Smith and Brian Coltin
+for their helpful insights and feedback. The research was car-
+ried out at the Jet Propulsion Laboratory, California Institute
+of Technology, under a contract with the National Aeronautics
+and Space Administration (80NM0018D0004). This work was
+supported by a NASA Space Technology Graduate Research
+Opportunity under award 80NSSC23K1192, by the National
+Science Foundation under Grant No. 2409535, and by Defense
+Advanced Research Projects Agency (DARPA). Approved for
+Public Release, Distribution Unlimited. 2025. All rights
+reserved.
+REFERENCES
+Sina Aghli and Christoffer Heckman.
+Online system
+identification and calibration of dynamic models for
+autonomous ground vehicles. In 2018 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Anelia Angelova, Larry Matthies, Daniel Helmick, and
+Pietro Perona. Learning and prediction of slip from visual
+information. Journal of Field Robotics, 24(3):205231,
+Deegan Atha, Xianmei Lei, Shehryar Khattak, Anna
+Few-shot
+semantic learning for robust multi-biome 3d seman-
+tic mapping in off-road environments.
+arXiv preprint
+Tabish Badar, Juha Backman, and Arto Visala. Vehicle
+modeling and state estimation for autonomous driving in
+terrain. Control Engineering Practice, 152:106046, 2024.
+Somrita Banerjee, James Harrison, P Michael Furlong,
+and Marco Pavone.
+Adaptive meta-learning for iden-
+tification of rover-terrain dynamics.
+arXiv preprint
+Gourav Bathla, Kishor Bhadane, Rahul Kumar Singh,
+Rajneesh Kumar, Rajanikanth Aluvalu, Rajalakshmi Kr-
+Basheer. Autonomous vehicles and intelligent automa-
+Information Systems, 2022(1):7632892, 2022.
+Suneel Belkhale, Rachel Li, Gregory Kahn, Rowan
+Model-based meta-reinforcement learning for flight with
+suspended payloads.
+IEEE Robotics and Automation
+Jonathan
+Jonathan P How. Risk-aware off-road navigation via a
+learned speed distribution map. In 2022 IEEERSJ Inter-
+national Conference on Intelligent Robots and Systems
+(IROS), pages 29312937. IEEE, 2022.
+Xiaoyi Cai, Michael Everett, Lakshay Sharma, Philip R
+model for risk-aware motion planning in off-road envi-
+ronments. In 2023 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 11297
+Edsger W Dijkstra. A note on two problems in connexion
+with graphs.
+Numerische mathematik, 1(1):269271,
+Onur Dikici, Edoardo Ghignone, Cheng Hu, Nicolas
+and Matteo Corno.
+Learning-based on-track system
+identification for scaled autonomous racing in under a
+minute. arXiv preprint arXiv:2411.17508, 2024.
+Franck Djeumou, Cyrus Neary, Eric Goubault, Sylvie
+informed architectures and constraints for dynamical sys-
+tems modeling. In Learning for Dynamics and Control
+Franck Djeumou, Jonathan YM Goh, Ufuk Topcu, and
+Avinash Balachandran.
+Autonomous drifting with 3
+minutes of data via learned tire models. In 2023 IEEE
+International Conference on Robotics and Automation
+(ICRA), pages 968974. IEEE, 2023.
+Seyed Fakoorian, Kyohei Otsu, Shehryar Khattak, Matteo
+state estimation via online covariance adaption. In The
+International Symposium of Robotics Research, pages
+452467. Springer, 2022.
+Chelsea Finn, Pieter Abbeel, and Sergey Levine. Model-
+agnostic meta-learning for fast adaptation of deep net-
+works. In International conference on machine learning,
+pages 11261135. PMLR, 2017.
+Jason Gibson, Bogdan Vlahov, David Fan, Patrick
+Evangelos A Theodorou. A multi-step dynamics mod-
+eling framework for autonomous driving in multiple
+environments. In 2023 IEEE International Conference
+on Robotics and Automation (ICRA), pages 79597965.
+Jason Gibson, Anoushka Alavilli, Erica Tevere, Evan-
+gelos A Theodorou, and Patrick Spieler.
+ics modeling using visual terrain features for high-
+speed autonomous off-road driving.
+arXiv preprint
+Jason Gibson, Bogdan Vlahov, Patrick Spieler, and Evan-
+gelos A Theodorou.
+Multistep belief space dynamics
+learning for risk-aware control. arXiv preprint, 2025.
+Tyler Han, Alex Liu, Anqi Li, Alex Spitzer, Guanya
+Model predictive control for
+aggressive driving over uneven terrain. arXiv preprint
+James Harrison, Apoorva Sharma, Chelsea Finn, and
+Marco Pavone. Continuous meta-learning without tasks.
+Advances in neural information processing systems, 33:
+James Harrison, Apoorva Sharma, and Marco Pavone.
+Meta-learning priors for efficient online bayesian re-
+gression. In Algorithmic Foundations of Robotics XIII:
+Proceedings of the 13th Workshop on the Algorithmic
+Foundations of Robotics 13, pages 318337. Springer,
+Karl D Iagnemma and Steven Dubowsky. Terrain esti-
+mation for high-speed rough-terrain autonomous vehicle
+navigation. In Unmanned Ground Vehicle Technology IV,
+volume 4715, pages 256266. SPIE, 2002.
+Petros A Ioannou and Jing Sun. Robust adaptive control.
+Courier Corporation, 2012.
+Subhan Khan and Jose Guivant. Fast nonlinear model
+predictive planner and control for an unmanned ground
+vehicle in the presence of disturbances and dynamic
+obstacles. Scientific Reports, 12(1):12135, 2022.
+Taekyung Kim, Hojin Lee, and Wonsuk Lee.
+embedded neural network vehicle model and applications
+in risk-aware autonomous driving using latent features. In
+2022 IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 41824189. IEEE,
+Geert-Jan M Kruijff, Fiora Pirri, Mario Gianni, Panagi-
+otis Papadakis, Matia Pizzoli, Arnab Sinha, Viatcheslav
+posium on safety, security, and rescue robotics (SSRR),
+pages 18. IEEE, 2012.
+Ivana Kruijff-Korbayova, Luigi Freda, Mario Gianni,
+Valsamis Ntouskos, Vaclav Hlavac, Vladimr Kubelka,
+Erik Zimmermann, Hartmut Surmann, Kresimir Dulic,
+Wolfgang Rottner, et al.
+Deployment of ground and
+aerial robots in earthquake-struck amatrice in italy (brief
+report). In 2016 IEEE international symposium on safety,
+Hojin Lee, Taekyung Kim, Jungwi Mun, and Wonsuk
+Learning terrain-aware kinodynamic model for
+autonomous off-road rally driving with model predictive
+path integral control.
+IEEE Robotics and Automation
+Jooyong Lee and Kara M Kockelman. Strategic evacua-
+tion for hurricanes and regional events with and without
+autonomous vehicles.
+Transportation research record,
+Jacob Levy, Tyler Westenbroek, and David Fridovich-
+Learning to walk from three minutes of real-
+world data with semi-structured dynamics models.
+8th Annual Conference on Robot Learning, 2024.
+Cuauhtemoc Acosta Lua, Domenico Bianchi, and Stefano
+Di Gennaro. Nonlinear observer-based adaptive control
+of ground vehicles with uncertainty estimation. Journal
+of the Franklin Institute, 360(18):1417514189, 2023.
+Elena Sorina Lupu, Fengze Xie, James A Preiss, Jedidiah
+MAGIC-VFM-meta-learning adaptation for ground in-
+teraction control with visual foundation models. IEEE
+Transactions on Robotics, 2024.
+Xiangyun
+Alexander
+JoonHo Lee, Wentao Yuan, Zoey Chen, Samuel Deng,
+for high-speed, off-road navigation.
+arXiv preprint
+Tomas Nagy, Ahmad Amine, Truong X Nghiem, Ugo
+gaussian processes for adaptive autonomous driving on
+multi-friction surfaces. IFAC-PapersOnLine, 56(2):494
+Issa AD Nesnas, Lorraine M Fesq, and Richard A Volpe.
+Autonomy for space robots: Past, present, and future.
+Current Robotics Reports, 2(3):251263, 2021.
+Julian Nubert, Shehryar Khattak, and Marco Hutter.
+Graph-based multi-sensor fusion for consistent local-
+ization of autonomous construction robots.
+International Conference on Robotics and Automation
+(ICRA), pages 1004810054. IEEE, 2022.
+Michael OConnell, Guanya Shi, Xichen Shi, Kamyar
+Soon-Jo Chung.
+Neural-fly enables rapid learning for
+agile flight in strong winds.
+Science Robotics, 7(66):
+Anuj Pokhrel, Aniket Datar, Mohammad Nazeri, and
+Xuesu Xiao.
+off-road ground navigation in se (3).
+arXiv preprint
+Spencer M Richards, Navid Azizan, Jean-Jacques Slo-
+The International Journal of Robotics Research, 42(10):
+Forrest Rogers-Marcovitz, Neal Seegmiller, and Alonzo
+Kelly. Continuous vehicle slip model identification on
+changing terrains. In RSS 2012 Workshop on Long-term
+Operation of Autonomous Robotic Systems in Changing
+Hersh Sanghvi, Spencer Folk, and Camillo Jose Taylor.
+meta-learned models. In 8th Annual Conference on Robot
+Junwon Seo, Taekyung Kim, Seongyong Ahn, and
+Kiho Kwak.
+ity cost map for off-road navigation.
+arXiv preprint
+adaptive nonlinear control: Theory and algorithms.
+Advances in Neural Information Processing Systems,
+Mohammed Yousri Silaa, Aissa Bencherif, and Oscar
+Barambones.
+Indirect adaptive control using neural
+network and discrete extended kalman filter for wheeled
+mobile robot. In Actuators, volume 13, page 51. MDPI,
+Xingyou Song, Yuxiang Yang, Krzysztof Choromanski,
+Ken Caluwaerts, Wenbo Gao, Chelsea Finn, and Jie Tan.
+Rapidly adaptable legged robots via evolutionary meta-
+learning. in 2020 ieee. In RSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 3769
+Vandi Verma, Mark W Maimone, Daniel M Gaines,
+Raymond Francis, Tara A Estlin, Stephen R Kuhn,
+Gregg R Rabideau, Steve A Chien, Michael M McHenry,
+Evan J Graser, et al.
+Autonomous robotics is driving
+perseverance rovers progress on mars. Science Robotics,
+Marco Visca, Roger Powell, Yang Gao, and Saber Fal-
+lah. Deep meta-learning energy-aware path planner for
+unmanned ground vehicles in unknown terrains. IEEE
+Bogdan Vlahov, Jason Gibson, David D Fan, Patrick
+Theodorou. Low frequency sampling in model predictive
+path integral control.
+IEEE Robotics and Automation
+Sean J Wang, Honghao Zhu, and Aaron M Johnson. Pay
+attention to how you drive: Safe and adaptive model-
+based reinforcement learning for off-road driving.
+2024 IEEE International Conference on Robotics and
+Automation (ICRA), pages 1695416960. IEEE, 2024.
+Grady Williams, Paul Drews, Brian Goldfain, James M
+with model predictive path integral control. In 2016 IEEE
+International Conference on Robotics and Automation
+(ICRA), pages 14331440. IEEE, 2016.
+Wenli Xiao, Tairan He, John Dolan, and Guanya Shi.
+Safe deep policy adaptation. In 2024 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Wenhao Yu, Jie Tan, Yunfei Bai, Erwin Coumans, and
+Sehoon Ha. Learning fast adaptation with meta strategy
+optimization. IEEE Robotics and Automation Letters, 5

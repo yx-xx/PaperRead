@@ -1,0 +1,1296 @@
+=== PDF文件: APEX-MR Multi-Robot Asynchronous Planning and Execution for Cooperative Assembly.pdf ===
+=== 时间: 2025-07-21 14:28:47.636606 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：and Execution for Cooperative Assembly
+Philip Huang,1, Ruixuan Liu,1, Shobhit Aggarwal1, Changliu Liu1 and Jiaoyang Li1
+Equal Contribution, 1Carnegie Mellon University
+AbstractCompared to a single-robot workstation, a multi-
+robot system offers several advantages: 1) it expands the systems
+3) enables robots to achieve signicantly more complex and
+dexterous tasks, such as cooperative assembly. However, coor-
+dinating the tasks and motions of multiple robots is challenging
+due to issues, e.g., system uncertainty, task efciency, algorithm
+paper studies multi-robot coordination and proposes APEX-MR,
+an asynchronous planning and execution framework designed
+to safely and efciently coordinate multiple robots to achieve
+cooperative assembly, e.g., LEGO assembly. In particular, APEX-
+MR provides a systematic approach to post-process multi-robot
+tasks and motion plans to enable robust asynchronous execution
+under uncertainty. Experimental results demonstrate that APEX-
+MR can signicantly speed up the execution time of many long-
+horizon LEGO assembly tasks by 48 compared to sequential
+planning and 36 compared to synchronous planning on av-
+erage. To further demonstrate performance, we deploy APEX-
+MR in a dual-arm system to perform physical LEGO assembly.
+To our knowledge, this is the rst robotic system capable of
+performing customized LEGO assembly using commercial LEGO
+bricks. The experimental results demonstrate that the dual-arm
+efciently collaborate, and construct complex LEGO structures.
+Our project website is available at
+github.ioAPEX-MR.
+I. INTRODUCTION
+Multi-robot manipulation is critical in robotic applications,
+such as industrial assembly [37, 3], material handling ,
+and object arrangement [12, 13], etc. Compared to a single-
+robot setup, a multi-robot arm system can easily expand the
+systems overall reachable area. Besides, with a team of robot
+having each robot execute individual tasks in parallel. In
+addition to improving task efciency, multi-robot systems can
+achieve signicantly greater dexterity and are necessary in
+many applications that require collaborations, e.g., cooperative
+LEGO assembly is an example of cooperative assembly. In
+a LEGO structure, the bricks are assembled by forcing the top
+knobs of a brick into the bottom cavities of another brick. The
+bricks are held together passively, i.e., by the friction in the
+knob-to-cavity connections. Thus, the connections are not rigid
+and subsequent manipulation, if performed inappropriately,
+can easily break the existing structure. Due to the nature of the
+passive connection, a multi-robot system is necessary for such
+cooperative assembly. Fig. 1 demonstrates example assembly
+Fig. 1: Illustrations of bimanual cooperative assembly. Manip-
+ulation skills denote contact-rich operations for assembly.
+operations in the construction of a LEGO structure. Fig. 1
+(a) shows the robot picking up a brick by disassembling it
+from the LEGO plate (i.e., pick). Fig. 1 (b) illustrates the
+robot assembling a brick by placing it at the desired location
+and forcing a solid connection (i.e., place-down). One robot
+is sufcient for these two tasks since the manipulated object
+is fully supported and the operation would not collapse the
+existing structure. On the other hand, Fig. 1 (c)-(e) showcase
+operations that require multi-arm collaboration. In Fig. 1
+(c), the upper robot is assembling a LEGO brick on top of
+the character S. To establish a solid connection, the robot
+needs to press down and force the knob insertion due to
+the passive connection nature. However, since the existing
+connections are non-rigid, the place-down operation would
+break the existing overhanging structure. Therefore, the lower
+robot is necessary to support and stabilize the structure from
+below (i.e., support-bottom). Similarly, in Fig. 1 (e), the lower
+robot assembles a brick from the bottom onto the character
+S by pushing it up and forcing the connection (i.e., place-
+up). The place-up operation would break the existing structure
+and therefore the upper robot is required to press down (i.e.,
+support-top) in order to stabilize the structure. In addition to
+cooperative assembly, multi-robot collaboration also enables
+more dexterous object manipulation, e.g., reorienting bricks
+in hand. As shown in Fig. 1 (d), the upper robot initially
+grabs a brick from its top. To have the robot grab the brick
+from its bottom, we can have the upper robot handover the
+brick to the lower robot. With the ability to reorient objects
+from the bottom as illustrated in Fig. 1 (e). Despite being a
+toy brand, LEGO has been widely used in entertainment, edu-
+because it is a low-cost, standardized, and highly customizable
+assembly platform. Meanwhile, constructing LEGO structures
+is a challenging contact-rich manipulation problem due to the
+high-precision requirement and non-rigid connections. Thus,
+we use LEGO as our cooperative assembly benchmarking
+LEGO assembly.
+Coordinating the tasks and motions of multiple robots to
+accomplish cooperative assembly is challenging for several
+reasons. First, a system with more than a single robot in-
+troduces overhead and algorithmic challenges in their coor-
+dination. As shown in Fig. 1, certain operations involve con-
+tacts with objects (i.e., pick, place-down, place-up, handover,
+transit and wait). There exist delays in controlling the robot
+and receiving sensor feedback, or even contingencies due to
+unexpected events when performing contact-rich operations,
+which would cause delays or stops to one or more robots.
+The uncertainty makes it challenging to safely coordinate the
+robots throughout the assembly process. Second, due to the
+need for collaboration, robots often need to operate closely to
+each other as illustrated in Fig. 1 (c)-(e). Even when executing
+under uncertainty in a conned shared workspace, robots must
+always avoid collisions. Third, it is desired that the task can
+be accomplished more efciently by a multi-robot system.
+the cooperative assembly task and plan optimized motions to
+reduce the completion time, instead of frequently stopping to
+avoid collisions. Lastly, the multi-robot system should scale as
+the complexity of assembly design increases. It is necessary
+for the algorithm to scale to larger and more complex tasks.
+Many recent works have proposed methods for planning
+multiple robot arms for assembly [22, 5], rearrangement
+[12, 14], or general manipulation tasks . However, these
+planners often assume a sequential execution order and syn-
+chronously moving robots, where all robots start a task at
+the same time and wait for other robots to nish. We take
+a different lens and propose APEX-MR, an asynchronous
+planning and execution framework to coordinate multiple
+robots robustly, efciently, and safely. Given an assembly task
+(ILP) to distribute the tasks to robots and generate a sequential
+robot plan. Most importantly, APEX-MR extends the temporal
+plan graph (TPG)  to multi-robot-arm systems and post-
+processes the sequential robot plan for asynchronous execu-
+tion. Specically, the TPG captures all dependencies between
+different robots tasks and motions and generates a partial-
+order graph, which can signicantly reduce unnecessary wait
+time and is robust to execution delay and uncertainty. To high-
+light the applicability of our proposed algorithm within a full
+multi-robot assembly pipeline, we deploy the proposed APEX-
+MR to a dual industrial arm system to construct complex
+customized LEGO structures up to 258 objects in simulation
+and up to 47 objects in the real world. In summary, our
+contributions are as follows:
+We extend the TPG execution framework to multiple
+robot arms and show that it enables robust and safe multi-
+robot asynchronous execution under uncertainty.
+We propose a sequential multi-robot task and motion
+framework that is complementary to the TPG execution.
+We demonstrate algorithm deployment and system inte-
+gration for bimanual LEGO assembly. To our knowledge,
+this is the rst robotic system that can accomplish exible
+(i.e., customized complex designs instead of simple pick
+and stack) assembly using commercial LEGO bricks.
+The rest of this paper is organized as follows: Sec. II discusses
+relevant works. Sec. III deliberates the input that APEX-MR
+consumes and the assumptions we have. Sec. IV introduces our
+proposed APEX-MR, an asynchronous planning and execution
+framework for multi-robot cooperative assembly. Sec. V shows
+the experimental results and demonstrates the deployment to
+a bimanual system for LEGO assembly. Sec. VI discusses
+limitations and future works. Sec. VII concludes the paper.
+II. RELATED WORKS
+Multi-Agent Path Finding and Execution Multi-agent
+path nding (MAPF)  studies how to coordinate a large
+team of mobile robots in a discretized world environment, of-
+ten in 2D grid worlds representing warehouse settings  or
+predened roadmaps . State-of-the-art MAPF algorithms
+can plan near-optimal collision-free paths for hundreds of
+robots in seconds .
+efciency at the cost of neglecting robot kinematics and execu-
+tion uncertainty. As a result, there is growing research within
+the MAPF community focused on the efcient and robust
+execution of (imperfect) MAPF plans on real robots. One
+of the most widely adopted frameworks is the temporal plan
+graph (TPG) , originally proposed to post-process MAPF
+plans to meet robot kinematics by enforcing passing orders
+at locations visited by multiple robots. TPG has since been
+extended to MAPF execution frameworks under uncertainty
+and mobile robot coordination in warehouses [20, 59]. Re-
+cent advances introduce bidirectional TPG  and switchable
+TPG [1, 23], which further enhance TPG by allowing exible
+passing orders at certain locations.
+Given the success of TPG in coordinating mobile robots,
+we aim to explore its applicability in coordinating robot arms.
+A key distinction of traditional TPG versus our use case is
+that the robot kinematics is more complex and may change
+over time as the robot arm picks up different objects, which
+is a key focus in this paper.
+Multi-Robot Arm Motion Planning Motivated by the rise
+of bimanual manipulation systems, many early works in the
+eld study the problem of dual arm motion planning .
+One naive approach that scales single-robot motion planning
+methods to two or more robots is to plan in the composite
+joint space, with methods such as RRT-Connect , BIT
+, or graph of convex sets . However, due to the curse
+of dimensionality, these methods struggle to nd high-quality
+solutions as the number of robots increases. Other common
+strategies include building a composite roadmap from the
+Cartesian product of individual roadmaps , coordinating
+the speed of individually planned motions , or using pri-
+oritized planning . More recently, more specialized multi-
+robot motion planners have been proposed that are based on
+roadmaps (dRRT , dRRT , and CBS-MP ) or
+using MAPF techniques [44, 45]. Some approaches also use
+online planning or control techniques to generate motions in
+real-time. Zhang and Pecora  propose an online motion
+coordination technique, in which they plan all robots paths
+ofine and a pairwise collision matrix between robots. Then,
+the speed of each robot can be efciently planned online to
+avoid collisions, even in the presence of execution delays.
+and relies on a task reallocation process to avoid deadlock.
+Other techniques such as a distributed model predictive con-
+troller  or a dynamical system approach  can also be
+used to generate multi-robot arm motions in real-time, but are
+not tailored towards long-horizon planning tasks.
+Multi-Robot Task and Motion Planning Beyond motion
+TAMP) have been studied since the 1990s, e.g., object pick
+and place , and many of which are designed for a dual
+arm setting [17, 12, 13, 51]. Similarly to our method, these
+methods take a two-stage approach in which they rst generate
+a task plan with robot assignment and grasp poses, then search
+for corresponding motion plans with composite state space
+or prioritized planning. The authors of dRRT have proposed
+extending dRRT to multi-modal roadmaps with given pos-
+sible pick-up and hand-off congurations and searching for
+a task and motion plan directly [46, 47]. Given that motion
+planning calls tend to be costly, another approach is to generate
+promising task plans rst in a lazy manner and subsequently
+nd corresponding motion plans and backtrack when required.
+This approach can be implemented with a greedy method ,
+with a mixed-integer linear program [49, 5, 31] or through a
+satisability modulo theories solver . However, a major
+drawback is that task planning often assumes motions to
+be synchronous, which can be suboptimal in practice. Our
+TPG framework is designed to be complementary to these
+synchronous tasks and motion planners, as it can relax the
+synchronicity assumption with post-processing and shorten the
+makespan of the overall plan. Another signicant concern
+is that many MR-TAMP methods are designed for simple
+environments such as object pick and place, and their planned
+robot paths are executed in open loop or only in simulation.
+Our framework scales to more complex environments and is
+designed to integrate with feedback controllers and manipula-
+tion skills.
+Multi-Robot Arm Motion Execution Most existing work
+executes their multi-robot task and motion plan on real robots
+in a synchronized way. Since the popular motion planning
+framework MoveIt  does not natively support moving
+multiple robots asynchronously, some recent work has sought
+to address this and enable asynchronous execution. Meehan
+et al.  adds a path reservation component and treats the
+entire path of a moving robot arm as a static obstacle when
+planning another arms motion, which can be too conservative
+and cause deadlock. Stoop et al.  uses a central scheduler
+to check if a new path collides with previously scheduled
+paths and executes it asynchronously if there is no collision.
+to nish before it can start. However, their methods do not
+account for execution delays, may wait longer than necessary,
+and directly modify the MoveIt software stack. In contrast,
+our TPG formulation is robust to arbitrary delays by design,
+minimizes robot wait time, and can be implemented without
+modication to MoveIt.
+Robotic LEGO Assembly Automating LEGO assembly
+using robots is challenging due to the high-precision require-
+the structure. Most of the existing works address the LEGO
+assembly problem in simulation [43, 39], which cannot be
+generalized to physical assembly due to the lack of simulators
+to simulate the connections between LEGO bricks. Recent
+works [9, 16, 27, 29] assume that the structure is fully sup-
+ported and only consider placing bricks on top of others, which
+are limited to assembling simple structures.  considers
+assembly using customized brick toys, which does not apply
+to LEGO assembly. In this paper, we apply APEX-MR to
+a bimanual system to construct complex customized LEGO
+structures beyond simple stacking.
+III. PRELIMINARIES
+To coordinate a multi-robot system to perform cooperative
+assembly tasks, we assume that three inputs are provided.
+Environment Setup We assume that the environment setup,
+including (a) geometries of all robots, (b) poses of objects to
+be manipulated B  [b1, b2, . . . , bNb], and (c) states of all
+We assume that the system consists of N robots and Nb is
+the number of objects that can be used for the assembly. An
+object bk is semi-static, meaning it can be grasped, attached,
+and moved by robots. Note that since duplicate objects are
+common in assemblies, bk and bkcan be identical objects,
+e.g., identical 22 bricks in the character S shown in Fig. 2.
+Assembly Plan Given an assembly design with Na objects,
+we assume that the assembly plan A  [a1, a2, . . . , aNa] is
+provided as shown in the input section in Fig. 2. Each step aj
+refers to an object, such as a 1 2 brick. The assembly plan
+Fig. 2: An overview of APEX-MR. On a high level, APEX-MR builds a sequential task plan given an assembly sequence,
+plans the motion of each task with RRT-Connect, and converts the solution to a parallel, asynchronous plan for execution with
+a TPG. Specically, (a) shows the example of a task graph, (b) illustrates generating robot motion from the task plan, and (c)
+shows the example of a multi-modal TPG.
+species the order in which each object should be assembled.
+Note that due to duplicate objects in B, there are multiple can-
+didates bi, . . . , bk that can be used to accomplish an assembly
+step aj in A. Furthermore, we require the assembly plan A
+to be physically valid [58, 30], ensuring that each task can
+be performed in reality. Specically, the partially assembled
+structure after each step aj must be physically stable, and
+there exists at least one feasible grasp pose for each step. The
+assembly sequence also species whether each step aj requires
+two robots for cooperative assembly and the specic type of
+cooperation needed (i.e., support or reorientation). Lastly, we
+assume that B is sufcient so that each object required for aj
+can be found in the environment. More details on generating
+the assembly plan A is included in Sec. V and appendix A.
+Manipulation Skills We assume that the robot manipulation
+skills are predened and known. We denote the skill set as
+S  [s1, s2, . . . , sNs], where Ns is the number of skills an
+individual robot has. For instance, a skill can be, inserting a
+LEGO assembly, each skill is a composite of multiple motions
+parametrized by the pose of the manipulated object, the robot
+We assume that an algorithm, such as interpolation or RRT-
+of computing a collision-free coordination schedule. During
+so that its exact execution time is unpredictable. Examples of
+manipulation skills are shown in Fig. 1, and more details are
+discussed in Sec. V and appendix C.
+In addition to these inputs, we assume the existence of a
+collision-free HOME pose for each robot that never blocks
+other moving robots from executing their tasks. Robots can
+also plan paths to move between different poses, or wait and
+hold their current pose in place, as shown in Fig. 1.
+IV. APEX-MR: ASYNCHRONOUS PLANNING AND
+EXECUTION FOR MULTI-ROBOT SYSTEM
+In this section, we introduce APEX-MR, a framework
+for asynchronously coordinating the task plan, motion, and
+execution of a multi-robot system to accomplish cooperative
+assembly tasks. Fig. 2 provides an overview of the three stages
+of APEX-MR. The rst task planning stage is discussed in
+Sec. IV-A. Given the input discussed in Sec. III, a sequential
+task plan and the corresponding task graph, as shown in Fig. 2
+(a), are generated from the assembly using ILP. In the next
+generated sequentially with a single-robot motion planner (see
+Fig. 2 (b)). Sec. IV-C presents the last and most crucial stage,
+which converts the sequential plan to a multi-modal TPG (e.g.
+Fig. 2 (c)) that can be executed safely, asynchronously, and
+efciently in real robots.
+For notation, we use i [1, N] to index robots, j [1, Na]
+to index assembly steps in A, m to index tasks for each robot,
+and k [1, Nb] to index moveable objects in B.
+A. Task Planning
+Given the assembly sequence A, task planning aims to
+construct a sequential task plan that includes robot assignment,
+robot target pose assignment, and object assignment. Specif-
+planner must assign one responsible robot, a support robot if
+task planner must select the feasible grasp pose and a feasible
+support pose if required to perform the necessary manipulation
+skills for each aj. Fig. 3 provides an overview of all the
+decisions made. These decisions directly affect the feasibility
+of motion planning, as task planning determines whether there
+are collision-free and deadlock-free paths.
+Task Denition We dene a task T i as a piece of work
+that requires a robot i to either transit to a goal pose or to
+perform some manipulation skill s to achieve a goal constraint.
+For example, a task may involve a robot arm picking up an
+another robot, retracting to its HOME pose, etc. In the context
+of LEGO assembly, each assembly task aj is broken down
+into a sequence of tasks. As shown in Fig. 1 (a) and (b), a
+robot must rst transit to the initial location of an object, pick
+the object, transit the object to the location for assembly, place
+down the object on the target structure, and nally transit back
+to the robots HOME pose. For an assembly step that requires
+collaborative assembly, the support robot is also assigned a
+sequence of tasks, such as transiting to the structure and
+supporting it in Fig. 1 (c) and (e). If a reorientation is required,
+as illustrated in Fig. 1 (d), the support robot is assigned a
+transit task and a pick task to collect the object, and a handover
+task to the other robot so that the object can be placed up to
+the structure.
+Task Graph A task graph G  (V, E) is a direct acyclic
+graph that represents the ordered set of tasks for all robots
+to complete the nal assembly. The task graph also implicitly
+represents the movement of manipulated objects, the evolving
+environment and planning scene, as well as the kinematics
+switches of the robots. A node is either a task node or an
+object node. A task node represents a task T i
+m V for robot
+target pose for this task. An object node represents an object
+bk and its pose. An edge from one task node to another in
+the graph, T i
+states a dependency where T i
+m must nish before T i
+mcan start.
+An edge from an object node to a task node, bk T i
+that the object bk is kinematically attached to the robot i at the
+beginning of this task. In contrast, an edge from a task node to
+an object node, T i
+m bk, represents that an object would be
+detached from robot i after this task ends. Each robot i has M i
+tasks. A task graph itself does not limit whether the tasks must
+be executed sequentially, synchronously, or asynchronously.
+Approach The main idea of our approach is to nd a
+sequential turn-based task plan according to the assembly
+sequence A, which is itself sequential. Only one robot is
+actively moving or executing skills at any time, while the other
+robot waits. Each robot returns to its HOME pose at the end
+of completing an assembly step.
+object assignment, and target robot poses. A set of binary
+decision variables assigns a robot i to an assembly step aj
+using the object bk and a feasible grasp pose. Another set
+of binary decision variables denotes the assignment of the
+support robot and support poses. We precompute feasible robot
+poses for grasping all available objects at initial and assembled
+a robot i, an object bk, and a corresponding grasp pose to
+an assembly step aj is estimated by the sum of the transit
+Step      (support needed)
+Task Assignment
+Pose     .a
+Pose     .b
+Support Poses
+Objects  Grasps Poses
+Grasp    .a
+Grasp    .b
+Grasp    .a
+Grasp    .b
+Grasp       .a
+Grasp        .b
+Fig. 3: An overview of the task planning in APEX-MR. Given
+the assembly sequence A, each step aj is assigned a robot, an
+necessary.
+distances necessary for this step. The ILP nds the best set
+of assignments that minimizes the sum of costs to complete
+the assembly and an auxiliary term for load balancing while
+ensuring that the object type and support robot requirements
+are met. More details of the ILP formulation are discussed in
+appendix B.
+Combined with the precomputed robot poses, the optimized
+assignment gives a complete set of robot, object, and grasp
+pose assignments in each step. We then construct a corre-
+sponding sequential task plan and task graph (e.g., Fig. 2 (a))
+with all inter-robot task dependencies and object relationships.
+A sequence of tasks for the assigned robot is added for each
+assembly step, and two object nodes are added to the task
+graph and connected to the pick task and place task nodes
+to indicate their attachment and placement, respectively. If a
+collaborative assembly is required, a sequence of support tasks
+is added to the support robot to be completed rst. Inter-robot
+task dependencies are added to the task graph to constrain that
+the support task must precede any place task, and the following
+task after support can only start after the place task nishes.
+If two consecutive assembly steps aj and aj1 are assigned
+to different robots, a task dependency is added to ensure that
+the place task for aj1 must wait for the place task for aj.
+Compared to other MR-TAMP and assembly methods such
+as [13, 18, 42, 5], APEX-MR rst generates a sequential
+plan. This has two advantages: (1) It is easy to reason about
+inter-robot collision for scheduling tasks and avoids expensive
+feasibility checks needed for parallel task execution, thereby
+making the ILP easier to solve; (2) The complexity of motion
+planning is signicantly reduced since each task becomes a
+single-robot planning problem, which avoids solving a chal-
+lenging and time-consuming multi-robot arm motion planning
+problem. It is worth noting that, while the sequential plan
+might seem inefcient for a multi-robot system, our TPG
+execution framework will post-process this plan to enable
+efcient parallel execution.
+B. Motion Planning
+Once the sequential task plan for each robot is determined,
+motion planning becomes straightforward. As illustrated in
+Fig. 2 (b), APEX-MR iterates over each task and uses a single-
+robot RRT-Connect algorithm to plan the path for this task
+when other robots are waiting. This is feasible because all
+other robots would be at a nonblocking stationary pose, i.e.,
+HOME1. A reference path is also generated for tasks executed
+by specic manipulation skills based on the graspsupport
+The motion planner generates a planned path for every
+robot and every task. Each path  i
+m for task T i
+m of robot
+i is represented with a sequence of uniformly timestamped
+n)}, n [N i
+m  1, . . . M 1. For each task, the planner rst generates
+a sequence of poses Ci
+n for the robot i, then determines the
+corresponding timesteps. To ensure that each robot takes turns
+to complete its task according to the task sequences, the initial
+timestep of each task is equal to the last timestep of the
+previous task in the sequential plan. Then, the timestep ti
+each pose of the same task is set based on the maximum robot
+n1  d(Ci
+n1)vmax. Since RRT-
+Connect may produce jerky and long paths, we use a random-
+ized shortcutting algorithm to smooth suboptimal paths. The
+output of motion planning should be a sequence of paths, one
+for each task, i.e.,  i
+C. Asynchronous Execution
+From the sequential task and motion plan, APEX-MR
+converts it to a TPG to improve the quality of the plan and
+support asynchronous execution. Importantly, the process to
+construct a TPG is not limited to a sequential plan and also
+applies to synchronous plans commonly seen in MR-TAMP
+works such as [42, 47, 49].
+TPG Denition APEX-MR uses a multi-modal temporal
+plan graph (TPG) to represent an execution schedule for the
+team of robot arms. As illustrated in Fig. 2 (c), multi-modal
+TPG is a directed acyclic graph G  (V, E) with two types
+of nodes. A pose node vi
+n corresponds to a conguration Ci
+on the path of a transit task for robot i. A skill node vi
+represents a manipulation skill (e.g., pick, handover, support,
+etc.) that will be executed by some robot controller or policy.
+The skill node also contains a reference path generated in
+motion planning. A type-1 edge (vi
+n1)2 connects two
+nodes from the same robot i and indicates the order between
+two nodes. A type-2 edge (vi
+n) represents an inter-robot
+precedence order that constrains robot ito wait for robot i
+to reach vi
+n (i.e., reach pose Ci
+n or complete the manipulation
+skill) before moving to vi
+n. A type-2 edge can be added for
+both task dependencies and motion dependencies. For every
+pair of TPG nodes that could lead to collisions, this is a motion
+deadlock-free execution schedule if and only if there are no
+cycles in the TPG. In contrast to the TPG dened in ,
+a multi-modal TPG combines a TPG with a task graph and
+assigns a corresponding task T i
+m to each node vi
+n. Since there
+1We also assume that any robot waiting at a support pose is nonblocking.
+2Type-1 edge connects skill nodes too, i.e., (vi
+n1) or (vi
+Algorithm 1 Multi-Modal TPG Construction
+for task T i
+if task T i
+m is a transit to a goal pose then
+Add a sequence of nodes {vi
+n} from  i
+Add type-1 edges for consecutive nodes
+else Add a skill node vi
+Add type-1 edge from vi
+m) E such that i  ido
+Add type-2 edge from vi
+if i  ithen continue
+(Optional) parallelize the following
+Update robot i kinematics if needed
+for n 1, . . . , N i
+Update robot ikinematics if needed
+nprecedes vi
+n in G then
+continue
+ncollides with vi
+Add type-2 edge from vi
+n1 to vi
+are kinematics switches and changes to the planning scene,
+each node also contains the robot kinematics (i.e., attached
+object), which will be important for the TPG construction
+process.
+Building a multi-modal TPG The process of constructing
+a TPG from a multi-robot motion plan can be interpreted
+as converting from the sequential robot paths to temporally
+dependent robot schedules. On a high level, inter-robot task
+dependencies are copied as type-2 edges for TPG, and type-
+2 edges for motion dependencies are constructed by scanning
+for collisions between all pairs of TPG nodes. A key benet of
+this partial-order representation is that TPG does not specify
+a xed time between two consecutive nodes, and thus allows
+execution delays. We outline the detailed procedure below.
+The construction process begins with creating the nodes and
+type-1 edges. For each transit task T i
+constructed for each conguration Ci
+n of the path  i
+m. A skill
+n is created for every manipulation task. The timestamp
+in the input path ti
+n for each node vi
+n is also recorded. Each
+n is then connected to its successor vi
+n1 by a type-1
+start node of the next task vi
+at a node vi
+m is removed
+because removing the wait action does not change the robot
+path or any temporal dependency in the TPG.
+inter-robot task dependencies (T i
+m) E from the task
+graph G are added as type-2 edges to the TPG. Specically,
+for every edge in the task graph T i
+is added from the beginning of task T i
+beginning of task T i
+robot i only starts T i
+mafter robot inishes task T i
+over all pairs of nodes in the TPG with a double loop iterating
+over (i, i). Robot kinematics can be incrementally changed if
+n is the start of a new task that attaches or detaches an
+object. For each node vi
+nfrom a different robot (i  i) and has an earlier timestamp
+n. Collision checking for pose nodes means that the
+robot links and attached objects at the corresponding poses Ci
+nare checked. For skill nodes, all robot poses on the
+reference path have to be collision-free simultaneously. If there
+is any collision between vi
+from the earlier nodes successor, vi
+n. Setting the direction of type-2 edge based on timestamps
+in the sequential motion plan ensures that the multi-modal
+TPG has no cycles and thus is deadlock-free. This way, if
+nhas a smaller timestamp than vi
+n in the input sequential
+nmust still be executed before vi
+is unnecessary to check collisions for any node vi
+nthat has a
+larger timestamp than vi
+be checked when the iterated robot pair (i, i) are swapped.
+This ensures the eventual multi-modal TPG is cycle-free and
+hence deadlock-free, since the Also, if the current vi
+predecessor of vi
+n in the graph, vi
+n already waits for vi
+avoid collisions, so it becomes unnecessary to check them
+The total number of collision checks needed depends on the
+number of robots, discretized steps, and type-2 edges added
+from the task graph. Once every node has been checked against
+potentially colliding nodes, a transition reduction algorithm is
+nis redundant if node vi
+n is still a predecessor of node
+nafter the edge is removed. We remove all such redundant
+edges to reduce the total number of scheduling constraints and
+communication overheads during execution.
+The primary bottleneck of the TPG construction process
+is the number of collision checks, which scales quadratically
+with respect to the number of robots and the number of nodes.
+To alleviate this, collision checking can be parallelized across
+many CPU threads, reducing its runtime. A pseudocode of the
+entire construction process is provided in Algo. 1.
+Further Optimization An optional step to further reduce
+the execution makespan and smooth the path is to skip the
+intermediate transition to HOME after every assembly step.
+We use the following shortcutting algorithm, similar to the
+strategy implemented in , to achieve that while maintaining
+a collision- and deadlock-free plan.
+The anytime algorithm works by randomly sampling two
+nodes of the TPG (vi
+n) from the same transit task T i
+checking whether connecting them in a shortcut is feasible.
+Consecutive transit tasks passing through the robots HOME
+pose are merged as a single task. This allows the HOME pose
+to be skipped. A shortcut path directly interpolates between
+Real time execution
+node to be executed
+completed node
+node being executed
+Central server
+Action queue:
+enqued nodes
+sequence of
+Controller
+Execute a node (action)
+Controller
+Fig. 4: Illustration of the execution setup. TPG maintains and
+controls the execution schedule of all robots on a central
+safely executed. Each robot maintains a controller-sensing loop
+independently while updating its state with the central server.
+n and Ci
+nto generate a sequence of poses with the same
+step size !t. The shortcut must be collision-checked against
+any independent nodes (i.e., nodes that are not predecessors to
+n or successors to vi
+nin the TPG). On a multi-modal TPG,
+the collision checking must include any attached objects to the
+(i.e., object nodes that are not predecessors or successors of the
+current task). Once a valid shortcut is found, the original nodes
+between vi
+n and vi
+nare replaced by new nodes corresponding
+to the shortcut. If adding a valid shortcut from vi
+any outgoing edges between these two nodes, the start nodes
+of these outgoing edges are moved to vi
+n. If any incoming
+edges are skipped, then the end nodes of these incoming
+edges are moved to vi
+n. These two steps ensure that any
+dependencies before adding a shortcut still exist after, and the
+TPG remains collision-free. Since each shortcut is collision-
+TPG remains deadlock-free. The shortcutting algorithm keeps
+identifying valid shortcuts until a user-dened time limit is
+the process.
+D. TPG Execution
+Executing a motion plan on robot arms often requires a
+position controller for movement and other specic controllers
+for manipulation skills. These controllers may have delays
+or uncertainties that affect the real-robot execution time. The
+TPG formulation provides an easy way to execute a multi-
+robot plan. Here, we present a semi-centralized mechanism to
+coordinate multiple robot arms.
+As shown in Fig. 4, the TPG is hosted on a central server
+that communicates with each robots execution thread. Each
+pose node in the TPG corresponds to an action that moves the
+robots position to the nodes conguration. Each skill node
+corresponds to an action that executes the predened robot
+skill. An action can be executed safely if there are no incoming
+edges from any nodes that are not executed. Although each
+TPG node is associated with a timestamp, it is only used for
+Fig. 5: Experiment setup for bimanual LEGO assembly. (a)
+Simulation environment. (b) Real setup. (c) Illustration of the
+TPG construction and is ignored during execution.
+If an action is safe to execute based on the TPG, the
+central server sends it to the robots action queue. Each
+robot maintains its own controller-sensing loop and actuates
+the robot according to upcoming commands and its state
+estimation. The state estimation is also shared with the TPG,
+which then updates the TPG when a node is being executed
+or completed. Newly completed nodes can enable the central
+server to enqueue new nodes if their outgoing edges were
+previously preventing unsafe actions. During execution, TPG
+can be interpreted as a control law that maintains the safe
+scheduling of individual robot actions.
+V. RESULTS
+To evaluate performance, we apply the proposed APEX-MR
+to bimanual LEGO assembly tasks. Given a customized LEGO
+design as shown in Fig. 6, APEX-MR coordinates the robots
+to construct the desired structure as shown in Fig. 9 using
+available LEGO bricks. We deliberate the inputs (introduced
+in Sec. III) to APEX-MR below.
+Environment Setup Figure. 5(a) and 5(b) illustrate the
+simulation environment and the real setup, which includes
+two Yaskawa GP4 robots. Following the task convention in
+, we consider building LEGO structures on a baseplate,
+which is calibrated3 and placed between the two robots,
+using commercial standard LEGO bricks initially stored on
+the baseplate. Each robot is equipped with an ATI Gamma
+force-torque sensor (FTS), and the end-of-arm tool (EOAT)
+is mounted on the FTS. The simulation consists of the en-
+tire workspace, which includes robots, FTS, EOAT, LEGOs,
+nearby workstations, etc. The complete digital environment
+provides rich and accurate information for APEX-MR to safely
+coordinate robot collaboration.
+Assembly Plan Given a LEGO structure, we employ the
+physics-aware assembly planning in  with customized
+LEGO physics reasoning  to generate a physically valid
+assembly sequence. Specically, a physically valid assembly
+sequence enforces that for each step after assembling a brick,
+the structure is stable and does not collapse. More details
+3We calibrate the transformation from the robots to the baseplate by
+teleoperating the robot to touch the plate. Note that we only measure the
+translation (X, Y , Z) and yaw angle while assuming no roll and pitch offsets.
+(a) Cliff.
+(b) Branched stairs.
+(c) Faucet.
+(d) Bridge.
+(e) Fish.
+(f) Chair.
+(g) Vessel.
+(h) Guitar.
+(i) RSS.
+Fig. 6: Customized LEGO designs for evaluating APEX-MR.
+The number in each gure indicates the number of objects
+required to assemble the LEGO structure.
+on generating the physically valid assembly sequence are
+provided in appendix A. Note that the denition of a physically
+valid assembly sequence can be different for other cooperative
+assembly tasks. For other applications, the assembly sequence
+can be obtained via planners, e.g., , and the proposed
+APEX-MR is also applicable downstream.
+Manipulation Skills Manipulating LEGO bricks is a non-
+trivial contact-rich manipulation problem beyond simple pick
+and stack. A robot EOAT and manipulation policy (i.e., insert-
+and-twist) were presented in , which enable a robot to
+manipulate commercial standard LEGO bricks, i.e., pick, and
+place-down in Fig. 1. However, a robot can only use it to
+manipulate a LEGO brick from its top, which limits the system
+from constructing complex structures. To enhance the system
+in Fig. 5(c). In particular, LT-V2 has LEGO studs added to
+the side of the tooltip. The new design enables the robot to
+manipulate a brick from its bottom as shown in Fig. 1, i.e.,
+handover and place-up. With LT-V2, we dene the manipu-
+lation skills as shown in Fig. 1, including 1) goal reaching
+with force feedback (i.e., support-bottom and support-top),
+and 2) learned force policy (i.e., pick, place-down, place-
+discussed in appendix C.
+Implementation We implement the TPG algorithm and
+manipulation skills in C with ROS-Noetic and MoveIt .
+The ILP in task planning is solved with the pulp Python
+package. The RRT-Connect motion planning uses MoveIts
+OMPL  plug-in. Paths are discretized using !t  0.05
+seconds when the maximum L1 joint velocity is 1 rads. !t is
+adjusted linearly based on the maximum velocity to ensure the
+Fig. 7: Normalized makespan and wait time of APEX-MR (Sequential) versus the synchronized planner across example
+evaluation environment. The results are normalized by the makespan of the sequential motion plan before TPG and averaged
+over 4 random seeds. The unnormalized makespan and wait time in seconds are labeled for each entry, and the dashed horizontal
+line corresponds to the makespan of the sequential motion plan before TPG. Shortcut refers to the anytime shortcutting algorithm
+on TPG in Sec. IV-C.
+Fig. 8: Breakdown of wall clock time of APEX-MR (Sequential) and the synchronized planner baseline across evaluation
+environments. The results are normalized by the total of APEX-MR planning time for each task (excluding shortcutting) and
+averaged over 4 random seeds. The running sum of unnormalized wall clock time in seconds is labeled for each component.
+same density. All simulation experiments are conducted on an
+AMD 7840HS laptop. Algo. 1 parallelizes collision checking
+with 16 threads.
+Experiment Objective While APEX-MR itself is a full
+pipeline for multi-robot tasks and motion planning, the key
+innovation that enables asynchronous collaboration is the TPG
+execution framework. Thus, we are interested in the following
+questions when evaluating APEX-MR:
+(Q1) How signicant is the benet of asynchronous
+(Q2) How is the quality of plans produced by APEX-MR
+and what are the computational costs?
+(Q3) How well does APEX-MR perform in physical
+LEGO assembly, and can it safely execute planned paths
+despite uncertainties?
+Q1 and Q2 will be closely examined in simulation, whereas
+Q3 will be the focus of our real robot experiments.
+A. Simulation Performance
+We rst conduct experiments in simulation. To our knowl-
+tions between LEGO bricks. Thus, all robot skills are reduced
+to deterministic operations when evaluated in simulation, and
+any variations are due to the stochasticity of planning in
+APEX-MR.
+Dataset We evaluate the performance of APEX-MR on a
+suite of nine LEGO assembly tasks as shown in Fig. 6. The
+complexity of these tasks varies signicantly in terms of the
+number of objects in the assembly plan, stability, orientation,
+and manipulation skills required for physical assembly. The
+Chair shown in Fig. 6(f) has 258 objects, but the structure is
+solid and stable, and thus, no collaborative skills are needed.
+On the other hand, many of the bricks along the span of
+the Bridge (Fig. 6(d)) require a robot to support them when
+assembling from the top, whereas building the Cliff (Fig. 6(a))
+and Faucet (Fig. 6(c)) requires an object reorientation and
+collaborative assembly from bottom.
+Metrics We use execution makespan and wait time as our
+evaluation metrics for plan quality. Since our output is a
+assuming no controller delay. The rollout path converts each
+pose node back to a conguration. Actions in the skill nodes
+are executed based on the reference path, and force feedback
+is switched off in the simulation. The timestamp for each
+conguration in the rollout path is the earliest possible time
+to reach this node based on incoming type-2 edges. Execution
+makespan is the maximum time taken among all robots to
+execute their rollout paths, i.e., maxN
+end. Wait time is
+dened as the total amount of time any robot spends waiting
+in the rollout asynchronous path from TPG, or the original
+sequential or synchronous path. In particular, we are interested
+in whether TPG processing can successfully reduce wait time
+when initialized with a sequential task and motion plan.
+Baseline We also design a baseline for synchronized task
+and motion planning as a comparison to APEX-MR. Although
+APEX-MR uses a sequential planner for simplicity and ef-
+common in MR-TAMP. Thus, we evaluate the performance im-
+provement of TPG on synchronized plans. In this synchronous
+for all robots to nish their current task before proceeding
+to the next set of tasks. We use an algorithm to convert the
+sequential task plan from APEX-MR to a synchronous task
+is to execute the sequential task plan in parallel if executing
+the next task does not violate inter-robot task dependencies
+or block tasks scheduled at an earlier time. This process is
+similar to building a TPG on tasks instead of motions for
+parallelization. For every robot i and its task T i
+checks if the intermediate goal pose Ci
+any other intermediate goal pose of robot iand task T i
+that satises m< m. If there exists a collision, then robot
+i must wait for robot ito complete task T i
+mbefore starting
+task T i
+m. A synchronous task graph can then be generated by
+combining these calculated dependencies with existing inter-
+robot dependencies. Then, composite RRT-Connect is used as
+the multi-robot motion planner. Synchronous paths for tasks
+executing in parallel are generated by planning all degrees of
+freedom as a single robot.
+Performance Fig. 7 shows the quality of the solu-
+tion of APEX-MR on a variety of tasks. First, the TPG
+post-processing and applying and shortcut, as described in
+Sec. IV-C, signicantly reduces makespan by 48 and wait
+time by 85 on average, compared to the initial sequential
+motion plan on the horizontal dashed line. Compared to
+the synchronized motion plan, our asynchronous plans from
+APEX-MR are consistently shorter and have lower wait time.
+When applied to the synchronous plan, TPG also signicantly
+reduces the makespan by 36 and wait time by 77 on
+average. Note that the post-processed sequential plan from
+APEX-MR still slightly outperforms the post-processed syn-
+chronized motion plan by 3 in terms of makespan. This is
+due to the path produced by a multi-robot motion plan being
+(a) Cliff.
+(b) Branched stairs.
+(c) Faucet.
+(d) Vessel.
+(e) Guitar.
+(f) RSS.
+Fig. 9: Example LEGO structures constructed in real by the
+dual-arm system.
+suboptimal compared to sequential motion planning. Still, the
+wait time for the synchronized plan after TPG post-processing
+is minimal.
+Runtime Fig. 8 and Table II in the appendix shows the wall
+clock time for APEX-MR. On average, the TPG construction
+time is always lower than the task motion planning time except
+for the Chair, which has a very long assembly sequence.
+On the other hand, running a synchronized planner can be
+much more expensive than the simple sequential planner used
+in APEX-MR, which requires more careful coordination in
+task planning and multi-robot motion planning with more
+degrees of freedom. By combining a simple sequential task
+and motion planner with TPG post-processing, APEX-MR
+produces higher-quality multi-robot plans with 26 lower
+computational overhead on average than a synchronized multi-
+robot task and motion planner alone. One concern is that
+the number of collision checks when building TPG scales
+quadratically with the number of robots. Thus, we perform
+additional experiments in Appendix D with three and four
+robot arms to show that the runtime of TPG construction
+remains reasonable.
+B. System Deployment
+We deploy the proposed APEX-MR to a real bimanual
+setup for cooperative LEGO assembly. Fig. 5(b) illustrates
+the environment setup of the dual-arm system. Note that
+despite the environment being pre-calibrated, errors (1mm)
+still exist since the calibration is imperfect and the structure
+could be tilted due to the passive connection nature. Thus, we
+integrate real-time force feedback using the FTS to improve
+the manipulation robustness. For operation skills (i.e., pick,
+detect successful insertion and update the manipulation policy
+accordingly. For supporting skills (i.e., support-bottom and
+support-top), we use force feedback to sense a slight touch
+Fig. 10: Distribution of executing various FTS-feedback-
+controlled LEGO manipulation policy on real robot. The
+execution time is collected from assembling the Cliff structure
+in Fig. 9(a) repeatedly. This variation adds to the uncertainty
+in real-time execution.
+with the structure to avoid either over or under-supporting.
+Fig. 9 showcases example LEGO structures accomplished by
+the bimanual system with APEX-MR. The robots can safely
+collaborate and efciently build customized and complex
+LEGO objects, including fragile overhanging structures.
+Note that the key difference between assembling in real and
+in simulation is with and without force feedback. Integrating
+force feedback into the manipulation skills improves the
+system robustness, but also brings uncertainty with respect to
+execution time. In particular, we are interested in whether the
+TPG execution framework ensures safe execution and avoids
+collisions despite uncertainties of manipulation skills. Fig. 10
+depicts the distribution of execution times of six manipulation
+these skills are designed to execute with force feedback to
+ensure proper contact between the EOAT and the object being
+manipulated and minimize the effect of imperfect calibration
+or a tilted structure. As a consequence of these mm-level
+adjustments with force feedback, the execution time can vary
+as much as 2 seconds, or as much as 23 from the median.
+just the robot schedule if any delay could cause a collision or
+require another robot to wait longer until a skill is completed.
+In practice, APEX-MR also allows the two robot arms to
+operate in close proximity asynchronously thanks to the use of
+TPG. For example, if one robot is stopped due to a controller
+issue or because the user presses emergency stop, the other
+robot would automatically stop if it is unsafe to continue its
+execution. Although each robots feedback controller operates
+passed to the robots action queue. Thus, APEX-MR can
+signicantly reduce the risk of unsafe action in real multi-
+robot execution.
+VI. LIMITATIONS AND FUTURE WORK
+Although the proposed APEX-MR pipeline enables efcient
+and safe execution for multiple robot arms, it still has several
+algorithmic limitations which we discuss below.
+Ofine Computation Currently, both the TPG processing
+and motion planning in APEX-MR are performed ofine
+before real execution. This can be a drawback in real assembly
+robots nish an existing assembly on an assembly line. An-
+other limitation of ofine computation is that the APEX-MR
+cannot easily adapt to changes in the collision environment
+or assembly steps. A principled framework to address these
+lifelong planning techniques is to use a windowed multi-robot
+planner and only convert the rst n steps of the robot plan
+to a TPG, similar to how Varambally et al.  address
+mobile robot coordination in automated warehousing. Taking
+a reduced-horizon approach will signicantly reduce planning
+time and allow plans to be continuously updated concurrently
+with execution.
+Planning for Robot Dynamics While APEX-MR are re-
+liable and safe on real robots, APEX-MR requires a good
+position or force controller for the robot because the generated
+plan does not consider robot dynamics, such as acceleration
+and jerk constraints. This is challenging because the planner
+must generate continuous velocity and acceleration proles
+while also avoiding inter-robot collisions at all times. We plan
+to incorporate dynamics as part of the TPG post-processing
+constraints and velocity constraints, as suggested in Hoenig
+et al. . Another interesting problem with robot arms is that
+speed constraints may be imposed on the task space, due to the
+attached object at the end-effector or even closed kinematics
+chains formed by concurrent manipulation .
+Manipulation Policy While the proposed APEX-MR en-
+ables efcient and safe dual-arm cooperative LEGO assembly,
+the current system assembles each object based on prede-
+ned skills. With the additional force feedback, each single
+operation can be performed robustly. However, due to the
+passive connection nature of LEGO structures, i.e., established
+connections could be gradually loosened and the structure can
+be tilted or even collapse due to subsequent operations, the
+long-horizon assembly could still fail. Therefore, the dual-
+arm system, at its current stage, is not robust enough to con-
+struct large-scale LEGO structures that have multiple fragile
+overhanging geometries. To further improve the robustness
+from a system perspective, our aim is to investigate methods
+for failure detection  and recovery, e.g., reinforcing the
+connections that are loosened due to later operations. Failure
+detection and recovery can also be integrated as part of an
+online replanning framework that dynamically reschedules the
+robots tasks if a failure occurs and intervention becomes
+necessary.
+Other Cooperative Assemblies Building on the APEX-
+MR pipeline, we plan to extend its application to a broader
+range of cooperative tasks, such as the NIST Box Assembly
+, and other industrial assembly scenarios. In doing so,
+we aim to address the unique challenges posed by real-world
+manufacturing environments, gaining deeper insights into how
+cooperative systems can be optimized for complex, large-
+scale production tasks. While the discussion in this paper
+is based on LEGO assembly, the components in APEX-MR,
+especially TPG post-processing, can be applied to other multi-
+robot assembly tasks. A concrete step would be to investigate
+how to integrate manipulation policies that are more complex
+than those used for LEGO assembly, e.g., diffusion policy ,
+to the TPG framework.
+VII. CONCLUSION
+For many robotic manipulation tasks, a team of cooperative
+robot arms is often necessary and benecial because coop-
+eration can improve dexterity, exibility, and versatility. A
+reliable framework for coordinating robot arms should possess
+several key qualities: efciency to maximize throughput, scal-
+ability to long-horizon and complex tasks, and safety during
+real execution.
+With these criteria in mind, we have proposed APEX-
+execution. Our proposed pipeline combines a sequential task
+and motion planner with a TPG to post-process the plan
+for asynchronous execution. Specically, TPG post-processing
+can signicantly speed up the execution of otherwise sequen-
+tial and synchronous multi-robot task plans by 48 and 36
+on our simulated assembly tasks. Because coordination is
+planning for synchronous execution.
+We demonstrated that our proposed algorithm can be suc-
+cessfully deployed and integrated for a real bimanual co-
+operative task. LEGO structures, as an example, presented
+a challenging manipulation task due to the need for high
+precision and the non-rigid nature of their connections. We
+presented a set of manipulation skills for complex cooperative
+based on the end-effector design LT-V2. The dual-arm system
+successfully performs customized LEGO assembly and is the
+rst robotic system to do so with commercial LEGO bricks.
+execution framework is robust in the presence of uncertain
+execution time. In the end, we hope that this framework can
+advance and bring closer to more real use of multi-robot arm
+collaboration algorithms.
+ACKNOWLEDGMENTS
+This work is in part supported by the National Science
+Foundation (NSF) under grant number 2328671 and the
+Manufacturing Futures Institute, Carnegie Mellon University,
+through a grant from the Richard King Mellon Foundation, as
+well as a gift from Amazon. The authors also thank Yifan Sun
+for helping design LT-V2.
+REFERENCES
+Alexander Berndt, Niels Van Duijkeren, Luigi Palmieri,
+and Tamas Keviczky.
+A feedback scheme to reorder
+a multi-agent execution schedule by persistently opti-
+mizing a switchable action dependency graph.
+Z Bien and J Lee. A minimum-time trajectory planning
+method for two robots. IEEE Transactions on Robotics
+and Automation, 8(3):414418, June 1992.
+Andrea Brunello, Giuliano Fabris, Alessandro Gas-
+Lorenzo Scalera. A survey on recent trends in robotics
+and articial intelligence in the furniture industry.
+Robotics and Computer-Integrated Manufacturing, 93:
+Hongyi Chen, Yunchao Yao, Ruixuan Liu, Changliu Liu,
+and Jeffrey Ichnowski. Automating robot failure recovery
+using vision-language models with optimized prompts.
+Jingkai Chen, Jiaoyang Li, Yijiang Huang, Caelan Gar-
+ative task and motion planning for multi-arm assembly
+systems. arXiv:2203.02475, 2022.
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau,
+Yilun Du, Benjamin Burchel, Russ Tedrake, and Shuran
+Song. Diffusion policy: Visuomotor policy learning via
+action diffusion. The International Journal of Robotics
+David Coleman, Ioan Sucan, Sachin Chitta, and Nikolaus
+Correll. Reducing the barrier to entry of complex robotic
+Michael Erdmann and Tomas Lozano-Perez. On multiple
+moving objects. Algorithmica, 2(1-4):477521, Novem-
+ber 1987.
+Yongxiang Fan, Jieliang Luo, and Masayoshi Tomizuka.
+A learning framework for high precision industrial as-
+sembly. In Proceedings of the IEEE International Con-
+ference on Robotics and Automation (ICRA), pages 811
+Nigora Gafur, Gajanan Kanagalingam, Achim Wagner,
+and Martin Ruskowski. Dynamic collision and deadlock
+avoidance for multiple robotic manipulators. IEEE Ac-
+Jonathan D Gammell, Timothy D Barfoot, and Sid-
+dhartha S Srinivasa.
+Batch informed trees (BIT):
+Informed asymptotically optimal anytime search. Inter-
+national Journal of Robotics Research, 39(5):543567,
+April 2020.
+Kai Gao and Jingjin Yu.
+Toward efcient task plan-
+ning for dual-arm tabletop object rearrangement.
+Proceedings of the IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 10425
+Kai Gao, Zihe Ye, Duo Zhang, Baichuan Huang, and
+Jingjin Yu. Toward holistic planning and control opti-
+mization for dual-arm rearrangement. aXiv 2404.06758,
+Kai Gao, Zhaxizhuoma, Yan Ding, Shiqi Zhang, and
+Jingjin Yu.
+rearrangement with lazy a star. arXiv 2309.13707, 2024.
+Mokhtar Gharbi, Juan Cortes, and Thierry Simeon.
+Roadmap composition for multi-arm systems path plan-
+In Proceedings of the IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 24712476, October 2009.
+Kieran Gilday, Josie Hughes, and Fumiya Iida. Achieving
+exible assembly using autonomous robotic systems. In
+Proceedings of the IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 19,
+Kensuke Harada, Tokuo Tsuji, and Jean-Paul Laumond.
+A manipulation motion planner for dual-arm industrial
+manipulators. In Proceedings of the IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Valentin N. Hartmann, Andreas Orthey, Danny Driess,
+Ozgur S. Oguz, and Marc Toussaint. Long-horizon multi-
+robot rearrangement planning for construction assembly.
+IEEE Transactions on Robotics, 39(1):239252, 2023.
+Wolfgang Hoenig, T. K. Kumar, Liron Cohen, Hang Ma,
+Hong Xu, Nora Ayanian, and Sven Koenig. Multi-agent
+path nding with kinematic constraints. In Proceedings
+of the International Conference on Automated Planning
+and Scheduling (ICAPS), volume 26, pages 477485,
+Mar. 2016.
+Wolfgang Honig, Scott Kiesel, Andrew Tinka, Joseph W
+tion of MAPF schedules in warehouses. IEEE Robotics
+and Automation Letters, 4(2):11251131, April 2019.
+Wolfgang Honig, James A Preiss, T K Satish Kumar,
+Gaurav S Sukhatme, and Nora Ayanian.
+Trajectory
+planning for quadrotor swarms. IEEE Transactions on
+Daqi Jiang, Hong Wang, and Yanzheng Lu. Mastering
+the complex assembly task with a dual-arm robot: A
+novel reinforcement learning method. IEEE Robotics and
+Automation Magazine, 30(2):5766, June 2023.
+He Jiang, Muhan Lin, and Jiaoyang Li. Speedup tech-
+niques for switchable temporal plan graph optimization.
+In Proceedings of the AAAI Conference on Articial
+Intelligence (AAAI), 2025.
+Y Koga and J-C Latombe. On multi-arm manipulation
+planning.
+In Proceedings of the IEEE International
+Conference on Robotics and Automation (ICRA), pages
+James J. Kuffner and Steven M. LaValle. RRT-Connect:
+An efcient approach to single-query path planning. In
+Proceedings of the IEEE International Conference on
+Robotics and Automation (ICRA), volume 2, pages 995
+Jiaoyang Li, Wheeler Ruml, and Sven Koenig. EECBS:
+A bounded-suboptimal search for multi-agent path nd-
+ing. In Proceedings of the AAAI Conference on Articial
+Intelligence (AAAI), pages 1235312362, 2021.
+Ruixuan Liu, Alan Chen, Xusheng Luo, and Changliu
+Liu. Simulation-aided learning from demonstration for
+robotic lego construction. arXiv:2309.11010, 2023.
+Ruixuan Liu, Kangle Deng, Ziwei Wang, and Changliu
+assembly. IEEE Robotics and Automation Letters, 9(11):
+Ruixuan Liu, Yifan Sun, and Changliu Liu. A lightweight
+and transferable design for robust lego manipulation. In
+International Symposium on Flexible Automation, page
+Ruixuan Liu, Alan Chen, Weiye Zhao, and Changliu
+Physics-aware combinatorial assembly sequence
+planning using data-free action masking. IEEE Robotics
+and Automation Letters, 10(5):48824889, 2025.
+Xusheng Luo, Shaojun Xu, Ruixuan Liu, and Changliu
+Decomposition-based hierarchical task allocation
+and planning for multi-robots under hierarchical temporal
+logic specications.
+IEEE Robotics and Automation
+Hang Ma, T. K. Satish Kumar, and Sven Koenig. Multi-
+agent path nding with delay probabilities. In Proceed-
+ings of the AAAI Conference on Articial Intelligence
+Hang Ma, Jiaoyang Li, T. K. Satish Kumar, and Sven
+Lifelong multi-agent path nding for online
+pickup and delivery tasks. In Proceedings of the 16th
+International Conference on Autonomous Agents and
+MultiAgent Systems (AAMAS), pages 837845, 2017.
+Yusuke Maeda, Ojiro Nakano, Takashi Maekawa, and
+Shoji Maruo. From CAD models to toy brick sculptures:
+A 3D block printer. In Proceedings of the IEEERSJ In-
+ternational Conference on Intelligent Robots and Systems
+(IROS), pages 21672172, 2016.
+Tobia Marcucci, Jack Umenberger, Pablo A. Parrilo, and
+Russ Tedrake. Shortest paths in graphs of convex sets.
+SIAM Journal on Optimization, 34(1):507532, 2024.
+Charles A Meehan, Mark Roberts, and Laura M Hiatt.
+Asynchronous motion planning and execution for a dual-
+arm robot.
+In Workshop on Planning and Robotics
+held in conjunction with the International Conference
+on Automated Planning and Scheduling (ICAPS), Virtual,
+June 2022.
+G. Michalos, S. Makris, N. Papakostas, D. Mourtzis,
+and G. Chryssolouris. Automotive assembly technologies
+approach. CIRP Journal of Manufacturing Science and
+Seyed Sina Mirrazavi Salehian, Nadia Figueroa, and
+Aude Billard. A unied framework for coordinated multi-
+arm motion planning. International Journal of Robotics
+Ludwig Nagele, Alwin Hoffmann, Andreas Schierl, and
+Wolfgang Reif.
+ordinated multi-robot assembly of lego structures.
+Proceedings of the IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 9088
+National Institute of Standards and Technology. STEP
+File Viewer - Box assembly, 2024. URL
+nist.govstep-le-viewer.html.
+Keisuke Okumura and Xavier Defago. Quick multi-robot
+motion planning by combining sampling and search.
+In Proceedings of the Thirty-Second International Joint
+Conference on Articial Intelligence (IJCAI), 2023.
+Tianyang Pan, Andrew M Wells, Rahul Shome, and
+Lydia E Kavraki. A general task and motion planning
+framework for multiple manipulators.
+In Proceedings
+of the IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 31683174, Septem-
+ber 2021.
+Ivaylo Popov, Nicolas Heess, Timothy Lillicrap, Roland
+Data-efcient deep reinforcement learning for dexterous
+manipulation. arXiv 1704.03073, 2017.
+Yorai Shaoul, Itamar Mishani, Maxim Likhachev, and
+Jiaoyang Li.
+Accelerating search-based planning for
+multi-robot manipulation by leveraging online-generated
+experiences. In Proceedings of International Conference
+on Automated Planning and Scheduling (ICAPS), 2024.
+Yorai Shaoul, Rishi Veerapaneni, Maxim Likhachev, and
+Jiaoyang Li. Unconstraining multi-robot manipulation:
+Enabling arbitrary constraints in ecbs with bounded sub-
+optimality. In Proceedings of International Symposium
+on Combinatorial Search (SoCS), 2024.
+Rahul Shome and Kostas E. Bekris. Anytime multi-arm
+task and motion planning for pick-and-place of individual
+objects via handoffs.
+In Proceedings of International
+Symposium on Multi-Robot and Multi-Agent Systems
+(MRS), pages 3743, 2019.
+Rahul Shome and Kostas E. Bekris. Synchronized multi-
+arm rearrangement guided by mode graphs with capacity
+constraints.
+In Algorithmic Foundations of Robotics
+Publishing.
+Rahul Shome, Kiril Solovey, Andrew Dobson, Dan
+formed asymptotically-optimal multi-robot motion plan-
+ning. Autononomus Robots, 44(3):443467, March 2020.
+Rahul Shome, Kiril Solovey, Jingjin Yu, Kostas Bekris,
+and Dan Halperin. Fast, high-quality two-arm rearrange-
+ment in synchronous, monotone tabletop setups. IEEE
+Transactions on Automation Science and Engineering, 18
+Christian Smith, Yiannis Karayiannidis, Lazaros Nalpan-
+Danica Kragic.
+Dual arm manipulation  A survey.
+Robotics and Autonomous Systems, 60(10):13401353,
+Christian Smith, Yiannis Karayiannidis, Lazaros Nal-
+and Danica Kragic. Dual arm manipulationa survey.
+Robotics and Autonomous Systems, 60(10):13401353,
+October 2012.
+Nancy M Amato.
+Representation-optimal multi-robot
+motion planning using conict-based search.
+Robotics and Automation Letters, 6(3):46084615, July
+Kiril Solovey, Oren Salzman, and Dan Halperin. Finding
+a needle in an exponential haystack: Discrete RRT for
+exploration of implicit roadmaps in multi-robot motion
+planning. International Journal of Robotics Research, 35
+Roni Stern, Nathan R. Sturtevant, Ariel Felner, Sven
+and Roman Bartak. Multi-agent pathnding: Denitions,
+Annual Symposium on Combinatorial Search (SoCS),
+Pascal Stoop, Tharaka Ratnayake, and Giovanni Toffetti.
+A method for multi-robot asynchronous trajectory exe-
+cution in MoveIt2. arXiv 2310.08597, 2023.
+Yifan Su, Rishi Veerapaneni, and Jiaoyang Li. Bidirec-
+tional temporal plan graph: enabling switchable passing
+orders for more efcient multi-agent path nding plan
+execution. In Proceedings of the AAAI Conference on
+Articial Intelligence (AAAI), 2024.
+Ioan A. Sucan, Mark Moll, and Lydia E. Kavraki. The
+open motion planning library. IEEE Robotics and Au-
+tomation Magazine, 19(4):7282, 2012.
+Yunsheng Tian, Jie Xu, Yichen Li, Jieliang Luo, Shinjiro
+Assemble them all: Physics-based planning for general-
+izable assembly by disassembly. ACM Transactions on
+Sumanth Varambally, Jiaoyang Li, and Sven Koenig.
+Which MAPF model works best for automated ware-
+housing? In Proceedings of International Symposium on
+Combinatorial Search (SoCS), volume 15, pages 190
+Zhou Xian, Puttichai Lertkultanon, and Quang-Cuong
+Closed-chain manipulation of large objects by
+multi-arm robotic systems. IEEE Robotics and Automa-
+tion Letters, 2(4):18321839, October 2017.
+Shiyu Zhang and Federico Pecora. Online and scalable
+motion coordination for multiple robot manipulators in
+shared workspaces. IEEE Transactions on Automation
+Science and Engineering, PP(99):120, 2024.

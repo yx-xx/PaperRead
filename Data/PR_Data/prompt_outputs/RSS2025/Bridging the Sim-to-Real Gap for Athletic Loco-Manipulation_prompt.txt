@@ -1,0 +1,945 @@
+=== PDF文件: Bridging the Sim-to-Real Gap for Athletic Loco-Manipulation.pdf ===
+=== 时间: 2025-07-21 14:28:17.807259 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Bridging the Sim-to-Real Gap for Athletic
+Loco-Manipulation
+Nolan Fey, Gabriel B. Margolis, Martin Peticco, and Pulkit Agrawal
+Improbable AI Lab
+Massachusetts Institute of Technology, Cambridge, MA 02139
+AbstractAchieving athletic loco-manipulation on robots re-
+quires moving beyond traditional tracking rewardswhich sim-
+ply guide the robot along a reference trajectoryto task rewards
+that drive truly dynamic, goal-oriented behaviors. Commands
+such as throw the ball as far as you can or lift the weight as
+quickly as possible compel the robot to exhibit the agility and
+power inherent in athletic performance. However, training solely
+with task rewards introduces two major challenges: these rewards
+are prone to exploitation (reward hacking), and the exploration
+process can lack sufficient direction. To address these issues, we
+propose a two-stage training pipeline. First, we introduce the Un-
+supervised Actuator Net (UAN), which leverages real-world data
+to bridge the sim-to-real gap for complex actuation mechanisms
+without requiring access to torque sensing. UAN mitigates reward
+hacking by ensuring that the learned behaviors remain robust
+and transferable. Second, we use a pre-training and fine-tuning
+strategy that leverages reference trajectories as initial hints to
+guide exploration. With these innovations, our robot athlete
+learns to lift, throw, and drag with remarkable fidelity from
+simulation to reality.
+I. INTRODUCTION
+General whole-body control comes naturally to animals
+after years of evolution, yet it remains a long-standing chal-
+lenge in robotics. Fluid whole-body motion requires balancing
+multiple competing tasks and constraints that depend on both
+the robots morphology and its environment . Recent
+work [7, 34] demonstrates that sim-to-real reinforcement learn-
+ing (RL), using methods such as Proximal Policy Optimization
+(PPO) , is a promising paradigm for learning these behav-
+iors by leveraging parallel simulations .
+For dynamic, goal-oriented loco-manipulation, it is natural
+to train robots with task rewardscommands like throw the
+ball as far as possible or lift the weight as quickly as
+possible that drive athletic behaviors. However, these task
+rewards pose two major challenges: (i) they are prone to
+reward hacking, where the policy exploits imperfections in the
+guidance. To circumvent these issues, many works on sim-
+to-real transfer instead train whole-body controllers (WBCs)
+to track dense reference motions [4, 7, 13, 23, 34]. Dense
+tracking objectives provide strong regularization by constrain-
+ing the policy to adhere to a reference trajectorythereby
+reducing reward hackingand they offer a structured path for
+1Authors are also affiliated with Computer Science and Artificial Lab-
+oratory (CSAIL), the Laboratory for Information and Decision Systems
+(LIDS), and the MIT-IBM Watson AI Lab at MIT. Correspondence to
+nolanfeymit.edu
+Ball Throw
+Dumbbell Snatch
+Sled Pull
+Fig. 1: Sim-to-real transfer of athletic loco-manipulation.
+We reduce the sim-to-real gap for a quadruped manipulator
+by learning a corrective model for the simulated actua-
+tor dynamics based on real-world data, formulated as an
+unsupervised actuator net (UAN). Policies trained with the
+corrected simulator exhibit improved sim-to-real transfer and
+push the limits of the robots physical capabilities in athletic
+tasks involving whole-body coordination. Videos of the robots
+behaviors are available at
+exploration. However, this strategy relies on defining high-
+quality reference commands a priori, which in turn demands
+access to high-quality reference data. For robots with non-
+human morphologies like legged manipulators, obtaining such
+data is particularly challenging, and the resulting reference
+commands may not capture the optimal, athletic strategies that
+a policy might otherwise discover.
+To fully harness the benefits of task rewards, it is crucial
+to ensure that the simulation faithfully replicates real-world
+dynamics. Inaccurate simulation models allow policies to
+exploit imperfections, leading to reward hacking, particularly
+so when the reward is underspecified. Although techniques
+like domain randomization [50, 51, 53] and online system
+identification [15, 19, 24, 29, 31, 35] address this by sampling
+over parameter distributions, they rely on a priori assumptions
+that may not fully capture the complex dynamics of real hard-
+ware. For instance, harmonic drive actuators exhibit non-linear
+proxies like motor current unreliable for torque estimation.
+A promising alternative is to enhance the simulations
+physics model directly with real-world data, focusing on
+accurately modeling the actuator dynamics. With this moti-
+framework for learning corrective actuator models without the
+need for torque sensors. UAN is trained using reinforcement
+learning to predict corrective torques,   UAN(e), by
+minimizing discrepancies between simulated and real-world
+joint encoder measurements. In doing so, UAN effectively
+bridges the sim-to-real gap even for robots with complex
+transmission mechanisms and noisy or unavailable torque
+measurements. We evidence the effectiveness of UAN through
+sim-to-real demonstrations incorporating the Unitree Z1 Pro
+Building on this enhanced simulation environment, we
+address the challenge of guided exploration for athletic be-
+haviors. Rather than enforcing strict adherence to a reference
+In our approach, a WBC is first pre-trained on random base
+velocities and end-effector pose commands to establish a
+strong motion prior. Then, to learn a new athletic behavior, we
+initialize the controller with a reference trajectory and fine-
+tune it using a task-specific rewardallowing the policy to
+depart from the reference when beneficial.
+In summary, our paper presents an easy-to-use training
+pipeline for whole-body athletic behaviors that reliably transfer
+to reality. First, we employ the Unsupervised Actuator Net
+(UAN) to calibrate actuator dynamics and mitigate reward
+physics. With this improved simulation environment, we then
+pre-train a whole-body controller (WBC) to establish fun-
+damental motion skills and fine-tune it with task-specific
+rewardsusing a reference trajectory merely as a hint to guide
+exploration. This integrated approach enables our robot to
+perform dynamic tasks such as throwing, lifting, and dragging
+with remarkable fidelity.
+II. METHOD
+Our training pipeline (see Figure 2) is separated into two
+training (Sections II-B and II-C). The real-to-sim calibration
+phase involves collecting data on the real robot and training
+a UAN to close the sim-to-real gap for non-ideal actuation
+mechanisms. Similar to past work [8, 23, 33, 44], our WBC
+training is split into two distinct sub-phases: pre-training (Sec-
+tion II-B) and fine-tuning (Section II-C). After pre-training, the
+policy can track reference trajectories if provided as a sequence
+of base velocity and end effector pose commands. During
+the fine-tuning phase, the policy observes a reference task
+trajectory. This helps warm start exploration when learning a
+new task because the policy can simply track these commands
+to achieve reasonable task performance. Through training with
+the task reward itself rather than a tracking reward, the policy
+learns how to depart from the reference trajectory to achieve
+higher task performance. Our simulation environments for the
+pre-training and fine-tuning phases rely on the same strate-
+gies for sim-to-real transfer, including domain randomization
+(Section II-B) and a UAN (Section II-A).
+Our experiments consider a Unitree B2 quadruped with
+a modified Unitree Z1 Pro arm mounted on its back. The
+quadruped is 65 cm tall when standing and weighs 60 kg, while
+the arm is 74 cm fully extended and weighs 6.8 kg. The system
+has 19 actuated joints: 3 for each leg, 6 for the arm, and 1 for
+the gripper.
+A. Unsupervised Actuator Net
+Some actuators are challenging to model in simulation, es-
+pecially when they have complex transmission mechanisms. In
+such cases, standard domain randomization and online system
+identification techniques may be insufficient, and instead, it
+is preferable to learn to model the actuator directly from
+hardware data. Previous approaches rely on output torque
+to learn how to predict the motors torque. Alternatively, we
+propose a method for matching the transition dynamics of the
+actuator such that
+fsim freal(s, ) fsim(s, ).
+To influence the simulator dynamics, fsim, we learn a residual
+velocity errors, e, and outputs a corrective torque, , for the
+simulator such that
+UAN freal
+fsim (s,   UAN (e)) .
+The corrective torques needed to minimize the transition error
+are unlabeled, so we parameterize UAN as a neural network
+and train it with RL.
+1) Architecture and observation space: The network is
+designed as a 2-layer MLP with layer sizes [128, 128] and
+ELU activations. It is executed at every simulation time step
+(5 ms). Assuming each arm joint is identical, a single UAN
+is shared across all of the arms actuators, with each actuator
+being processed independently by the shared network .
+We constrain the observation space to include a history of the
+past 20 (equivalent to 100 ms) position and velocity errors
+for each relevant actuator. These design choices help prevent
+overfitting to other aspects of the training data, such as inertial
+coupling. Also, sharing the data across actuators improves
+data efficiency. While our training data from individual joints
+covers 75 of the operating region of the actuators torque
+and velocity, combining data from all arm actuatorseach
+Simulator
+Reinforcement Learning
+AB6HicbVDLSgNBEOyNrxhfUY9eBoMgCGFXJHoMevGYgHlAsoTZSW8yZnZ2mZkVQsgXePGgiFcyZt4yTZgyYWNBRV3XR3BYng2rjut5Nb
+W9Y3MpvF3Z29YPiodHTR2nimGDxSJW7YBqFxiw3AjsJ0opFEgsBWM7mZ6wmV5rF8MOMEYgOJA85o8ZK9YteseSW3TnIKvEyUoIMtV7
+xq9uPWRqhNExQrTuemxhQpXhTOC0E01JpSN6A7lkoaofYn80On5MwqfRLGypY0ZK7npjQSOtxFNjOiJqhXvZm4n9eJzXhjThMkNS
+rZYFKaCmJjMviZ9rpAZMbaEMsXtrYQNqaLM2GwKNgRveV0rwse5VypX5Vqt5mceThBE7hHDy4hircQw0awADhGV7hzXl0Xpx352PRmnOy
+mWP4AfzB3UXjLo<latexit>
+Real-world
+Rollouts
+rsimtoreal
+rsmoothness
+Simulator
+Actuator
+lMn0ph06mYSZG6GEoYbF4q49WfcTdO2iy0emDgcM693DMnSKQw6LpfTmltfWNzq7xd2dnd2zoHh51TJxqDm0ey1j3AmZACgVtFCihl2hgUSChG0xvc77CNqIWD3gLIFBxMZKhIztJLvRwnQZjBfIjDas2tuwvQv8QrSI0UaA2rn4o5mkECrlkxvQ9N8FBxjQK
+LmFe8VMDCeNTNoapYpFYAbZIvOcnlRMNY26eQLtSfGxmLjJlFgZ3M5pVLxf8ophteDTKgkRVB8eShMJcWY5gXQkdDAUc4sYVwLm5XyCdOMo62pYkvwVr8l3Qu6l6j3rirDVvijrK5IScknPikSvSJHekRdqEk4Q8kRfy6qTOsPmvC9HS06xc0xwfn4BnZ5
+kfs<latexit>et
+Reinforcement Learning
+FIYzXmu9jbp0E6yCIJQZkepGKLpxWcFeoB2HTJpQzOZITkjlqEv4MZXceNCEbfu3fk2phdBW38IPnOSTnDxLBNTjOlzU3v7C4tJxbyaurW9s2lvbNR2nirIqjUWsGgHRTHDJ
+qsBsEaiGIkCwepB73JYr98xpXksb6CfMC8iHclDTgkY5Nv7ygd8jtVt1lIRBqJ7AwOfgBJ783dtwtO0RkJzxp3Ygpopvf7baMU0jJoEKonXTdRLwMqKAU8EGVaqWUJoj3R
+Y01hJIqa9bLTNAB8Y0sZhrMyRgEf090RGIq37UWA6IwJdPV0bwv9qzRTCMyjMkmBSTpKEwFhgPo8FtrhgF0TeGUMXNXzHtEkUomADzJgR3euVZUzsuqVi6fqkUL6YxJFDu2
+gPHSIXnaIyukIVEUPaAn9IJerUfr2Xqz3setc9ZkZgf9kfXxDXkxmzg<latexit>
+rt  rtask
+Reference
+GZjYxCW1OwK8QBJhLUJs2RCcBdPXjbN84pbrVTvLsq16zyOIjgCxAUuOAS1MAtqIMGwOARPINX8GY9WSWuUxay1YcwhmJP19QPh6aF8<latexit>
+Reference
+1. Train UAN
+2. Pre-train  Fine-tune WBC
+3. Deploy
+ZPpB06mYSZG6GEoYbF4q49WfcTdO2iy0emDgcM693DMnSKQw6LpfTmltfWNzq7xd2dnd2zoHh51TJxqxtslrHuBdRwKRvo0DJe4nmNAok7wbT29zvPnJtRKwecJbwQUTHSoSCUbS70cUJ0GY0fkQh9WaW3cXIHJV5AaFGgNq5KGZpxBUySY3pe26Cg4xqFE
+zyecVPDU8om9Ix71uqaMTNIFtknpMzq4xIGv7FJKFnMjo5Exsyiwk3lGsrl4n9eP8XwepAJlaTIFVseClNJMCZ5AWQkNGcoZ5ZQpoXNStiEasrQ1lSxJXirX5LOhd1r1Fv3FWmjdFHWU4gVM4BwuoAl30I2MEjgCV7g1UmdZfNeVOlpxi5xhwfn4BnBdkf
+c<latexit>at
+w2m3bpZhN2vwgh1Ffx4kERrz6IN9GTZuDtg4sO8x8Hzs7QcqZAtvNmpr6xubWXtxs7u3v6BeXg0UEkmCe2ThCdyGBFORO0Dw4HaS4jg9CGY3pTwyOViXiHvKUejEeCxYxgkFLvtl0g4SHKo1VbiAs5kPvtmy2Yc1ipxKtJCFXqeWGCcliKoBwrNTIsVPw
+CiyBEU5nDTdTNMVkisd0pKnAMVeMQ8s061ElpRIvURYM3V3xsFjlWZT0GCZq2SvF7xRBtGVzCRZkAFWTwUZdyCxCqbsEImKQGea4KJZDqrRSZYgK6r4YuwVn8ioZnLedTrtzd9HqXld1NExOkFnyEGXqItuUQ1EUE5ekav6M14Ml6MdNjMVozqp0mgPj8w
+ezT5V4<latexit> t
+>ABHicbVDNSsNAGNzUv1roj16CRbBU0lEqseiF48VbC0IWw2m3bpZhN2vwgh1Ffx4kERrz6IN9GTZuDtg4sO8x8Hzs7QcqZ
+AtvNmpr6xubWXtxs7u3v6BeXg0UEkmCe2ThCdyGBFORO0Dw4HaS4jg9CGY3pTwyOViXiHvKUejEeCxYxgkFLvtl0g4SHK
+o1VbiAs5kPvtmy2Yc1ipxKtJCFXqeWGCcliKoBwrNTIsVPwCiyBEU5nDTdTNMVkisd0pKnAMVeMQ8s061ElpRIvURYM3V3x
+sFjlWZT0GCZq2SvF7xRBtGVzCRZkAFWTwUZdyCxCqbsEImKQGea4KJZDqrRSZYgK6r4YuwVn8ioZnLedTrtzd9HqXld1NEx
+OkFnyEGXqItuUQ1EUE5ekav6M14Ml6MdNjMVozqp0mgPj8wezT5V4<latexit> t
+Fig. 2: Unsupervised Actuator Network (UAN) approach for real-to-sim-to-real. Our training pipeline involves three steps:
+1) Train a UAN to close the sim-to-real gap for actuators with complex transmission mechanisms by mapping a history of joint
+position and velocity errors, et, to corrective torques,  t, 2) Pre-train a WBC using random motion references (base velocity
+and EE pose), then and fine-tune it on an athletic task reward with the UAN in loop, and 3) Deploy. During the fine-tuning
+task performance.
+experiencing distinct loads (e.g., actuators near the base see
+higher loads) covers 99 (see Figure 7).
+2) Data collection: We collect data on real hardware to
+construct a dataset of transitions {(st,  t, st1)i}N
+each actuator. Our intention during data collection was to
+sufficiently cover the state space to avoid overfitting. Thus,
+we opted not to use policy data and instead collected data
+with three types of action sequences: 1) square waves, 2) sine
+while keeping the rest of the actuators at a fixed position
+target. We swept 12 different combinations of amplitude and
+frequency for each wave, resulting in about 50 seconds of
+data for each actuator. For the Gaussian noise data, we passed
+torque commands to all the robots joints simultaneously. We
+sampled a new action from a Gaussian distribution every 5 to
+400 ms for about 5 minutes.
+3) Training Environment: We designed the training envi-
+ronment in Isaac Sim  with 4096 parallel environments.
+We train policies with the RSL-RL implementation  of
+PPO  with default hyperparameters, minus a few modifi-
+cations (see Appendix A for the full list of learning algorithm
+hyperparameters). Following , we apply a separate fixed
+learning rate to the critic while using an adaptive learning rate
+for the actor. Additionally, we divide the data of each epoch
+into four mini-batches for the actor while using the entire batch
+for the critic, as we found that larger batch sizes produce more
+stable gradients and result in lower value function loss.
+4) Task Design: For each environment at each timestep,
+we uniformly sample a real-world transition, (st,  t, st1)k,
+and set the state of the simulator to match st and the initial
+torque to  t. After policy inference, we modify the torque by
+adding the correction,  t, and then step the simulator. We
+then compute the reward as
+rsimtoreal
+rsmoothness
+where rsimtoreal
+aims to minimize the difference between
+the real joint position and the simulated joint position, and
+rsmoothness
+biases exploration to gradual deviations. For a
+complete list of reward terms, please refer to Appendix A.
+Each training episode consists of a 20 s rollout executing the
+torque sequence from the hardware data from  t to  t20s.
+Through training on rollouts, the actuator net learns to remain
+stable across many simulation time steps.
+B. Whole-body Controller Pre-training
+Before training on task-specific behaviors, we pre-train
+the WBC to learn foundational trajectory-tracking skills. Our
+training scheme builds upon the method proposed in  by
+incorporating a strategy for learning to track an EE orientation
+command. As in Section II-A3, we designed the training
+environment in Isaac Sim with 4096 parallel environments and
+trained the policies with PPO [38, 39] (using separate learning
+rates and batch sizes for the actor and critic).
+1) Policy Architecture:
+The WBC is a control policy,
+at  (otH:t), where the action at time t, at, is a vector
+of position targets for each of the robots joints and otH:t is
+an observation history of length H  10 timesteps (200 ms).
+We parameterize  as a 3-layer multi-layer perceptron (MLP)
+with layer sizes [512, 512, 512] and ELU activations. The value
+function approximator network has the same architecture but
+does not share weights with the policy.
+2) Observation Space: The policys observation space con-
+sists of proprioceptive readings from the robots onboard sen-
+frame g, a base velocity command vcmd
+, an end effector pose
+command pcmd
+, the joint positions q, the joint velocities q, the
+previous actions at1, and a timing variable t  sin(2ft)
+with f  2.2 Hz corresponding to the gait cycle frequency.
+embedding vector zt (set to zero during pre-training).
+3) Sim-to-Real Considerations: Our approach for bridging
+the sim-to-real gap uses a combination of domain random-
+ization (DR) and real-to-sim calibration. To learn locomotion
+behaviors robust to terrain variations, we randomize terrain
+in the robots URDF, we randomize the mass and center of
+mass position of each of the robots links. We also randomize
+the PD gains and stall torques for each actuator in the robots
+observed on hardware. To encourage learning recovery behav-
+and periodically perturb it with external forces and torques at
+the base, hips, feet, and end-effector, following the approach
+proposed in . The DR ranges used for both pre-training and
+fine-tuning are provided in Appendix A.
+Inspired by , we clip the commanded motor torques
+such that
+where  max and qmax are the maximum torques and velocities
+of the actuators, respectively. This clipping strategy enforces a
+physical motor constraint by ensuring that torque commands
+do not demand power beyond the motors maximum output
+capacity. Furthermore, we clip the arm torques a second time
+to satisfy the constraint
+where Pmax is the maximum total power of the arm joints,
+because we found experimentally this helps prevent the arm
+from entering a power protect state enforced by the robots
+manufacturer.
+Since typical DR strategies were insufficient for athletic
+behaviors in the arm (which uses harmonic drives), we in-
+corporate the UAN (Section II-A) for the arm actuators.
+4) Task Specification: The pre-training task for the WBC
+is to track a desired base velocity and EE pose. The velocity
+, consists of a desired
+forward velocity vcmd
+desired yaw-rate cmd
+rotated frame aligned with the robots center of mass at a fixed
+height above the terrain. The choice of frame encourages the
+robot to coordinate with its legs to expand its workspace. The
+EE command pcmd
+comprises a Cartesian
+position pEE
+and orientation oEE
+(provided as the first two
+columns of a rotation matrix).
+5) Reward Function: The reward function is split as rt
+, where rtrack
+includes tracking terms (EE pose,
+base velocity) and gait terms, while raux
+includes regular-
+ization and smoothing terms. The EE tracking term rewards
+minimizing the distance between four key points, where one
+key point is positioned at the frames origin, and the others
+are positioned along each axis of the frame. Full details are
+provided in Appendix A.
+Fig. 3: Unitree Z1 Pro arm. This arms harmonic actuators
+behave substantially differently from the quasi-direct-drive
+motors common in small legged robots. This image also
+shows the reinforcements we designed to ensure that the limit
+on athleticism comes from actuation rather than the linkage
+structural integrity.
+6) Command Sampling Scheme: We adopt the approach
+first proposed in  to sample commands during training.
+We sample a new base velocity command and a new goal
+end effector pose every 7 seconds of simulation time. Upon
+seconds) from the previous command. While this sampling
+scheme suffices for foundational loco-manipulation skills, it
+may be too smooth for highly agile motions  this motivates
+our task-specific fine-tuning (Section II-C).
+C. Task-Specific Finetuning
+After pre-training, the policy can track reference trajectories,
+but struggles on high-acceleration tasks. To address this, we
+fine-tune the policy directly with task rewards. The same WBC
+base policy weights can be reused for multiple task policies,
+thus avoiding repeated pre-training.
+1) Initialization: The policy weights are initialized to those
+learned during pre-training. To avoid policy collapse, we set
+a low initial learning rate (1  105) for the actor and retain
+the standard deviation from pre-training. Additionally, we set
+the entropy coefficient in PPO to zero during fine-tuning to
+improve training stability.
+2) Reference trajectory and task embedding: During fine-
+and a one-hot task embedding to inform which phase of
+the task (e.g., set-up, execute, settle) is active. We hand-
+designed the reference trajectories through joint interpolation
+and forward kinematics, but they could also come from an
+expert policy or human demonstration.
+3) Fine-tuning with task reward: The environment for fine-
+tuning phase extends that of pre-training (same DR ranges,
+external pushes, etc.). The reward becomes ri
+t is task-specific. Initially, the policy tracks the reference,
+aiding exploration; later, it learns to deviate to maximize task
+performance.
+III. EXPERIMENTAL SETUP
+We chose the Unitree B2 with Unitree Z1 Pro arm as
+our hardware platform, and we consider three athletic tasks:
+Structural upgrades to the arm were custom designed and
+fabricated to withstand the high loads during athletic behaviors
+(see Section III-A).
+Difference (m)
+Sim-to-Real Difference in Throw Distance (m)
+Distance (m)
+Real Throw Distance (m)
+Actuator Net
+UAN (ours)
+Fig. 4: UAN improves simulator accuracy and real throwing performance. UAN (Ours) achieves lower sim-to-real
+difference in throw distance as compared to standard baselines, resulting in a better real throw distance. For this comparison,
+we train and test policies with a fixed-base arm, to avoid the risk of the legged base falling during performance-critical ablations.
+Following our UAN training (Section II-A), we pre-trained
+a WBC (Section II-B) and then fine-tuned policies for each
+task (Section II-C). Ablations comparing our method with
+alternatives are described in Section IV-A and Section IV-B.
+A. Arm Modifications
+During development, the Unitree Z1 Pro arm experienced
+structural failures at links 2 and 4, with minor deformations
+at link 5. The damage resulted from the highly dynamic
+movements in the athletic experiments, which applied loads
+to the links that exerted excessive stress and strain on the
+links exceeding the materials yield strength. Modifications
+were made to reinforce links 2, 3, 4, and 5 by adding supports
+at the joints. This prevents loads from being transferred solely
+through the motors which are cantilevered. A mass-efficient
+aluminum square tube was used for link 2, which experiences
+the highest stress of all the links. Idler bearings are used to
+apply support at the motor outputs without restricting their
+movement. In the URDF, link masses, centers of mass, and
+inertias were updated based on CAD calculations and the
+parallel axis theorem. Figure 3 shows the reinforced arm.
+IV. EXPERIMENTAL RESULTS
+In this section, we report ablations that identify the contri-
+bution of key system components and present results for the
+athletic tasks. Supplemental videos are provided on the project
+Our experiments address the following questions:
+1) Does our unsupervised actuator net reduce the sim-to-
+real gap and improve transfer?
+2) What are the benefits of our two-stage pre-training and
+fine-tuning pipeline relative to alternatives?
+3) Does our approach enable sim-to-real transfer of athletic
+whole-body control tasks?
+A. Comparing System Identification Approaches
+We compare several methods for modeling the actuator
+dynamics of the Unitree Z1 Pro arm in Isaac Sim. In particular,
+we consider:
+1) Default: The baseline simulator with no additional
+modifications.
+2) DR: The simulator augmented with domain random-
+ization (randomizing PD gains, friction, and armature
+parameters).
+3) ROA: A domain randomization baseline enhanced with
+an online system identification module via Regularized
+Online Adaptation .
+4) Actuator Net: A supervised actuator network fol-
+lowing Hwangbo et al.  where torque labels are
+estimated from the motor current. (Note that these labels
+do not capture the nonlinear effects introduced by the
+harmonic reducers.)
+5) CEM: A method in which friction, frictional damping,
+and armature parameters are optimized using the cross-
+entropy method to minimize the mean-square joint po-
+sition error between simulation and hardware.
+6) UAN: Our proposed unsupervised actuator network that
+learns corrective torques without requiring torque su-
+from harmonic reduction.
+We first evaluate the modeling accuracy of these approaches
+by reporting the mean-square joint position error on both the
+training data and on an unseen test trajectory (see Figure 6).
+Our results show that the UAN method achieves the best
+windows of simulator rollouts for a single arm joint are
+provided in Figures 6b (training data) and 6c (test data);
+additional results for the other arm joints are included in the
+appendix (Figures 8 and 9). In our observations, the CEM
+method helps prevent overshoot (by effectively slowing the
+Distance Thrown (m)
+Throw Release Speed (ms)
+Peak Leg Power (kW)
+No-Fine-Tuning
+No-Pre-Training
+Fig. 5: End-to-end fine-tuning from a pre-trained WBC leads to the best task performance. Throwing evaluation metrics
+across 100 simulated throws for four policies: Our fine-tuned WBC (Ours) achieves the longest throw distance with lower
+peak leg power as compared to a throwing policy trained from scratch (No-Pre-Training) or a high-level policy for a
+frozen WBC (No-E2E). The WBC before finetuning (No-Fine-Tuning) has the lowest peak leg power but throws the ball
+a much shorter distance.
+arm to match the lower joint velocities seen on hardware).
+Actuator Net can improve over the baseline by capturing
+lag effects, but it diverged on the 5 min rollouts on the
+training data. However, only UAN achieves a tight fit to the
+training data, thanks to its capacity to model the nonlinear
+effects introduced by the harmonic reducers. As shown by
+Figure 6, UAN can even accurately capture the arms response
+to Gaussian noise control input, which is commonly used
+for exploration in reinforcement learning but represents a
+challenging regime for accurate simulation where the baseline
+methods degrade substantially.
+To further assess these system identification methods in
+a task context, we trained arm-only throwing policies in
+simulation augmented with each approach and deployed them
+on hardware. The average throwing performance in simulation
+and reality is presented in Figure 4. In simulation, although
+the Actuator Net and CEM produced a promising throw,
+its behavior did not transfer as well to hardware. In contrast,
+the UAN policy achieved the farthest throws on hardware with
+the smallest sim-to-real gap. Meanwhile, the Default, DR,
+and ROA policies produced unstable behaviorsthe Default
+ball at all.
+B. Finetuning Foundational WBC
+We compare four throwing policies to assess the impact of
+our pre-training and fine-tuning approaches:
+1) No-Fine-Tuning: a pre-trained WBC that tracks a
+throwing reference trajectory.
+2) No-Pre-Training: a throwing policy trained from
+scratch.
+3) No-E2E: a high-level policy that outputs commands for
+a frozen pre-trained WBC.
+4) Ours: our method that initializes with the pre-trained
+WBC and fine-tunes with RL.
+All methods observe a hand-designed throwing reference tra-
+jectory.
+Figure 4 presents the performance of each throwing policy
+across 100 simulated throws. No-Fine-Tuning success-
+fully throws the ball by tracking the reference, but its per-
+formance is sub-optimal. However, the strong performance of
+No-E2E shows that the WBCs performance can be improved
+by providing a better reference trajectory. Still, the No-E2E
+policy does not perform to the maximum capability of the
+hardware. Through RL finetuning with the task reward, Ours
+can learn to throw farther while using a reduced peak power
+output in its leg motors. While No-Pre-Training could
+theoretically push the capabilities of the hardware, in practice,
+it struggles to do so due to exploration challenges. We found
+that No-Pre-Training achieved similar throwing perfor-
+mance to No-E2E, despite hitting a larger peak power output
+in its legs.
+C. Hardware Results
+1) Ball throwing: The task objective is to throw a 100 g
+ball as far as possible. Because grasping and releasing a
+ball directly is challenging for our gripper, a small bucket
+is attached to the robots EE. The policy leans back prior to
+forward to launch the ball. On hardware, the ball was thrown
+approximately 20 m, with the real robot throwing slightly
+further than in simulation  possibly due to inaccuracies in
+the ball-bucket contact modeling.
+2) Dumbbell snatch: The goal is to lift a dumbbell with the
+EE and hold it stably. The dumbbell is simulated by modifying
+the grippers mass. The robot first lowers its EE to the ground,
+at which point the mass is added to its gripper. Then, it is
+commanded to lift the weight in the air. When lifting, the
+robot is rewarded for maximizing the z position of its EE.
+When training the lifting policy, we randomized the mass
+of the robots EE from 0 to 10 kg. At convergence, the policy
+could consistently lift weights up to 8kg, but struggled to
+stabilize heavier weights above its body. Since the robots arm
+is much weaker than the legs, the policy learns to pitch its base
+backwards to swing the weight upwards into the air. During
+hardware experiments, we secured the dumbbells inside the
+robots gripper with a belt to prevent it from slipping out of
+the robots grasp. We found the Z1 arm could not lift even
+a 5 lb. dumbbell to an upright position through simple joint
+interpolation. We first verified the whole-body policy could
+lift a 5 lb. dumbbell and then progressed to a 10 lb. dumbbell.
+In both experiments, the robot lifted the weight above its base
+and maintained it there stably for more than 5 s.
+3) Sled pull: In this task, the robot pulls a heavy sled
+attached by a rope to its EE. The sled is modeled as a
+is rewarded for tracking a backward base velocity while
+minimizing lateral drift. The policy learns to adopt a low
+stance to maintain balance and extend its arm to avoid applying
+unnecessary torques to the arms actuators. In simulation, the
+policy successfully pulled weights up to 150 kg. On hardware,
+the robot pulled a cart resisting a friction force of 113 N over
+10 meters; a heavier cart (requiring 230 N) was only pulled
+about 0.5 meters.
+V. LIMITATIONS
+Our fine-tuning approach requires a task reference trajec-
+tasks. It also necessitates per-task engineering of the training
+environment (reward functions, object simulation, etc.). Future
+work might employ generative models to automatically syn-
+thesize task references. Additionally, our unsupervised actuator
+net focuses on arm actuators. Extending real-to-sim calibration
+to other robot subsystems and modeling structural integrity are
+promising future directions.
+VI. RELATED WORK
+A. Whole-Body Control
+Walking robots with arms present a formidable challenge
+to control due to their many degrees of freedom and complex
+dynamics. A typical paradigm is to implement a WBC that
+optimizes actuation to achieve control objectives considering
+a model of robot kinematics and dynamics . WBC ap-
+proaches based on offline trajectory optimization or online
+optimization with reduced-order models have achieved con-
+siderable success in dynamic walking and manipulation [1, 3,
+enabled whole-body control that can naturally handle model
+In the case of whole-body control based on reinforcement
+with an input reference position [4, 7, 18], force , or
+whole-body pose [6, 13, 25, 26] and outputs joint-space
+actions.
+It is common to teleoperate legged-armed robots by parsing
+a reference trajectory from a humans movements in real-time
+and tracking it with a WBC; such an approach can accomplish
+also train a high-level policy to select reference trajectories
+or a latent representation autonomously in place of the tele-
+reinforcement learning [23, 26]. However, some tasks may not
+be achievable by any choice of reference trajectory if they
+require a motion outside the training distribution of the WBC.
+It is challenging to formulate a generic pre-training scheme
+for whole-body control that anticipates all kinds of tasks one
+might want to perform for humanoids, motion capture datasets
+can provide diverse feasible reference commands , but
+for quadruped manipulators, pre-training commonly defaults
+to tracking procedurally generated smooth trajectories within
+the workspace .
+To avoid the reliance on high-quality pre-training, another
+possibility is to discard the explicit notion of reference tra-
+jectories altogether and directly train end-to-end policies for
+specific tasks such as fall recovery , door opening ,
+soccer [12, 16, 17], or box manipulation . This enables
+the policy to learn highly dynamic motions to optimize the
+task reward, but, in practice, these motions can be hard to
+find due to fundamental exploration challenges in RL. We
+address this challenge by initializing the policy with pre-
+trained WBC weights and a reference trajectory. While
+also guide training with reference trajectories, they rely on
+tracking rewards, whereas we crucially rely exclusively on
+task-oriented rewards, enabling athletic performance even with
+rough references.
+B. Overcoming the sim-to-real gap
+Prior work proposed simulated athletic tasks as a benchmark
+for learned whole-body control [44, 26], though they left sim-
+to-real transfer as future work. In contrast, other studies have
+demonstrated sim-to-real transfer of athletic tasks on small
+robots with transparent actuators [12, 16, 17]. Achieving sim-
+to-real transfer for athletic behaviors on large robots with non-
+ideal actuators is especially challenging because even minor
+modeling discrepancies can lead to reward hacking. To address
+bridge the sim-to-real gap.
+Domain randomization is a common strategy to mitigate
+discrepancies between simulation and reality [19, 20]. In
+the field of dynamic legged robots, common parameters to
+randomize include the proportional and derivative gains of
+each joint, the stall torques, the link masses and inertias, and
+terrain properties [20, 55]. Excessive DR can reduce peak
+performance if the policy cannot identify key parameters of
+the environment necessary to optimize its reward function.
+To overcome this challenge, previous work employed teacher-
+student frameworks, where a student policy learns to imitate
+an expert policy that has access to privileged observations
+(a) Error metrics.
+MSE (rad2)
+Square  Sine Waves
+Gaussian Noise
+(b) Train rollout.
+Time [s]
+Angle [rad]
+Time [s]
+Time [s]
+Time [s]
+(c) Test rollout.
+Time [s]
+Angle [rad]
+Time [s]
+Time [s]
+Time [s]
+Actuator Net
+UAN (ours)
+Fig. 6: UAN achieves the tightest real-to-sim fit to the training data, as well as a throw trajectory unseen during
+training. We rolled out three real-world joint trajectories: square  sine waves at each joint, Gaussian noise across all the
+found that Actuator-Net error remains bounded on the 5 s throw trajectory but diverges when rolling out the 5 min training
+(c) are the positions realized on hardware.
+related to its environment [7, 19, 20]. Alternatively, the policy
+may learn online system identification directly from an ob-
+servation history. Some policy architectures (i.e., CNNs
+and transformers ) have been shown to achieve in-context
+adaptation without relying on a teacher-student distillation.
+Accurate system identification can reduce reliance on DR by
+mitigating the sim-to-real gap directly. Methods for identifying
+inertial properties typically rely on least-squares estimation
+, including a notable approach that leverages insights about
+the geometric structure of the robots dynamics to provide
+robustness against local optima . This method was applied
+to identify the inertial parameters of the MIT Humanoid .
+In our work, we rely on the inertial properties provided in the
+manufacturers URDF file.
+Actuator modeling methods traditionally rely on parameter-
+ized physics models to capture effects such as static friction,
+dynamic friction, and reflected inertia , the last of which can
+be set through the armature setting in physics simulations
+such as Isaac Sim  and MuJoCo . This approach can
+be insufficient for actuators with complex transmission mech-
+anisms. To address this,  proposed learning an actuator
+output torque from a history of position and velocity errors.
+The actuator net was added to the simulator during policy
+training to reduce the sim-to-real gap in ANYmals series
+elastic actuators. Their approach, however, relies on torque
+avoided reliance on an output torque sensor when train-
+ing an actuator net by measuring the torques from current.
+torque-density actuators which are efficiently backdriveable
+and have minimal reflected inertia. In contrast, our approach,
+for the simulator that minimize the discrepancy between the
+simulated and real-world transition dynamics.
+When ground-truth labels are unavailable (i.e., the robots
+actuators lack torque sensing), they can be discovered through
+interaction to better match the real-world dynamics. For ex-
+predict the ballistic motions of objects, enabling a manipulator
+to accurately throw them. Similarly, Gruenstein et al.
+proposed learning residual actions for a simplified dynamics
+model for a legged microbot so that it transits to the same
+future states as a more complex dynamics model. In another
+external force policy to improve simulation accuracy for a
+buoyancy assisted legged robot. Mentee Robotics has publicly
+stated that they applied RL to train a delta action model
+using real-world data to overcome the sim-to-real gap on
+their humanoid, but the technical details of their approach
+were unpublished . While we also apply RL to correct
+our simulation model, we specifically target the sim-to-real
+gap for the robots actuators with harmonic drives, which are
+notably hard to model. This focus leverages the parts of the
+simulator that are more accurate (i.e., rigid body mechanics) to
+reduce overfitting and also avoids reliance on a motion capture
+VII. CONCLUSION
+Legged manipulators promise enhanced strength and a
+larger workspace by coordinating arms and legs. We proposed
+a training pipeline that first pre-trains a whole-body controller
+and then fine-tunes it using task rewards, while simultaneously
+reducing the sim-to-real gap via our UAN. Our experimental
+results on ball throwing, dumbbell lifting, and sled pulling
+demonstrate the viability of this approach. Future work may
+extend the sim-to-real calibration to additional subsystems
+and incorporate structural integrity constraints directly in the
+training.
+ACKNOWLEDGMENT
+We thank the members of the Improbable AI labespecially
+Sandor Felber, Chen Bo Calvin Zhang, Srinath Mahankali, and
+Zhang-Wei Hongfor helpful discussions and feedback. We
+acknowledge Unitree Robotics for technical support provided
+for their robots. We are grateful to MIT Supercloud and
+the Lincoln Laboratory Supercomputing Center for providing
+HPC resources. We also acknowledge the MIT CSAIL Liv-
+ing Lab project for providing robot hardware. This research
+was partly supported by Hyundai Motor Company, the MIT-
+IBM Watson AI Lab, and the National Science Foundation
+under Cooperative Agreement PHY-2019786 (The NSF AI
+Institute for Artificial Intelligence and Fundamental Interac-
+Graduate Research Fellowship under Grant No. 2141064. This
+research was also sponsored by the United States Air Force
+Research Laboratory and the United States Air Force Artificial
+Intelligence Accelerator and was accomplished under Coop-
+erative Agreement Number FA8750-19-2-1000. Research was
+sponsored by the Army Research Office and was accomplished
+under Grant Number W911NF-21-1-0328. The views and
+conclusions contained in this document are those of the authors
+and should not be interpreted as representing the official
+Air Force or the U.S. Government. The U.S. Government is
+authorized to reproduce and distribute reprints for Government
+AUTHOR CONTRIBUTIONS
+Nolan Fey contributed to ideation, implementation of the entire
+Gabriel B. Margolis contributed to ideation, implementation
+of some parts of the system, and writing.
+Martin Peticco contributed to hardware modifications and
+writing.
+Pulkit Agrawal advised the project and contributed to its
+REFERENCES
+Yeuhi Abe, Benjamin Stephens, Michael P Murphy, and Al-
+fred A Rizzi. Dynamic whole-body robotic manipulation. In
+Unmanned Systems Technology XV, volume 8741, pages 280
+Christopher G. Atkeson, Chae H. An, and John M. Hollerbach.
+Estimation of inertial parameters of manipulator loads and links.
+The International Journal of Robotics Research, 5(3):101119,
+C Dario Bellicoso, Koen Kramer, Markus Stauble, Dhionis
+Alma-articulated locomotion and manipulation for a torque-
+controllable robot. In 2019 International conference on robotics
+and automation (ICRA), pages 84778483. IEEE, 2019.
+Xuxin Cheng, Yandong Ji, Junming Chen, Ruihan Yang,
+Ge Yang, and Xiaolong Wang. Expressive whole-body control
+for humanoid robots. arXiv preprint arXiv:2402.16796, 2024.
+Jeremy Dao, Helei Duan, and Alan Fern. Sim-to-real learning
+for humanoid box loco-manipulation. In 2024 IEEE Interna-
+tional Conference on Robotics and Automation (ICRA), pages
+Pranay Dugar, Aayam Shrestha, Fangzhou Yu, Bart van Marum,
+and Alan Fern. Learning multi-modal whole-body control for
+real-world humanoid robots. arXiv preprint arXiv:2408.07295,
+Zipeng Fu, Xuxin Cheng, and Deepak Pathak. Deep whole-
+body control: Learning a unified policy for manipulation and
+locomotion. In Conference on Robot Learning, pages 138149.
+Zipeng Fu, Qingqing Zhao, Qi Wu, Gordon Wetzstein, and
+Chelsea Finn. Humanplus: Humanoid shadowing and imitation
+from humans, 2024. URL
+Ruben Grandia, Espen Knoop, Michael Hopkins, Georg Wiede-
+Bacher. Design and control of a bipedal robotic character. 07
+Joshua Gruenstein, Tao Chen, Neel Doshi, and Pulkit Agrawal.
+Residual model learning for microrobot control, 2021.
+Huy Ha, Yihuai Gao, Zipeng Fu, Jie Tan, and Shuran Song.
+Umi on legs: Making manipulation policies mobile with
+manipulation-centric whole-body controllers.
+arXiv preprint
+Tuomas Haarnoja, Ben Moran, Guy Lever, Sandy H. Huang,
+Dhruva Tirumala, Jan Humplik, Markus Wulfmeier, Saran
+Learning agile soccer skills for a bipedal robot with deep
+reinforcement learning. Science Robotics, 9(89), April 2024.
+Tairan He, Zhengyi Luo, Wenli Xiao, Chong Zhang, Kris
+Learning human-to-
+humanoid real-time whole-body teleoperation. arXiv preprint
+Jemin Hwangbo, Joonho Lee, Alexey Dosovitskiy, Dario Bel-
+Learning agile and dynamic motor skills for legged robots.
+Science Robotics, 4(26), January 2019. ISSN 2470-9476. doi:
+10.1126scirobotics.aau5872.
+scirobotics.aau5872.
+Gwanghyeon Ji, Juhyeok Mun, Hyeongjun Kim, and Jemin
+Hwangbo. Concurrent training of a control policy and a state
+estimator for dynamic and robust legged locomotion.
+Robotics and Automation Letters, 7(2):46304637, 2022. doi:
+Yandong Ji, Zhongyu Li, Yinan Sun, Xue Bin Peng, Sergey
+Hierarchical
+reinforcement learning for precise soccer shooting skills using a
+quadrupedal robot. In 2022 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 14791486,
+Yandong Ji, Gabriel B. Margolis, and Pulkit Agrawal. Drib-
+IEEE International Conference on Robotics and Automation
+(ICRA), pages 51555162, 2023.
+Hua Chen.
+Learning whole-body loco-manipulation for
+omni-directional task space pose tracking with a wheeled-
+Ashish Kumar, Zipeng Fu, Deepak Pathak, and Jitendra Malik.
+Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen, Vladlen
+over challenging terrain.
+Science Robotics, 5(47), October
+2020. ISSN 2470-9476. doi: 10.1126scirobotics.abc5986. URL
+Taeyoon Lee, Patrick M. Wensing, and Frank C. Park.
+ometric robot dynamic identification: A convex programming
+approach.
+IEEE Transactions on Robotics, 36(2):348365,
+Zhongyu Li, Xue Bin Peng, Pieter Abbeel, Sergey Levine, Glen
+Reinforcement learning for
+Minghuan Liu, Zixuan Chen, Xuxin Cheng, Yandong Ji, Ruihan
+Visual whole-body control for
+legged loco-manipulation.
+arXiv preprint arXiv:2403.16967,
+Junfeng Long, Zirui Wang, Quanyi Li, Jiawei Gao, Liu Cao,
+and Jiangmiao Pang.
+Hybrid internal model: Learning agile
+legged locomotion with simulated robot response, 2024. URL
+Zhengyi Luo, Jinkun Cao, Kris Kitani, Weipeng Xu, et al.
+Perpetual humanoid control for real-time simulated avatars.
+In Proceedings of the IEEECVF International Conference on
+Computer Vision, pages 1089510904, 2023.
+Zhengyi Luo, Jiashun Wang, Kangni Liu, Haotian Zhang, Chen
+simulated humanoids. arXiv preprint arXiv:2407.00187, 2024.
+Yuntao Ma, Farbod Farshidian, Takahiro Miki, Joonho Lee, and
+Marco Hutter.
+Combining learning-based locomotion policy
+with model-based manipulation for legged mobile manipulators.
+IEEE Robotics and Automation Letters, 7(2):23772384, 2022.
+Viktor Makoviychuk, Lukasz Wawrzyniak, Yunrong Guo,
+Michelle Lu, Kier Storey, Miles Macklin, David Hoeller, Nikita
+performance gpu-based physics simulation for robot learning.
+arXiv preprint arXiv:2108.10470, 2021.
+Gabriel B Margolis, Ge Yang, Kartik Paigwar, Tao Chen, and
+Pulkit Agrawal. Rapid locomotion via reinforcement learning,
+2022. URL
+Michael P Murphy, Benjamin Stephens, Yeuhi Abe, and Al-
+fred A Rizzi. High degree-of-freedom dynamic manipulation. In
+Unmanned Systems Technology XIV, volume 8387, pages 339
+I Made Aswin Nahrendra, Byeongho Yu, and Hyun Myung.
+plicit terrain imagination via deep reinforcement learning. In
+2023 IEEE International Conference on Robotics and Automa-
+tion (ICRA), pages 50785084. IEEE, 2023.
+NVIDIA. Nvidia isaac-sim.
+Guoping Pan, Qingwei Ben, Zhecheng Yuan, Guangqi Jiang,
+Yandong Ji, Jiangmiao Pang, Houde Liu, and Huazhe Xu.
+cross-embodiment. arXiv preprint arXiv:2403.17367, 2024.
+Tifanny Portela, Gabriel B Margolis, Yandong Ji, and Pulkit
+Agrawal. Learning force control for legged manipulation. arXiv
+preprint arXiv:2405.01402, 2024.
+Ilija Radosavovic, Tete Xiao, Bike Zhang, Trevor Darrell,
+Jitendra Malik, and Koushil Sreenath.
+Real-world humanoid
+locomotion with reinforcement learning, 2023.
+URL https:
+arxiv.orgabs2303.03381.
+Ilija Radosavovic, Sarthak Kamat, Trevor Darrell, and Jitendra
+Malik. Learning humanoid locomotion over challenging terrain,
+2024. URL
+Mentee Robotics.
+Ai for humanoid robotics - a lecture by
+mentee robotics ceo, prof. lior wolf, Aug 2024.
+URL http:
+www.youtube.comwatch?vy1LG4YwUtoot1391s.
+Nikita Rudin, David Hoeller, Philipp Reist, and Marco Hutter.
+Learning to walk in minutes using massively parallel deep
+reinforcement learning, 2022. URL
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford,
+and Oleg Klimov.
+Proximal policy optimization algorithms,
+Clemens Schwarke, Victor Klemm, Matthijs Van der Boon,
+Marko Bjelonic, and Marco Hutter. Curiosity-driven learning
+of joint locomotion and manipulation tasks.
+In Proceedings
+of The 7th Conference on Robot Learning, volume 229, pages
+Laura Schwendeman, Andrew SaLoutos, Elijah Stanger-Jones,
+and Sangbae Kim. Improving domain transfer of robot dynamics
+models with geometric system identification and learned friction
+compensation. In 2023 IEEE-RAS 22nd International Confer-
+ence on Humanoid Robots (Humanoids), pages 18, 2023. doi:
+Luis Sentis and Oussama Khatib.
+Synthesis of whole-body
+behaviors through hierarchical control of behavioral primitives.
+International Journal of Humanoid Robotics, 02(04):505518,
+Luis Sentis and Oussama Khatib.
+A whole-body control
+framework for humanoids operating in human environments. In
+Proceedings 2006 IEEE International Conference on Robotics
+and Automation, 2006. ICRA 2006., pages 26412648. IEEE,
+Carmelo Sferrazza, Dun-Ming Huang, Xingyu Lin, Youngwoon
+benchmark for whole-body locomotion and manipulation, 2024.
+Young-Ha Shin, Tae-Gyu Song, Gwanghyeon Ji, and Hae-Won
+Actuator-constrained reinforcement learning for high-
+speed quadrupedal locomotion, 2023.
+Jean-Pierre Sleiman, Farbod Farshidian, Maria Vittoria Minniti,
+and Marco Hutter. A unified mpc framework for whole-body
+dynamic locomotion and manipulation.
+IEEE Robotics and
+Automation Letters, 6(3):46884695, 2021.
+Jean-Pierre Sleiman, Farbod Farshidian, and Marco Hutter.
+Versatile multicontact planning and control for legged loco-
+manipulation.
+Science Robotics, 8(81), August 2023.
+2470-9476. doi: 10.1126scirobotics.adg5014. URL
+doi.org10.1126scirobotics.adg5014.
+Jean-Pierre
+Guided reinforcement learning for robust multi-contact loco-
+Nitish Sontakke, Hosik Chae, Sangjoon Lee, Tianle Huang,
+Dennis W Hong, and Sehoon Hal. Residual physics learning
+and system identification for sim-to-real transfer of policies on
+buoyancy assisted legged robots. In 2023 IEEERSJ Interna-
+tional Conference on Intelligent Robots and Systems (IROS),
+pages 392399. IEEE, 2023.
+Jie Tan, Tingnan Zhang, Erwin Coumans, Atil Iscen, Yunfei
+Josh Tobin, Rachel Fong, Alex Ray, Jonas Schneider, Wojciech
+ferring deep neural networks from simulation to the real world,
+Emanuel Todorov, Tom Erez, and Yuval Tassa.
+physics engine for model-based control.
+In 2012 IEEERSJ
+International Conference on Intelligent Robots and Systems,
+Zhaoming Xie, Xingye Da, Michiel van de Panne, Buck Babich,
+and Animesh Garg. Dynamics randomization revisited:a case
+study for quadrupedal locomotion, 2021.
+Andy Zeng, Shuran Song, Johnny Lee, Alberto Rodriguez, and
+Thomas Funkhouser. Tossingbot: Learning to throw arbitrary
+objects with residual physics. IEEE Transactions on Robotics,
+Chong Zhang, Wenli Xiao, Tairan He, and Guanya Shi. Wococo:
+Learning whole-body humanoid control with sequential con-
+tacts. arXiv preprint arXiv:2406.06005, 2024.

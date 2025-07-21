@@ -1,0 +1,1211 @@
+=== PDF文件: Flying Hand End-Effector-Centric Framework for Versatile Aerial Manipulation Teleoperation and Polic.pdf ===
+=== 时间: 2025-07-21 13:46:00.169405 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Flying Hand: End-Effector-Centric Framework for
+Versatile Aerial Manipulation Teleoperation and
+Policy Learning
+Guanqi He, Xiaofeng Guo, Luyi Tang, Yuanhang Zhang, Mohammadreza Mousaei, Jiahe Xu,
+Junyi Geng, Sebastian Scherer and Guanya Shi
+Equal contribution, Alphabetical order
+Robotics Institute, Carnegie Mellon University, Pittsburgh, PA 15213 USA
+Department of Aerospace Engineering, Pennsylvania State University, University Park, PA 16802 USA
+AbstractAerial manipulation has recently attracted increas-
+ing interest from both industry and academia. Previous ap-
+proaches have demonstrated success in various specific tasks.
+often tightly coupled with task specifications, limiting the de-
+velopment of cross-task and cross-platform algorithms. Inspired
+by the success of robot learning in tabletop manipulation,
+we propose a unified aerial manipulation framework with an
+end-effector-centric interface that decouples high-level platform-
+agnostic decision-making from task-agnostic low-level control.
+Our framework consists of a fully-actuated hexarotor with a
+4-DoF robotic arm, an end-effector-centric whole-body model
+predictive controller, and a high-level policy. The high-precision
+end-effector controller enables efficient and intuitive aerial tele-
+operation for versatile tasks and facilitates the development of
+imitation learning policies. Real-world experiments show that the
+proposed framework significantly improves end-effector tracking
+accuracy and can handle multiple aerial teleoperation and imita-
+tion learning tasks, including writing, peg-in-hole, pick and place,
+changing light bulbs, etc. We believe the proposed framework
+provides one way to standardize and unify aerial manipulation
+into the general manipulation community and to advance the
+field. Project website:  hand.
+I. INTRODUCTION
+Uncrewed Aerial Manipulators (UAMs), which target com-
+plex tasks at high altitudes , hold significant potential
+to reduce human labor in many elevated operations, such
+as changing light bulbs on tall towers, inspecting aircraft
+wings or turbine blades, and painting bridges, which are
+not only costly but also pose substantial risks to human
+safety. Previous works have demonstrated the ability to achieve
+different specific complex aerial manipulation tasks, including
+drawing calligraphy , grasping , perching , drilling
+, etc. However, most previous works have been tailored
+to specific tasks, developing unique platforms and algorithms
+tasks. In real-world scenarios, manipulation tasks can be com-
+plex and typically consist of multiple sub-tasks. For example,
+changing a light bulb can involve several motion primitives,
+including interaction, grasping, insertion, and rotation. This
+raises a requirement for a more general-purpose, versatile
+The proposed framework and system can accomplish multiple typical
+aerial manipulation tasks precisely and robustly, such as (a) writing 2025,
+(b) peg-in-hole, (c) pick-and-place, and (d) changing light bulbs.
+aerial manipulation system, which essentially requires a versa-
+tile aerial manipulation framework to handle multiple tasks.
+In robotic manipulation , the end-effector-centric (ee-
+centric) approach is widely used. It defines tasks and policies
+[31, 32] in Cartesian space instead of the specific robotic
+arm configuration space. By effectively decoupling high-level
+policies from low-level control, it enables the development
+of embodiment-agnostic policies , ,  and policy-
+agnostic low-level controllers , enhancing framework ver-
+capability . Although the end-effector-centric paradigm
+has shown the advantage of versatility in the manipulation
+nificant challenges due to the UAMs floating-base dynamics
+and the coupling effects between the UAV and the manipulator.
+In this work, inspired by the success of ee-centric interfaces
+in classic manipulation, we reformulate aerial manipulation
+from the manipulation perspective by proposing a versatile
+aerial manipulation framework with the ee-centric interface
+to address various aerial manipulation tasks. The framework
+consists of a versatile aerial manipulation platform capable
+of executing multiple tasks, a policy-agnostic controller that
+precisely tracks the target end-effector state, and an ee-centric
+policy module responsible for generating target end-effector
+states. Specifically, we develop a fully-actuated hexarotor with
+a 4 DoF robotic arm, providing a sufficiently large workspace
+and wrench space for diverse tasks. We then develop an ee-
+centric whole-body Model Predictive Controller (ee-centric
+MPC) that precisely tracks the target end-effector state, even
+in the presence of model uncertainties. Moreover, to bring hu-
+man cognitive skills into policy development and benefit from
+the ee-centric interface, we develop an ee-centric teleoperation
+interface and an imitation-learning-based framework to acquire
+autonomous policy learned from human demonstration. To the
+best of our knowledge, this is the first imitation learning-based
+framework for aerial manipulation. Real-world experiments
+show that the proposed framework achieves high-precision
+end-effector tracking and enables a wide range of aerial ma-
+nipulation tasks, including aerial writing, peg-in-hole, pick and
+demonstrates how this modular and standardized ee-centric
+framework effectively decouples the high-level policy from
+the low-level controller, which enables seamless integration of
+existing standard high-level policy modules from the broader
+manipulation community, such as teleoperation and imitation
+proposed framework provides a step toward standardizing and
+unifying aerial manipulation into the broader manipulation
+generalization.
+In summary, our contributions are:
+1) We reformulated the aerial manipulation problem within
+the unified manipulation paradigm, consisting of a UAM
+and a high-level policy.
+2) We developed an end-effector-centric whole-body MPC
+for aerial manipulation that precisely tracks the target end-
+effector state while maintaining robustness against distur-
+bances through L1 adaptation.
+3) We developed an ee-centric teleoperation system and an
+imitation-learning-based autonomous system that learns from
+human teleoperation demonstration.
+4) Rich real-world experiments demonstrated the versatility
+of the proposed framework, the effectiveness of the user-
+friendly teleoperation interface, and the potential to incorpo-
+rate learning-based policies and other manipulation policies.
+II. RELATED WORKS
+A. Aerial Manipulation
+There have been many research efforts exploring aerial ma-
+nipulation for various kinds of tasks . Based on the motion
+primitives they require, common aerial manipulation tasks
+can be categorized into: 1) Aerial Interaction, which requires
+maintaining contact with external objects, for tasks such as
+a target . Researchers mostly developed a point-contact arm,
+such as a rigid rod, and proposed the hybrid motion-force
+control framework, although achieving high-precision tracking
+2) Aerial Grasping , where previous works mainly focused
+on designing different custom end-effectors, such as claw
+or soft gripper . Some work also showed amazing
+specialized hardware designs. 3) Aerial Insertion. Typical work
+includes  where they proposed a specific hole searching
+policy for bolt screwing tasks, and  where they achieved
+mm-level peg-in-hole task; 4) Manipulate articulated objects
+such as doors , or valves . In general, although different
+works have shown success on different specific tasks, the
+specific system design and algorithm development make the
+same hardware and algorithm hard to deploy to different tasks,
+reducing its potential for practical long-horizon versatile aerial
+manipulation tasks. In our work, we target these four types of
+aerial manipulation tasks, developing a versatile framework to
+handle all of them.
+B. Mobile Manipulation Framework and EE-Centric Interface
+Combining a whole-body tracking controller with a high-
+level policy has shown promise in mobile manipulation sys-
+tems such as humanoids.  proposed a framework that
+consists of a robust humanoid whole-body controller with a
+high-level policy, either an autonomous agent like GPT-4o
+or an imitation learning policy learned from teleoperation.
+developed a system that consists of a transformer-based
+low-level control and imitation learning for humanoids.
+discussed the interface between high-level policy and low-level
+whole-body control supporting versatile interfaces. Beyond the
+explicit whole-body motion, some work extends the interface
+to latent variables and extends the whole-body control to a
+vision-motor manipulation policy.  proposed a hierarchical
+framework that consists of the understanding module, a pre-
+trained large visual-language model running in low-frequency,
+and the execution module, a visual-based action policy running
+in high-frequency. Gemini robotics , Helix , and Isaac
+GR00T N1  also adopted similar structures.
+Position
+Embeddings (fixed)
+Human Teleoperation
+EE states
+EE-Centric MPC
+Adaptation
+Hardware Platform
+EE-Centric Whole-body MPC
+Adaptation
+Imitation Learning
+EE-Centric Teleoperation and Policy Learning
+Base RGB
+Visualization
+Control Allocation
+The proposed end-effector-centric aerial manipulation framework includes the UAM platform, the ee-centric whole-body MPC, and the high-level
+policy including an ee-centric teleoperation interface, and an imitation learning-based framework using Action Chunk with Transformer (ACT) . The
+high-level policy, either the human teleoperation or learned autonomous policy, sends the target end-effector state to ee-centric MPC, which then generates
+motor commands for the UAM platform to execute.
+Defining tasks or commands using ee-centric approaches is
+widely adopted in general manipulation fields, as it is more
+intuitive and can be cross-embodiment. For example, Baberg
+et al.  developed a teleoperation interface to enable full
+control of the end-effector pose. The Universal Manipulation
+Interface   demonstrates a data-collection and policy-
+learning framework that allows direct skill transfer from in-
+the-wild human demonstrations to multiple robot embodi-
+ments. Their system employs a hand-held gripper and carefully
+designed hardware-agnostic policies, showcasing the potential
+for ee-centric solutions in multi-platform scenarios. Similarly,
+other mobile manipulation strategies, such as N2M2
+and HarmonicMM , reduced the operators burden
+by extracting feasible base motions from end-effector tra-
+jectories. However, these works generally remain limited to
+ground robots. Although several aerial manipulation studies
+have adopted end-effector-centric methods  , they pri-
+marily focused on developing controllers to track specified
+end-effector trajectories without a systematic framework that
+tackles various tasks comprehensively.
+In our work, we propose to adopt the two-layer hierar-
+chical system for aerial manipulation and propose a unified
+framework with the ee-centric interface for versatile aerial
+manipulation tasks.
+C. Teleportation and Imitation Learning
+Developing a robust and practical autonomous aerial manip-
+ulation policy is extremely challenging due to complex real-
+world environments and high precision and safety require-
+ments. Moreover, policies are typically designed to handle
+specific tasks and lack the generality to handle unexpected
+conditions. Therefore, teleoperation, which takes human effort
+into the loop for policy development, attracts researchers
+interest as a practical solution. For example,  developed
+the UAM with a fully actuated UAV with a 0 DoF arm
+and controlled the end-effector directly by teleoperation, but
+their method is highly coupled with the specific UAM design,
+and the system struggles with versatile tasks due to the
+workspace limitation. In most structured UAM teleoperation
+switch to different modes during different phases . Both
+of these increase the human teleoperators burden and require
+the teleoperator to have a rich understanding of the specific
+hardware system. Moreover, even if incorporated with human
+in different tasks and scenarios.
+icant potential for autonomous policy learning due to its
+high data efficiency, straightforward framework, and outstand-
+ing performance. Recent progress in both systems, such as
+ALOHA  and mobile ALOHA , and algorithms, such
+as ACT  and diffusion policy , have significantly
+facilitated the success of long-horizon, contact-rich, complex
+manipulation tasks. However, there is no precedent to incorpo-
+rate such IL-based policy into aerial manipulation fields due to
+the lack of a mature demonstration collection system, such as a
+well-developed teleoperation system, and the lack of a proven
+framework. In this work, we develop an intuitive teleoperation
+system using the ee-centric framework. It also helps to collect
+human demonstration data, enabling us to develop an imitation
+learning-based policy for autonomous aerial manipulation.
+III. SYSTEM OVERVIEW
+Our aerial manipulation system is designed to enable precise
+and versatile operations. The system incorporates an end-
+effector-centric (ee-centric) interface to decouple high-level
+decision-making from low-level control, increasing the frame-
+works versatility. As shown in Fig. 2, our system consists
+of an aerial manipulator platform, an ee-centric whole-body
+consists of a fully-actuated hexarotor and a 4 DoF robotic
+arm. The platform has a large enough workspace and wrench
+space for different tasks. A motion capture system and onboard
+IMUs are used for drone state estimation. The joint encoders
+are used to get arm joint angles, and the end-effector states
+are then calculated based on forward kinematics. The ee-
+centric whole-body MPC reads the end-effector state target
+from high-level policy and generates the reference trajectory
+and reference control for both the UAV and the robotic
+arm. An L1 online adaptation control term is designed to
+further improve the tracking performance. The UAV control
+commands are then sent to the control allocation to generate
+the motor commands for the UAV to execute. At the most high-
+and generates the target end-effector states online without the
+need to consider the specific platform jointly. We developed
+two high-level policy modules. The first is the ee-centric
+teleoperation interface that allows human users to directly
+control the end-effector pose. The second is an imitation
+learning framework, where we adopt Action Chunking with
+Transformers (ACT) , to learn autonomous policies from
+human teleoperation demonstrations. The following sections
+will introduce the developed modules accordingly.
+IV. HARDWARE DESIGN
+A. Fully-Actuated UAV
+The foundation of the system is a fully-actuated hexarotor
+UAV capable of independently generating six-dimensional
+forces and torques, based on our previous works
+. This capability allows precise control of position and
+manipulation tasks. The robust design ensures stability in
+dynamic environments while ensuring high-precision end-
+effector tracking. We use Tarot680 as the drone base, 6 KDE
+4215XF motors with 12-inch 2-blade propellers as our driving
+for on-board computation, and a customized PX4 autopilot for
+low-level flight control and information processing.
+B. Manipulator
+The UAV integrates a 4-DOF robotic manipulator optimized
+for versatile and precise task execution. The arm features three
+pitch joints and one roll joint, driven by Dynamixel XM540
+and XM430 servos. Its configuration allows high-precision
+operations. The system achieves whole-body manipulation
+capabilities by combining the UAVs actuation with the ma-
+The manipulator includes a modular end-effector, allowing
+interchangeable tools for specific tasks. For instance, a two-
+finger gripper with replaceable tips enables precision handling,
+while a circular gripper is ideal for changing light bulbs.
+C. Perception
+In this work, we mainly focus on the indoor environment,
+and we include a brief discussion about outdoor environment
+applications in Appendix B. We use both the motion capture
+system and the PX4 onboard IMU for drone state estimation.
+The motion capture system provides the UAVs position and
+UAM hardware system design, illustrating the key components:
+(1) fully-actuated hexarotor as the base structure, (2) 4 Dof manipulator, (3)
+Intel RealSense cameras for vision-based perception and feedback, and (4)
+end-effector gripper for object interaction. The frame notations in the right
+diagram represent the coordinate axes associated with the system.
+can be replaced with other localization methods, such as
+SLAM. The manipulator arm joint angles are estimated
+by the joint encoders, and the end-effector states are online
+calculated based on forward kinematics.
+To further improve drone perception for teleoperation and
+autonomous policy development, we equip the aerial manip-
+ulator with two RealSense RGBD cameras. One camera is
+mounted on the UAV base to capture a broad view of the
+entire workspace, while the other is positioned near the end-
+effector to deliver detailed close-up views of the target area.
+This dual-camera setup ensures teleoperators and vision-based
+policies can maintain precise control and situational awareness
+during complex manipulation tasks.
+V. SYSTEM MODELING
+A. Frames and Notation
+The frames depicted in the Fig 3 are defined as follows: FW
+is an inertial world frame with its z-axis opposite to the gravity
+the UAVs body at its center of gravity, with axes (xB, yB, zB)
+aligned with the UAV body frame. FD is the manipulator base
+the UAV. The transformation from FB to FD is defined by a
+constant translation pD R3 and a fixed orientation RD
+SO(3). FE is the end-effector frame with axes (xE, yE, zE),
+where xE is aligned with the roll axis of the 4th joint of
+the manipulator, while yE remains horizontal. Other symbols
+in the paper are listed in Table I for the convenience of the
+following discussion.
+B. Fully-Actuated UAV Dynamics
+A fully-actuated UAV is adopted as the base of the aerial
+torque independently. Let the generalized position of the UAV
+be represented as q  [p, RW
+B ], where p R3 represents
+the position of the UAV in the global coordinate frame, and
+SO(3) represents its orientation. The generalized
+velocity is denoted as v  [ p, ], where  R3 is the angular
+velocity.
+NOTATION OVERVIEW
+Dimension
+Description
+Inertia tensor
+UAV position expressed in FW and orien-
+tation between FB and FW
+Generalized velocity, expressed in FW
+Control wrench
+External disturbance wrench
+Gravity vector in FW
+End-effector position expressed in FW and
+orientation between FE and FW
+Current joint angles
+Commanded joint angles
+Joint servo disturbance
+DH parameter with the ith joint component
+[i, li, ai, i]T
+Joint motor delay constant
+The UAV dynamics can be formulated using Newton-Euler
+equations for rigid body motion as follows:
+M v  Cv  g    cxt
+with inertia matrix M R66, centrifugal and Coriolis term
+C R66, gravity wrench g R6, control wrench  R6
+from the UAM actuators, and unknown external wrench ext
+R6 from model mismatch and manipulator interaction.
+g  m diag
+where m is the vehicle mass, J is the moment of inertia
+at the vehicle center of mass in the body frame, gW
+[0, 0, g, 0, 0, 0]is the gravitational acceleration in FW , and
+[] is the skew-symmetric matrix associated with vector .
+C. Manipulator Kinematics
+In this work, the manipulator employs servos as joint
+rectly. Therefore, only the kinematics of the manipulator is
+considered in the system modeling. The interaction between
+the manipulator and the fully-actuated UAV is treated as a
+disturbance and is compensated in real-time using L1 adaptive
+control.
+We use the standard Denavit-Hartenberg (DH) convention
+to model the forward kinematics of our 4-DoF robotic
+arm. Under the DH formulation, the adjacent frame trans-
+formation T i1
+is characterized by four parameters i, di,
+three are pre-identified and fixed during robot movement.
+Define DH parameter i  [i, li, ai, i]R4. The frame
+TABLE II
+SYSTEM IDENTIFICATION RESULTS
+Mass Matrix M
+Motor Delay
+Joint 1 DH Param 1
+Joint 2 DH Param 2
+Joint 3 DH Param 3
+Joint 4 DH Param 4
+transformation from end-effector frame to arm base body
+frame can be written as
+Then the transformation from world frame to end-effector
+frame can be computed as follows:
+where T W
+can be obtained from UAV odometry and T B
+a fixed transformation between the manipulator base and the
+The accurate DH parameters are obtained through system
+identification. We collect motion data of the manipulator using
+a motion capture system and compute the DH parameters via
+least squares regression. The detailed parameter values are
+presented in Table II.
+D. Manipulator Motor Delay
+The servo motor dynamics are approximated as first-order
+systems to account for command-to-state delay. For the 4-DoF
+cmd R4 and actual joint angles  R4 is governed by:
+diag()     cmd  d
+where  R are the joint-specific time delay constants, and
+d R4 is the unknown disturbance in servo control. This
+formulation captures the transient response characteristics of
+each actuator. The motor delay coefficients  are identified
+alongside the DH parameters using least squares regression,
+with the results presented in Table II.
+VI. END-EFFECTOR-CENTRIC WHOLE-BODY CONTROL
+WITH ONLINE ADAPTATION
+Given the over-actuated nature of our system and the
+users primary focus on the end-effector motion, we employ
+model predictive control to regulate the end-effector trajectory.
+This approach enables whole-body coordination between the
+manipulator and the fully-actuated UAV, ensuring precise and
+efficient end-effector motion control. As discussed in previous
+the UAV is treated as the disturbance in the modeling stage,
+which introduces uncertainty in the nominal model used in
+the whole-body MPC. To mitigate the disturbances and model
+robust disturbance compensation and accurate tracking perfor-
+mance. The diagram of the control algorithm is illustrated in
+A. End-Effector-Centric Model Predictive Controller
+In the following, we describe the whole-body MPC frame-
+work used to optimize the end-effector reference trajectory.
+For the MPC formulation, we define the following state and
+control variables:
+We use the following error functions for the position of the
+the manipulator joint angle, respectively:
+ep  pE pr
+ev  v vr
+eu  u ur
+where ()is the vee-operator that extracts a vector from
+a skew-symmetric matrix and ()r represents the reference
+state values. The reference signals pr
+E and RW
+r are provided
+by a high-level teleoperation command or derived from an
+imitation learning policy. Manipulator default joint angle r is
+where  is the current joint states.
+The MPC formulation minimizes a cost function over a
+finite time horizon H while subject to system dynamics and
+uopt  arg min
+Le(xH, xr
+Lr(xn, xr
+xn1  fdyn(xn, n)
+ulb u uub
+Eq. (10a) defines the optimization objective, where H repre-
+sents the discrete prediction horizon. The stage and terminal
+given by e
+i Qiei, where ei {ep, eR, ev, e, eu}. The gain
+matrices Qi are positive definite and tuned experimentally to
+balance precision and robustness.
+Eq. (10b) enforces the discrete-time system dynamics, incor-
+porating the fully actuated UAV dynamics Eq. (1), manipulator
+kinematics Eq. (6), and joint servo dynamics Eq. (7). The
+continuous system dynamics are discretized using a fourth-
+order Runge-Kutta (RK4) integration scheme to maintain
+numerical stability and accuracy. Disturbances ext and d
+are ignored in the MPC formulation and solving process, but
+will be handled in the following Section VI-B via online L1
+adaptation.
+Eq. (10c) introduces state constraints, where x represents
+the latest state estimate. The feasible state space X is defined
+manipulator does not collide with the UAV structure. 2) Envi-
+ronment collision constraints: preventing the UAV contact with
+external obstacles. 3) Safety constraints: including velocity
+limits and joint angle restrictions to ensure safe operation.
+Eq. (10d) imposes actuation limits on the aerial manipulator,
+where ulb and uub define the lower and upper bounds of the
+control inputs.
+The end-effector centric whole-body MPC formulation is a
+general framework that can adapt to various vehicle types and
+can extend to systems with multiple end-effectors. The control
+to specific vehicle and manipulator configurations, ensuring
+flexibility across different aerial manipulation systems.
+B. L1 Online Adaptation
+As discussed in previous sections, the complex interac-
+tion between the manipulator and the UAV is treated as
+the disturbance, which introduces uncertainty in the nominal
+model used in the whole-body MPC. Such model uncertain-
+ties are typically bounded, and prior knowledge about their
+characteristics is usually available [40, 23]. To mitigate the
+disturbances and model uncertainties, we integrate the L1
+adaptive controller, ensuring robust disturbance compensation
+and accurate tracking performance.
+We adopt the L1 adaptive controller from [53, 29] in both
+the fully-actuated UAV motion control and the manipulator
+joint angle tracking control, to compensate the disturbance ext
+in Eq. (1) and d in Eq. (7).
+The adaptation law is designed by
+M v  C v  g    ext  Av(v v)
+ext  (eAvdt I66)1AveAvdt(v v)
+ext low pass filter(ext,
+where v R6 denotes the estimated UAV velocity, Av is
+a Hurwitz matrix, dt is the discretization step length, and
+ext R6 encapsulates the unknown wrench disturbances.
+Here Eq. (11a) is a velocity estimator and Eq. (11b) and Eq.
+(11c) update and filter the disturbance ext.
+puted as
+mpc  ext
+joint angles is formulated to compensate for dynamic distur-
+bances and model uncertainties:
+diag()     cmd  d  Ad( ),
+d  (eAddt I44)1AdeAddt( ),
+d low pass filter( d, d).
+where  is the estimated joint state, and the disturbance
+term d R4. Thus, the final joint control command ,
+incorporating the adaptive disturbance compensation, is given
+VII. EE-CENTRIC TELEOPERATION AND POLICY
+LEARNING
+As we mentioned, our framework enables the decoupling
+between the high-level policy and low-level controller, with
+the ee-centric interface serving as the sole connection between
+them. This allows the policy to be embodiment-agnostic,
+eliminating the need to consider low-level tracking control. In
+this section, we introduce two aerial manipulation systems we
+developed based on this framework: the ee-centric aerial tele-
+operation system and the imitation-learning-based autonomous
+aerial manipulation system.
+A. EE-Centric Aerial Teleoperation
+We developed an aerial manipulation teleoperation system
+with the ee-centric interface, allowing the operator to focus
+solely on controlling the target end-effector pose, as if they
+have complete control of a freely moving hand in 3D space.
+Robotic teleoperation requires bidirectional communication
+between the user and the robot. For the user-to-robot com-
+control the end-effector position pEr and orientation RW
+with buttons and joysticks.
+For robot-to-user communication, different from tabletop
+and mobile manipulation settings, users in aerial manipulation
+settings often lack direct visual access to the workspace,
+making it necessary to rely on onboard perception systems.
+In our work, we address this limitation by providing real-
+time visualization of RGB images captured from cameras
+mounted on both the end-effector and the base of the UAM.
+These images are displayed on monitors for continuous user
+observation. Further enhancing teleoperation efficacy, we have
+found it crucial to also visualize the users inputs directly. To
+this end, we render the commanded target end-effector pose
+trajectories in real-time within 3D world frame plots. This
+dual approach of visual feedback not only improves spatial
+awareness but also significantly enhances user performance in
+teleoperation tasks.
+B. EE-Centric Policy Learning
+To establish the autonomous aerial manipulation policy
+for versatile tasks, we develop an ee-centric policy learning
+framework based on imitation learning. Specifically, we adopt
+Action Chunk with Transformer (ACT) as the network struc-
+ture . ACT utilizes a Conditional Variational Autoencoder
+(CVAE) where the encoder compresses action sequences and
+joint observations into a latent style variable. The transformer-
+based decoder generates action sequences from the latent
+variable (only during training and set to be the mean of the
+prior during testing), current joint observations, and encoded
+image features. The action chunking mitigates compounding
+errors and enhances the models ability by predicting multiple
+future actions at once.
+In this work, the ACT policy as well as policy observation
+and action are defined as follows:
+where  denotes the ACT policy and  is the network
+parameter. IB, IE are RGB images from the base camera and
+the end-effector camera, each with 640  480 resolution. K
+is the chunking size. pE, RW
+r denote the current
+and target UAM position and orientation, respectively. We use
+ResNet-18 as the backbone to encode the RGB images before
+inputting them into the transformer encoder. The flowchart of
+the algorithm implementation is illustrated in Fig. 2.
+VIII. EXPERIMENTS
+To validate the effectiveness of our proposed framework,
+we conduct a series of experiments focusing on end-effector
+trajectory tracking, aerial teleoperation, and policy learning for
+autonomous aerial manipulation1. We first assess whether the
+proposed whole-body MPC with L1 adaptation approach en-
+hances trajectory tracking accuracy. Additionally, we evaluate
+how the ee-centric interface facilitates intuitive and precise
+execution in a series of teleoperation tasks. Finally, we inves-
+tigate whether the high-quality teleoperation demonstrations
+can be leveraged to train imitation learning-based policies for
+autonomous aerial manipulation in both simulation and real-
+world environments.
+A. Experimental Setup
+1) Trajectory Tracking Task Setup: To show the effective-
+ness of our proposed method in end-effector trajectory tracking
+against two baseline approaches:
+w.o. MPC: This baseline replaces the ee-centric MPC
+with the Direct Force Feedback Control(DFFC) method
+eration based on the current reference pose. However, it
+lacks a prediction horizon to account for future trajecto-
+w.o. L1: This baseline excludes the L1 adaptive com-
+interactions and modeling uncertainties uncompensated
+during control execution.
+We conduct experiments with three types of reference
+trajectories for the end-effector, each lasting 60 seconds. The
+setpoint trajectory requires the aerial manipulator to keep the
+end-effector hovering at a fixed position pE  [0.0, 0.0, 1.3].
+The ellipse trajectory requires tracking a sinusoidal trajectory
+defined as pE  [0.5 sin(0.3t), 0.0, 1.40.2 sin(0.3t0.75)].
+The figure-8 trajectory requires tracking a trajectory pE
+1Please check out our project page for more visualization videos: https:
+lecar-lab.github.ioflying hand.
+TABLE III
+CONTROLLER PARAMETERS
+Horizon Length T
+Horizon Steps N
+State Cost Qp
+Rotation Cost QR
+Velocity Cost Qv
+Joint Angle Cost Q
+Control Cost Qu
+[0.1  0.6 sin(0.3t), 0.0, 1.35  0.25 sin(0.6t)]. The maximum
+velocity in the reference trajectory is about 0.2 ms. The pitch,
+zero during the tracking. Root Mean Square Error (RMSE)
+is used as the tracking performance evaluation criterion. Each
+trajectory is repeated three times to compute the mean and
+standard deviation.
+2) Aerial Manipulation Task Setup: We conducted a series
+of experiments to evaluate the capabilities and applications
+of our aerial manipulation system. We select different typical
+tasks from each category we discussed in Sec. II-A, including:
+Aerial Writing: Drawing a target shape (the digit
+2025) on a vertical wall, with an overall size of approxi-
+mately 3m0.8m. This task required precise specification
+and tracking of the end-effector pose trajectory while
+maintaining stable contact with the surface.
+Aerial Peg-in-Hole: Inserting a 20 mm diameter pole
+into a 50 mm diameter hole positioned around 150 cm
+above the ground.
+Rotate Valve: Manipulating the articulated valve by
+grasping its handle and rotating it along a 20 cm diameter
+Aerial Pick and Place: Grasping and placing various
+objects with different shapes and sizes, including the
+Unmount Light Bulb: Grasping a mounted light bulb
+and unscrewing it from the socket.
+Mount Light Bulb: A long horizon task that requires a
+sequence of motion, including inserting a light bulb into
+a socket, screwing it in, and subsequently turning it on
+by pressing the button.
+For different tasks, different end-effectors are adopted, in-
+cluding the parallel jaw gripper for the pick and place and
+peg-in-hole task, a passive elastic claw for grasping the light
+B. Implementation Details
+The optimal control problem in the ee-centric MPC is
+implemented using ACADOS  with a 25ms discretisation
+step and a 2.5s constant prediction horizon, running in 100
+control output is executed in a receding horizon style, where
+at each iteration, only the first control input u0 is applied to
+the system.
+Since both the L1 adaptive controller and the MPC con-
+troller require accurate system modeling fdyn to achieve ef-
+fective control performance, we perform system identification
+to estimate uncertain parameters shown in Table II. We excite
+the system with two types of motions. First, arm motion-only
+trajectories are executed while keeping the UAV stationary to
+calibrate the DH parameters  and joint servo delay . These
+trajectories ensure that the manipulator kinematic parameters
+and joint motor dynamics accurately reflect the actual manip-
+ulator motion response. Second, UAV free-flight trajectories
+are conducted to identify the drone dynamics described in Eq.
+C. Experiment I: Control Performance
+Table IV shows the comparison of our approach against
+w.o. MPC and w.o. L1 baselines in three types of reference
+end-effector trajectories. The results show that our proposed
+method achieves the lowest tracking error, with approximately
+1 cm in hover and 4 cm during motion. In contrast, the baseline
+w.o. L1 exhibits 1.3 cm and 6.5 cm, respectively, while the
+baseline w.o. MPC performs the worst, with 2 cm in hover
+and 8 cm in motion. As shown in Fig. 4, compared with our
+method (blue), the baseline w.o. L1 (green) exhibits overshoot
+in the X and Z axes and bias in Y, indicating that the L1
+controller effectively mitigates both transient and steady-state
+errors caused by model uncertainties. The baseline w.o. MPC
+(orange) suffers from significant motion lag, as DFFC fails
+to account for trajectory feedforward. Fig. 5 depicts the error
+distribution for all trajectories using the proposed methods and
+two baselines, showing that our method achieves the smallest
+and most centered error, whereas the L1 baseline exhibits
+steady-state errors and the MPC baseline displays a broader
+error spread due to dynamic lag. These results confirm the
+effectiveness of our proposed control scheme.
+To further analyze the contribution of the L1 adaptive con-
+and interaction disturbance, we visualized the base external
+wrench ext measured from motion capture by numerical dif-
+ferentiation and the estimated wrench ext from L1 adaptation.
+The interaction force is within 5 N and the torque within
+1.4 Nm. Fig. 8 shows disturbances along the base x (red),
+z (blue) and pitch (green), respectively. The disturbances
+and model uncertainties primarily arise from arm motions,
+inaccurate thrust gain, and hovering thrust bias. Shaded areas
+indicate obvious interaction torque in base pitch resulting from
+arm motion. The results demonstrate that the L1 adaptive
+controller accurately compensates for base disturbances, ef-
+fectively mitigating the impact of model mismatch.
+We also investigate the contribution of arm flexibility to end-
+effector tracking performance by increasing the arm control
+cost 5 times. Fig. 6a Slow-Arm results show a 35 larger end-
+effector tracking error when arm flexibility is restricted, with
+a more oscillating end-effector trajectory (Fig. 6c) compared
+to the MPC with flexible arm (Fig. 6b). This aligns with
+the intuition that higher arm flexibility improves end-effector
+TABLE IV
+END-EFFECTOR TRAJECTORY TRACKING PERFORMANCE
+RMSE (cm)
+Setpoint
+Figure-8
+Our Method
+w.o. L1 Adaptation
+w.o. MPC
+Time [s]
+w.o. MPC
+End-effector tracking performance of aerial manipulator in Ellipse
+trajectory. Tracking results indicate that the w.o. MPC baseline exhibits
+significant tracking lag, while the w.o. L1 baseline suffers from static tracking
+errors due to model mismatches.
+tracking performance, as the arm typically responds faster than
+the drone base.
+Despite the high tracking performance of the proposed
+altitudes (around 1m), likely due to unmodeled ground and
+wall effect disturbances. Additionally, oscillations in the end-
+effector trajectory are observed across all methods. We notice
+servo backlash (around 0.5dead zone), which results in a
+2 cm control dead zone in the end-effector task space, lim-
+iting tracking precision during fast UAV maneuvers. Further
+w.o. MPC
+Error Range [cm]
+w.o. MPC
+w.o. MPC
+End-effector tracking error distribution for three types of trajectories
+using our methods and two baselines.
+Slow-Arm
+EE Tracking Error [cm]
+Slow Arm
+Arm flexibility ablation study for MPC controller.
+Figure-8
+w.o. MPC
+Comparison of Figure-8 and Ellipse trajectory tracking performance
+across three methods. Our approach achieves the lowest tracking error in
+dynamic trajectory tracking tasks.
+improvements can be achieved through more accurate system
+modeling and higher-precision hardware to enhance tracking
+accuracy.
+D. Experiment II: Aerial Teleoperation
+the proposed teleoperation system by targeting aerial writing,
+rotating the valve, aerial pick and place, unmount, and mount
+light bulb tasks. As shown in Fig. 10 and Fig. 11, human
+teleoperators can easily achieve all aerial manipulation tasks
+with little learning and operation cost. One key success factor
+we attribute is the ee-centric interface, which reduces human
+effort and improves the quality of teleoperation data for future
+policy learning.
+In a subsequent experiment, we evaluate the benefits of di-
+rectly controlling the end-effectors pose using our framework
+against controlling each degree of freedom (DoF) for UAVs
+and robotic arms  in a simulated peg-in-hole task. The
+teleoperation command trajectories are illustrated in Fig. 9a.
+Direct control of the end-effector allowed operators to issue
+more fluid command trajectories, significantly enhancing the
+precision of end-effector movements and decreasing the time
+required to complete the task.
+Arm Angles [deg]
+Time [s]
+Force Dist [ms]
+Torque Dist [rads]
+(a). Arm joint angles (b). Disturbance ext and L1 disturbance
+estimation ext of x, z, and pitch.
+Peg-in-hole Target
+EE Control
+Joint Control
+Start Point
+EE Control
+Joint Control
+Start Point
+Pick up Region
+Place Point
+(a). End-effector command trajectory using the ee-centric teleopera-
+tion interface and full-DoF teleoperation interface, in a simulated peg-in-hole
+task. (b). End-effector command trajectory of the learned autonomous policy
+during 50 test trials using the ee-centric interface and using the full-DoF
+E. Experiment III: Learning from Demonstration
+1) Simulation Experiments: We first demonstrate our learn-
+ing from demonstration framework in Mujoco  simulator
+with four tasks: (i) peg-in-hole, (ii) rotate valve, (iii) pick and
+place and (iv) open and retrieve, as shown in Fig. 12 (a). To
+collect demonstrations, we use a scripted policy for each task.
+Every episode of the scripted policy lasts about 12 seconds
+for each task. We collect 50 episodes for each task. Note that
+Valve Rotate
+Pick and Place
+Aerial Writing
+Fig. 10.
+Aerial Teleoperation Manipulation Tasks. We target 1) Aerial
+IMITATION LEARNING SIMULATION SUCCESS RATE
+Rotate Valve Pick  Place Peg in Hole Open  Retrieve
+Joint Space
+with our ee-centric interface, we do not consider any joint
+configuration when collecting demonstrations, which allows us
+to efficiently collect smooth demonstrations without tediously
+adjusting each joint position to complete the task. Our ACT
+policy for each task in the simulation is trained with the action
+chunk size of 100 and limited 5000 epochs. More details on
+implementation are included in Appendix A. After training,
+we choose the policy with the least validation loss to perform
+50 evaluation trials. The evaluation result is shown in Table V.
+To show the advantage of learning from an ee-centric
+demonstration compared to a joint space demonstration, we
+use the same demonstration trajectory but change the obser-
+vation and action to be in UAM configuration space, i.e., the
+UAV position and orientation, and each joint angle of the
+robotic arm. After that, we train a joint space ACT policy
+with the same training setting as the ee-centric ACT policy,
+except that the end-effector pose in the observation and action
+space is replaced by the drone base pose and full manipulator
+joint angles. Their success rate comparison is summarized in
+Table V. It shows that with limited 5000 training epochs, ee-
+centric policy outperforms the joint space policy in challenging
+tasks including pick and place, peg in hole, and open and
+retrieve. As illustrated in Fig. 9b, the ee-centric policy targets
+the pickup region and the place point more precisely, while
+the joint space policy is more prone to generate wrong targets.
+tary insights:
+Geometric Precision Advantage: Our ee-centric policy
+achieves 2.5 higher success rate in geometrically sensi-
+tive peg in hole task, directly benefiting from task-space
+supervision that eliminates the accumulated end-effector
+error from the joint space.
+Multi-Skill Composition: In the open and retrieve task,
+our ee-centric policy achieves 2 higher success rate than
+the joint space policy, which demonstrates its inherent
+advantages in multi-skill decomposition and execution.
+2) Real-world Experiments: We adopt the aerial peg-in-
+hole task to demonstrate our capability to derive an au-
+tonomous policy from human demonstrations for aerial manip-
+ulation in the real world. The task configurations are illustrated
+in Fig. 13 and Fig. 14.
+We collected 25 episodes of demonstration data via human
+episode taking approximately 2 minutes, culminating in a total
+of around 50 minutes of operational data and about 2 hours
+of wall-clock time. The data is downsampled to 10 Hz, and
+the action chunk size is empirically set to 100 during the
+Detaching Light Bulb
+Mounting Light Bulb
+Fig. 11.
+Long horizon aerial teleoperation light bulb changing task. UAM grasps the light bulb and unscrews it during the first flight. And it inserts, screws
+a new light bulb, and presses the button to turn on the light during the second flight.
+Fig. 12.
+Task setup in Mujoco simulation, including (a) Peg-in-Hole; (b)
+Rotate the Valve; (c) Pick and Place; and (d) a long horizon Open and Retrieve
+training process. After training through 100,000 epochs, the
+policy with the least validation loss is selected. We tested
+with random unseen horizontal hole positions and the learned
+policy successfully completed 4 out of 5 real-world peg-in-
+hole tests, i.e., 80 successful rate. The UAM pushed the
+peg forward to the edge of the hole and didnt insert it inside
+successfully. These results underline the potential of learning-
+based approaches in aerial manipulation under our developed
+recovery policies, especially for aerial manipulation.
+F. Discussion
+The experiments demonstrate our framework in end-effector
+trajectory tracking, aerial teleoperation, and policy learning
+for autonomous aerial manipulation. The precise end-effector
+control framework demonstrated superior end-effector track-
+ing accuracy with minimal error. The high-precision control
+enables efficient, user-friendly aerial teleoperation, allowing
+human operators to perform multiple complex tasks, which
+also helps high-quality demonstration data collection. Lever-
+aging the ee-centric framework, advanced high-level policies
+such as imitation learning can be easily incorporated into aerial
+IX. LIMITATIONS
+Although we have demonstrated the proposed framework
+through various real-world experiments, there are still sev-
+eral limitations due to time constraints and methodological
+limitations. First, all of our experiments were conducted
+indoors within a motion capture system, where we achieved
+millimeter-level state estimation of the UAV and end-effector
+states using forward kinematics. This setup limits its practical
+application in real-life scenarios. Second, the current safety
+constraints are predefined. Incorporating onboard perception
+to detect obstacles and generate safety constraints in real-time
+will be our next step, as various studies have demonstrated
+the feasibility of UAV collision-free flight. Third, the current
+performance is limited by the robotic arm actuators, which
+have relatively large backlash and would generate unavoidable
+vibrations. Finally, although the proposed framework, which
+decouples different modules, demonstrates the potential for
+cross-platform compatibility and integration with general ma-
+nipulation fields, more real-world experiments are planned to
+be conducted to further validate its effectiveness.
+X. CONCLUSION
+This work presents a unified end-effector-centric aerial ma-
+nipulation framework for versatile aerial manipulation tasks.
+Our system includes a versatile hardware platform that con-
+sists of a fully actuated UAV and a 4-DOF manipulator, an
+Fig. 13.
+Autonomous aerial manipulation peg-in-hole policy experiment. The UAM inserts the peg precisely, highlighting both the accuracy of the learned
+policy and the low-level controller.
+We collected demonstration data with varying hole positions
+We tested on random hole positions (unseen in training)
+Fig. 14.
+Task scenario randomization for peg-in-hole data collection and
+ee-centric whole-body MPC to ensure precise end-effector
+oped both an intuitive teleoperation system and an imitation
+learning-based autonomous system. Through extensive real-
+world experiments, we demonstrated the systems versatility
+across various aerial manipulation tasks, including writing,
+replacement. More importantly, we demonstrate how this
+modular and standardized ee-centric framework effectively
+decouples the high-level policy from the low-level controller,
+which enables seamless integration of existing standard high-
+level policy modules from the broader manipulation commu-
+field of aerial manipulation. The proposed framework achieved
+high precision, adaptability, and robust performance, making
+it a significant step toward standardizing aerial manipulation
+within the broader manipulation field. Future work will extend
+the frameworks applicability to outdoor environments, incor-
+porate onboard perception for obstacle avoidance, and further
+improve the end-effector tracking performance.
+ACKNOWLEDGMENTS
+This research is partially sponsored by the CMU Manu-
+facturing Futures Institute (MFI). Any opinions, conclusions,
+or recommendations expressed in this paper are those of the
+authors and do not necessarily reflect the views of the MFI.
+REFERENCES
+Mike Allenspach, Nicholas Lawrance, Marco Tognon,
+and Roland Siegwart.
+Towards 6dof bilateral teleop-
+eration of an omnidirectional aerial vehicle for aerial
+physical interaction. In 2022 International Conference
+on Robotics and Automation (ICRA), pages 93029308.
+Johan Bjorck, Fernando Castaneda, Nikita Cherniadev,
+Xingye Da, Runyu Ding, Linxi Fan, Yu Fang, Dieter Fox,
+Fengyuan Hu, Spencer Huang, et al. Gr00t n1: An open
+foundation model for generalist humanoid robots. arXiv
+preprint arXiv:2503.14734, 2025.
+Karen Bodie, Maximilian Brunner, Michael Pantic, Ste-
+fan Walser, Patrick Pfandler, Ueli Angst, Roland Sieg-
+An omnidirectional aerial ma-
+nipulation platform for contact-based inspection. arXiv
+preprint arXiv:1905.03502, 2019.
+Karen Bodie, Maximilian Brunner, Michael Pantic, Ste-
+fan Walser, Patrick Pfandler, Ueli Angst, Roland Sieg-
+for contact-based inspection with a fully actuated aerial
+vehicle. IEEE Transactions on Robotics, 37(3):709722,
+Karen Bodie, Marco Tognon, and Roland Siegwart. Dy-
+namic end effector tracking with an omnidirectional par-
+allel aerial manipulator. IEEE Robotics and Automation
+Maximilian Brunner, Livio Giacomini, Roland Siegwart,
+and Marco Tognon. Energy tank-based policies for robust
+aerial physical interaction with moving objects. In 2022
+International Conference on Robotics and Automation
+(ICRA), pages 20542060. IEEE, 2022.
+Maximilian Brunner, Giuseppe Rizzi, Matthias Studiger,
+Roland Siegwart, and Marco Tognon. A planning-and-
+control framework for aerial manipulation of articulated
+objects.
+IEEE Robotics and Automation Letters, 7(4):
+Fredrik Baberg, Yuquan Wang, Sergio Caccamo, and Pet-
+ter Ogren. Adaptive object centered teleoperation control
+of a mobile manipulator.
+In 2016 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau,
+Yilun Du, Benjamin Burchfiel, Russ Tedrake, and Shuran
+Song. Diffusion policy: Visuomotor policy learning via
+action diffusion. The International Journal of Robotics
+Cheng Chi, Zhenjia Xu, Chuer Pan, Eric Cousineau,
+Benjamin Burchfiel, Siyuan Feng, Russ Tedrake, and
+Shuran Song. Universal manipulation interface: In-the-
+wild robot teaching without in-the-wild robots, 2024.
+Andre Coelho, Yuri Sarkisov, Xuwei Wu, Hrishik Mishra,
+Harsimran Singh, Alexander Dietrich, Antonio Franchi,
+Konstantin Kondak, and Christian Ott.
+Whole-body
+teleoperation and shared control of redundant robots with
+applications to aerial manipulation. Journal of Intelligent
+Robotic Systems, 102:122, 2021.
+Jacques Denavit and Richard S Hartenberg. A kinematic
+notation for lower-pair mechanisms based on matrices.
+Caiwu Ding, Lu Lu, Cong Wang, and Caiwen Ding.
+for aerial drilling and screwing.
+IEEE Robotics and
+Automation Letters, 6(2):31763183, 2021.
+Yanming Feng, Jinling Wang, et al. Gps rtk performance
+characteristics and analysis. Positioning, 1(13), 2008.
+Figure AI. Helix: A vision-language-action model for
+generalist humanoid control.
+Joshua Fishman, Samuel Ubellacker, Nathan Hughes, and
+Luca Carlone. Dynamic grasping with a soft drone:
+From theory to practice. In 2021 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 42144221. IEEE, 2021.
+Zipeng Fu, Qingqing Zhao, Qi Wu, Gordon Wet-
+owing and imitation from humans.
+arXiv preprint
+Zipeng Fu, Tony Z. Zhao, and Chelsea Finn.
+cost whole-body teleoperation, 2024. URL
+orgabs2401.02117.
+Xiaofeng Guo, Guanqi He, Mohammadreza Mousaei,
+Junyi Geng, Guanya Shi, and Sebastian Scherer. Aerial
+interaction with tactile sensing. In 2024 IEEE Interna-
+tional Conference on Robotics and Automation (ICRA),
+pages 15761582. IEEE, 2024.
+Xiaofeng Guo, Guanqi He, Jiahe Xu, Mohammadreza
+Shi. Flying calligrapher: Contact-aware motion and force
+planning and control for aerial manipulation.
+Robotics and Automation Letters, 2024.
+Huy Ha, Yihuai Gao, Zipeng Fu, Jie Tan, and Shuran
+Song. Umi on legs: Making manipulation policies mobile
+with manipulation-centric whole-body controllers, 2024.
+Guanqi He, Yash Jangir, Junyi Geng, Mohammadreza
+based visual servo control for aerial manipulation using
+a fully-actuated uav.
+In 2023 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 50425049. IEEE, 2023.
+Guanqi He, Yogita Choudhary, and Guanya Shi. Self-
+supervised meta-learning for all-layer dnn-based adap-
+tive control with stability guarantees.
+arXiv preprint
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian
+Sun. Deep residual learning for image recognition. In
+Proceedings of the IEEE conference on computer vision
+and pattern recognition, pages 770778, 2016.
+Tairan He, Zhengyi Luo, Xialin He, Wenli Xiao, Chong
+Guanya Shi. Omnih2o: Universal and dexterous human-
+to-humanoid whole-body teleoperation and learning.
+arXiv preprint arXiv:2406.08858, 2024.
+Tairan He, Wenli Xiao, Toru Lin, Zhengyi Luo, Zhenjia
+Xiaolong Wang, et al.
+body controller for humanoid robots.
+arXiv preprint
+Daniel Honerkamp, Tim Welschehold, and Abhinav Val-
+ada. Learning kinematic feasibility for mobile manipula-
+tion through deep reinforcement learning. IEEE Robotics
+and Automation Letters (RA-L), 2021.
+Daniel Honerkamp, Tim Welschehold, and Abhinav Val-
+manipulation motions in unseen and dynamic environ-
+IEEE Transactions on Robotics, 2023.
+Kevin Huang, Rwik Rana, Alexander Spitzer, Guanya
+tracking for quadrotor control. In Conference on Robot
+Jialin Ji, Tiankai Yang, Chao Xu, and Fei Gao. Real-
+time trajectory planning for aerial perching.
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 1051610522. IEEE, 2022.
+Oussama Khatib.
+A unified approach for motion and
+force control of robot manipulators: The operational
+space formulation.
+IEEE Journal on Robotics and
+Oliver Kroemer, Scott Niekum, and George Konidaris. A
+review of robot learning for manipulation: Challenges,
+Journal of machine
+learning research, 22(30):182, 2021.
+Christian Lanegger, Marco Ruggia, Marco Tognon, Li-
+onel Ott, and Roland Siegwart. Aerial layouting: Design
+and control of a compliant and actuated end-effector for
+precise in-flight marking on ceilings.
+Proceedings of
+Frank L Lewis, Darren M Dawson, and Chaouki T Ab-
+dallah. Robot manipulator control: theory and practice.
+CRC Press, 2003.
+Matthew T Mason. Toward robotic manipulation. Annual
+Review of Control, Robotics, and Autonomous Systems,
+Daniel Mellinger, Quentin Lindsey, Michael Shomin,
+and Vijay Kumar.
+control for aerial grasping and manipulation.
+IEEERSJ International Conference on Intelligent Robots
+and Systems, pages 26682673. IEEE, 2011.
+Jiawei Meng, Joao Buzzatto, Yuanchang Liu, and Minas
+Liarokapis. On aerial robots with grasping and perch-
+ing capabilities: A comprehensive review. Frontiers in
+Robotics and AI, 8:739173, 2022.
+Gabriele Nava, Quentin Sable, Marco Tognon, Daniele
+Direct force feedback
+control and online multi-task optimization for aerial
+manipulators.
+IEEE Robotics and Automation Letters,
+Alejandro
+Dongjun Lee, and Antonio Franchi. Past, present, and
+future of aerial robotic manipulators. IEEE Transactions
+on Robotics, 38(1):626645, 2021.
+Michael OConnell, Guanya Shi, Xichen Shi, Kamyar
+Soon-Jo Chung.
+Neural-fly enables rapid learning for
+agile flight in strong winds.
+Science Robotics, 7(66):
+William RT Roderick, Mark R Cutkosky, and David
+Lentink.
+Bird-inspired dynamic grasping and perch-
+ing in arboreal environments. Science Robotics, 6(61):
+Micha Schuster, David Bernstein, Paul Reck, Salua
+screwing with a fully actuated aerial manipulator.
+2022 IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 33403347, 2022. doi:
+Shuran Song, Andy Zeng, Johnny Lee, and Thomas
+Funkhouser. Grasping in the wild: Learning 6dof closed-
+loop grasping from low-cost demonstrations.
+Robotics and Automation Letters, 5(3):49784985, 2020.
+Yao Su, Jiarui Li, Ziyuan Jiao, Meng Wang, Chi Chu,
+Hang Li, Yixin Zhu, and Hangxin Liu.
+Sequential
+manipulation planning for over-actuated unmanned aerial
+manipulators. In 2023 IEEERSJ International Confer-
+ence on Intelligent Robots and Systems (IROS), pages
+Alejandro Suarez, Victor M Vega, Manuel Fernandez,
+Guillermo Heredia, and Anibal Ollero. Benchmarks for
+aerial manipulation.
+IEEE Robotics and Automation
+Gemini Robotics Team, Saminda Abeyruwan, Joshua
+preprint arXiv:2503.20020, 2025.
+Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+open-source generalist robot policy.
+arXiv preprint
+Emanuel Todorov, Tom Erez, and Yuval Tassa.
+2012 IEEERSJ International Conference on Intelligent
+Robots and Systems, pages 50265033, 2012.
+Dimos Tzoumanikas, Felix Graule, Qingyue Yan, Dhruv
+manipulation using hybrid force and position nmpc ap-
+plied to aerial writing. arXiv preprint arXiv:2006.02116,
+Samuel Ubellacker, Aaron Ray, James M. Bern, Jared
+High-speed aerial grasp-
+ing using a soft drone with onboard perception.
+Gianluca
+Dimitris
+Jonathan
+Andrea Zanelli, Branimir Novoselnik, Thivaharan Albin,
+Rien Quirynen, and Moritz Diehl. acados  a modular
+open-source
+framework
+embedded
+control.
+Mathematical Programming Computation,
+Meng Wang, Zeshuai Chen, Kexin Guo, Xiang Yu,
+Youmin Zhang, Lei Guo, and Wei Wang. Millimeter-level
+pick and peg-in-hole task achieved by aerial manipulator.
+IEEE Transactions on Robotics, 2023.
+Zhuohuan Wu, Sheng Cheng, Kasey A. Ackerman,
+Aditya Gahlawat, Arun Lakshmanan, Pan Zhao, and
+Naira Hovakimyan. L1adaptive augmentation for geo-
+metric tracking control of quadrotors. In 2022 Interna-
+tional Conference on Robotics and Automation (ICRA),
+Jonathan Yang, Catherine Glossop, Arjun Bhorkar,
+Dhruv Shah, Quan Vuong, Chelsea Finn, Dorsa Sadigh,
+and Sergey Levine.
+Pushing the limits of cross-
+embodiment learning for manipulation and navigation.
+arXiv preprint arXiv:2402.19432, 2024.
+Ruihan Yang, Yejin Kim, Rose Hendrix, Aniruddha Kem-
+Harmonic
+mobile manipulation, 2024.
+Grigoriy A Yashin, Daria Trinitatova, Ruslan T Agishev,
+Roman Ibrahimov, and Dzmitry Tsetserukou.
+Virtual reality-based teleoperation with tactile feedback
+for aerial manipulation.
+In 2019 19th International
+Conference on Advanced Robotics (ICAR), pages 767
+Jianke Zhang, Yanjiang Guo, Xiaoyu Chen, Yen-Jen
+transformers. arXiv preprint arXiv:2410.05273, 2024.
+centric lidar-visual-inertial estimator for challenging en-
+vironments. In 2021 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 8729
+Tony Z Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+Finn. Learning fine-grained bimanual manipulation with
+low-cost hardware.
+arXiv preprint arXiv:2304.13705,
+Tony Z. Zhao, Vikash Kumar, Sergey Levine, and
+Chelsea Finn.
+Learning fine-grained bimanual manip-
+ulation with low-cost hardware, 2023. URL
+orgabs2304.13705.
+APPENDIX
+A. Policy Learning Implementation Details
+For each task in the simulation, we randomize the task setup
+during each trial in training and test to evaluate the robustness
+of the policy, as shown in Table VI. The hyperparameters of
+the ACT are shown in Table VII. Those hyperparameters are
+used for both simulation and real-world experiments.
+TABLE VI
+TASK RANDOMIZATION SETTINGS
+Randomized
+Randomization range (m)
+peg-in-hole
+rotate valve
+pick and place
+open and retrieve
+TABLE VII
+HYPERPARAMETERS OF ACT
+learning rate
+batch size
+feedforward dimension
+chunk size
+vision backbone
+pretrained ResNet18
+B. Policy Learning with Less Accurate State Estimation
+In this work, we use a motion capture system to get the state
+estimation of the drone itself and further get the state estima-
+tion of the end-effector using proprioception information by
+forward kinematics. However, in more realistic scenarios like
+the outdoor environment, the high-precision motion capture
+system may not be applicable, and it further challenges the
+policy learning. To simulate this, we further evaluate the
+simulated peg-in-hole task with 1 cm state estimation noise,
+an achievable precision with an RTK GPS in the real world
+. It still achieved a 42 successful rate with a limited 5k
+training epochs, proving the potential to deploy our system in
+outdoor environments without a motion capture system.

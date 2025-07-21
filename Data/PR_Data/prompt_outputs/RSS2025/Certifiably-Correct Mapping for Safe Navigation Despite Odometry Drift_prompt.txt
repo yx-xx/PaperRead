@@ -1,0 +1,1420 @@
+=== PDF文件: Certifiably-Correct Mapping for Safe Navigation Despite Odometry Drift.pdf ===
+=== 时间: 2025-07-21 14:46:58.049278 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Certifiably-Correct Mapping for Safe Navigation
+Despite Odometry Drift
+Devansh R. Agrawal, Taekyung Kim, Rajiv Govindjee, Trushant Adeshara,
+Jiangbo Yu, Anurekha Ravikumar, and Dimitra Panagou
+University of Michigan, Ann Arbor
+AbstractAccurate perception, state estimation and mapping
+are essential for safe robotic navigation as planners and con-
+trollers rely on these components for safety-critical decisions.
+obstacle maps and therefore collisions. This paper introduces a
+framework for certifiably-correct mapping that ensures that the
+obstacle map correctly classifies obstacle-free regions despite the
+odometry drift in vision-based localization systems (VIOSLAM).
+By deflating the safe region based on the incremental odometry
+error at each timestep, we ensure that the map remains accurate
+and reliable locally around the robot, even as the overall odom-
+etry error with respect to the inertial frame grows unbounded.
+Our contributions include two approaches to modify popular
+obstacle mapping paradigms, (I) Safe Flight Corridors, and
+(II) Signed Distance Fields. We formally prove the correctness
+of both methods, and describe how they integrate with existing
+planning and control modules. Simulations using the Replica
+dataset highlight the efficacy of our methods compared to state-
+of-the-art techniques. Real-world experiments with a robotic
+rover show that, while baseline methods result in collisions with
+previously mapped obstacles, the proposed framework enables
+the rover to safely stop before potential collisions.
+Code1 and Video2
+I. INTRODUCTION
+Accurate state estimation and mapping are essential for
+safe robotic navigation, as planners and controllers rely on
+perception outputs to ensure the safety of planned trajectories
+or control actions. Various methods have been developed
+to certify that controllers meet predefined safety specifica-
+tions [1, 2], and when real-time obstacle detection is neces-
+planner [3, 4, 5]. These methods typically assume perfect
+A perception module provides a pose estimates and con-
+structs maps of the obstacle geometry, and can take a variety of
+7], polytopic Safe Flight Corridors (SFCs) , occupancy
+achieved significant accuracy improvements [11, 12, 13, 14,
+15], formal error analysis is often lacking. Without quantified
+error bounds, guaranteeing the safety of a closed-loop robotic
+system remains a challenge.
+Ground Truth
+Ideal Map at time
+Baseline map is unsafe
+due to odometry drift
+Certied map is safe
+despite odometry drift
+Baseline Map
+Certied Map
+without odometry drift
+with odometry drift
+Overview of notation and objectives. (a) depicts the operating
+obstacles O. The robot does not know F or O. It starts at B0, and follows
+the gray trajectory to Bk building the map as it goes. (b) depicts the ideal
+mapping output, where at the k-th timestep, the map Mk is composed of the
+known safe region Sk, the unknown space Uk and the known obstacle set Rk.
+(c) depicts the map produced by current state-of-the-art methods, where due
+to odometry drift the map is erroneous: notice that the safe region (according
+to the constructed map) is not a subset of the free space, Sk F. (d) depicts
+the desired behavior of the certified maps, where although the safe region is
+This paper introduces a framework for certifiably correct
+mapping ensuring that obstacle-free regions of a map remain
+correct despite odometry drift. The challenge is illustrated
+in Figure 1. Consider an environment W  F O, repre-
+senting free and obstacle spaces, respectively (Figure 1a). As a
+robot navigates, at the k-th time step it has created a map Mk,
+comprising the supposedly safe space Sk, the unknown space
+Uk and the recognized obstacles Rk (Figure 1b). However, due
+to odometry drift, maps can misclassify obstacles as free space,
+leading to potential safety violations as indicated in Figure 1c.
+We address this by deflating safe regions in order to ensure
+Sk F at all times (Figure 1d).
+Our main contributions are as follows:
+The theoretical framework to construct and deflate the
+free space in obstacle maps to ensure their correctness
+despite odometry drift. Assuming the odometry algorithm
+reports the pose and the covariance of the incremental
+gion (Sk1 is deflated relative to Sk) to ensure that it
+remains a subset of the free region F.
+We prove the correctness and applicability of this frame-
+work on two popular and state-of-the-art mapping frame-
+Beyond providing the theoretical analysis and proofs
+of correctness, we validate and compare our approach
+with state-of-the-art baseline methods through extensive
+simulations on the Replica dataset .
+experiment on a robotic rover. A human teleoperates the
+rover using only the First Person View (FPV) feed and
+the obstacle map constructed and streamed to the operator
+in real-time. The rover uses an onboard safety filter to
+prevent collisions. Unlike baseline methods which result
+in collisions, our approach prevents crashes by deflating
+the safe regions appropriately.
+It is critical that we deflate Sk rather than inflate known
+obstacles Rk. If the obstacles are inflated based on the accu-
+mulated odometry error, these obstacles can only grow in size,
+and might eventually occupy the entire domain W. Instead,
+by deflating a safe region Sk, the region that is certifiably
+safe shrinks, eventually becomes an empty set, and is removed
+from memory (i.e., the region becomes part of Uk). When the
+region is observed by a sensor again, it can again be added to
+Sk again. Computationally, this reduces memory requirements,
+and mathematically this allows us to treat deflated obstacles
+as unknown regions and plan paths accordingly. The certified
+maps can be used together with the uncertified maps for
+practical applications: the uncertified maps can be used to
+plan trajectories for example for exploration or for navigating
+towards a goal location, while the certified map can be used
+for local obstacle avoidance.
+Our paper is organized as follows. After a brief literature
+review in Section II, in Section III we provide a mathematical
+background and setup the problem formally. In Section IV
+and V we introduce the deflation mechanism for both map
+representations. In Section VI we propose methods to use
+the certified maps to acheive safe navigation. Finally in Sec-
+tion VII and Section VIII we present the simulation and
+experimental results.
+II. LITERATURE REVIEW
+Perception methods have seen significant advancements
+over the past few decades, driven by improvements in algo-
+primary goals of these advancements have been to enhance
+localization and mapping accuracy, improve robustness under
+diverse environmental conditions, and develop algorithms with
+lower computational costs. For instance, modern Simultaneous
+Localization and Mapping (SLAM) systems now report trans-
+lation error rates below 1 [19, 20], enabling more reliable
+navigation in real-world scenarios.
+With these improvements, robots have been deployed in
+increasingly complex environments, relying heavily on Visual
+Inertial Odometry (VIO)SLAM pose estimates and obstacle
+maps to navigate safely. As exemplified by the DARPA SubT
+of navigating subterranean environments [21, 22, 23]. In
+these systems, raw measurements are typically processed by a
+frontend into a more compact representation, while a backend
+uses nonlinear optimization methods to compute the robots
+trajectory and map estimate . Most of these optimization
+methods are based on factor graphs, which, although effective,
+become computationally expensive as the map size increases.
+A common approach to manage this computational com-
+plexity is to use local submaps, connected through a graph of
+traversable regions or submap connections . These meth-
+ods reduce odometry drift by optimizing each submap within
+its own coordinate frame. When a robot revisits a previously
+mapped region, the submap can be reused, provided that the
+robot is correctly localized within it. However, even within
+a submap, odometry drift can still lead to localization errors.
+errors within these submaps. The approach proposed in this
+paper aims to ensure correctness at the submap level, i.e., in
+the presence of incremental localization errors.
+Recent work has explored techniques for ensuring the
+correctness of perception systems. For example,  achieve
+global optimization in pose graph optimization problems
+through a convex reformulation, while  provide error-
+bounded localization within 2D convex environments. Addi-
+tration and visual odometry methods. Similarly,  showed
+that bounded attitude errors lead to bounded position errors. In
+contrast to , this paper assumes that the incremental pose
+estimate is bounded in a Lie-algebraic sense, which allows
+our methods to be applied to a broader range of odometry
+considered in . In cases where certification of correctness
+is not feasible, estimating or quantifying the error can still
+provide valuable insights, for example using the methods
+in [29, 30] which estimate the error in point-cloud matching.
+Other approaches have been proposed to address mapping
+consistency in the presence of odometry drift.  utilize
+overlapping Truncated Signed Distance Field (TSDF) voxels,
+which are only fused once the consistency of certain regions
+has been verified. These ideas share similarities with the work
+of [32, 33], which also emphasize the importance of ensuring
+consistency before merging obstacle estimates from different
+times. These methods propose constructing a manifold map,
+only merging them when correctness can be guaranteed. In
+different strategy: regions where correctness cannot be assured
+are forgotten, ensuring that only reliable, consistent parts of
+the map are used for navigation and decision-making.
+III. PRELIMINARIES AND PROBLEM STATEMENT
+Notation
+N  {0, 1, 2, ...} is the set of natural numbers. R, R0, R>0
+denote reals, non-negative reals, and positive reals. In Rnn
+is the n  n identity matrix. The subscript is dropped when
+clear from context. SO(n) is the n-d special orthogonal group.
+SE(n) is the n-d special Euclidean group. Sn
+is the set
+of symmetric positive-definite matrices in Rnn. The matrix
+square root of positive definite matrix A Sn
+is the matrix
+A12 Rnn such that A12A12  A. For v Rn,
+vdenotes the 2-norm, vp, (p [1, ]) denotes the p-
+vT Pv for P Sn
+. All eigenvectors
+are assumed to be unit-norm. (A) is the set of eigenvalues
+of A Rnn, and max(A) is the largest eigenvalue of
+. [p] R33 is the skew-symmetric matrix such
+that a  b  [a]b for any a, b R3.
+Matrix Lie Groups
+Here we present a brief review of Matrix Lie Groups
+in the context of this paper, with additional equations and
+details in Appendix A. We refer the reader to the excellent
+references [34, 35, 36] for a more complete description.
+The Lie group SO(3) defines 3D rotations, and the group
+SE(3) defines 3D rigid transformations. Both SO(3) and
+SE(3) are Matrix Lie groups, i.e., group elements are matrices,
+and composition operator is the standard matrix multiplication
+operator. In SE(3) the group action  : SE(3)  R3 R3
+transforms a point p from its representation in frame A to that
+in frame B. Given T B
+A  pA RpA  t.
+The Lie algebra of a group is a vector space of all possible
+directions a group element can be perturbed locally. The Lie
+algebras of SO(3) and SE(3) are so(3) and se(3) respectively.
+These vector spaces are isomorphic to R3 and R6 respectively.
+The operator converts the Euclidean vector to an element
+of the Lie Algebra, and does the inverse.
+Consider a Lie group G with an associated Lie algebra g
+that is isomorphic to the Euclidean vector space Rn. Given
+an element x g, we can convert it to the corresponding
+group element using the exponential map, exp : g G. For
+the Euclidean vector space to the group directly, Exp : Rn
+these operations have analytic expressions [34, Appendix].
+Uncertain Poses and Transforms
+An uncertain pose or transform T B
+A SE(3) is denoted
+A N( bT B
+where bT B
+A SE(3) is the mean estimate, and T S6
+covariance matrix. This indicates T B
+A is the transform
+where  R6 is a random sample drawn from  N(0, T ).
+Recall the group action pB T B
+A pA. If the transform T B
+is uncertain, pB follows a distribution and, to first order, is a
+normal distribution [34, 36]:
+N(pB, p)
+where the mean and covariance are
+pB  bT B
+A  pAR3,
+p  JT JT S3
+For the remainder of the paper, we truncate the distribution
+making the following assumption:
+Assumption 1. Let T B
+A N( bT B
+Then for any pAR3, the point pBR3 satisfies
+where E R3 is the ellipsoid
+A  pA 1
+p  JJT S3
+for some  > 0.3
+In other words, the assumption is that when a point p is
+transformed from its representation in frame A to that in frame
+the estimated point bT B
+A  pA, as defined in (5). The size and
+principal axes of the ellipsoid are defined by the estimated
+transform bT B
+A and the covariance matrix . This allows us
+to bound the error of mapping points between frames, and
+the bound can be made tighter if  is increased, or if higher
+order approximations are used, as in . The higher order ap-
+proximations yield tighter covariance ellipsoids, at the expense
+of increased computation. Since we focus on rototranslations
+between successive body frames, the transforms T B
+A should be
+close to identity where first order approximations work well.
+Reference Frames
+This paper uses the inertial frame I, a mapping frame M,
+and the body-fixed frame at the k-th timestep, Bk. Usually, M
+and I are equivalent, and M is defined such that at M  B0.
+relative to I. We assume that I is the true inertial frame (in
+which the obstacles are static), and M is the reference frame
+used to construct the state estimate and the map.
+Problem Statement
+Let O represents the obstacle geometry in a static environ-
+ment W R3. Both O and F  WO are assumed initially
+3 chooses the probability the bound contains the point. For a d-
+dimensional normal distribution, x
+N(, ), the probability that
+1 is p [0, 1] such that   2
+d(p), where 2
+d is the
+quantile function of the chi-squared distribution with d degrees of freedom.
+For 3D points,   2 corresponds to p  97.
+unknown. We assume F does not contain any isolated points,
+and that O is closed. As with points, a set can be represented
+in a frame, i.e., we say that OBkR3 is the set of all obstacle
+points represented in frame Bk.
+To avoid obstacles, we must build a map of the environ-
+ment. At the k-th timestep the map is Mk, consisting of
+the (claimed) free-space Sk, the unknown space Uk, and the
+(claimed) obstacle space Rk. A map is correct if the claimed
+free space is a subset of the true free space.4 More formally,
+Definition 1. A map M  S U R is the union of
+the (claimed) safe region S, the unknown region U, and the
+(claimed) obstacle region R. At the k-th timestep, the map
+Mk is correct if for all pBkR3,
+pBkSkBk pBkFBk.
+In words, Mk is correct if Sk is a subset of the free space
+F when represented in the k-th body-fixed frame.
+The definition above is intentionally explicit about which
+reference frame various points and sets are represented in since
+this is the source of the main problem tackled in this paper.
+Due to the odometry drift, there are two types of error common
+in state-of-the-art mapping algorithms:
+(A) Errors in constructing the map: In current state-of-the-
+art implementations, the map is often represented computa-
+tionally in the mapping frame M. Suppose at some time tk
+the robot detects an obstacle (relative to its body-fixed camera)
+at a position pBk. It will update the map to remove this point
+from the claimed free space:
+Sk1MSkM{ bT M
+Bk  pBk}.
+used instead of the true transform T M
+an obstacle can be wrong. This problem is exacerbated since
+usually the line connecting the camera origin and the point
+pBk is marked free, and therefore the wrong locations are
+marked as part of Sk1.
+(B) Errors in querying the map:
+Now suppose the robot
+wants to navigate the environment. It must therefore (at time
+tk) check whether a point pBk relative to the body-fixed frame
+is free. To the best of our knowledge, all implementations will
+then check whether the corresponding estimated point in the
+Bk  pBk SkM.
+However notice again, since the estimated transform is used,
+this can lead to inconsistencies. In particular, owing to the
+odometry drift, the inconsistency will be worse when the
+obstacle point was inserted into the map many frames ago.5
+4Since O is closed, F is open. The (claimed) safe region S can be either
+an open or closed subset of F. Below, S will be a closed set.
+5It will also becomes clear that time is not the only factor - points
+insertedqueried further from the robot will also be more inaccurate due to the
+larger moment arm that amplifies rotation errors. This is also why common
+heuristic algorithms of time- or distance-based forgetting cannot guarantee
+the correctness of the map. The methods proposed in this paper will directly
+address such issues.
+We overcome both such issues, by ensuring the map is
+always correct in the body-fixed frame. An equivalent per-
+spective is that despite using the estimated transform bT M
+map will be constructed and queried correctly.
+The problem statement therefore is as follows:
+Problem 1. Consider a robotic system equipped with an
+RGBD camera operating in a static environment with obstacles
+O R3. Suppose an odometry module provides at each frame
+k the estimated odometry bT B0
+Bk SE(3), the relative odometry
+Bk1 SE(3) and a covariance of the relative odometry
+. Suppose a mapping module can construct the
+best estimate map of the free space in the environment. Design
+a framework to correct the best-estimate map such that at each
+despite the odometry drift.
+We also assume that if an obstacle point is within the
+cameras Field of View (FoV), it will be detected as an
+obstacle. This is a common implicit assumption in the mapping
+literature. Infrared depth cameras often fail to detect transpar-
+ent obstacles (e.g., windows and glass doors) or obstacles with
+minimal texture (where the stereo block-matching algorithm
+fails). Such issues are beyond the scope of this paper.
+In the next two sections, we demonstrate how to construct
+correct maps by modifying existing baseline mapping algo-
+rithms. In particular we extend (A) a mapping algorithm
+which uses polytopes to represent the map of free space, and
+(B) the mapping algorithm  which uses signed distance
+fields to represent the free space. See Figure 2.
+IV. APPROACH 1: CERTIFIED SAFE FLIGHT CORRIDORS
+A. Background
+In the first approach, the obstacle-free region Sk at frame
+k is the union of n polytopes,6
+where each polytope is a compact set of the form
+k  {p R3 : Al
+This is often called the H-representation, since the polytope is
+defined by a set of half-space constraints . An example of
+a polytope extracted from a depth image is shown in Figure 2c.
+As the robot transitions from frame Bk to frame Bk1, we
+can map each polytope from the previous frame to the new
+In the absence of odometry drift, one can directly compute
+the new polytopes:
+k1  {p R3 : Al
+6n can be different at each k.
+Depth Image  Pointcloud
+RGB Image
+Sensor Outputs
+union of polytopes
+represents the free space
+set of voxels with positive ESDF
+represents the free space
+surface level set of ESDF
+represents obstacles
+Mapping output: Approach 2
+Mapping output: Approach1
+Two approaches to constructing an obstacle map. (Top row) An RGBD camera provides (a) the first person RGB image, and (b) the depth
+imagepointcloud constructed from stereo images. (Bottom row) The SFC approach represents the free space as a union of polytopes, one of which is
+depicted in (c). The ESDF approach represents the world using voxels, where each voxel stores the signed distance to the nearest obstacle. From this, both the
+(d) ESDF at specific voxels or (e) obstacle surface locations can be extracted and used for safe navigation. To aid the reader, in (c) and (d) the raw pointcloud
+is also visualized, and in (d) the colorscheme is such that voxels are marked green if d > 0, and red otherwise. This makes the map look binary, although it
+contains continuous values. Furthermore, note both methods operate in 3D - the 2D slice is used for visualization.
+using the estimated transforms
+In the presence of odometry drift, however, the estimated
+transform bT Bk1
+is inexact, and this method fails to guarantee
+k1 F. Therefore, Mk is not guaranteed to be correct.
+B. Proposed Approach
+In the presence of odometry drift, since the transform T Bk1
+is uncertain, the method in (11) does not work. Extending this
+approach to uncertain transforms is also not straightforward,
+since in the H-representation, an uncertain perturbation to
+a half-space does not result in a new half-space. Here, we
+propose a novel method that uses the V-representation of the
+polytope to circumvent this issue. In the V-representation, the
+polytope is the convex-hull of a set of vertices. Denote the set
+of vertices by
+Vi  {vi,j}mi
+where vi,j R3 is the j-th vertex on the i-th face of a
+polytope.
+We will use the V-representation to compute a new (de-
+flated) polytope Pk1 from Pk. The algorithm is described by
+the next Lemma and Theorem.
+Lemma 1. Suppose T Bk1
+N( bT Bk1
+, k), where
+Consider a polytope Pk that is obstacle free,
+Pk  {p R3 : Akp bk}
+where Ak RN3, bk RN. Denote the i-th row as ak,i
+R3. For each vertex vi,j Vi(Pk) on the i-th face of the
+as in Assumption 1. Let each element of  RN be
+Define a new polytope as
+Pk1  {p R3 : Ak1p bk1},
+Ak1  AkRT ,
+bk1  bk  AkRT t .
+Given Assumption 1, Pk FBk Pk1 FBk1, i.e., if
+Pk is obstacle-free, so is Pk1.
+Proof Sketch:
+[See Appendix B for the full proof.] It
+suffices to show that any obstacle potentially on the boundary
+of Pk will not be in Pk1 after the rigid transform. To
+do so, we consider a potential obstacle on the i-th face of
+the polytope, and compute the ellipsoid the obstacle could
+be in after the transform. We compute the tangent plane of
+the ellipsoid normal to the i-th hyperplane, and compute the
+minimum shift necessary such that the shifted hyperplane does
+not contain the ellipsoid. We use the convexity of the polytope
+to show that the necessary shift on the i-th hyperplane is i, the
+maximum of the shifts necessary at each of the vertices on the
+i-th hyperplane of the polytope. This deflaion, when applied
+to each hyerplane of the polytope, guarantees that Pk1 does
+not contain the obstacle points.
+Theorem 1. Suppose the transform between frame is T Bk1
+N( bT Bk1
+, k). Given the k-th map is defined as in (9), define
+the (k  1)-th map as
+where each polytope is defined using Lemma 1. Then, given
+Assumption 1,
+Sk F Sk1 F,
+that is, if Mk is correct by Definition 1, the updated map
+Mk1 will also be correct.
+In words, the theorem shows that when each polytope
+in the map Mk is shrunk using
+Lemma 1, the new safe
+region Sk1 also remains certifiably obstacle-free. Once a
+given polytope has shrunk to zero volume, it can be forgotten
+entirely. Recall that as new camera frames are received,
+new polytopes can be constructed to define the free space
+in the operating environment and added to the set Sk1.
+We empirically study how quickly an environment deflates
+in Table III and in Section VIII. Naturally, if the odometry
+covariance is smaller, the deflation rate is smaller Appendix G.
+Remark 1. Compare (11) with (17). The two are identical
+except for the  vector in (17c). Each element i 0, and
+is that we transform the polytope by the estimated transform,
+but then shrink the polytope based on the odometry error
+covariance. Notice that this shrinking operation is tight: since
+there could exist an obstacle on the face of the polytope
+(indeed this is how they are constructed), the shrinking factor
+is the smallest allowable factor, by construction.
+Remark 2. In implementation, notice that one needs to
+compute Vi(Pk), the set of vertices, and then update the poly-
+hedron by (17c). Although this operation scales exponentially
+with the number of faces , efficient implementations exist,
+especially for 3D polytopes . Empirically, we observe each
+polytope has on the order of 10-20 faces when using , and
+can be handled in real-time.
+V. APPROACH 2: CERTIFIED ESDFS
+A. Background
+The Euclidean Signed Distance Field (ESDF) is defined as
+the function d : R3 R,
+dist(p, O),
+dist(p, O),
+where O R3 is the boundary of the obstacles. The dist
+measures the minimum distance of a point to a set, i.e.,
+dist(p, O)  minoO p o. Thus, for any point in free-
+d(p)  min
+A 2D slice of the ESDF is depicted in Figure 2d.
+To evaluate (21), o and p must be expressed in a common
+is done in the mapping frame, it is denoted as the function
+Sk  {p R3 : dM(p) 0}
+For safety-critical path planning and control, we need the
+ESDF at points relative to the body-fixed frame. The common
+approach is to assume the odometry estimate is exact, and
+determine d(pBk) by expressing it in the map frame and
+evaluating dM:
+d(pBk) dM( bT M
+Bk  pBk)
+Bk is inexact, this method can
+lead to over- or under-estimates. Overestimated distances are
+unsafe since they could lead to collisions.
+B. Proposed Approach
+The goal is to construct an ESDF that is safe, i.e., underesti-
+mates the distance to obstacles. Using Definition 1, a Certified-
+ESDF is defined as
+Definition 2. Let the obstacle set be O R3, assumed static
+in frame I. Let the ESDF of O be d : R3 R. A Certified-
+ESDF (C-ESDF) at timestep k is a function dk
+such that for all points pBkR3,
+d(pBk) dk
+Bk  pBk)
+where bT M
+Bk SE(3) is the estimated rototranslation between
+Bk and M.
+Comparing (23) with (24), the goal of certification is to
+change the into . That is, a Certified-ESDF is one where
+for any body-fixed point pBk, if the point is expressed in the
+mapping frame using the estimated rototranslation, we have
+underestimated the distance to the nearest obstacle:
+d(pBk)  min
+true ESDF
+dM( bT M
+Bk  pBk)
+estimated ESDF
+7We use (21) instead of (20) for the remainder of the section for brevity.
+The points with d(p) < 0 will be removed from memory.
+To accomplish this, we propose a strategy of deflating the
+ESDF. We derive a recursive guarantee to ensure the ESDF
+remains certified for all k.
+Theorem 2. Suppose at timestep k N, the ESDF dk
+R3 R is a Certified-ESDF. Let the rototranslation between
+frames be T Bk
+Bk1 N( bT Bk
+be defined by
+M (pM)  dk
+for all pMR3, where
+R[ bT Bk1
+p  JkJT .
+and  > 0 is as defined in Assumption 1. Given Assumption 1,
+is also a Certified-ESDF at timestep k  1.
+Proof Sketch:
+[See Appendix C for the full proof.]
+Consider any point pBk1 and evaluate the potential positions
+it could correspond to in frame Bk. This is an ellipsoid as
+in Assumption 1, and therefore the ESDF at pBk1 must be
+the minimum of all of the ESDF values for the corresponding
+points in the ellipsoid. Since, by definition, the Lipschitz
+constant of an ESDF is one, this minimum ESDF can be
+lower bounded by the ESDF at the center minus the radius
+of the smallest sphere containing the ellipsoid. We use the
+eigenvalues of the ellipsoid to compute the radius of sphere,
+arriving at the expression.
+Remark 3. Notice that the correction is
+max(p) in (26)
+(different for each p). As with the certified SFCs, this is a
+deflation operation that decreases the estimated distance to
+an obstacle.
+Remark 4. The implementation of this deflation operation is
+remarkably simple and easily parallelized on a GPU. In our
+to the code in . At each frame, when the relative odometry
+with covariance is received, we can compute the deflation at
+each voxel in parallel using (26).
+VI. SAFE NAVIGATION WITH CERTIFIED MAPS
+Here we summarize the key ideas presented in this paper,
+and suggest strategies to achieve safe navigation.
+A fundamental principle of our approach is ensuring that
+maps remain correct with respect to the body-fixed frame. To
+achieve this, we deflate the safe regions of the map based on
+the incremental odometry error at each timestep. The required
+deflation has an analytic expression.
+Our implementation is as follows. When the (k  1)-th
+camera frame is received from the sensor, we compute the
+odometry estimate, and its relative covariance. Next, we apply
+the deflation step using the proposed algorithms. Finally, we
+incorporate new safe regions identified by the depth image to
+assimilate new information while discarding regions that can
+no longer be certifiably correct.
+One can also maintain both the baseline and certified maps
+in memory simultaneously. While the memory usage increases,
+the certified maps tend to be smaller than the full map, main-
+taining both maps offers significant advantages. In particular,
+our certified mapping methods can integrate naturally with
+existing safety filtering methods like [5, 4]. These methods
+generate nominal trajectories to achieve mission objectives,
+but use a backup trajectory to ensure that the robot can
+safely stop based on the currently available information. In
+our framework, one can use the baseline map for nominal
+trajectory planning, but use the certified map for collision and
+safety checks. This combination enables agile motion while
+strictly guaranteeing safety.
+VII. SIMULATIONS
+We present results on the accuracy and correctness of
+both approaches for certified mapping presented above. As
+a reminder, the goal is to demonstrate that despite odometry
+free space is indeed obstacle-free. First, we evaluate the per-
+formance of both the Certified SFCs and the Certified ESDFs
+methods on the Replica dataset (described below) and com-
+pare it to various baselines. Second, we have run hardware
+experiments with a rover, and show that by considering the
+certification bound the rover can avoid collisions. Additional
+results are reported in Appendix F and Appendix G.
+Evaluation Method
+We evaluated the performance of our implementations on
+the Replica dataset , with ground-truth trajectories gener-
+ated as in . From the ground-truth trajectory the RGBD
+image sequence was generated. We perturbed the trajectory to
+generate the estimated trajectory from a simulated odometry
+system as follows:
+Bk1  T Bk
+Bk1 Exp(),
+where T Bk
+Bk1 SE(3) is the transform between subsequent
+frames of the ground-truth trajectory of the camera and
+Bk1 SE(3) is the estimated transform between sub-
+sequent frames used in the mapping algorithms. We used
+{105I, 106I}. Evaluating the Absolute Translation
+Error (ATE) as in , the generated trajectories had between
+1 3 ATE, inline with the performance of state-of-the-art
+VIO methods. Each trajectory has 2000 frames at 30 FPS.
+Baselines
+We compared our proposed certified approaches to the
+following mapping methodologies:
+(A) Baseline SFC - At each camera frame, the depth map
+is used to construct a pointcloud of obstacles within the
+current field of view. From this a convex polyhedron is
+The union of these polyhedrons is considered the safe
+Ground truth (oce0)
+Baseline SFC Method
+Certied SFC Method
+Violations!
+External View
+Internal View
+Fig. 3. Visualization of a snapshot of the office0 environment mapped using the baseline and certified SFC methods. (a, d) shows the office0 environment,
+while (b, e) and (c, f) show the respective S sets at the 500-th timestep from an external and an internal view. The baseline map claims a larger volume to be
+safe compared to the certified method (red volume is larger than green volume). However, we can also see numerous regions where the red region intersects
+with the ground truth mesh, indicating that the claimed safe region contains obstacle points. In the certified method, we see no violations.
+flight region. We used the library  to perform the
+convex decomposition.
+(B) Heuristic SFC - This is the same algorithm as in
+(A), except that a time-based forgetting mechanism is
+tations. In particular, we only keep the last 60 frames
+(2 seconds) of polyhedrons when constructing the safe
+flight region.
+(C) Baseline ESDF - At each camera frame, the depth
+map is used to update the TSDF of the environment.
+At regular intervals a wave propagation algorithm con-
+structsupdates the ESDF of the environment. Regions
+with positive ESDF are considered part of the safe flight
+region. We used the library  to construct the TSDF
+and ESDF.
+(D) Heuristic ESDF - This is the same algorithm as in (C),
+except that a distance-based forgetting mechanism is
+introduced. In particular, we forget any TSDF and ESDF
+voxels that are more than 3 m away from the camera.
+These are compared to the proposed certified methods:
+(E) Certified SFC - This is the same algorithm as in (A),
+except that at each frame, each polytope is deflated as
+described in Section IV.
+(D) Certified ESDF - This is the same algorithm as in (C),
+except that at each frame, the ESDF is deflated as
+described in Section V.
+To evaluate the performance, we consider three metrics:
+(I) Violation Rate: The violation rate measures the percent-
+age of ground-truth mesh points that (incorrectly) lie
+within the claimed free space. The violation rate should
+be close to 0.
+(II) Maximum Violation Distance:
+For any violating point
+we measure the maximum distance of the violation, i.e.,
+how far into the claimed free space is an obstacle point.
+The violation distance should be close to 0 mm. If there
+are no violating points, the violating distance is 0 mm.
+(III) Free-Space Volume: This measures the total volume of
+the space that is claimed to be free. The free-space
+volume should be as large as possible.
+Tables I, II, and III summarize the results from the sim-
+ulations. Figure 3 and Figure 4 visualize the results and
+qualitatively show the behavior of the proposed methods.
+Figure 3 visualizes one of the runs from the office0
+environment. Figures (a, d) shows the ground-truth mesh of
+the environment from two different views. In (b, e) we see the
+safe flight polytopes in the baseline method visualized as the
+red region. One can see that the red region clearly intersects
+with the ground-truth mesh, and each intersection represents a
+violation. The violations are particularly noticeable for regions
+that were mapped further in the past, and from non-convex
+and thin obstacles like the chair or table surfaces. In contrast,
+in (c, f) we see the safe flight polytope from the proposed
+certified algorithms, drawn as the green region. We can see that
+the green region is smaller than the red polytope, but it also
+Certied ESDF
+Baseline ESDF
+Frame 500
+Frame 1000
+Frame 2000
+Ground Truth
+Baseline ESDF Method
+Certied ESDF Method
+Fig. 4. Visualization of the maps generated using the baseline and certified ESDF methods on the office3 environment. In (a) we see the ground-truth
+mesh. In (b) and (c) we can see the internal view after 500 timesteps. As in Figure 3, although the baseline method maps a larger volume (red mesh is larger
+than green mesh), it also contains many violations. In (e) and (f) we see a slice of the ESDF over time. The green region indicates the S set at the respective
+times. The small black arrows point to various violations in the baseline method, while in the certified methods we see no violations.
+contains no violating points (see also Table II and Table III).
+algorithm cannot be confident about the exact location of, for
+were removed from the map. Although the volume of free
+space is smaller, the map is guaranteed to be correct.
+From Table I we can observe that both certification methods
+significantly reduce the number of violations. In the baseline
+in the certified methods, the violation rates are between 0-
+3. Note, we cannot expect the certified methods to have
+exactly zero violations, since we are using the truncated noise
+model for odometry. Nonetheless, empirical performance of
+the certified methods still shows that the proposed methods
+can effectively avoid classifying obstacle regions as free.
+getting methods can also reduce the number of violations,
+the level of reduction is hard to control. Since the forgetting
+factor is tuned heuristically and independently of the true noise
+level in the system, it can sometimes lead to good rejection of
+obstacles (as in the SFC method) or poor rejection of obstacles
+(as in the ESDF).
+From Table II we observe that the maximum distance a
+violating point intersects the map is also reduced using the
+certified methods. We see that the maximum violation is sub-
+millimeter for the SFC methods, demonstrating a reduction
+of 2 orders of magnitude compared to the baseline. In the
+ESDF approaches, we still see a significant reduction in the
+maximum violation distance (about an order of magnitude
+reduction), although there are some violations on the order
+of 100 mm. This seems to be a limitation of the ESDF
+voxels computationally. We chose a voxel size of 20 mm, and
+therefore the violations are on the order of 1-5 voxels of error.8
+The source of this larger error is likely the dataset itself.
+We have checked which voxels are causing these large errors,
+and it seems to be the voxels that are close to non-manifold
+surfaces in the Replica dataset, for instance near the leaves of
+8Finer grid resolution can help, but will increase the computational and
+memory requirements. As a sense of scale, each environment is on the order
+of 6  6  3 m, and therefore has approximately 300  300  150 voxels.
+See Table IV for additional details.
+VIOLATION RATES. THIS TABLE SUMMARIZES THE FRACTION OF VIOLATING GROUND-TRUTH OBSTACLE POINTS FOR EACH ENVIRONMENT AND
+ALGORITHM. THIS TABLE SHOWS RESULTS WITH  1E-6I.
+Violation Rates ()
+Algorithm
+Baseline SFC
+Heuristic SFC
+Certified SFC
+Baseline ESDF
+Heuristic ESDF
+Certified ESDF
+TABLE II
+MAXIMUM VIOLATION DISTANCE. THIS TABLE SUMMARIZES THE DISTANCE BY WHICH VIOLATING GROUND-TRUTH OBSTACLE POINTS PENETRATE THE
+ESTIMATED FREE SPACE FOR EACH ENVIRONMENT AND ALGORITHM. THIS TABLE SHOWS RESULTS WITH  1E-6I.
+Maximum Violation Distance (mm)
+Algorithm
+Baseline SFC
+Heuristic SFC
+Certified SFC
+Baseline ESDF
+Heuristic ESDF
+Certified ESDF
+TABLE III
+ESTIMATED FREE SPACE VOLUME. THIS TABLE SUMMARIZES THE VOLUME OF THE ESTIMATED FREE SPACE AT THE END OF THE SIMULATION FOR EACH
+ENVIRONMENT AND ALGORITHM. THIS TABLE SHOWS RESULTS WITH  1E-6I.
+Estimated Free Space Volume (m3)
+Algorithm
+Baseline SFC
+Heuristic SFC
+Certified SFC
+Baseline ESDF
+Heuristic ESDF
+Certified ESDF
+Near these surfaces, the raw data is inconsistent, and we
+suspect that it leads to higher error rates than expected.
+of the estimated free space is lower for the certified methods
+than it is for the heuristic or baseline methods (Table III).
+around obstacles. Despite the smaller volume of free space,
+the certified methods allow the full region to be trusted when
+used in planning (Section VIII).
+Comparing the SFC and ESDF methods, in the results
+presented the SFC methods seem superior, since they have
+fewer violations, and the violating points violate the free
+space by a smaller distance. However this does come at the
+expense of expressiveness and computational cost. The SFC
+methods require the use of unions of convex polytopes to
+represent the free space, and in cluttered environments can
+sometimes lead to very small volumes of free space. The ESDF
+implementations are also more mature, with implementations
+like  allowing for efficient use of a GPU, which allows the
+ESDF to be computed more efficiently than the SFC.
+VIII. ROVER EXPERIMENTS
+In this section we demonstrate the utility of the proposed
+certified mapping frameworks in ensuring a robot can safely
+navigate an environment. We demonstrate that when a rover is
+tasked to navigate through an environment, and in particular
+reverse blindly into a region it previously mapped, the accu-
+mulated odometry error can lead to the rover colliding with
+previous mapped obstacles. Instead, by using the proposed
+can no longer certify are obstacle-free.
+Experimental Domain
+Teleop Station
+Realsense
+Rover Experimental Setup. (a) Block diagram. The human is
+teleoperating the rover using only the FPV feed and the reconstructed obstacle
+map computed and streamed in real-time. The map is also used onboard
+the robot to stop the robot if it violates safety constraints. The safety filter
+can either use the baseline ESDF or the Certified ESDF. (b) Picture of the
+testing environment. The robot drives through the tunnel, mapping it as it
+passes through. After exploring the corridors, the rover tries to return through
+the tunnel in reverse, without remapping the tunnel. (c) shows the rover in
+more detail. The AION R1 UGV has been modified, with all sensing on Intel
+Realsense D455, and all compute on the Nvidia OrinNX 16GB.
+Experimental Setup
+A block diagram of the experimental setup is shown
+in Figure 5a). We use a ground rover, the AION R1 UGV
+equipped with an Intel Realsense D455 camera. All perception,
+Nvidia Orin NX 16GB. The Realsense camera sends stereo
+infrared images to the Orin NX at 30FPS. A state-of-the-art
+visual slam algorithm (Nvidia IsaacROS Visual SLAM) is used
+to compute the odometry estimate. The Realsense camera also
+produces a depth image, which is sent to the obstacle mapping
+library (an adapted version of Nvidia IsaacRos NvBlox) which
+constructs an ESDF of the environment in real-time. All
+parameters and code is available at [redacted].
+A human operator uses a joystick to send desired linear and
+angular velocities to the robot. Using the constructed ESDF,
+a safety filter forward propagates the robots state under a
+desired command a short (0.5 s) horizon into the future and
+checks whether the trajectory lies strictly within Sk. If so, the
+command is sent to the robots motor controllers. If not, the
+safety filter zeros the linear command, and sends a reduced
+angular speed command. This allows the robot to continue
+to spin to acquire new information about the environment,
+without physically moving and potentially colliding with the
+obstacles. The safety filter was tuned offline to ensure that in
+the absence of odometry drift, the robot stops within 15 cm
+of the obstacle both when driving forwards or backwards.
+To compute the certified-correct map, we use the techniques
+of Section V to compute the certified ESDF representing the
+local geometry. To correctly deflate the ESDF, we require
+the odometry estimate, and the covariance of the incremental
+transform between successive camera frames, i.e., of bT Bk
+To the best of the authors knowledge however, this infor-
+mation is not reported by any state-of-the-art odometrypose
+estimation algorithms. Most algorithms (including Nvidias
+vSLAM) only report the covariance of the odometry estimate
+between the initial frame and the current frame, i.e., of bT Bk
+In  the authors computed the covariance of relative poses
+after solving a pose-graph optimization problem by using the
+Jacobian of the local solution (see [35, Section IX.B] for
+details). However this only allows one to find the covariance
+of relative transforms between keyframes, and does not allow
+one to find the relative transform between successive camera
+frames. Note,  reports the error covariance for frame-to-
+frame pointcloud matching, and could be integrated into the
+experiments below. However the accuracy of the pointcloud
+reported by the RGBD camera must also be considered .
+ance between relative frames. VSLAM reports the odometry
+estimates bT Bk
+, and the associated covariances Bk
+. Assuming T Bk
+and T Bk1
+are highly correlated
+since they are successive frames, we can define a correlation
+coefficient  [1, 1] (we use   0.99) between these
+camera frames. We can then estimate the covariance of the
+relative transform Bk1
+along the lines of . The analysis
+is presented in Appendix D.
+Experimental Results
+Figure 6 summarizes the results of the rover experiments,
+with additional trials available in the supplementary video, all
+demonstrating similar outcomes.
+The human operators task was to navigate the rover without
+line-of-sight through a narrow tunnel, explore and map the
+ing through the tunnel. The rover was intentionally reversed
+through the tunnel to avoid re-mapping the obstacle geometry,
+forcing it to rely on its previously constructed maps.
+Snapshots in Figure 6a show the baseline method. Initially,
+the tunnel and the surrounding corridors are mapped accu-
+rately. As the operator tries to reverse through the tunnel the
+final snapshot suggests that the rover is well aligned with the
+tunnel and is within the green region S. However, despite
+this seemingly safe alignment, the rover collided with an
+obstacle Figure 6c, a failure in the baseline mapping approach.
+In contrast, our proposed method deflates the safe regions in
+response to the odometry drift. In Figure 6b, the map initially
+classifies a large region as safe (green). However, as rover
+reverses to the tunnel, the deflation has caused parts of the
+map to turn red, indicating that these areas can no longer be
+certified to be obstacle free. Indeed, when the rover reaches
+Baseline ESDF Method
+Certied ESDF Method
+Obstacle map generated by
+(available to human operator)
+3rd Person View
+(not available to human operator)
+Collision!
+Safely stopped
+(Unknown  Recognized Obstacle)
+Certied Map has
+been deated.
+Map incorrectly
+shows rover is safe.
+with obstacle.
+before collision
+Estimated Rover Pose
+(arrow shows camera axis)
+Obstacle map generated by  !"
+(available to human operator)
+3rd Person View
+(not available to human operator)
+Fig. 6. Rover Experimental Results. (a, b) shows snapshots of the reconstructed obstacle map and the estimated rover pose with (a) the baseline method and
+(b) the certified method. This is the view presented to the human teleoperating the robot. Note, two small black boxes are drawn in each frame (in post) to
+indicate to the reader the location of the red and green boxes during the experiment. These were not visible to the human operator during the experiments. (c,
+d) show the final state of the robots at the end of the trajectory. In (c), the baseline method the robot has crashed with the green obstacle, although looking
+at the last panel of (a), we can see that the robot thinks it is in the middle of the tunnel in the free space. In (d), we see the robot stopped 15 cm before
+crashing with the red obstacle, and this is because the map has been deflated sufficiently that the safety filter prevents the robot from continuing backwards.
+Notice between the second, third and fourth frames in (b) the green regions near the bottom change into red regions, indicating the Certified ESDF cannot
+certify that the red region is obstacle-free.
+the boundary between red and green regions, the safety filter
+prevents further motion, successfully preventing collision. The
+same behavior was consistently observed across multiple trials.
+Larger Scale Experiments
+In this section, we show qualitatively and quantitatively the
+volume of free space usable by a robotic system. The rover
+was operated in a room approximately 4020 m large drawn
+in Figure 7. Starting in the middle, the robot was teleoperated
+to explore and map the room. The robot has a horizontal field
+of view of 75, and a maximum depth integration distance of
+8 m. This means that from the depth image, the maximum
+distance that NvBlox will mark as free or safe is 8 m from
+the camera origin. Thus, in these experiments, the heuristic
+method also uses a forgetting radius of 8 m.
+A quantitative comparison of the algorithms is presented
+in Figure 8a, b. In (a) we can see the area of the claimed safe
+region by each of the three methods. Although the claimed free
+region is largest for the baseline method, the map is erroneous.
+The certified and heuristic methods have similar free area,
+although the heuristic method is also often incorrect.
+In Figure 8b, we show the distance to the furthermost safe
+point from the robot position. This gives an indication of extent
+of the map that would be free if it were not for the obstacles
+Fig. 7. Experimental domain used in Figure 8.
+in the environment. Here, we can see that compared to the
+maximum integration distance of 8 m, the certified method
+has its furthermost safe voxel approximately 12 m away, and
+upto 18 m away. In contrast, the heuristic method is clipped
+at 8 m. The evolution of the maps in time is clearer in the
+accompanying video, where the FPV and third person view of
+the robot are also drawn.
+Slices of the ESDF and the Certified ESDF are shown
+in Figure 8c, d. The robots trajectory is also drawn. Com-
+pare Figure 8c1-c4. We can see that the map drifts significantly
+- in (c1) we use a gray dashed line to highlight the end of the
+corridor as mapped at that time. In (c4), we draw the corridor
+mapped in (c1) as well as the newly mapped corridor, and we
+can see a significant shift in the map. In (d1-d4) we can see
+the certified ESDF region marked in green, and even as the
+robot moves around a significant part of the area around the
+robot remains part of the safe region.
+IX. CONCLUSIONS
+Limitations and Future Directions
+While the proposed methods are provably correct, they
+rely on key assumptions, particularly Assumption 1, which
+truncates the normal distribution of pose perturbations to
+bound the effects of a rototranslation on an obstacle point.
+Although this simplification facilitates our framework, it may
+not hold in practice. Methods such as those in [36, 35] could
+improve these approximations and warrant further exploration.
+turbations follow a normal distribution in the Lie algebra of
+SE(3). However, this may not hold in practice, especially with
+outliers (see e.g. ). A valuable direction for future work
+is to rigorously characterize the error distribution of odometry
+We also highlight the need for modern perception algo-
+rithms to report the uncertainty of incremental pose transforms
+(e.g., as in ), rather than overall pose errorcovariance,
+which grow unbounded without successful loop closures.
+Metrics such as relative translation and rotation errors  or
+the correlation between pose uncertainties (as in ) should
+be computed and reported. In lieu of this, our experiments
+(Claimed) Free Space
+(Claimed) Obstacle or Unknown Space
+Baseline ESDF Method
+Certied ESDF Method
+newly mapped cooridor
+previously mapped cooridor
+newly mapped cooridor
+Area [m2]
+Time [s]
+Area of (Claimed) Safe Region
+Distance [m]
+Time [s]
+Distance to Furthermost (Claimed) Safe Point
+Baseline
+Heuristic
+Area of FoV
+Baseline
+Heuristic
+Sensor Range
+newly mapped cooridor
+newly mapped cooridor
+Fig. 8. Quantitative and qualitative analysis of the effect of the deflation on
+the volume of the certified free space. (a) Compares the area of the claimed
+safe region on a 2D slice of the ESDF extracted at the robot height. As a
+line). (b) Compares the distance of the furthermost (claimed) free voxel from
+the robot position. As a reference, the maximum depth of the depth sensor
+(8 m) is indicated (black dashed line). In (c1-c4) we see snapshots of the
+map generated by the Baseline ESDF method, and in (d1-d4) we see the
+corresponding snapshots from the Certified ESDF method. The supplementary
+video animates the map slices.
+estimated incremental pose error covariances using the method
+described in Appendix D. For certifiability guarantees, going
+forward we will need odometry algorithms capable of directly
+reporting the incremental pose error covariance.
+Our algorithm intentionally deflates the map, and this re-
+duces the navigable volume for the robot. It is challenging
+to estimate how much the volume reduces prior to a mission,
+since the deflation depends on the exact obstacle geometry,
+features used by the odometry algorithm, and the speed of the
+robot (which affects how quickly new parts of the environ-
+ment are observed). Empirically, we have shown that as the
+odometry covariance decreases, the volume of the free space
+the error-free case (Appendix G). We also operated our rover
+in a larger room, and in Section VIII we show empirically that
+the certified methods can yield similar or larger volumes of
+free space than the heuristic method. Further analysis into this
+warranted.
+While this paper focused on deflating the map to ensure
+deflated regions when the correctness can be guaranteed again.
+For example, when a loop closure is detected, the odometry
+drift is reduced, and therefore uncertified regions can perhaps
+be marked as certifiably free again. To achieve this however
+we will require further analysis into the correctness guarantees
+of loop closures (e.g. ), as well as efficient algorithms and
+map representations to handle the inflation and deflation steps.
+Beyond odometry drift, there are other sources of error
+that can invalidate the correctness of the map - the operating
+environment and each subsystem can introduce errors that are
+hard to correct or even detect. For instance, depth estima-
+tion algorithms (e.g., block-matching methods) can fail under
+conditions like glass surfaces or featureless walls. Similarly,
+communicationcomputational latencies can introduce errors
+that are hard to characterize with the current framework.
+As robots increasingly operate in unstructured environ-
+demonstrate that even over short distances, perception inac-
+curacies due to odometry drift can lead to unsafe behaviors,
+including collisions.
+This paper presents a step toward building perception mod-
+ules that not only generate accurate state estimates and obsta-
+cle maps but also provide correctness guarantees. Specifically,
+if the incremental odometry error per frame can be bounded,
+our framework modifies (or deflates) obstacle-free regions in
+a map such that it remains correct at all times with respect to
+the robots body frame.
+We proposed two methods for implementing these cor-
+rections based on different map representations: (I) Certi-
+fied SFCs, and (II) Certified ESDFs. By constructively proving
+the correctness of these methods, we developed algorithms that
+guarantee safe map modifications. Extensive simulations using
+high-quality datasets, along with real-world experiments on a
+robotic rover, validate the effectiveness of our approach in
+creating certifiably-correct maps.
+A key insight from our rover experiments is the demon-
+stration of failure modes in state-of-the-art mapping methods.
+Unlike typical demonstrations, where robots map regions
+within the cameras field of view or use 360sensors (e.g.,
+LIDAR), we intentionally operated the robot in its blind spot to
+highlight the challenges posed by accumulated odometry drift.
+Our proposed methods successfully mitigated these issues,
+preventing collisions and ensuring safe navigation.
+ACKNOWLEDGMENTS
+The authors would like to acknowledge the support of the
+National Science Foundation (NSF) under grant no. 1942907.
+REFERENCES
+A. D. Ames, X. Xu, J. W. Grizzle, and P. Tabuada, Con-
+trol barrier function based quadratic programs for safety
+critical systems, IEEE TAC, vol. 62, no. 8, pp. 3861
+K. Garg, J. Usevitch, J. Breeden, M. Black, D. Agrawal,
+H. Parwana, and D. Panagou, Advances in the theory of
+control barrier functions: Addressing practical challenges
+in safe control synthesis for autonomous and robotic
+B. T. Lopez and J. P. How, Aggressive 3-D collision
+avoidance for high-speed navigation., in IEEE ICRA,
+J. Tordesillas, B. T. Lopez, and J. P. How, Faster:
+Fast and safe trajectory planner for flights in unknown
+D. R. Agrawal, R. Chen, and D. Panagou, gatekeeper:
+Online safety verification and control for nonlinear sys-
+tems in dynamic environments, IEEE Transactions on
+H. Oleynikova, Z. Taylor, M. Fehr, R. Siegwart, and
+J. Nieto, Voxblox: Incremental 3d euclidean signed
+distance fields for on-board mav planning, in IEEE
+A. Millane, H. Oleynikova, E. Wirbel, R. Steiner, V. Ra-
+accelerated incremental signed distance field mapping,
+in 2024 IEEE International Conference on Robotics and
+Automation (ICRA), pp. 26982705, IEEE, 2024.
+S. Liu, M. Watterson, K. Mohta, K. Sun, S. Bhattacharya,
+C. J. Taylor, and V. Kumar, Planning dynamically
+feasible trajectories for quadrotors using safe flight cor-
+ridors in 3-d complex environments, IEEE Robotics and
+Automation Letters, vol. 2, no. 3, pp. 16881695, 2017.
+A. Hornung, K. M. Wurm, M. Bennewitz, C. Stachniss,
+and W. Burgard, Octomap: An efficient probabilistic
+3d mapping framework based on octrees, Autonomous
+A. Rosinol, J. J. Leonard, and L. Carlone, Nerf-slam:
+Real-time dense monocular slam with neural radiance
+D. Scaramuzza and F. Fraundorfer, Visual odometry
+[tutorial], IEEE Robot.  Automat. Mag., vol. 18, no. 4,
+Z. Yu, L. Zhu, and G. Lu, Vins-motion: tightly-coupled
+fusion of vins and motion constraint, in IEEE ICRA,
+Y. Tian, Y. Chang, F. H. Arias, C. Nieto-Granda, J. P.
+dense metric-semantic slam for multi-robot systems,
+IEEE TRO, vol. 38, no. 4, 2022.
+K. Chen, R. Nemiroff, and B. T. Lopez, Direct lidar-
+inertial odometry: Lightweight lio with continuous-time
+motion correction, in IEEE ICRA, pp. 39833989, IEEE,
+R. Merat, G. Cioffi, L. Bauersfeld, and D. Scara-
+IEEE Robotics and Automation Letters, vol. 10, no. 2,
+J. Straub, T. Whelan, L. Ma, Y. Chen, E. Wijmans,
+S. Green, J. J. Engel, R. Mur-Artal, C. Ren, S. Verma,
+A. Clarkson, M. Yan, B. Budge, Y. Yan, X. Pan, J. Yon,
+Y. Zou, K. Leon, N. Carter, J. Briales, T. Gillingham,
+E. Mueggler, L. Pesqueira, M. Savva, D. Batra, H. M.
+R. Newcombe, The Replica dataset: A digital replica of
+indoor spaces, arXiv preprint arXiv:1906.05797, 2019.
+C. Cadena, L. Carlone, H. Carrillo, Y. Latif, D. Scara-
+and future of simultaneous localization and mapping:
+Toward the robust-perception age, IEEE Transactions
+on robotics, vol. 32, no. 6, pp. 13091332, 2016.
+A. Macario Barros, M. Michel, Y. Moline, G. Corre,
+and F. Carrel, A comprehensive survey of visual slam
+cuVSLAM.
+github.ioconceptsvisual slamcuvslamindex.html,
+C. Campos, R. Elvira, J. J. G. Rodrguez, J. M. Montiel,
+and J. D. Tardos, Orb-slam3: An accurate open-source
+library for visual, visualinertial, and multimap slam,
+IEEE transactions on robotics, vol. 37, no. 6, pp. 1874
+K. Ebadi, L. Bernreiter, H. Biggie, G. Catt, Y. Chang,
+A. Chatterjee, C. E. Denniston, S.-P. Deschenes, K. Har-
+extreme environments: The DARPA SubT challenge,
+IEEE Transactions on Robotics, vol. 40, pp. 936959,
+T. H. Chung, V. Orekhov, and A. Maio, Into the robotic
+ranean challenge, Annual Review of Control, Robotics,
+and Autonomous Systems, vol. 6, no. 1, pp. 477502,
+M. Tranzatto, T. Miki, M. Dharmadhikari, L. Bernreiter,
+M. Kulkarni, F. Mascarich, O. Andersson, S. Khattak,
+M. Hutter, R. Siegwart, et al., Cerberus in the darpa
+subterranean challenge, Science Robotics, vol. 7, no. 66,
+D. M. Rosen, L. Carlone, A. S. Bandeira, and J. J.
+synchronization over the special euclidean group, IEEE
+M. Marchi, J. Bunton, B. Gharesifard, and P. Tabuada,
+LiDAR point cloud registration with formal guarantees,
+in IEEE CDC, pp. 34623467, 2022.
+H. Yang, J. Shi, and L. Carlone, TEASER: Fast and
+certifiable point cloud registration, IEEE TRO., vol. 37,
+D. R. Agrawal, R. Govindjee, J. Yu, A. Ravikumar, and
+D. Panagou, Online and certifiably correct visual odom-
+etry and mapping, arXiv preprint arXiv:2402.05254,
+J. Zhang and S. Singh, Ins assisted monocular vi-
+sual odometry for aerial vehicles, in Field and Service
+pp. 183197, Springer, 2015.
+F. A. Maken, F. Ramos, and L. Ott, Stein icp for
+uncertainty estimation in point cloud matching, IEEE
+robotics and automation letters, vol. 7, no. 2, pp. 1063
+J. Laconte, D. Lisus, and T. D. Barfoot, Toward certi-
+fying maps for safe registration-based localization under
+adverse conditions, IEEE Robotics and Automation Let-
+A. Millane, Z. Taylor, H. Oleynikova, J. Nieto, R. Sieg-
+tsdf-based dense mapping approach, in 2018 IEEERSJ
+international conference on intelligent robots and sys-
+tems (IROS), pp. 9951002, IEEE, 2018.
+A. Howard, G. S. Sukhatme, and M. J. Mataric, Multi-
+robot simultaneous localization and mapping using man-
+ifold representations, Proceedings of the IEEE, vol. 94,
+T. Cieslewski, A. Ziegler, and D. Scaramuzza, Explo-
+ration without global consistency using local volume con-
+J. Sola, J. Deray, and D. Atchuthan, A micro lie
+theory for state estimation in robotics, arXiv preprint
+J. G. Mangelson, M. Ghaffari, R. Vasudevan, and R. M.
+tributed poses in the lie algebra, IEEE Transactions on
+T. D. Barfoot, State estimation for robotics. Cambridge
+University Press, 2024.
+B. Legat, Polyhedral computation, in JuliaCon, July
+K. Fukuda and A. Prodon, Double description method
+ference on combinatorics and computer science, pp. 91
+Z. Zhu, S. Peng, V. Larsson, W. Xu, H. Bao, Z. Cui,
+M. R. Oswald, and M. Pollefeys, Nice-slam: Neural
+implicit scalable encoding for slam, in Proceedings
+of the IEEECVF Conference on Computer Vision and
+Pattern Recognition (CVPR), 2022.
+Z. Zhang and D. Scaramuzza, A tutorial on quantitative
+trajectory evaluation for visual (-inertial) odometry, in
+2018 IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pp. 72447251, IEEE, 2018.
+C. V. Nguyen, S. Izadi, and D. Lovell, Modeling kinect
+sensor noise for improved 3d reconstruction and track-
+visualization  transmission, pp. 524530, IEEE, 2012.
+APPENDIX
+A. Review of Matrix Lie Groups
+Here we review the fundamentals of representing a pose and its uncertainty through the language of Lie groups and Lie
+algebras. We refer to readers to [34, 35, 36] and references therein for a more complete description.
+The Lie group SO(3) is the set of valid 3D rotation matrices, and the group SE(3) is the set of rigid transformations in 3D:
+R R33 : RRT  I3, det R  1
+Both SO(3) and SE(3) are matrix Lie groups, i.e., the group composition operation is the standard matrix multiplication
+operation.
+The group action for SE(3) is  : SE(3)  R3 R3, which transforms a point p from its representation in frame A to that
+in frame B. Given T B
+A  pA RpAt.
+The tangent space centered at identity is called the Lie algebra of a Lie group. The Lie algebra is a vector space of all
+possible directions an element of the group can be perturbed locally. The Lie algebras of SO(3) and SE(3) are denoted so(3)
+and se(3) respectively:
+These vector spaces are isomorphic to the Euclidean vector space R3 and R6 respectively. The operator converts the
+Euclidean vector to an element of the Lie Algebra. For SO(3), : R3 so(3):
+while for SE(3), : R6 se(3):
+The operator performs the inverse of .
+Given an element of the Lie algebra, we can convert it to the corresponding element of the group using the exponential
+map. For SE(3), the exponential map is exp : se(3) SE(3),
+k!  I  X  X2
+For convenience, we also define the Exp map, which maps from the Euclidean representation directly to the group element,
+Exp()  exp().
+Analytic expressions for this are provided in [34, Appendix]. The corresponding inverse operations are log and Log.
+The adjoint matrix of SE(3) at T SE(3) is the unique matrix AdT R66 such that
+T Exp()  Exp(AdT )T
+for all  R6. Again, the analytic expression is available in [34, Appendix].
+B. Proof of Lemma 1
+Before we prove Lemma 1, we derive a separating hyperplane result, Lemma 2. It defines the hyperplane that separates
+potential obstacle points from the free space after an uncertain rigid transformation.
+Lemma 2. Let the transform between two frames be T B
+A N( bT B
+any non-zero vector a R3,
+H  {p R3 : aT p r}
+r  aT ( bT B
+and p S3
+is as defined by Assumption 1.
+Proof of Lemma 2: By Assumption 1, the transformed point satisfies
+where p  bT B
+A  pA, and p S3
+is defined in Assumption 1. Next, we define
+such that pR3 is on the surface of the ellipsoid and has a surface normal a. Therefore, the set of points H  {p R3 :
+aT (p p) 0} contains the ellipsoid, i.e., E H,
+r  aT p aT p
+which completes the proof.
+We can now prove Lemma 1.
+Proof of Lemma 1: It suffices to show that any obstacle potentially on the boundary of Pk will not be in Pk1. Consider
+an obstacle point oBk pBkak, where  > 0 and pBk is a point on the surface of Pk. Then for some i {1, ..., N},
+After the rigid transformation, by Lemma 2, oBk1E {p : aT
+Now consider the last term:
+JT ak1,i
+(R[oBk])T
+[oBk]ak,i
+[ak,i]oBk
+[ak,i]pBk
+where in the last line, we used [ak,i](ak,i)  0.
+of the vertices on the i-th face,
+[ak,i]vi,jBk
+where vi,jBk is the j-th vertex on the i-th face of Pk.
+r  bk1,i   ak,i2  i
+that is,
+oBk1E {p : aT
+oBk1{p : aT
+which completes the proof.
+C. Proof of Theorem 2
+pBkE  {p R3 :
+where p  bT Bk
+Bk1  pBk1, and p S3
+is as defined by Assumption 1. Therefore,
+pBk E d(pBk)
+pBk E dk
+Bk  pBk)
+Bk  p) diam(E)2
+Bk bT Bk
+Bk1  pBk1)
+Bk1  pBk1)
+M ( bT M
+Bk1  pBk1)
+where diam(E) is the diameter of E. (1) is true by defition, (2) uses the fact that dk
+M is a certified-ESDF. (3) is true because
+ESDFs have unit gradient everywhere, (4) uses the eigenvalue of p to bound the ellipsoid with a sphere, and (5), and (6) are
+basic simplifications. Therefore, dk1
+is also a certified-ESDF.
+D. Extracting Covariance of Relative Transforms from Odometry with Covariance
+To the best of the authors knowledge, all Visual Odometry (VO)VIOSLAM algorithms report the mean odometry estimate
+and the covariance with respect to the initial frame: at the k-th frame, the following quantities are available:
+Bk SE(3),
+i.e., the pose of the k-th body frame with respect to the initial frame, and the covariance of the estimate.
+Bk1 SE(3),
+Here we detail a method to obtain these quantities.
+Consider the following result adapted from [35, Section VIII] to match the convention used in this paper.
+Lemma 3. Let Tij, Tik, Tjk SE(3) represent the poses between coordinate frames (i, j), (i, k), and (j, k) respectively. Let
+T be the corresponding estimated transform. Let
+Tij  Tij Exp(ij)
+and similar for (ik), (jk). Suppose
+Tjk  T 1
+and the associated covariance is (to first order)
+jk  AijAT  ik Aij,ik T
+where A  Ad T 1
+jk R66 is the adjoint matrix of SE(3) at T 1
+Notice that the negative signs on the cross terms implies that a non-zero ij,jk decreases the covariance of the relative pose.
+ij Tik, the following must hold:
+Tjk Exp(jk)
+Tij Exp(ij)
+Tik Exp(ik)
+Exp(ij) T 1
+ij Tik Exp(ik)
+Exp(ij) Tjk Exp(ik)
+Tjk Exp(Ad T 1
+jk ij) Exp(ik)
+where in the last equality we used the following property of the adjoint matrix: Exp()T  T Exp(AdT 1 ) for any T SE(3)
+and  R6.
+Defining
+ij  Ad T 1
+jk ij, we have
+Exp(jk)  Exp(
+ij) Exp(ik)
+and therefore using the Baker-Campbell-Hausdorff (BCH) formula (see ), the first order estimated covariance is
+T ]  E[ikT
+2nd order diag. terms
+ik]  E[ik
+2nd order cross terms
+AijAT  ik Aij,ik T
+where A  Ad T 1
+jk . This completes the proof.
+We can now apply this lemma to estimate the relative transforms between successive frames. Recall the odometry algorithm
+defines the covariances as
+Bk  bT B0
+Bk Exp(k,0),
+and similar for k  1. The perturbations  are assumed to be correlated,
+where the indicates to the symmetric element.
+We assume that the two poses are highly correlated, with a correlation coefficient  [1, 1], (we chose   0.99). Then,
+Bk1  ( bT B0
+Bk )1 bT B0
+and the estimated relative covariance is
+Bk1  AB0
+BkAT  B0
+Bk1)T 12
+A  Ad( b
+SE(3) is
+and AdT 1  (AdT )1 .
+E. Replica Dataset Environment Details
+Table IV shows the size and volume of the bounding box for each environment used in the simulation studies. It also shows
+the number of mesh points in the environment.
+TABLE IV
+SIZE AND VOLUME OF EACH ENVIRONMENT USED.
+Length X (m)
+Length Y (m)
+Length Z (m)
+Bounding Box Volume (m3)
+Number of Mesh Points
+F. Additional Simulation Results
+Table V and Table VI show additional results of the performance of the SFC and ESDF methods on the Replica dataset.
+Here we show the results from a trajectory perturbed by  1e-5I and  1e-6I.
+RESULTS OF THE THREE SAFE FLIGHT CORRIDOR (SFC) METHODS ON THE REPLICA DATASET. EACH ENVIRONMENT WAS RUN WITH   2I FOR
+TWO DIFFERENT 2 VALUES, 1E-5 AND 1E-6.
+Violation Rate ()
+Max Violation (mm)
+SFC Volume (m3)
+Baseline
+Heuristic
+Certified
+Baseline
+Heuristic
+Certified
+Baseline
+Heuristic
+Certified
+TABLE VI
+RESULTS OF THE THREE EUCLIDEAN SIGNED DISTANCE FIELD (ESDF) METHODS ON THE REPLICA DATASET.
+Violation Rate ()
+Max Violation (mm)
+ESDF Volume (m3)
+Baseline
+Heuristic
+Certified
+Baseline
+Heuristic
+Certified
+Baseline
+Heuristic
+Certified
+G. Effect of Odometry Covariance
+TABLE VII
+PERFORMANCE OF THE THREE EUCLIDEAN SIGNED DISTANCE FIELD (ESDF) METHODS IN THE OFFICE0 ENVIRONMENT UNDER VARYING ODOMETRY
+COVARIANCE AT   3.
+Violation Rate ()
+Max Violation (mm)
+ESDF Volume (m3)
+Baseline
+Heuristic
+Certified
+Baseline
+Heuristic
+Certified
+Baseline
+Heuristic
+Certified
+Odometry Error Covariance  [-]
+Violation Rate []
+Violation Rate () vs Odometry Error Covariance
+Baseline
+Heuristic
+Certified
+Odometry Error Covariance  [-]
+(Claimed) Free Volume [m3]
+(Claimed) Free Volume vs Odometry Error Covariance
+Baseline
+Heuristic
+Certified
+Fig. 9. (Left) Effect of the odometry covariance on the mapping violation rate. (Right) Effect of the odometry covariance on the claimed free volume. Notice
+that the true free volume is approximately 42 m3, and in the uncertified methods the volume of claimed free space incorrectly increases beyond 42 m3. In

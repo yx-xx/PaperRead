@@ -1,0 +1,1096 @@
+=== PDF文件: Learning Interpretable Features from Interventions.pdf ===
+=== 时间: 2025-07-21 13:45:35.875396 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Learning Interpretable Features from Interventions
+Erin Hedlund-Botti, Julianna Schalkwyk, Nina Moorman, Sanne van Waveren, Lakshmi Seelam, Chuxuan Yang,
+Russell Perkins, Paul Robinette, and Matthew Gombolay
+Georgia Institute of Technology, University of Massachusettes Lowell
+{erin.botti, julianna.schalkwyk, ninamoorman, swaveren, lseelam3, soyang}gatech.edu,
+russell perkinsstudent.uml.edu, paul robinetteuml.edu, matthew.gombolaycc.gatech.edu
+AbstractThe behavior of in-home robots must be adaptable
+to end-users to adequately address individual users needs and
+preferences. Learning from Demonstration (LfD) is a common
+approach for customizing robot behavior, enabling non-expert
+users to teach robots how to perform tasks according to their
+preferences. While LfD allows users to teach robots tasks, it can
+be difcult for users to specify their individual needs a priori.
+Interventions (LIFI), a user-friendly and streamlined method
+for personalizing robot behavior through interventions. This
+approach allows users to easily prompt the robot to adapt its
+behavior by intervening when the robots behavior goes against
+user expectations. With LIFI, 1) the user intervenes to communi-
+cate that the robot is making a mistake, 2) the robot then learns
+an explanatory feature that describes the failure and 3) uses it to
+adjust its policy to correct the mistake, aligning with user-specic
+needs. In a between-subjects evaluation experiment with 48
+objective performance and subjective measures, i.e., perceived
+Index Termsrobot learning, collaborative robots, human-
+robot interaction
+I. INTRODUCTION
+Due to an aging population, there is a shortage of caregivers
+[24, 40]. Robots have the potential to offer assistance and
+enable older adults to age in place . Assistive robots must
+be adaptable in order to meet users diverse environments
+and changing needs as they age. Furthermore, useful assistive
+robots will need to adapt to new situations and recover from
+any failures or miss-steps that will inevitably happen when
+operating in the real world . However, many current
+personalization approaches are costly or not scalable [22, 38].
+Training a generalized policy that can adapt to different
+scenarios a priori requires a large data set for the policy
+to function well in a variety settings . On the other
+signicant time and effort from an expert roboticist .
+correct a robots behavior. Therefore, we introduce Learning
+Interpretable Features from Interventions (LIFI) (Figure 1), a
+novel framework that enables a robot to learn interpretable
+features from user interventions and utilizes these features to
+correct its mistakes.
+Co-First Authors.
+Robot learns mapping
+to feature of importance
+orientation
+Too far from
+Moving too
+Features of Importance
+Human provides feature label  and
+corrective demonstration
+The knife is in the
+wrong orientation
+Too far from
+cutting board
+Robot infers the
+feature of importance
+the correct behavior
+orientation
+As robot attempts task, human warns robot, then interrupts
+robot trajectory
+warn button
+interrupt button
+human demonstration
+Training
+Fig. 1: (1) With LIFI, the human warns when the robot
+may begin to fail and interrupts when the robot is concretely
+failing. (2) To train LIFI, we collect a dataset of participant
+The demonstrations start from the warning to show the robot
+how to avoid the failure. (3) With a new user, the robot infers
+their reason for interruption and improves its behavior.
+Our LIFI approach builds from Learning from Demonstra-
+tion (LfD) . In LfD, the robot learns from a recording of
+the human demonstrating the task. The simplest form of LfD,
+Behavioral Cloning (BC), mimics the human; however, BC
+is susceptible to covariate shift . Inverse Reinforcement
+Learning (IRL) techniques attempt to understand context by
+learning a reward function for the humans goal ; yet, IRL
+methods are not sample-efcient [3, 16]. Furthermore, most
+LfD techniques are not interpretable due to their reliance on
+black-box neural networks .
+We want to enable people to teach a robot their preferences
+with a method that is sample-efcient and provides semanti-
+cally meaningful feedback. Therefore, we learn interpretable
+features in the LIFI framework to teach the robot to correct its
+mistakes. We dene interpretable here as the robot outputting
+semantically meaningful features in human-worded language.
+With LIFI, participants intervene once during robot task exe-
+cution when the robots behavior does not match the humans
+preference. Ideally, a user would communicate which features
+are important to them, and the robot would learn to prioritize
+the appropriate parts of the task, resulting in higher perfor-
+mance and trust in the robot . However, it can be difcult
+for people to identify and communicate their preferences and
+key task features a priori . A more effective approach may
+be for people to critique while observing a robots attempt to
+perform a desired task. Prior work has investigated learning
+features from physical interventions [5, 7], but these methods
+do not use interpretable features and users were told a priori
+which features to pay attention to.
+In our approach, we show that when people intervene during
+a robot failure, there is semantic information, environmental
+and temporal context clues, from which the robot can learn.
+For example, if someone stops the robot when the robot is
+putting bleach on a shelf the user deems wrong, the robot
+could observe its distance relative to objects in the environment
+and learn that the important feature is to put the bleach with
+the other cleaning products instead of next to the food.
+In this paper, we rst introduce the LIFI framework. Then,
+we experimentally validate LIFI through multiple user studies,
+in which the robot attempts a series of household tasks and
+participants intervene when the robot fails or does not behave
+as desired. Initially, we conduct a pilot study to elicit a list of
+features from users. Then we collect a dataset of interventions,
+feature labels, and corrective demonstrations to train LIFI.
+(i.e. without features, BC, and ablations of the method).
+In this paper, we contribute the following:
+1) We develop a new, user-friendly, low cognitive demand
+interface for feature specication through interventions.
+2) We contribute the LIFI framework, an interpretable,
+feature-based approach that enables LfD policies to learn
+what users want and adapt to individual users needs.
+3) We demonstrate that LIFIs feature prediction generalizes
+to novel users and LIFI outperforms a no feature baseline
+(p < .05) for performance, workload, usability, and trust.
+II. RELATED WORKS
+LfD seeks to enable humans to teach robots new skills via
+human task demonstrations without requiring users to have
+programming experience . Behavioral Cloning (BC) learns
+to mimic human actions, but inherently does not understand
+the humans intent behind the demonstrations . Inverse
+Reinforcement Learning (IRL) methods attempt to learn a
+reward function for the humans intent, but these methods are
+not sample efcient . LIFI lls both gaps by adding a feature
+vector to a BC policy that attempts to understand human intent,
+while being sample-efcient. Unlike IRL methods, LIFI does
+not need hours of training time at evaluation.
+LIFI also addresses the need to know which features a user
+cares about when specifying a demonstration. Without this
+a priori feature knowledge, a feature mismatch may cause
+the robot to fail to learn the skill, which can result in trust
+degradation [20, 34, 17]. Researchers have considered various
+approaches for learning from robot failures with LfD. Our
+work is inspired by Kelly et al.  and Spencer et al.
+who proposed having people take over task execution when
+the robot deviates from the desired behavior. However, prior
+work that learns from human interventions [21, 39, 5] do
+not learn interpretable features or provide explanations for
+the updated policy. LIFI improves upon state-of-the-art by
+learning interpretable and semantically meaningful features.
+Prior work has also explored learning what feature prompted
+an instance of user feedback . Bajcsy et al. show that
+learning one feature per intervention compared to all at once
+improves objective and subjective results . In contrast,
+Levine et al. investigated learning which features to consider
+by constructing features from components using logical con-
+jugations . While this work shows how both features and
+a policy can be learned at the same time, it does not consider
+whether the features selected by this method are deemed
+important by the demonstrator. This could lead to a correct
+policy that does not adhere to the demonstrators preferences.
+We endeavor for our features to be based on human
+Learning-based approaches that use neural networks are not
+yet guaranteed to be interpretable to a non-expert user .
+transparency about the reasoning behind its actions . Das
+et al. expand on learning interpretable features, showing that
+presenting both the context of the failure and preceding robots
+actions to be helpful . As prior work has found that
+querying people affords interpretable, relevant features, we
+obtain our features directly from participants by soliciting
+feedback as they observe the robot attempt the task .
+III. TECHNICAL APPROACH
+In this section, we introduce the LIFI framework.
+A. Preliminaries
+LfD can be formulated as a Markov Decision Process
+without the reward function (MDPR) which is represented
+by the 4-tuple S, A, T , . S is the set of states and A is
+the set of actions. In a model-based paradigm, the transition
+function T : S A S[0, 1] represents the probability
+of transitioning from state s to state, s, via action, a.  is
+Robot State
+World State
+Features
+Prediction
+Multi-Head Attention
+TanhLinear
+Relational Features
+Object Features
+ReluLinear
+ReluLinear
+Trajectories
+Trajectories
+Interruption
+Timestep
+Fig. 2: The LIFI framework predicts a feature vector, f, (the
+reason that the user interrupted) with the Feature Prediction
+(blue). g takes in the robot trajectory, r, the objects in the
+environment (purple), w, and the time of the interruption, i,
+to predict f. h predicts the robots next action, a, from f,
+the state of the robot, sr, and the environment objects, sw.
+the discount factor for future rewards. In an LfD paradigm,
+the agent learns a policy,  : S A, mapping states
+to actions, from a demonstrator provided set of trajectories
+{(st, at), t {1, 2, ...T}}. Our approach is model-free,
+meaning that we do not know the transition function a priori.
+B. LIFI Framework
+The LIFI model architecture (Figure 2, Algorithm 1) con-
+sists of two parts. First, the Feature Prediction Network, g,
+takes in the robot state trajectory, r, the states of the objects
+in the world, w, and the time of interruption, i, and outputs a
+feature vector, f. The time of interruption i is used to crop r
+so that only the robot trajectory up to the time of interruption is
+given as input. Thus, g uses the world state up to the time of
+interruption to predict the feature. Second, the Policy Network,
+f and outputs the next robot action, a. In the LIFI framework,
+the set of features, comprising f, (detailed in Section IV-C) is
+split into two types: 1) relational features (e.g., too high, too
+to itself or objects in the environment and 2) the environment
+objects (e.g. table, dishwasher, etc.). For example, if the person
+interrupts because the robot is cutting the table instead of the
+To determine the features, we interview users in the Pilot Study
+(Section IV-C). We synthesize their responses to ascertain a list
+of features that are generalizable across manipulation tasks.
+1) Feature Prediction Network: To learn the feature vector
+or reason for interruption, f, the g network feeds r, w, and i
+through a multi-head self-attention layer. The reasoning for the
+attention layer is for the features to index on important aspects
+of the trajectories. The trajectories are the Cartesian pose of
+the robot end-effector and objects (position and quaternion).
+The attention layer output is a classication embedding, which
+is concatenated with a one-hot encoding of the domain and
+fed through a linear layer. This output is an encoding, ,
+and is fed through a tanh activation and a linear layer, to
+predict the relational features. The relational features are then
+concatenated with  and fed through a linear layer to predict
+the object features.
+We train this model using the labeled features from the data
+collection study (Section V-A) and cross-entropy loss
+The list of features are known a priori and are determined to
+be common across manipulation tasks, from the Pilot Study
+(Section IV-C). Using softmax, the robot can then predict the
+most likely feature from the feature vector, f, and utilize
+templated language, from the labels, to communicate the
+feature to the user.
+Algorithm 1: Training LIFI Framework
+1. for each trial do
+if get interruption then
+collect interruptions (i, r, w), feature labels
+(f) and corrective demonstrations
+(D  sr, sw).
+2. Initialize , .
+3. for (i, r, w, D) do
+Obtain predicted feature: f  g(i, r, w)
+for sr, sw, a D do
+Obtain predicted action: a  h(sr, sw, f)
+Take one step of gradient descent on  with
+Take one step of gradient descent on  with
+2) Policy Network: The policy network learns an improved
+robot policy based on user interruptions and demonstrations.
+Train and Employ
+Pilot Study
+What features do people care about
+when interrupting a robot?
+Elicited
+Features
+Curate Features, Create GUI
+Evaluation Study
+to users the anticipated feature?
+from interventions?
+performance?
+Data Collection Study
+Collect a dataset of interruptions, feature
+Loading the Dishwasher Putting Bleach Away
+Sweeping Up Glass
+Cutting Cookie Dough
+Object Orientation
+Object Alignment compared to
+Too High compared to
+Too Low compared to
+Too Far from
+Too Close to
+Rotation Too Fast
+Rotation Too Slow
+Position Too Fast
+Position Too Slow
+Cutting Board
+Knife Block
+Top Shelf
+Middle Shelf
+Dishwasher Door
+Fig. 3: We elicit features of interest from a Pilot Study and develop a user interface. Then, in the Data Collection Study,
+we collect a dataset of human interruptions, feature labels, and corrective demonstrations to train the LIFI model. Lastly, we
+validate the LIFI framework in the Evaluation Study. In all studies, the robot attempts household manipulation tasks.
+The base policy is behavioral cloning , where the robot
+an additional input to the Policy Network, h, resulting in
+a feature-conditioned policy that adapts to user feedback.
+h employs action chunking, predicting the next k actions,
+to prevent the robot from stopping mid-trajectory , and
+utilizes three linear layers with ReLU activations. The correct
+action labels are derived from the combination of the robot
+trajectories prior to interruption concatenated with their re-
+spective corrective demonstrations. The policy network learns
+via an mean-squared error loss of the predicted actions a
+compared to the corrective actions a,
+Further details (e.g., layer sizes) are in Appendix A.
+previous states were identical, the model will predict the same
+feature. However, we assume that people will interrupt in
+different states based on their preferences. In practice, this
+is a reasonable assumption as the state space is continuous so
+two identical interruptions are highly unlikely.
+IV. EXPERIMENTAL DESIGN
+We conduct three human-subjects experiments; an overview
+is depicted in Figure 3. We rst conduct a pilot study to
+elicit a list of relevant features from users. We then conduct
+a data collection study where users interrupt the robot, label
+LIFI model. Third, we evaluate LIFI compared to baselines.
+This section details the research questions, experimental setup,
+and Institutional-Review-Board approved study procedures.
+A. Research Questions
+tions? We investigate if we can accurately predict features
+of interest from user interventions, and if these predictions
+generalize to novel users.
+baseline without features? We evaluate if learning the relevant
+features improves objective and subjective robot performance.
+feature of interest impact the users perceptions of the robot?
+We investigate how communicating the predicted feature of
+interest when a user interrupts the robot changes the users
+perceptions of the robot.
+B. Experiment Setup
+We employ the Spot robot , a ZED camera , and
+1) Domains: Prior work has shown that chore tasks are
+relevant for assistive robots [37, 36]. We design four household
+tasks as the domains (Figure 3):
+1) Loading the Dishwasher - the goal is to place the
+plastic dish in the tabletop dishwasher.
+2) Putting Bleach Away - the goal is to place the bleach
+bottle on the pantry shelf.
+3) Sweeping Up Glass - with a hand-held broom, the goal
+is to sweep the broken glass into a dustpan.
+4) Cutting Food - the robot must use a knife to cut the
+Play-Doh cookie roll.
+where to place a dish in the dishwasher, not putting cleaning
+items next to food).
+2) Wizard-of-Oz Trajectories: To show the participants a
+consistent set of robot behaviors, we pre-specify ve trajecto-
+ries in each of the four domains (20 total). To compare across
+a variety of behaviors, each domain includes: one success, two
+objective failures, and two subjective failures. For the failures,
+we focus on system errors, in which the robot does not act as
+but should not have acted in that way . An objective failure
+occurs when the robot fails to complete the task goal (e.g.,
+colliding with the dishwasher). A subjective failure is when the
+robot achieves the goal without satisfying a users preferences
+(e.g., placing the dish in the wrong orientation). To investigate
+trajectories are used as the initial robot policy for all studies.
+3) Domain and Trial Ordering: In all three studies (pilot,
+data collection, and evaluation), participants watch the robot
+complete the Wizard-of-Oz (WoZ) trajectories and interrupt if
+the robot is making a mistake or not behaving as desired. The
+frequency and timing of robot errors impact user behavior and
+perception of the robot . As such, the order of successes
+and failures are randomized and then held constant across par-
+ticipants. In the data collection phase, participants experience
+one success, two objective failures, and two subjective failures
+per domain. Appendix Table II lists the ordering of trial
+outcomes for each domain that each participant experiences
+in the data collection phase. During the evaluation phase,
+participants observe three trials per domain (one success,
+one objective failure, and one subjective failure). Appendix
+Table III lists the ordering for the evaluation phase. Which of
+the two subjective and objective failures is randomized and
+counterbalanced across participants.
+Participants also experience multiple domains in all three
+studies. Appendix Table I lists four domain orders, obtained
+via a Latin square. Each participant experiences one domain
+ordering condition. The domain orders are randomly assigned
+and counterbalanced across participants.
+C. Pilot Study
+The pilot study has two goals: 1) to elicit a list of features
+from participants and 2) to assess our study design. Since the
+robot behavior is WoZ, we need to determine whether par-
+ticipants perceive each trajectory as intended (i.e., successful
+trajectories are perceived as successes, objective failures as
+failures). Past experiments have shown that participants do
+not intervene, even if the robot is colliding with objects .
+As such, we evaluate and improve the instructions to ensure
+participants intervene when observing objective robot failures.
+1) Pilot Study Procedure: Participants observe each trajec-
+tory in each domain (as specied in Section IV-B3). After
+each trial, participants are asked to rate the success of the
+trajectory on a scale of 1 (unsuccessful) to 10 (successful).
+Participants also answer why they did or did not interrupt the
+robot. We transcribe the interviews and conduct a thematic
+content analysis with two reviewers  to determine a core set
+of important features across domains. This yields a dataset of
+features of importance from the population rather than using
+an experimenter-dened dataset. Based on our ndings, we
+design a Graphic User Interface (GUI) for users to choose
+which feature reects their reason for interruption.
+2) Pilot Study Results: The pilot study consisted of 13
+participants with a mean age of 23.8 and standard deviation
+(SD) of 3.58 (30.8 Female, 69.2 Male). On average,
+participants rated successes with a score of 7.8 out of 10,
+subjective failures with 5.8, and objective failures with 4.0. On
+the dishwasher task, participants rated successes lower than
+high. On the bleach task, the objective failures were rated
+higher than expected: 5.6, due to not all participants rating
+collisions negatively. Therefore, for the data collection study,
+we redesigned the dishwasher task and told participants that
+the robot should complete the tasks without colliding.
+the robot failed irrecoverably (e.g., wiped all the glass on the
+oor). We included a warn button that does not stop the robot
+so participants can indicate when the robot might be about
+to make a mistake. We later use this pre-failure moment to
+let people provide corrective demonstrations that show how
+to avoid the failure. We found that warning the robot allowed
+participants to signal to the robot, while still satisfying their
+curiosity about what the robot would do next.
+After each trial, we asked participants why they interrupted
+the robot. The most common reasons were the orientation
+of the object that the robot was holding, the position of the
+object compared to other objects, and the speed of the robot.
+Participants also mentioned the force applied by the robot,
+specically in the cutting task. However, we chose not to
+include force due to not being able to measure force from
+video demonstrations. The list of features is included in Figure
+3. Representative quotes from participants are in Appendix D.
+D. Data Collection Study
+The goal of the data collection study is to collect a dataset
+from participants to train the LIFI framework.
+1) Data Collection Procedure:
+We conduct a within-
+subjects (n  44) data collection study where participants
+observe the robot complete trials in each of the domains, akin
+to the pilot study. In the data collection phase, the participant
+observes the robot execute a WoZ policy for ve trials per
+two subjective failures. The domains are randomized and
+counterbalanced via Latin Squares (see Section IV-B3).
+To interrupt the robot, the participants are instructed to press
+a yellow warn button before the robot makes a mistake, and
+the red stop button after the robot has made a mistake or the
+participant thinks the robot will not recover. After interrupting,
+participants indicate on our GUI which feature is their reason
+for interruption. Participants can choose more than one feature
+but must indicate which feature is most important. Next, we
+show participants a picture of when they rst pressed the
+warn button. Using this image, participants then provide a
+demonstration via motion-capture, starting from the position
+where they rst pressed the warn button, to show the robot
+how it should have performed the task differently. We use this
+data to train the LIFI model (Section III-B).
+2) Manipulation Check: The data collection study included
+44 participants with a mean age of 23.2 (SD4.01, 29.5
+uated how participants perceived and interrupted the different
+types of trials. We employed Friedmans tests with Nemenyi-
+Wilcoxon-Wilcox post-hoc tests. Out of 10, participants rated
+successful trials with a mean of 8.26 (SD.984), subjective
+failures with a mean of 5.81 (SD1.21), and objective failures
+Reasons for
+Interruption
+Orientation
+Position
+Collision
+collide with the dishwashing tray
+thought it was going to hit the shelf.
+know where the dough was.
+bottle like all the way around
+dangerous.
+and it was slowly getting to the point
+where it could do the task properly, so I
+interrupted
+able to chop it off a little sooner
+Fig. 4: We solicited reasons for interruption in the Pilot Study (n  13). We found that the main reasons people interrupted the
+robot were the position of the item, the orientation of the item, and the speed at which the robot was moving. Within position,
+people interrupted both because the position was generally incorrect and because of an impending collision with something
+else in the environment.
+with a mean of 3.28 (SD.969). There was a signicant main
+effect between the trial types (2(2)  84.0, p < .001).
+Successful trials were rated signicantly higher than subjective
+failures (p < .001) and objective failures (p < .001), and sub-
+jective failures were rated signicantly higher than objective
+failures (p < .001). Similarly, there was a signicant main ef-
+fect for interruption rate between the trial types (2(s)  80.0,
+p < .001). Participants interrupted successful trials at a rate
+of 18.8 (SD18.1), subjective failures at a rate of 51.1
+(SD23.2), and objective failures at a rate of 97.7 (SD5.6).
+Participants interrupted successful trials signicantly less than
+subjective (p < .001) and objective failures (p < .001). Lastly,
+participants interrupted subjective failures signicantly less
+than objective failures (p < .001). Overall, the types of trials
+were designed and perceived as expected.
+E. Evaluation Study
+1) Conditions: In our third experiment, after our pilot study
+(Section IV-C) and data collection study (Section V-A), we
+manipulate the independent variable, Feature Condition, with
+the following conditions:
+LIFI  Learned Feature (Ours): The robot infers the
+highest probability feature and then attempts the task using
+the learned feature (Section III-B). Then the robot communi-
+cates the feature (using templated language, e.g. I think you
+interrupted because of X.) as an explanation to the user.
+MI-LIFI  Mixed-Initiative (Ours): The robot infers the
+best feature and then communicates the feature to the user. If
+the user feels that the robot should have chosen a different
+The robot then utilizes the learned, or corrected feature, as an
+input to the policy network, and attempts the task again.
+BC  No Feature: The robot learns how to accomplish
+the task via BC, does not predict a feature, and does not
+communicate with the user.
+Adv-LIFI  Adversarial Feature: This condition is the
+same as LIFI, except the robot infers the worst feature (mini-
+mum probability). Adv-LIFI accounts for bias when working
+with interactive systems.
+2) Evaluation
+between-subjects experiment (n  12 per condition), where
+each participant experiences one Feature Condition (Section
+IV-E1). Participants experience three trials for each of the four
+domains. The domains are randomized and counterbalanced
+via Latin Squares (see Section IV-B3). In the evaluation phase,
+the number of trials was reduced because the BC policy
+performed similarly across trials, due to BC not personalizing
+to individual participants interruptions. It may have become
+obvious to participants that the robot was not learning from
+their interruptions if the robot performed similarly across too
+many trials. Therefore, the participant observes three trials per
+failure. The objective and subjective failure trajectory chosen,
+from the two in the data collection, are randomized and
+counterbalanced across participants.
+Participants rst ll out pre-study surveys. Then participants
+observe the robot attempt a series of household tasks, and
+participants are instructed to interrupt using the same proce-
+dure as the data collection study. If participants interrupt a
+feature of importance, dependent on the Feature Condition.
+After each trial, participants complete the post-trial surveys.
+F. Metrics
+We now describe the metrics employed to evaluate our
+framework. More details on metrics are in Appendix C.
+1) Framework Training Metrics:
+We rst validate the
+model ofine with a holdout set from the data collection data.
+Feature Accuracy: We compare the model predicted fea-
+tures to the participant labeled features using an all-or-nothing
+and a partial-credit metric. For both metrics, if the participants
+top feature matched the models predicted feature, we scored
+that as a 1. For the all-or-nothing metric, if the models feature
+differed at all from the top feature given by the participant,
+we gave it a score of 0. For the partial-credit metric, if the
+predicted feature was a feature given by the participant but
+was not the top feature, we gave it a score of 0.75. If the
+model guessed a feature or object that the participant input,
+we gave a score of 0.5.
+Policy Error: We dene Policy Error as the difference
+between the policy generated trajectories and the successful
+WoZ trajectories to measure error. Additionally, to quantify
+personalization from the features, we compare the generated
+trajectories to the participant demonstrations. We calculate
+error by aligning trajectories using dynamic time warping
+and measuring the absolute pose error (APE) . To gain
+further insight into the policy error, we also separate out the
+error into orientation and position error.
+2) Pre-Study Metrics: At the beginning of the evaluation
+(a) Demographics: We collect participant age and gender.
+(b) Personality: We employ the Mini-IPIP .
+(c) Negative Attitudes Towards Robots (NARS): We
+measure the three NARS subscales .
+3) Post-Trial Metrics: After each trial, we measure the
+accuracy of the features and robot policy. All scales from 1 to
+10 are from 1 (not successful) to 10 (successful).
+(a) Feature Ratings: Participants rate the robots predicted
+feature on a scale from 1 to 10.
+(b) Feature Accuracy: We compare participant-provided
+feature(s) to the model-predicted feature as described
+in the Framework Training Metrics.
+(c) Perceived Policy Accuracy: Users rate the robots
+performance on a scale from 1 to 10.
+(d) Policy Error: We compare the robots trajectory to
+a successful trajectory using the same method as the
+framework training metric.
+(e) Qualitative Interview: We interview participants to
+understand why they did or did not interrupt.
+4) Post-Study Metrics: After the evaluation study, we col-
+lect the following metrics:
+(a) Interruption Rate: We measure how often participants
+intervened across trials.
+(b) Usability: We employ the System Usability Scale .
+(c) Workload: We measure workload via the NASA Task
+Load Index .
+(d) Trust: We employ the trust scale by Jian et al. .
+(e) Qualitative Interview: We interview participants about
+the process of working with the robot.
+V. RESULTS AND DISCUSSION
+In the results, for each statistical test, we compared condi-
+tions using an Analysis of Variance (ANOVA). To check for
+confounding factors on subjective metrics, we systematically
+added the demographic variables as covariates to each model
+(i.e., age, gender, personality, and attitudes towards robots),
+only keeping the covariate if adding it lowered the models
+AICc (Akaike Information Criterion for small sample sizes).
+and homoscedasticity. If assumptions failed, a non-parametric
+(a) APE of policy generated trajectory compared to Wizard-of-Oz
+successful trajectory.
+(b) APE of policy generated trajectory compared to user demonstrated
+trajectory.
+Fig. 5: LIFI outperforms baselines in ofine model validation.
+In Figure 5a, LIFI is signicantly closer to a successful
+trajectory compared to the trajectories generated by BC and
+Adv-LIFI. In Figure 5b, LIFI is signicantly closer to the
+participants demonstrated trajectories compared to the tra-
+jectories generated by BC and Adv-LIFI. Also, Adv-LIFI is
+signicantly closer to participant trajectories than BC. The
+LIFI framework better personalizes to user preferences for the
+held-out test set.
+version of the test was employed. Further details on models
+and tests for assumptions are in the Appendix Table VI.
+A. Data Collection Study: Model Validation
+We rst conduct an ofine validation of the model on the
+data collection dataset. We split the dataset into an 8020
+training and test set with 5-fold cross-validation. After training
+the LIFI framework on the training set, we evaluated the model
+on the test set using feature accuracy and policy error metrics.
+1) Feature Accuracy: We compared the predicted features
+to the labeled features in the test dataset. The model predicted
+the user-specied most important feature with 67 accuracy.
+While this accuracy may seem low, there is ambiguity in
+the feature labels and participants often chose more than one
+label. One participant might say the knife was too close
+to the table, while another would say the knife was too
+low compared to the table, and a third may choose both
+options. After inspecting where the model guessed wrong,
+many incorrect guesses were due to ambiguity (e.g., choosing
+object orientation instead of object alignment). Therefore, we
+determine the utility of our feature predictions in the evaluation
+(a) Planned policy error.
+(b) Executed policy error.
+(c) Orientation and position policy error.
+Fig. 6: (a): LIFI plans a more accurate policy than BC and Adv-LIFI. (b) LIFI outperforms BC during policy execution. (c)
+After separating orientation and position error of the executed policy, LIFI outperforms BC and Adv-LIFI on position error.
+ture prediction (Section V-B). Takeaway: Combining results
+from the data collection and evaluation studies, LIFI learns
+an informative relationship between user interruptions and
+the semantic concept of that failure (RQ1).
+2) Policy Error: We generated trajectories for the LIFI,
+tests with Nemenyi-Wilcoxon-Wilcox post-hocs. In Figure
+the generated trajectories and WoZ successful policies across
+conditions (2(2)  69.3, p < .001). LIFI had signicantly
+lower error than BC (p < .001), as did Adv-LIFI (p < .001).
+We also calculate the error between the generated tra-
+jectories and the participants demonstrations. There was a
+signicant main effect for the policy error across the con-
+ditions (2(2)  89.1, p < .001). As shown in Figure 5b,
+LIFI had signicantly lower error than BC (p < .001) and
+Adv-LIFI (p < .001), showing that adding correct features
+better personalized to users. Also, Adv-LIFI had signicantly
+lower error than BC (p < .001), meaning that providing
+the incorrect feature still personalized better than no features.
+performance over a baseline without features (RQ2).
+B. Evaluation Study
+The evaluation study included 48 participants with a mean
+age of 24.2 and an SD of 3.24 (33.3 Female, 64.6 Male,
+and 2.1 Other). We conducted ANOVAs with Tukey post-
+hocs (or Kruksal-Wallis tests with Dunns post-hoc, for non-
+parametric tests). We report effect sizes from Tukey post-hoc
+as TD and effect sizes from Dunns post hoc as r.
+1) Manipulation Check: We checked interruption rates to
+ensure that the WoZ trajectories were not perceived differently
+across conditions. There was no signicant difference in
+interruption rate between conditions (2(3)  1.18, p  .758).
+We next analyzed how participants perceived the features
+inferred by LIFI and MI-LIFI compared to Adv-LIFI. We
+found a signicant main effect for perceived success between
+feature conditions (F(2, 33)  23.0, p < .001). Participants
+perceived features inferred by LIFI (p < .001, TD  2.27)
+and MI-LIFI (p < .001, TD  2.83) as signicantly more
+correct than features from Adv-LIFI.
+When comparing between LIFIs guess and the features
+labeled by participants, LIFI and MI-LIFI combined had an av-
+erage all-or-nothing score of 0.43 (SD.50) and a partial-credit
+score of 0.64 (SD.36). Comparatively, Adv-LIFI had an all-
+or-nothing score of 0.17 (SD.38) and a partial-credit score of
+0.23 (SD.39). We found a statistically signicant difference
+in score between LIFI, MI-LIFI, and Adv-LIFI for the all-or-
+nothing metric (2  15.11, p < .001) and the partial-credit
+metric (2  41.24, p < .001). For the all-or-nothing metric,
+LIFI outperformed Adv-LIFI (p  .04, r  0.21) and MI-LIFI
+outperformed Adv-LIFI (p < .001, r  33). In the partial
+credit metric, LIFI outperformed Adv-LIFI (p < .001, r
+0.45) as did MI-LIFI (p < 0.001, r  0.51). Takeaway:
+LIFI and MI-LIFI were better at picking a feature that
+matched participant expectations than Adv-LIFI. The LIFI
+framework can adequately predict correct and incorrect
+features intentionally, providing further evidence for RQ1.
+2) Objective Metrics (Policy Error): We compare the tra-
+jectories generated by the policy for each condition to the WoZ
+successful trajectory (Figure 6a). We found a signicant main
+effect for planned policy error between conditions (F(3, 44)
+70.1, p < .001). The planned policy error for BC is signif-
+icantly higher than Adv-LIFI (p < .001, TD  0.47), LIFI
+LIFI (p < .001, TD  0.27) and MI-LIFI (p < .001, TD
+0.24). The trajectories for LIFI and MI-LIFI are signicantly
+closer to success compared to BC and Adv-LIFI, and Adv-
+LIFI is signicantly closer to success than BC.
+The planned trajectory was sent to the robot, however, the
+robot may have been unable to complete the trajectory due
+to infeasible kinematics or the experimenter interrupting the
+trajectory early due to a collision. Therefore, we also calculate
+error between the robots executed trajectory and the WoZ
+successful trajectory across conditions. We found a main effect
+across feature conditions (F(3, 44)  19.1, p < .001). BC has
+signicantly higher executed policy error compared to Adv-
+and MI-LIFI (p  .001, TD  0.30). Figure 6b shows that
+success than BC. Takeaway: LIFI outperforms BC, even
+a) Original Robot Trajectory
+b) Interruption below obstacle by Person 1
+c) Interruption above obstacle by Person 2
+d) BC Result with Person 3 Interruption
+e) Adv-LIFI Result with Person 3 Interruption
+f) LIFI Result with Person 3 Interruption
+Adv-LIFI Predicted
+Trajectory
+LIFI Predicted
+Trajectory
+Robot Trajectory
+Robot Trajectory
+Post-Interrupt
+Participant Warn
+Participant
+Demonstration
+Executed Robot
+Trajectory
+Participant hits
+Warn Button
+Participant hits
+Interrupt Button
+Original Robot
+Trajectory
+Interrupt
+Corrective
+Demonstration
+Corrective
+Demonstration
+Interrupt
+BC Trajectory
+Adv-LIFI
+Trajectory
+LIFI Trajectory
+Fig. 7: This gure shows the differences between the BC, Adv-LIFI, and LIFI results. An original robot trajectory in panel (a)
+is interrupted twice, once below the obstacle in panel (b) and once next to the obstacle in panel (c). As shown in panels (d),
+(e), and (f), the three algorithms have differing results, even when interrupted at the same point. In panel (d), the BC baseline
+averages the two demonstrated trajectories in (b) and (c), producing a trajectory that collides with the obstacle. In panel (e),
+Adv-LIFI follows the path from the interruption above the obstacle instead of the one below the obstacle (green dashed line).
+It does not collide with the obstacle but may not have been what the user intended, as Person 1, who interrupted at a similar
+of what to do when interrupted below the obstacle as shown in panel (b).
+when using the wrong feature.
+Due to the unexpected similarities between the Adv-LIFI,
+policy error by comparing the position and orientation error
+separately (Figure 6c). There was a signicant main effect for
+position error across conditions (2(3)  22.0, p < .001).
+LIFI had signicantly less position error than BC (p <
+MI-LIFI also had signicantly less position error than BC
+(p  .026, r  0.57). For orientation error, we found a
+signicant main effect between conditions (2(3)  19.1,
+p < .001). The orientation error followed the same trends as
+the overall executed policy error. BC had signicantly higher
+orientation error compared to Adv-LIFI (p < .001, r  0.72),
+perform worse than Adv-LIFI, this difference in performance
+could be attributed to a mode collapse that is present in
+BC but not in Adv-LIFI. Participants demonstrations varied
+BC combines all corrective demonstrations, ignoring distinct
+modes or interruption points, resulting in an averaged tra-
+jectory that performs poorly as it tries to address all reasons
+for interruption at once. Adv-LIFI, as with all LIFI models,
+still learns to distinguish modes and, even though Adv-LIFI
+chooses the wrong mode at test time, the result is better than
+BC suffering from mode collapse.
+While the overall executed policy error did not show sig-
+nicant differences between LIFI and Adv-LIFI, LIFI outper-
+formed Adv-LIFI with respect to position error. Furthermore,
+from observations, the robot performed distinct behaviors (ex-
+ample trajectories are depicted in Appendix F). For example,
+LIFI successfully places the bleach on the shelf, however,
+the robot rst stops mid-trajectory and spins the bottle in
+place before succeeding. BC and Adv-LIFI both drop the
+bleach bottle on the ground after spinning. This demonstrates
+how LIFI could have lower position error than Adv-LIFI, but
+not signicantly different orientation error. Takeaway: LIFI
+outperformed both Adv-LIFI and BC in terms of position
+error (RQ2).
+3) Subjective Metrics:
+We compared participants per-
+ceived success of the learned trajectories and perceived work-
+answer RQ3. Participant quotes are included in Appendix G.
+a) Perceived Improvement: Due to the between-subjects
+experiment design, some participants baseline ratings were
+higher than others. We subtracted the success ratings of the
+trial that participants interrupted from the learned trajectory to
+determine which conditions improved perceived performance.
+In Figure 8, LIFI and MI-LIFI have ratings above 0, meaning
+Fig. 8: Participants perceive that LIFI improves after interrup-
+tion better than BC and Adv-LIFI.
+that performance improved, whereas BC and Adv-LIFI usually
+degraded performance. We found a main effect for perceived
+improvement between conditions (F(3, 42)  4.40, p  .009).
+LIFI had signicantly better perceived improvement compared
+to BC (p  .027, TD  1.43) and Adv-LIFI (p  .027, TD
+1.43). Takeaway: LIFI and MI-LIFI show improvement,
+while BC and Adv-LIFI usually worsen. Participants rated
+LIFI with signicantly more improvement than BC and
+Adv-LIFI.
+b) Workload: We found a signicant main effect for
+perceived workload between conditions (F(3, 42)  4.89,
+p  .005). Participants perceived BC to be signicantly
+more workload than LIFI (p  .012, TD  21.7) and
+MI-LIFI (p  .008, TD  22.8). Additionally, the NARS
+subscale for social inuence of robots positively impacted
+perceived workload (F(1, 42)  5.02, p  .030). People
+who feel more negatively towards the social inuence of
+robots perceived interacting with the robot as more workload.
+feature explanations (LIFI and MI-LIFI) as signicantly
+less workload than BC.
+c) Usability: There was a signicant main effect for
+usability across feature conditions (F(3, 41)  3.53, p
+.023). LIFI had signicantly higher usability scores compared
+to BC (p  .040, TD  16.7). The NARS subscale for
+social inuence of robots negatively impacted usability scores
+(F(1, 41)  14.1, p < .001). Participants who were more wary
+of robot social inuence thought the robot was less usable.
+more usable than BC.
+d) Trust: We found a signicant main effect for trust
+across feature conditions (F(3, 41)  4.68, p  .007).
+LIFI had signicantly higher trust scores compared to BC
+(p  .004, TD  9.41). Trust and usability can be correlated
+with performance , therefore, we posit that MI-LIFI was
+not perceived as highly due to lower performance than LIFI.
+The personality trait agreeableness positively impacted trust
+.042). Furthermore, the NARS
+subscale for social inuence negatively impacted trust scores
+(F(1, 41)  17.0, p < .001). Participants who are more
+agreeable were more likely to trust the robot, whereas par-
+ticipants who are more wary of robot social inuence were
+less likely to trust the robot. Takeaway: Participants trusted
+LIFI signicantly more than BC.
+VI. LIMITATIONS AND FUTURE WORK
+This work presents a promising framework for learning from
+interventions. We would like to now acknowledge areas for
+growth in future work. Our experiments included relatively
+small sample sizes (n  44, 48). Therefore, the data collection
+phase did not adequately cover the distribution of possible
+lower performance in the evaluation study. In the future, we
+will recruit a more diverse population, including older adults
+and users of assistive robots, to improve our model.
+Another limitation is that participants selected from a pre-
+dened set of features. When participants felt the options were
+in lower feature success ratings. There is some ambiguity or
+overlap between some of the features. the robot attempts to
+place the bleach on the shelf, the options too low compared
+to middle shelf and too close to middle shelf have different
+meanings. However, in the case where the robot cuts the
+table instead of the cookie dough on the cutting board, the
+labels too close to table and too low compared to table
+are similar. During the evaluation, the robot often predicted
+too far from cutting board. Some participants agreed with
+the robot, some gave the robot partial credit, and others said
+the robot should have said a feature involving the table. The
+LIFI framework assumes that if two participants interrupt at
+the same point in the trajectory, it is for the same reason;
+always homogeneous. During data collection, participants did
+not provide homogeneous labels, which added noise to the
+dataset. Additionally, during evaluation, participants were not
+homogeneous in their interpretation of the features. Incorporat-
+ing these multiple types of heterogeneity is an exciting avenue
+for future work. We plan to incorporate natural language
+reasons for interruption instead of choosing from a list to cover
+a wider range of features and heterogeneity of responses.
+may have biased the dataset. Therefore, we plan to collect
+data using a wider variety of initial policies as well as with
+a wider variety of tasks to further demonstrate how LIFI
+can generalize. We also plan to improve the framework for
+generalization to new domains.
+terruption. A more natural ow could include more of a
+conversational interaction, with multiple interactions as needed
+to correct the robots behavior if the rst correction is not
+successful or does not fully correct the behavior. In future
+VII. CONCLUSION
+We introduced LIFI, a novel framework for learning in-
+terpretable features from user interventions. We conducted a
+pilot experiment to obtain relevant features for our tasks, a
+data collection experiment to collect corrective demonstrations
+that we used to train our model, and an evaluation experiment
+to investigate the efcacy of the LIFI framework. The model
+learns features, from these corrective interruptions, that im-
+prove a robots policy. The LIFI framework outperformed a
+no feature baseline on objective metrics including executed
+policy error as well as on subjective metrics such as perceived
+ACKNOWLEDGMENTS
+Funding for this work was graciously provided by the
+National Science Foundation under grant IIS-2340177 and
+grant IIS-2112633.
+REFERENCES
+Stereolabs zed 2 stereo camera, 2024. URL
+stereolabs.comproductszed-2.
+February
+productsspot. Publication Title: Boston Dynamics.
+Pieter Abbeel and Andrew Y. Ng. Apprenticeship Learn-
+ing via Inverse Reinforcement Learning. In Proceedings
+of the Twenty-First International Conference on Machine
+2004. Association for Computing Machinery.
+Rosemarie Anderson. Thematic content analysis (TCA).
+Descriptive presentation of qualitative data, 3:14, 2007.
+Andrea Bajcsy, Dylan P. Losey, Marcia K. OMalley,
+and Anca D. Dragan.
+Learning from Physical Hu-
+man Corrections, One Feature at a Time.
+ceedings of the 2018 ACMIEEE International Con-
+ference on Human-Robot Interaction, HRI 18, pages
+Computing Machinery. ISBN 978-1-4503-4953-6. doi:
+3171221.3171267. event-place: Chicago, IL, USA.
+Pietro Bilancia, Juliana Schmidt, Roberto Raffaeli,
+Margherita Peruzzini, and Marcello Pellicciari.
+overview of industrial robots control and programming
+approaches. Applied Sciences, 13(4):2582, 2023.
+Andreea Bobu, Marius Wiggert, Claire Tomlin, and
+Anca D Dragan.
+Feature expansive reward learning:
+Rethinking human input.
+In Proceedings of the 2021
+ACMIEEE International Conference on Human-Robot
+John Brooke.
+SUS-A quick and dirty usability scale.
+Usability evaluation in industry, 189(194):47, 1996.
+Justin Cheng and Michael S Bernstein. Flock: Hybrid
+crowd-machine learning classiers.
+In Proceedings of
+the 18th ACM conference on computer supported coop-
+erative work  social computing, pages 600611, 2015.
+Devleena Das, Siddhartha Banerjee, and Sonia Chernova.
+Explainable AI for Robot Failures: Generating Explana-
+tions That Improve User Assistance in Fault Recovery.
+In Proceedings of the 2021 ACMIEEE International
+Conference on Human-Robot Interaction, HRI 21, pages
+Computing Machinery. ISBN 978-1-4503-8289-2. doi:
+3434073.3444657. event-place: Boulder, CO, USA.
+M. Desai, P. Kaniarasu, M. Medvedev, A. Steinfeld, and
+H. Yanco.
+Impact of robot failures and feedback on
+real-time trust.
+In 2013 8th ACMIEEE International
+Conference on Human-Robot Interaction (HRI), pages
+M Donnellan, Frederick Oswald, Brendan Baird, and
+Richard Lucas. The Mini-IPIP Scales: Tiny-yet-Effective
+Measures of the Big Five Factors of Personality. Psy-
+chological assessment, 18:192203, July 2006.
+Boi Faltings, Pearl Pu, and Paolo Viappiani. Preference-
+based Search using Example-Critiquing with Sugges-
+tions. The journal of articial intelligence research, 27:
+Zipeng Fu, Tony Z. Zhao, and Chelsea Finn.
+cost whole-body teleoperation, 2024.
+Michael Grupp. evo: Python package for the evaluation
+of odometry and SLAM., 2017. URL
+MichaelGruppevo.
+Shuai Han, Mehdi Dastani, and Shihan Wang.
+ple Efcient Reinforcement Learning by Automati-
+cally Learning to Compose Subtasks, 2024.
+Peter A. Hancock, Deborah R. Billings, Kristin E. Schae-
+Parasuraman.
+A Meta-Analysis of Factors Affecting
+Trust in Human-Robot Interaction. Human Factors, 53
+S. G. Hart and Lowell E. Staveland.
+Development of
+NASA-TLX (Task Load Index): Results of Empirical and
+Theoretical Research. 1988.
+Jiun-Yin Jian, Ann Bisantz, and Colin Drury.
+dations for an Empirically Determined Scale of Trust
+in Automated Systems.
+International Journal of Cog-
+nitive Ergonomics, 4:5371, 2000.
+Jason Johnson. Type of Automation Failure: The Effects
+on Trust and Reliance in Automation. PhD Thesis, 2004.
+Michael Kelly, Chelsea Sidrane, Katherine Driggs-
+teractive Imitation Learning with Human Experts. 2018.
+Timothee Lesort, Vincenzo Lomonaco, Andrei Stoian,
+Rodrguez. Continual learning for robotics: Denition,
+lenges. Information fusion, 58:5268, 2020.
+Sergey Levine, Zoran Popovic, and Vladlen Koltun.
+Feature construction for inverse reinforcement learning.
+Advances in neural information processing systems, 23,
+Meredith Mealer, Ellen L. Burnham, Colleen J. Goode,
+Barbara Rothbaum, and Marc Moss.
+The prevalence
+and impact of post traumatic stress disorder and burnout
+syndrome in nurses.
+Depression and anxiety, 26(12):
+10.1002da.20631. Place: United States.
+Wannes Meert, Kilian Hendrickx, Toon Van Craenen-
+wannesmdtaidistance.
+Smitha Milli, Dylan Hadeld-Menell, Anca Dragan, and
+Stuart Russell.
+Should Robots be Obedient?, 2017.
+Nina Moorman, Erin Hedlund-Botti, Mariah Schrum,
+Manisha Natarajan, and Matthew C. Gombolay. Impacts
+of Robot Learning on User Attitude and Behavior. In
+Proceedings of the 2023 ACMIEEE International Con-
+ference on Human-Robot Interaction, HRI 23, pages
+Computing Machinery. ISBN 978-1-4503-9964-7. doi:
+3568162.3576996. event-place: Stockholm, Sweden.
+Tatsuya Nomura, Tomohiro Suzuki, Takayuki Kanda, and
+Kensuke Kato. Measurement of negative attitudes toward
+robots. Interaction Studies. Social Behaviour and Com-
+munication in Biological and Articial Systems, 7(3):
+Company AmsterdamPhiladephia.
+Edwin Olson.
+sual ducial system. Proceedings - IEEE International
+Conference on Robotics and Automation, pages 3400
+Harish Ravichandar, Athanasios S. Polydoros, Sonia
+Recent Advances in
+Robot Learning from Demonstration.
+Annual Review
+of Control, Robotics, and Autonomous Systems, 3(1):
+1146annurev-control-100819-063206. URL
+org10.1146annurev-control-100819-063206. Publisher:
+Annual Reviews.
+Stephane Ross, Geoffrey J. Gordon, and J. Andrew Bag-
+nell. No-Regret Reductions for Imitation Learning and
+Structured Prediction. In 14th Internation Conference on
+Articial Intelligence and Statistics, Fort Lauderdale, FL,
+2011. URL
+Cynthia Rudin.
+Stop explaining black box machine
+learning models for high stakes decisions and use in-
+terpretable models instead. Nature Machine Intelligence,
+Fatai Sado, Chu Kiong Loo, Wei Shiung Liew, Matthias
+Explainable goal-driven
+agents and robots-a comprehensive review. ACM Com-
+puting Surveys, 55(10):141, 2023.
+Maha Salem, Gabriella Lakatos, Farshid Amirabdol-
+Would You Trust
+(Faulty)
+and Personality on Human-Robot Cooperation and
+Trust. ACMIEEE International Conference on Human-
+Robot Interaction, 2015-March:141148, 2015.
+9781450328821 Publisher: ACM.
+Sebastian Schneider and Franz Kummert.
+ing robot and human guided personalization: Adaptive
+exercise robots are perceived as more competent and
+trustworthy.
+International Journal of Social Robotics,
+Lakshmi Seelam, Erin Hedlund-Botti, Chuxuan Yang,
+and Matthew Gombolay. Interface Design for Learning
+from Demonstration with Older Adults. In Association
+for the Advancement of Articial Intelligence Fall Sym-
+posium Series, 2023.
+Cory-Ann Smarr, Tracy L. Mitzner, Jenay M. Beer,
+Akanksha Prakash, Tiffany L. Chen, Charles C. Kemp,
+and Wendy A. Rogers.
+Domestic Robots for Older
+Interna-
+tional journal of social robotics, 6(2):229247, April
+Arturo Daniel Sosa-Ceron, Hugo Gustavo Gonzalez-
+ing from demonstrations in humanrobot collaborative
+Jonathan Spencer, Sanjiban Choudhury, Matt Barnes,
+Matthew Schmittle, Mung Chiang, Peter Ramadge, and
+Siddhartha Srinivasa.
+Learning from Interventions:
+Human-robot interaction as both explicit and implicit
+feedback. 2020. doi: 10.15607RSS.2020.XVI.055.
+Adriana Tapus, Maja J. Mataric, and Brian Scassel-
+Socially assistive robotics [Grand Challenges of
+Robotics]. IEEE Robotics  Automation Magazine, 14
+Suzanne Tolmeijer, Astrid Weiss, Marc Hanheide, Felix
+Tielman. Taxonomy of trust-relevant failures and mitiga-
+tion strategies. In Proceedings of the 2020 acmieee in-
+ternational conference on human-robot interaction, pages
+Garrett Wilson, Christopher Pereyda, Nisha Raghunath,
+Gabriel de la Cruz, Shivam Goel, Sepehr Nesaei, Bryan
+activities in smart home environments. Cognitive Systems
+James Wright. Robots wont save Japan: An ethnography
+of eldercare automation. Cornell University Press, 2023.
+Tianyu Wu, Shizhu He, Jingping Liu, Siqi Sun, Kang
+of chatgpt: The history, status quo and potential future
+development. IEEECAA Journal of Automatica Sinica,
+Alexandra Zytek, Ignacio Arnaldo, Dongyu Liu, Laure
+interpretable features: motivation and taxonomy. ACM
+SIGKDD Explorations Newsletter, 24(1):113, 2022.

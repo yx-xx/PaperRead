@@ -1,0 +1,1632 @@
+=== PDF文件: Resolving Conflicting Constraints in Multi-Agent Reinforcement Learning with Layered Safety.pdf ===
+=== 时间: 2025-07-21 14:03:21.526295 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Resolving Conflicting Constraints in Multi-Agent
+Reinforcement Learning with Layered Safety
+Jason J. Choi1, Jasmine Jerry Aloor2, Jingqi Li1, Maria G. Mendoza1,
+Hamsa Balakrishnan2, Claire J. Tomlin1
+1University of California, Berkeley
+2Massachusetts Institute of Technology
+Equal contributions Equal advising
+AbstractPreventing collisions in multi-robot navigation is
+crucial for deployment. This requirement hinders the use of
+learning-based approaches, such as multi-agent reinforcement
+learning (MARL), on their own due to their lack of safety
+guarantees. Traditional control methods, such as reachability and
+control barrier functions, can provide rigorous safety guarantees
+when interactions are limited only to a small number of robots.
+agents pose a challenge to safe multi-agent coordination.
+To overcome this challenge, we propose a method that inte-
+grates multiple layers of safety by combining MARL with safety
+filters. First, MARL is used to learn strategies that minimize
+multiple agent interactions, where multiple indicates more than
+two. Particularly, we focus on interactions likely to result in
+conflicting constraints within the engagement distance. Next, for
+agents that enter the engagement distance, we prioritize pairs
+requiring the most urgent corrective actions. Finally, a dedicated
+safety filter provides tactical corrective actions to resolve these
+conflicts. Crucially, the design decisions for all layers of this
+framework are grounded in reachability analysis and a control
+barrier-value function-based filtering mechanism.
+We validate our Layered Safe MARL framework in 1) hard-
+ware experiments using Crazyflie drones and 2) high-density
+advanced aerial mobility (AAM) operation scenarios, where
+agents navigate to designated waypoints while avoiding collisions.
+The results show that our method significantly reduces conflict
+while maintaining safety without sacrificing much efficiency (i.e.,
+shorter travel time and distance) compared to baselines that do
+not incorporate layered safety. [Project Webpage]1
+I. INTRODUCTION
+A. Motivation
+Collision-free operation is a fundamental requirement for
+multi-robot coordination tasks, such as formation control ,
+multi-robot payload transport , and autonomous navigation
+. When only two agents interact, there is a single collision-
+avoidance constraint, which can be easily managed using
+a safety filter. However, with multiple nearby agents, the
+resolution of a constraint between two agents can conflict with
+a constraint involving a third agent. These conflicts may result
+in suboptimal task performance, such as creating a severe
+gridlock that prevents agents from taking actions to achieve
+their tasks. More crucially, the inability to simultaneously
+satisfy all constraints can result in an agent taking an action
+that makes collision inevitable. In particular, this issue poses
+1Project Webpage:
+a significant safety risk in high-density scenarios like air taxi
+operations for Advanced Air Mobility (AAM) .
+Prior works have addressed safe multi-robot coordination
+problems by using model-based control methods like control
+barrier functions (CBFs)  and reachability analysis .
+Although CBFs and reachability provide a framework for
+safety assurance, they generally offer rigorous guarantees only
+when a single safety constraint is considered. The fundamental
+challenge in extending these methods to the multi-agent case is
+that the intersection of the safe sets corresponding to individual
+constraints (each derived from a pair of agents) does not
+necessarily represent the true safe set when all constraints
+are considered together (see Figure 2 for an example). In the
+Hamilton-Jacobi (HJ) reachability literature, the gap between
+these two regions is referred to as the leaky corner .
+Agents that enter a leaky corner can no longer satisfy all
+safety constraints simultaneously and are inevitably forced to
+violate at least one. Unfortunately, identifying leaky corners
+without recomputing the reachability analysis from scratch
+while incorporating all constraints remains an open problem
+[8, 9]. Performing reachability analysis or designing CBFs for
+all possible combinatorial interaction scenarios is computa-
+tionally intractable. In summary, the fundamental challenge in
+achieving scalability with such control-theoretic methods in
+multi-agent settings lies in handling conflicting constraints.
+In this work, we combine the control barrier-value function
+(CBVF) , which is a CBF design method based on
+Hamilton-Jacobi reachability, with multi-agent reinforcement
+learning (MARL) into a layered safety architecture. This
+integration is driven by the essential role MARL can play in
+learning to strategically optimize task performance in multi-
+agent scenarios while proactively navigating potential conflict-
+ing constraints, which helps achieve safer and more effective
+behaviors. As a result, our approach enhances both safety and
+performance to a level that neither safe control methods nor
+MARL alone could achieve.
+B. Contributions
+1) Architecture: We propose a layered architecture that
+combines safety-informed MARL-based policy and
+CBVF-based safety filtering mechanism (Figure 1),
+which can significantly mitigate the issues arising from
+conflicting constraints, such as inefficiency due to grid-
+lock and the leaky corner problem.
+2) Training method: We propose a method to incorporate
+a CBVF-based safety filter into the training of MARL,
+considering two key aspects. First, a main challenge in
+this safety-constrained training is that the conservative-
+ness introduced by safety filtering can hinder the explo-
+ration necessary for MARL to learn an effective policy.
+To address this, we introduce curriculum learning into
+the application of the safety filter, carefully balancing
+safety and exploration. Second, based on reachability
+region that is free from the issue of conflicting constraint
+(represented by the range rconflict in Figure 1). Based on
+this estimate, the MARL policy is informed to minimize
+entry into this region, thereby avoiding potential conflict-
+ing constraints. Crucially, unlike many existing methods
+[11, 12], our proposed training approach does not im-
+pose safety through penalty terms directly penalizing the
+safety violation. Instead, MARL learns to enhance safety
+by making strategic decisions that mitigate conflicting
+constraints. This indirect approach significantly reduces
+unnecessary conservativeness, a common side effect of
+safe reinforcement learning-based methods.
+3) Experimental validation: We conduct hardware experi-
+ments using Crazyflie drones and perform simulations of
+high-density AAM scenarios to validate our hypothesis.
+The remainder of this paper is organized as follows. Section
+II provides background on safety for multi-agent coordination.
+Section III describes the system, environment, and problem
+statement. Section IV presents the safety analysis of multi-
+agent problems under collision avoidance constraints. Sections
+V and VI present our proposed Layered Safe MARL approach,
+the experiments performed, and the results obtained. We dis-
+cuss some limitations of our approach in Section VII. Finally,
+we conclude and propose future work in Section VIII.
+II. RELATED WORK
+A. Core related workssafety for multi-agent problems
+Classic Control barrier function (CBF)-based approaches.
+CBFs  are used to design safe controllers via the principle
+of set invariance, and their application to safe multi-agent
+coordination has been explored in [5, 14, 15]. A primary
+challenge in employing CBFs lies in constructing a valid CBF,
+which often requires system-specific, handcrafted designs .
+In [15, 14], a more generic design principle based on expo-
+nential CBFs  is employed; however, this approach does
+not address control input bounds. Another common limitation
+of existing methods is the treatment of multiple, potentially
+conflicting CBF constraints, which can lead to infeasibility. To
+address this, we adopt the CBVF-based framework to construct
+valid CBFs and handle multiple safety constraints in multi-
+agent coordination via a layered safety architecture.
+Neural CBF-based approaches. While learning-based meth-
+ods [17, 12, 18, 19] are proposed to design approximate CBFs,
+Prioritization
+Waypoints
+MARL Policy
+Fig. 1: The figure shows our approach using an example
+scenario of four agents. Agent i must reach the waypoints
+shown on the right. Our Layered Safe MARL framework
+consists of three key components, and we describe it as applied
+through agent i: 1) The MARL policy generates an action
+based on the observation within the range robs while aiming
+to reduce the likelihood of entering other agents potential
+conflict range rconflict. 2) The prioritization module identifies
+the most critical neighboring agent in a potential collision
+scenario by evaluating the CBVF. In this example, agent j1
+is within the potential conflict region and forms a potential
+collision pair. 3) The CBVF safety filter adjusts the action to
+ensure safe navigation.
+they lack deterministic safety guarantees due to the noncon-
+vexity of the learning problems. Graphical CBF (GCBF) in
+[12, 18] offers a CBF based on local observations under
+multi-agent interaction, but how it learns to handle multi-
+ple constraints is not explicitly examined. Discrete Graphi-
+cal Proximal Policy Optimization (DG-PPO)  proposes
+a model-free approach to learning decentralized CBFs and
+a safe control policy optimizing the task objective. Unlike
+compute Control Barrier Value Functions (CBVFs)  for
+pairwise collision avoidance, thereby ensuring deterministic
+safety guarantees. Finally, the aforementioned methods focus
+on learning safety certificates and policies for uncertain dy-
+namical systems, often with high-dimensional system states.
+In contrast, our work specifically addresses the challenge of
+conflicting constraints in multi-agent interactionsa critical
+issue that persists even when each agents dynamics can be
+effectively represented by simple, low-dimensional models.
+Reachability for multi-agent interaction. Classical HJ reach-
+ability analysis computes the set of states that are guaranteed
+to be safe by computing the optimal control value function
+with dynamic programming. Prior works have investigated
+the reachability analysis for the special case of three-agent
+interaction  and using the value function to guide the
+controller for safe multi-agent interaction . Due to the curse
+of dimensionality in dynamic programming , the applica-
+bility of HJ reachability to high-dimensional systems is inher-
+ently limited. Recent work leveraged deep learning techniques
+to learn high-dimensional reachability [22, 23, 24, 25, 26],
+demonstrating their use in multi-agent collision avoidance
+scenarios. However, the learned solution does not generalize
+to new scenarios involving different agents. Additionally, the
+question of how to certify the safety of the learned safe set
+is still an open research topic [27, 28, 26]. Finally, alternative
+methods for solving reachable sets with over-approximation
+have been used in the context of multi-agent problems and air
+traffic management [29, 30].
+Safe multi-agent reinforcement learning (MARL). A com-
+mon approach to safe MARL is through constrained Markov
+decision processes (CMDPs) . In theory, CMDPs have no
+duality gap under certain assumptions , but in practice,
+training with PPO-Lagrangian , and its multi-agent variant
+often suffers from instability due to suboptimal policies
+and inaccurate Lagrange multipliers. Another approach is
+shielded MARL, which uses safety filters [35, 11] to enforce
+safety during training and deployment. Originally introduced
+for single-agent RL , this method has been extended
+to multi-agent settings . However, designing a shielding
+policy remains challenging due to the curse of dimensionality.
+B. Other related works
+Multi-agent reinforcement learning. Multi-agent extensions
+of single-agent RL algorithms, such as PPO  and DDPG
+, include MA-PPO  and MA-DDPG , both of
+which assume full observability. However, in many real-world
+decisions based on their local information and coordinate
+effectively with other agents. A key challenge in MARL is
+the decentralized decision-making under partial observation.
+InforMARL  leverages graphical neural networks for in-
+formation sharing to develop an efficient, coordinated learning
+framework for acquiring a high-performance MARL policy.
+Our approach builds on InforMARL to allow agents to make
+decentralized decisions based on their local observations.
+Control and game-theoretic methods. In collaborative multi-
+agent settings, Model Predictive Control (MPC) has been used
+to ensure safe control [43, 44, 45, 46, 15] and its integration
+with MARL is explored in . However, the complexity of
+the constrained optimization involved in MPC often limits its
+real-time execution in complex systems. When agents pursue
+distinct objectives, the problem becomes a non-cooperative
+work [48, 49, 50, 51, 52, 53]. However, treating the safety
+constraints in the game-theoretic solutions remains an open
+research challenge [54, 55].
+Collision avoidance  conflict resolution for air traffic
+control. With the growing interest in AAM applications such
+as drone deliveries and air taxi services, developing a scalable
+low-altitude air traffic management system that is automated
+or semi-automated has become an urgent need. Compared to
+current aviation, AAM operations are expected to be large-
+motivate the development of a new air traffic management
+(ATM) framework that can achieve scalable, efficient, and
+collision-free operations [4, 56].
+Existing work on collision avoidance and conflict resolution
+for ATM is categorized into strategic deconfliction, which
+focuses on preemptive deconfliction, and tactical deconfliction,
+which focuses on imminent proactive collision avoidance. A
+substantial body of work leverages control theory to design
+methods for strategic deconfliction. An early work proposed
+a flight mode switching framework derived from a hybrid au-
+tomaton and reachability-based analysis . As this method
+suffers from the computational complexity of HJ reachability,
+uses a mixed integer program to assign avoidance respon-
+sibilities and resolve conflicts cooperatively. The work in
+alternatively organizes vehicles into platoons on structured air
+these methods provide strong safety guarantees, they rely on
+a predefined set of coordination rules for those guarantees to
+hold. Additionally, the approach in  uses preemptive strate-
+gic speed adjustments to prevent perceived conflicts without
+requiring controller intervention. Finally, a negotiation-based
+framework is introduced in  for collision-free strategic
+planning.
+In parallel, the aviation community employs tactical colli-
+sion avoidance modules as the final layer for safety. The Traffic
+Alert and Collision Avoidance System (TCAS) is an onboard
+system developed in the 1980s for conventional airliners,
+designed to detect and prevent collisions through vertical
+separation . A method for tactical collision avoidance
+through horizontal resolution is also proposed in . The
+successor of TCAS, the Airborne Collision Avoidance System
+(ACAS) X, integrates predictive modeling with real-time sen-
+sor inputs  using a partially observable Markov decision
+process framework. These existing methods crucially rely on
+the assumption that no more than two vehicles are involved
+in a single conflict resolution. This assumption is typically
+upheld by the upstream strategic deconfliction decisions.
+Various methods in both strategic and tactical deconflic-
+tion are integrated further into layered, hierarchical decision-
+making architectures, enhancing the safety of ATM [64, 65,
+66]. Our work is inspired by these layered approaches in
+the aviation community; however, the separations between
+layers underlying the existing approaches do not directly
+apply to high-volume AAM scenarios. As such, we have to
+consider how to achieve safe collision avoidance in instances
+of simultaneous multi-vehicle engagement.
+air traffic control to ensure tactical deconfliction through pre-
+conditioned strategic planning , demonstrating improved
+safety and efficiency over rule-based methods. However, the
+available actions of each agent in this work are limited to the
+adjustment of speed or position.
+III. PROBLEM FORMULATION
+In this section, we define the system, environment, each
+agents dynamics and their safety requirement, and the prob-
+lem statement.
+1) Preliminaries: We formulate our multi-agent system as
+a Decentralized Partially Observable Markov Decision Pro-
+cess (Dec-POMDP) defined by the tuple N, S, O, A, P, R, ,
+N is the number of agents
+s(i) RD is the state of each agent with D as the state
+s S  RND is the environment state, which is the
+concatenation of each agents states and the state space
+of the environment, respectively,
+o(i)  O(s(i)) Rd is the observation of agent i,
+a(i) A is the action space for agent i. a(i) denotes the
+sequence of actions for timesteps k  0, 1,    ,
+P(ss, a) is the transition probability from s to s given
+the joint action a, the concatenation of each agents
+R(o(i), a(i)) is the common reward function of all agents,
+[0, 1) is the discount factor.
+The objective is to find a policy
+(i) a(i)o(i)
+is agent is policy that selects an action based
+on its observation.
+2) Agents dynamics  safety constraint: We consider each
+agents dynamics as a sampled data system, meaning that
+their underlying physical dynamics evolve continuously in
+continuous dynamics are given as
+s(i)(t)  f (i)(s(i)(t), a(i)(t)),
+s(i)(0)  s(i)
+and their action is updated at every sampling time ti.e.
+the action sequence a(i) maps to the signal in time given as
+a(i)(t) a(i)
+for t [kt, (k  1)t). Their discrete-time
+state is given as s(i)
+s(i)(kt).
+The primary safety constraint we consider in this work is
+the collision avoidance between agents. For all time t 0,
+agents must satisfy
+dist(s(i)(t), s(j)(t)) rsafety,
+for i  j,
+where rsafety is the safety distance.
+In the subsequent safety analysis, we consider the relative
+dynamics between a pair of agents, (i, j). We define the
+relative state between the agents, which can be given as
+s(ij) : rel(s(i), s(j)), where rel is a mapping from two
+agents states to the relative state. We assume that relative
+position variables are part of s(ij); thus, dist can be defined
+based on s(ij). The dynamics of the relative state are described
+s(ij)(t)  f (ij)s(ij)(t), a(i)(t), a(j)(t)
+which is derived from (1).
+3) Observations: For each agent to learn an effective policy
+for performance and safety, the observations o(i) need to con-
+tain adequate information. We make the following assumptions
+that are generic for many multi-agent robot tasks.
+Each agent is observation o(i) consists of its local
+observations of other agents and entities relevant to their
+task goals (e.g., goal location) within their observation
+range defined as robs and any additional information
+needed for its task. Thus, the reward given to agent i at
+each timestep, R(o(i), a(i)), is defined based on its local
+observation and action.
+We define I(i) : N 2N as the index set of the agents
+within the observation range of agent i. We assume that
+o(i) contains information that can be used to reconstruct
+s(ij) from o(i) for all j I(i). Thus, for agent i, with
+its observation, it is feasible to execute a feedback policy
+on s(ij) if agent j is within its observation range. This
+assumption will be used in the design of our safety
+framework.
+4) Problem statement: To sum up, the decentralized multi-
+agent coordination problem, subjected to the collision avoid-
+ance constraint we consider in this work, can be described
+s.t. sk1 P(s  sk, ak)
+(i)(a(i)  o(i)
+dist(s(i)(t), s(j)(t)) rsafety,
+for i  j, t 0,
+where each agents action a(i)
+is determined by their policy
+(i), based on their local observations. The agent learns
+to maximize its objective subject to its collision avoidance
+constraint.
+IV. SAFETY ANALYSIS
+In this section, we present the safety analysis of the multi-
+agent problem under collision avoidance constraints. Specifi-
+and then investigate how it applies to the multi-agent scenario.
+A. Collision avoidance for a pair of agents
+To ensure dist(s(ij)(t)) rsafety for all t 0, we consider
+the following cost function, which captures the closest relative
+distance along the trajectory:
+t[0,) dist
+s(ij)(t)
+If J(s(ij)
+, a(i), a(j)) rsafety, the agents i and j are rendered
+safe (collision-free) by their actions.
+1) Reachability analysis for computing the maximal safe
+(5) to move away from each other. From this intuition, we can
+consider the following optimal control problem
+V (s(ij)
+a(i),a(j) J(s(ij)
+Solving V is a specific type of reachability problem called the
+minimal Backward Reachable Tube (BRT) problem . To
+see this, consider L(ij)  {s(ij)  dist(s(ij)) < rsafety}, the
+near-collision region, as the target set. The minimal BRT of
+L(ij) is defined as
+BRT (L(ij)) : {s(ij)
+a(i), a(j), t 0 s.t. s(ij)(t) L(ij)},
+which encapsulates a region from which no action sequence
+can prevent the relative state from entering the near-collision
+region L(ij). Using the definition in (6), we can express
+BRT (L(ij)) as {s(ij)
+V (s(ij)
+) < rsafety}.
+The complement of BRT (L(ij)) becomes the maximal safe
+set from which the agent pair can avoid collisions since
+it encompasses all the states from which there exist action
+sequences a(i) and a(j) that can avoid collision. This maximal
+safe set is denoted as
+S(ij) : {s(ij)
+a(i), a(j), s.t. t 0, s(ij)(t) L(ij)},
+and satisfies
+BRT (L(ij))
+c  {s(ij)
+V (s(ij)
+) rsafety}.
+We use the open-source library in  to compute (6) and
+S(ij), which computes the Hamilton-Jacobi (HJ) partial differ-
+ential equation (PDE) associated with the BRT problem .
+Running example. We consider the reduced-order dynamics
+of an autonomous air taxi given as
+x  v cos ,
+y  v sin ,
+where the robot state consists of s(i)  [x; y; ; v], representing
+the positions, heading, and speed. The allowable actions are
+a(i)  [, a], corresponding to the angular rate and the
+longitudinal acceleration, respectively. The speed is limited
+to the range of [vmin, vmax]. The action space is defined as
+A  [max, max]  [amin, amax]. The parameters we use
+are defined in Table I and are explained in more detail in
+Section VI-D.
+The relative state s(ij)  [x(ij); y(ij); (ij); v(i); v(j)] in-
+cludes the relative position and heading of agent j from agent
+is perspective, where x-axis is in the direction of the agent
+is heading. The relationship between s(ij) and (s(i), s(j)) and
+the relative state dynamics are given in Appendix B.
+The computation of V was completed within an hour using
+an Nvidia RTX A4500 GPU. 2 The computed maximal safe
+set S(ij), defined in the relative state space of s(ij), can
+be projected to the position space of the ego agent (agent
+2The computation time is not a critical concern in our setting, as the value
+function is computed offline rather than during real-time deployment.
+i), which incorporates all safe positions of the agent that
+can ensure collision avoidance, given its heading, speed, and
+the opponent agent (agent j)s state. Examples of S(ij) are
+visualized in Fig. 2 (a) with respect to two different opponent
+2) Control barrier-value function-based safety filtering:
+be used to constrain the relative state s(ij) to stay within the
+safe set S(ij). Since each agent makes their primary decision
+based on their MARL policy in our framework, we consider
+how to filter the MARL action if it is potentially unsafe.
+To achieve this safety filtering mechanism, we consider the
+barrier constraint-based mechanism of the CBFs. For a generic
+state variable s and its dynamics s  f(s, a), if a function
+B(s) satisfies the barrier constraint given by
+B(s)  f(s, a)  B(s) 0,
+for every state inside the zero-superlevel set of B, i.e. s
+{s  B(s) 0}, and for some constant  > 0, we can
+guarantee that B(s(t)) 0, for all t 0 . Thus, the
+state can be maintained to stay within {s  B(s) 0}.
+If the computed reachability value function V in (6) is
+almost-everywhere differentiable, we can construct a CBF by
+taking B(s(ij))  V (s(ij)) rsafety. This choice of B satisfies
+the barrier constraint (11) almost everywhere, and results in
+the maximal safe set to be represented as the CBF zero-
+superlevel set, S(ij)  {s(ij)  B(s(ij)) 0}. Such usage
+of the reachability value function as the CBF is referred to as
+the Control Barrier-Value Function (CBVF) .
+Remark 1. In , V is denoted as a constraint-value function
+and is used to learn Graphical CBF (GCBF) for uncertain
+dynamics. In this work, we consider its exact computation
+for a hard safety guarantee. However, our approach can be
+combined with the learning methods proposed in  or other
+learning-enabled approaches [71, 72] to be extended to agents
+subjected to uncertain dynamics.
+Remark 2. For certain types of dynamics, the value function
+can be discontinuous without introducing a discount factor in
+time to the cost function (5) .
+in a decentralized manner, with each agent executing its own
+safety filter. Here, we assume that the agents are cooperative
+for safety, meaning that although their unfiltered actions can
+be selfish, their final filtered actions are coordinated to avoid
+collision with each other. To achieve this coordination, agent
+i and agent j can individually solve the identical optimization
+program defined as
+CBVF Safety Filter (cooperative case):
+safe)  arg min
+(a(i),a(j))A a(i)a(i)
+marl2  a(j)a(j)
+s.t. B(s(ij))f (ij)s(ij), a(i), a(j)
+k (timestep)
+dist(("))
+(b) Two-agent case
+(c) Three-agent case
+k (timestep)
+safety violated
+safety filtered
+position of robot 1
+position of robot 2
+position of robot 3
+initial states
+waypoints
+(a) Maximal safe sets
+dist(("))
+Fig. 2: Running example illustrating the CBVF-based safe sets, safety filtering, and the leaky corner issue. (a) Visualization
+of the ego agent (s(1)  [0.4km, 0km, 0, 110 kt])s maximal safe sets (exterior of the level sets) against two agents, s(2)
+[1.7km, 0.3km, 120, 110kt] and s(3)  [1.7km, 0.6km, 180, 60kt]. (b) In the two-agent case, each agent executing
+their CBVF safety filters (12) successfully prevents collision. (c) In the three-agent case, although agent 1 started inside the
+intersection of S(12) and S(13), it is not able to prevent safety violation. This is because the initial state of robot 1 is in the
+leaky corner.
+and then execute their own action. If the dynamics f (ij)
+are affine in actions, the optimization becomes a quadratic
+program [13, 10].
+If the opponent agent is non-cooperative for safety, agent i
+can solve for its own safe action considering the worst-case
+possible action of the opponent:
+CBVF Safety Filter (non-cooperative case):
+safe  arg min
+a(i)A a(i)a(i)
+a(j)A B(s(ij))f (ij)s(ij), a(i), a(j)
+B(s(ij)) 0,
+where now B has to be constructed based on a value function
+for a differential game, which considers the opponents worst-
+case actions , given as
+Vworst(s(ij)
+) : [ min max
+] J(s(ij)
+k ) and max (over a(i)
+k ). The computation of this worst-case
+value function can be done similarly to the computation of V
+by solving the min-max HJ PDE .
+Running example. In the two-agent case, in Figure 2 (b),
+the initial relative state between agents 1 and 2 is set near
+the boundary of the maximal safe set S(12). By each agent
+applying the CBVF safety filter, both agents reach their goals
+safely under the safety-filtered MARL actions.
+B. Analysis of the multi-agent case
+We begin the analysis of this section by continuing with the
+running example of the multi-agent case:
+Running example. In Figure 2 (c), we now consider the
+case where a third agent is introduced. The relative states
+still remain within the pairwise maximal safe sets S(12),
+S(13), and S(23). Despite all agents actively attempting to
+avoid collisions, their relative distances fall below rsafety. As
+mentioned in the introduction, this demonstrates the issue
+of conflicting constraints, implying that although agent 1s
+initial state did not cross the boundaries of the individual
+safe sets, it may already be outside the true safe set when
+considering all interactions simultaneously. Computing this
+true safe set requires defining the relative dynamics of the
+three agents, which increases the systems dimensionality.
+While approximations of this set have been computed, such
+as in , the computation of this multiple-agent safe set is
+challenging.
+As can be seen in the above running example, it is crucial
+to prevent the agents from falling into the region in which
+one safety constraint can potentially conflict with the other,
+i.e., the leaky corners. Although their exact computation is
+this potential conflict region.
+Proposition 1. Define
+{s(j)}jI(i)  j I(i), V (s(ij)) rsafety,
+where V is defined in (6), and Vworst is defined in (13). Note
+the difference between V and Vworst. Then for any opponent
+agent states {s(j)}jI(i) S(i), there exists a(i) and a(j) for
+all j I(i), such that t 0, s(ij)(t) L(ij) for all j I(i).
+In other words, set S(i) can be maintained forward invariant.
+opponent agent to enter the area in which Vworst(s(ij)) < rsafety.
+We denote this agent as jnear. For (i, jnear), since V (s(ijnear))
+rsafety based on the first condition in (14), agent i and agent
+jnear are within their CBVF safe set S(ijnear) and can select their
+action sequences a(i) and a(jnear), such that s(ijnear)(t) L(ijnear)
+for all t 0.
+on [75, Proposition 4], for any Lipschitz continuous Vworst, its
+level set is a robust control invariant set. Thus, for all j I(i)
+{jnear}, there exists a(j) that results in Vworst(s(ij)(t)) rsafety
+for all t 0, regardless of a(i), ensuring s(j)(t) S(i).
+allowing only one agent to coordinate for collision avoidance
+with the ego agent and by prohibiting the other agents from
+entering the worst-case safe set. These other agents are able to
+stay away from the pair (i, jnear) due to the robust invariance
+property of the level set of Vworst.
+Practical implementation: In practice, enforcing each agent
+to stay within S(i) can be computationally expensive since we
+have to evaluate V and Vworst for all pairs of interaction. In
+the next section, we use this analysis to inform MARL to
+implicitly learn not to enter this region. For this, we define
+the potential conflict range as below:
+Vworst(s(ij)) rsafety s(ij) s.t. dist(s(ij)) r.
+{s(j)}jI(i)  j I(i), V (s(ij)) rsafety,
+This is an underapproximation of the true conflict-free set S(i)
+by definition (15). To ensure safety, we want to restrict the
+number of opponent agents entering this region to be at most
+Our analysis requires that the observation range be larger
+than the potential conflict range, robs > rconflict. Rather than
+a restriction, this serves as a design guideline for the obser-
+vation stack of the robot for safe multi-robot coordination.
+As shown in Figure 1, the concept of the potential conflict
+range divides a robots proximity into three layers: (1) the
+range dist(s(ij)) < rsafety, where collision is imminent; (2)
+the range rsafety < dist(s(ij)) < rconflict, where engaging with
+multiple vehicles may introduce safety risks; and (3) the region
+rconflict < dist(s(ij)), where the maneuvers of other agents
+pose minimal safety concerns. A similar three-layer structure
+was proposed and manually designed in . However, our
+approach provides a theoretical foundation for defining these
+boundaries based on reachability analysis.
+Remark 3. (Limitation) The set S(i) is a conflict-free safe
+set only from agent is perspective. In other words, it does
+not guarantee that the collision-avoidance maneuvers of other
+agents j I(i) will not interfere with one another. Addressing
+this issue requires analyzing the combinatorial number of
+possible interactions, which remains an open problem. In our
+to learn strategies that mitigate these conflicts.
+V. MULTI-AGENT REINFORCEMENT LEARNING WITH
+LAYERED SAFETY
+A. Extending InforMARL for improved decentralized decisions
+Our work builds upon the InforMARL architecture , a
+MARL algorithm that solves the multi-agent navigation prob-
+lem by using a graph representation of the environment, en-
+abling local information-sharing across the edges of the graph.
+InforMARL uses graph neural networks (GNNs) to process
+neighborhood entity observations, allowing the framework to
+operate with any number of agents and provide scalability
+without changing the model architecture. Each agent has a
+set of neighboring agents within its observation range, robs,
+and shares its relative position, speed, and goal information
+with these neighbors. Agents are tasked to navigate to their
+respective goal positions. When agents reach their respective
+The extensions we make to the baseline InforMARL to
+incorporate the layered safety framework and to make it more
+practical for multi-robot navigation tasks are as follows:
+1) Sequential goal point tracking: In the updated framework,
+the agents navigate to a sequence of waypoints, each specified
+by its position and the desired direction and speed, leading to
+the final goal (as shown by the green circles in Figure 1). At
+each time step, an agent gets the following additional rewards,
+Rtracking(o(i)
+k ) which are computed based on the heading
+and speed of the agent relative to the current target waypoint.
+The details of these terms are presented in Appendix A.
+2) Model architecture enhancements: To improve the algo-
+rithm and generalize it over diverse scenarios, we update the
+observations to incorporate rotation-invariant relative distances
+of the ego agent to goals and neighbors. Once an agent
+crosses a waypoint, we no longer consider the waypoint in its
+We introduce dynamics-aware action spaces that are updated
+based on the dynamics model, angular rate, and longitudinal
+agents respect motion constraints specific to their dynamics.
+3) Curriculum training: The training framework also in-
+corporates curriculum learning where we progressively make
+the training environment harder  for improving agents
+distance rsafety used in the safety filter. This is detailed in the
+subsequent sections.
+B. Safety filter design for multiple agents
+For multiple agents, the CBVF B(s(ij)) is evaluated for
+each agent i and any neighboring agent j within the obser-
+vation range robs. A smaller value of B indicates that the
+near-collision is more imminent and safety is at greater risk.
+The neighbor agent with the minimum pairwise B(s(ij)) is
+selected as the agent whose actions will be curtailed. We
+term the module that selects this prioritized constraint as the
+prioritization module. If an agent pair (i, j) has each other as
+the minimum pairwise B(s(ij)), then we call them a potential
+collision pair.
+C. Safety-informed training
+1) Curriculum update: We start the training routine without
+any safety filter or penalty applied for the first half of the
+training steps. This is done to optimize the task performance of
+MARL unconstrained by any safety parameters. Once training
+reaches half the number of total training steps, we activate the
+safety filter. Additionally, we introduce the following safety
+framework during training. First, the safety distance rsafety is
+initialized to zero during the start of model training, allowing
+agents to approach each other at close ranges. As the training
+we scale the conflict radius rconflict computed using Eq. (15)
+based on the value of the rsafety. This setup allows agents to
+explore the environment early on in the training and prevents
+them from converging to overly conservative behavior.
+2) Safety-informed reward: In addition to the heading,
+ties. When more than two agents are within the conflict radius
+j{jdist(s(ij))<rconflict}
+max{0, rconflict dist(s(ij))}
+relative distance change
+which evaluates whether the agent j is within the potential
+conflict range and is approaching towards agent i. Based on
+Proposition 1, we do not apply the penalty when there is just
+one agent within rconflict.
+The penalty Cconflict is carefully designed to mitigate the risks
+associated with potential conflicting constraints when multiple
+agents enter the range, while simultaneously minimizing the
+conservatism it may introduce. This penalty is an indirect
+safety penalty, as it is not incurred based on explicit safety vi-
+olations but rather indirectly through the proximity of multiple
+The final reward structure is
+Rtotal(o(i)
+k )  Rtracking(o(i)
+goalRgoal(o(i)
+k ) conflictCconflict
+where goal is a binary indicator when the agent is at the goal,
+and conflict is a binary indicator when the number of other
+agents within the potential conflict region is more than one.
+VI. RESULTS
+The main robotic application we focus on is the safe
+autonomous navigation of aerial vehicles. We apply our frame-
+work to Crazyflie drones navigating through waypoints in
+both simulation and hardware experiments, as well as to the
+simulation of air taxi operations in realistic settings.
+A. Experiment Setup
+Considered dynamics. We consider two types of dynamics,
+one for the quadrotors and the other for the air taxi vehicle
+in a wing-borne flight. The parameters for both dynamics
+are summarized in Table I and are set to match the industry
+standard [78, 79, 80]. For instance, we use an angular rate
+bound of 0.1 rads for the air taxi dynamics, as it results in
+the lateral acceleration 0.5g under the nominal speed, which
+amounts to the maximum tolerable lateral acceleration for
+passenger comfort in NASA market studies .
+TABLE I: Parameter Summary for Different Vehicle Dynamics
+Parameter
+Air taxi (Sim)
+Crazyflie
+Groundspeed
+60 knot (30 ms)
+175 knot (90 ms)
+vnominal
+110 knot (57 ms)
+Acceleration
+Angular Rate (max) (rads)
+Sampling Rate (s)
+Waypoint Thresholds ()
+Distance to Goal
+0.186 miles (0.3 km)
+38.9 knot (20 ms)
+Observation Range (robs)
+Safety Distance (rsafety)
+Potential Conflict Range (rconflict)
+rsafety2200 ft)
+: collision avoidance constraint (!")
+: maximal safe set ((()))
+: potential conflict region (,-.0)
+(a) Crazyflie (holonomic)
+(b) Airtaxi (nonholonomic)
+Fig. 3: Maximum safe sets (exterior of the white level sets),
+potential conflict region, and CBVF (colormap) for each
+vehicle dynamics, displayed in the relative position space when
+(a) relative velocity is (vx, vy)  (1, 1) [ms], (b) relative
+speed and heading is 220 knots and 180, respectively.
+The quadrotor dynamics in the horizontal plane are repre-
+sented as simple double integrators with
+where s(i)  [x, y, vx, vy] and a(i)  [ax, ay]. The quadro-
+tor runs the low-level onboard flight controller to track the
+commanded actions.
+The air taxi dynamics in the horizontal plane are represented
+using the kinematic vehicle model in (10) of the running
+example in Section IV. Three features of the air taxi dynam-
+ics considered in this work make its safety assurance more
+challenging and interesting. First, the vehicle cannot stop as
+it has to maintain the wing-borne flight (vmin > 0). Next, the
+dynamics are nonholonomic, meaning that its control towards
+the lateral direction can be achieved only by changing its
+direction. Finally, due to small acceleration or deceleration au-
+deconfliction. This is common for fixed-wing and hybrid mode
+vehicles like vertical takeoff-and-landing vehicles (VTOLs),
+those envisioned for AAM operations [82, 83, 84].
+Due to these challenges, the advantages of our method
+for enhancing safety are particularly evident for the air taxi
+dynamics (Section VI-D). In contrast, for the quadrotors
+(Section VI-C), our safety filter design consistently ensures
+safety across all evaluated methods; thus, we focus more on
+how our approach achieves performance enhancement. The
+safe sets, CBVFs, and the potential conflict range computed
+using HJ reachability are visualized in Figure 3.
+Task  Training environment. We modify Multi Particle
+Environments (MPE)  to incorporate agents to follow
+the dynamics as specified before and the safety filter. In our
+navigation task setup, the drone must pass through a waypoint
+with its state satisfying the threshold conditions specified in
+Table I to proceed to the next waypoint. The main values
+that define the training environments are the number of agents
+the environment L. At every episode, the initial positions of
+the agents, the waypoints locations, and the headings are set
+randomly. The episode is terminated if all agents reach their
+we test them in various evaluation scenarios with values of
+the quadrotor, we use N4, M2, L4, and for the air taxi
+B. Comparison Studies
+We first conduct two sets of simulation experiments to
+compare our method against: 1) approaches that do not employ
+a safety filter or curriculum during training, and instead rely
+on alternative reward designs for safety, and 2) methods from
+prior works based on model-based CBF design and model-
+free safe MARL for multi-agent coordination. Both studies
+are conducted in the quadrotor simulation environment.
+1) Ablation study for safety-informed training: First, we de-
+signed our experiments to evaluate the value of (1) introducing
+the safety filter during training, (2) using the curriculum, and
+(3) the effectiveness of a potential conflict penalty term for
+employing the safety filter during training, we compare the
+results of those trained with and without the filter. To evaluate
+the effect of the curriculum, we compare our method against a
+policy trained without the curriculum update in Section V-C.
+penalty term, we compare it against three alternative penalty
+terms for safety suggested in the literature:
+Hinge loss for constraint violation:
+This is the most typical penalty term, introduced in the
+safe RL literature .
+CBVF-based hinge loss:
+This penalizes the agent for entering the zero-sublevel set
+of the CBVF, the unsafe set. The use of reachability value
+functions as a safety penalty in RL has been explored in
+previous works such as .
+Penalty occurring when safety filter intervenes:
+Cnorm.diff : a(i)
+safe a(i)
+based on (12). This is the main penalty term used in the
+method of  to inform MARL with safety.
+When we introduce each penalty term, its weight is carefully
+tuned to maximize task and safety metrics. In total, we test
+nine variants of the training methods based on the activation
+of the safety filter, curriculum, and choice of the reward term,
+which are detailed in Appendix C.
+We evaluate each method in three scenarios. In addition
+to the random scenario same as the training environment, in
+the second scenario, we test how the MARL policy interacts
+with a larger number of agents and a more challenging
+waypoint configuration by setting N6, M3, and L6 while
+also placing the first two waypoints at the same positions,
+representing the air corridor. The third scenario reconstructs
+our hardware experiment environment, which will be detailed
+in Section VI-C, in simulation.
+Below is the summary of the key aspects of the result,
+while more details and the table of the comparison for the
+performance metrics are presented in Appendix C:
+Effect of using the safety filter in training: Methods that
+incorporate the safety filter during training consistently
+outperform their counterparts trained without the filter
+across all metrics.
+Effect of curriculum learning: The curriculum learning
+can significantly enhance performance by reducing the
+conservativeness of the trained policy.
+Effect of potential conflict penalty Cconflict compared to
+other penalty candidates: Our method achieves the best
+performance in most cases. Importantly, our method
+outperforms other methods especially when there is a
+larger number of agents (the second scenario).
+2) Comparison to other methods: Next, we compare our
+method to (1) DG-PPO  and (2) a safety filter designed
+based on the exponential CBF (ECBF) , used for multi-
+agent collision avoidance in . We use N4, M1, L3
+for the training of all three methods, which enables fair
+DG-PPO source code. We run the training of both DG-PPO
+and our MARL policy with the same number of environment
+steps (1e7) and gradient steps (epoch ppo1), where the initial
+and goal positions are randomly generated.
+We evaluate the trained policies in two environments for 25
+episodes each: (1) same random environment with world size
+increased to L6. (2) environment with an increased number
+of agents N8 and world size L6, where initial and goal
+positions are arranged in two parallel lines in random order.
+The results are reported in Tables II and III. While all methods
+perform well when the number of agents remains the same as
+TABLE II: Simulation results for Crazyflie dynamics with
+for performance and the percentage of near-collision events
+(dist(s(ij)) < rsafety) in the timestamped trajectory data (Near
+collision ) for safety.
+Goal reach()
+Near collision()
+Exponential CBF
+Our Method
+TABLE III: Simulation results with N8, and initial  goal
+positions arranged in lines under random order. Videos are
+available in the supplementary material.
+Goal reach()
+Near collision()
+Exponential CBF
+Our Method
+in the training environment, our method is the only method
+that guarantees 100 safety when N increases, whereas the
+percentage of near-collision events increases significantly for
+DG-PPO and ECBF. It must be noted that DG-PPO is a
+model-free method that learns a neural CBF during its training,
+where as our method uses the CBVF computed based on the
+system dynamics model. As observed in , such model-free
+methods are vulnerable to generalization in scenarios with a
+large number of agents.
+C. Hardware experiments with quadrotors
+iments with three Crazyflie 2.0 drones using a Vicon system
+for localization. Each drone is controlled by a hierarchical
+integrator dynamics, and the resulting high-level state is passed
+to onboard PID tracking controllers. We define high-level
+feedback control (acceleration in the x and y axes) based
+on real-time (100 Hz) Vicon system data. To approximate
+decentralized control, we run distinct decentralized policies
+for each drone on a single ThinkPad laptop, transmitting high-
+level control commands every 0.1 seconds.
+In the experimental scenario, each drone is required to
+pass through two shared waypointsrepresenting an air cor-
+ridorbefore reaching its designated landing location (N3,
+method to the baseline, which is trained without a safety
+filter in hardware experiments, with the recorded trajectories
+shown in Figure 5. Under our approach, three drones smoothly
+avoid conflicts and safely navigate their individual waypoints,
+completing the task in 12.95 seconds. In contrast, the baseline
+policy requires one drone to perform a second pass, after
+missing its first waypoint due to the safety filter preventing
+it from approaching other agents passing the waypoint, thus
+extending the total completion time to 25.29 seconds. These
+results demonstrate how our Layered Safe MARL framework
+enhances task performance through efficient deconfliction.
+D. Simulation of decentralized air taxi operations
+decentralized air taxi operations. Although there is no single
+Fig. 4: Crazyflie hardware experiment with the MARL policy
+learned by our method. The three drones have to pass through
+two common waypoints to get to their landing location. The
+trajectories corresponding to the video footage are visualized
+in Fig. 5 (b).
+(a) safety-blind
+(b) safety-informed w conflict penalty
+Fig. 5: We compare the recorded Crazyflie hardware exper-
+iment trajectories under our method and the baseline pol-
+icy trained without the safety filter. With our approach, the
+drones smoothly deconflict and efficiently complete the task.
+In contrast, under the baseline policy, the yellow Crazyflie
+misses a waypoint and must make a second pass. These re-
+sults demonstrate that incorporating layered safety information
+during training improves the performance of the MARL policy.
+consensus on how the air traffic management (ATM) system
+will function for advanced air mobility (AAM) operations,
+each vehicle will likely be required to have fallback autonomy
+systems in place, for instance, to ensure safety in case the
+centralized system fails.
+To conduct the study with a realistic traffic volume, we use
+the results of the Urban Air Mobility (UAM) demand analysis
+from [87, 88], which estimates how much ground traffic could
+be replaced by AAM considering various factors including
+different demographics of riders, socioeconomic factors, and
+historical commuting patterns. By combining these insights,
+our study derives a reasonable estimate of how traffic density
+will evolve once UAM operations reach full implementation.
+From their results, we consider a peak-density scenario in
+which each vertiport serves 500 passengers per hour during
+Fig. 6: Bay Area case scenarios. The left panel illustrates
+routes where multiple air taxi vehicles would travel from
+the North and East Bay toward San Francisco, merging into
+a single air corridor. The right panel shows intersecting air
+(southeast) to San Francisco and another from Oakland (north-
+east) to Redwood City. The blue dots represent the waypoints
+that UAVs follow, while the yellow dots indicate the departure
+or an incoming waypoint of the corridor.
+peak hours, equating to two operations (takeoffs and landings)
+per minute, with each operation accommodating a 4-passenger
+aircraft. This corresponds to about 125 trips per hour. We
+chose vertiports from multiple locations in the Bay Area with
+high travel demand and designed the air corridors with a lateral
+separation of 1500 ft based on a preliminary analysis of the
+separation standards for UAM . Waypoints are created to
+connect the trails of these corridors spaced 3-4 km apart. For
+simplicity and clearer visualization, our simulations focus on
+aerial vehicles traveling westward (from the East Bay to San
+Francisco and to the South Bay); we assume outbound trips
+use a separate fixed altitude, thus our study addresses only
+horizontal deconfliction.
+An important modeling assumption is the required sepa-
+ration distance between vehicles. We base these restrictions
+on industry standards that define the minimum safe distance
+between the aircraft and potential hazards to maintain an
+acceptable collision risk . Although there is no single
+global standard for the separation distance for AAM vehicles
+the separation distance from dynamic obstacles, maximum
+distances between UAVs to range from 500 to 2200 feet. In
+our study, a horizontal separation of 1500 ft was used, as it
+aligns with NASAs UAM corridor design and provides a good
+balance between collision risk and operational efficiency.
+We evaluate three methods: MARL trained without the
+safety filter and no safety penalty (Safety blind), MARL
+trained with the safety filter under the proposed curriculum but
+with no safety penalty (No penalty), and the proposed safety-
+informed method employing the safety filter, curriculum, and
+the potential conflict penalty (Proposed) in two high-density
+air traffic scenarios. The two scenarios, illustrated in Figure
+TABLE IV: Simulation results of air taxi operations emulat-
+ing potential peak traffic around the Bay Areaa scenario
+in which all vehicles merge into the city-inbound corridor.
+For performance, we evaluate the mean travel time (s). For
+(dist(s(ij))
+rsafety) in the timestamped trajectory data
+(Near collision ), and the percentage of instances having
+multiple agents encountered within the potential conflict range
+(dist(s(ij)) < rconflict) (Conflict ).
+Merging Scenario (N8, M5)
+Travel t(s)()
+Near collision()()
+Conflict()()
+Safety-blind
+No penalty
+Proposed
+TABLE V: Simulation results of air taxi operationsa sce-
+nario in which two air corridors intersect with each other.
+Intersection Scenario (N16, M6)
+Travel t(s)()
+Near collision()()
+Conflict()()
+Safety blind
+No penalty
+Proposed
+the left scenario (Merge Scenario), multiple air routes (eight
+in total) from the northern Bay merge into a single corridor
+leading to San Francisco. The departure time of each vehicle
+varies randomly within a 60-second range. In the scenario
+shown to the right (Intersection Scenario), two westbound air
+corridors intersect. Here, we set the UAVs to leave the origin
+every 90  15 seconds to intentionally induce congestion at
+the intersection.
+We evaluate 25 random episodes for each method and report
+the results in Table IV and Table V for each scenario, respec-
+tively. The results show that the proposed method achieves
+both the highest performance, measured by the shortest mean
+travel time, and the lowest percentage of near-collision events.
+Examples of vehicle trajectories for each scenario and
+method are visualized in Figure 7. In the merging scenario,
+our method demonstrates the most efficient deconfliction of
+trajectories when multiple vehicles merge into the air corridor.
+In the intersection scenario, near the intersection, the region
+occupied by vehicles as they maneuver to avoid collisions
+is noticeably larger in our method compared to the second
+using our approach proactively maintain greater separation to
+mitigate the conflicting constraints.
+While we expect that a fully operational ATM system for
+AAM will be significantly more efficient, seamless, and safer
+than our simulation study suggests, we present this study as an
+initial guideline for resolving hypothetical emergency scenar-
+ios. For instance, the situations we simulated can emerge when
+the airspace congestion coincides with the loss of centralized
+traffic control, requiring each agent to make independent, safe
+decisions.
+(a) Safety-blind
+(b) No penalty
+(c) Proposed
+Merge Scenario
+Intersection Scenario
+Fig. 7: Comparison of air taxi trajectories in merging and crossing scenarios: The top row illustrates the single-lane merging
+merging scenario, our method achieves the most efficient deconfliction of trajectories, minimizing congestion near the corridor.
+In the crossing scenario, our method demonstrates a wider safety buffer around intersections, as UAVs actively maintain greater
+separation to mitigate conflicts. Videos are available in the supplementary material.
+VII. LIMITATIONS
+While our framework shows significant improvements in
+achieving safety and performance, there are limitations, which
+we list below.
+1) Scalability to higher dimensions: Our current framework
+is designed for 2D scenarios, and needs extending it to
+3D environments.
+2) Guarantees for multiple engagements: Our safety guar-
+antees are currently limited to pairwise interactions.
+While our method is designed to significantly mitigate
+collision risks in multi-agent interactions based on theo-
+retical analysis, it does not provide formal guarantees
+for scenarios involving multi-agent engagements. For
+further details, see Remark 3.
+3) Hardware experimentation constraints: In our hardware
+a motion capture (mocap) system rather than being
+obtained through onboard sensing. This simplification
+may not fully reflect real-world operational constraints
+and should be addressed in future implementations.
+our experiments.
+4) Communication range constraints: The impact of com-
+munication range limitations in our hardware experi-
+ments was not analyzed.
+VIII. CONCLUSIONS
+In this work, we presented a layered architecture combining
+a CBVF-based safety filtering mechanism with a MARL
+and efficiency. Our approach enables MARL to navigate con-
+flicts proactively while benefiting from safety-informed reward
+signals. Along with the safety filter introduced during training
+using a curriculum learning approach, the Layered Safe MARL
+framework achieved shorter travel times and reached more
+waypoints with fewer conflicts. The key components of our
+potential conflict zones are agnostic to the choice of the
+MARL algorithm. We validated our method by applying it
+to two distinct dynamicsquadrotor and fixed-wing AAM
+flight dynamicsand evaluated it in progressively complex
+scenarios. We also conducted hardware experiments on three
+TABLE VI: Results of policies trained under various methods for Crazyflie dynamics: We evaluate mean travel time (s)
+and number of reached waypoints (Waypoint ) for performance, and the percentage of the events involving multiple agents
+encountered within the potential conflict range in the trajectory data (Conflict ) for safety risk. Note that in these simulations,
+the agent never violated safety for all methods due to our safety filter, except in the training scenario when the agent is
+initialized at the safety-violating states. (Nnumber of agents, Mnumber of waypoints, Lworld size)
+Scenario 1 (Training) (N4, M2, L  4)
+Scenario 2 (N6, M3, L  6)
+Scenario 3 (N3, M3, L  3)
+Travel time(s)()
+Waypoint()
+Conflict()()
+Travel t
+Waypoint
+Conflict
+Travel t
+Waypoint
+Conflict
+1 (safety-blind)
+5 (no penalty)
+9 (proposed)
+Crazyflie drones, highlighting the applicability of our method
+in real-world systems.
+Our method integrates model-based safety tools from con-
+trol theory (CBVFs) with learning-based methods (MARL),
+together forming a framework that addresses two major chal-
+lenges in multi-agent problemssafety and efficient coordina-
+tion. While deep reinforcement learning has faced skepticism
+in safety-critical applications such as air traffic management,
+recent advancesincluding our workdemonstrate the via-
+bility of hybrid approaches that combine learning and control,
+and illustrate how RL can be responsibly applied in safety-
+critical settings.
+Future research could investigate decomposition techniques
+and learning-based reachability analysis (e.g., DeepReach
+) to extend safety verification to higher-dimensional set-
+tings. Adapting to other methods, including other MARL
+algorithms (e.g., MAPPO or even further refining DG-PPO),
+tial conflict zone as a soft constraint, is an exciting future
+work direction. Further investigation is needed to assess how
+communication constraints affect coordination and safety in
+decentralized multi-agent systems. Finally, an important future
+direction is testing the proposed approachs applicability in
+various robotics domains, ranging from higher-order dynamics
+to complex environments and sensing constraints, such as
+ground robots, underwater autonomous vehicles, and space
+ACKNOWLEDGMENTS
+We thank Dr. Mir Abbas Jalali (Joby), George Gorospe
+(NASA), Dr. Anthony Evans (Airbus), Inkyu Jang (SNU) and
+Kanghyun Ryu (UC Berkeley) for the helpful discussions.
+Jasmine Aloor and Hamsa Balakrishnan were supported in
+part by NASA under Grant No. 80NSSC23M0220. Jason J.
+by DARPA Assured Autonomy under Grant FA8750-18-C-
+NASA ULI Program in Safe Aviation Autonomy under Grant
+Multibody Control Systems under Grant N00014-18-1-2214.
+Jason J. Choi received the support of a fellowship from
+Kwanjeong Educational Foundation, Korea. Jasmine J. Aloor
+was supported in part by a Mathworks Fellowship. Maria G.
+Mendoza acknowledges support from NASA under the Clean
+Sheet Airspace Operating Design project MFRA2018-S-0471.
+The authors would like to thank the MIT SuperCloud  and
+the Lincoln Laboratory Supercomputing Center for providing
+high performance computing resources that have contributed
+to the research results reported within this paper.
+APPENDIX
+A. Reward function design for goal reaching
+We assume that, from the agents local observation, it can
+evaluate its state, including the position and heading relative
+to the current target waypoint, denoted as s(i)
+ref. The additional
+reward Rtracking is designed to guide agents to efficiently
+navigate to the target waypoint. It uses a distance-like measure
+relative to the waypoint position, and can incorporate addi-
+tional information like the errors from the desired heading
+angle and speed. The vehicle dynamics also inform the reward
+design. We design a specific reward for each quadrotor and
+air taxi dynamics. For the quadrotor, although the vehicle
+dynamics are holonomic, we want the vehicle to approach
+the waypoint from a specific target heading direction. To
+achieve this, we design a reference velocity field, vref(s(i)
+around the waypoint, shaping it like the magnetic field around
+a solenoid. Then, the reward for the waypoint tracking is
+given as Rtracking(o(i)
+k )  v(i) vref. For the air
+taxi dynamics, shaping the reference velocity field is not
+limited by its maximum turning radius, determined by its
+speed and yaw rate. Thus, we compute the time-to-reach
+target waypoint (satisfying the threshold conditions) subject to
+the vehicle dynamics. This time-to-reach reward is also used
+in  for RL-based navigation of mobile robots. The use of
+the time-to-reach reward guides the vehicle to learn how to
+perform a 360-degree turn when it misses its waypoint.
+B. Air taxi dynamics: additional information
+The relationship between s(ij) and (s(i), s(j)) for the air
+taxi dynamics in (10) is given by
+x(ij)  cos (ij)(x(j) x(i))  sin (ij)(y(j) y(i)),
+y(ij)  sin (ij)(x(j) x(i))  cos (ij)(y(j) y(i)),
+The relative dynamics (3) can be derived from (10) and (20),
+and are express as
+x(ij)  v(i)  v(j) cos (ij)  y(ij)(i)
+y(ij)  v(j) sin (ij) x(ij)(i)
+C. Ablation Study: Details
+We conduct comparison studies among the following nine
+1) Policy trained without the safety filter and no safety
+penalty (Safety blind)
+2) Policy trained without safety filter and with Cplain
+3) Policy trained without safety filter and with Cconflict
+4) Policy trained with the safety filter and without curricu-
+lum learning (with no penalty)
+5) Policy trained with the safety filter and no safety penalty
+(No penalty)
+6) Policy trained with the safety filter and with Cplain
+7) Policy trained with the safety filter and with Ccbvf
+8) Policy trained with the safety filter and with Cnorm.diff
+9) Policy trained with the safety filter and with Cconflict
+(Proposed)
+Note that methods 5-9 are trained with curriculum learning on
+has been trained for the same number of environment steps.
+Methods 1, 5, and 9 correspond to the methods we also
+evaluate in the air taxi operation simulation.
+Table VI summarizes the results of the simulation study, and
+Figure 8 visualizes example trajectories in Scenario 2 under
+the policies of methods 1, 5, and 9. Each method is evaluated
+using four random seeds, with 25 episodes per seed, totaling
+100 random episodes. Note that in these simulations, the agent
+never violated safety for all methods due to our safety filter,
+except in the training scenario when the agent is initialized
+at the safety-violating states. Thus, the percentage of near-
+collision events (safety violation) is not reported, and only the
+rate of potential conflict (for instance, when more than two
+agents enter the potential conflict range rconflict) is calculated.
+The key aspects of the result in Table VI are:
+Effect of using the safety filter in training (1-3 vs 5-6, 9):
+Methods that incorporate the safety filter during training
+consistently outperform their counterparts trained without
+the filter across all metrics.
+Effect of curriculum learning (4 vs 5): The curriculum
+learning can significantly enhance performance by reduc-
+ing the conservativeness of the policy.
+safety filtered
+position of robots
+initial states
+waypoints
+(c) safety-informed w conflict penalty
+(a) safety-blind
+(b) safety-informed, no penalty
+Fig. 8: Simulation results of (a) safety-blind (method 1), (b)
+safety-informed with no penalty (method 5), and (c) safety-
+informed with potential conflict penalty (method 9) under
+Scenario 2 in Table VI, trained for double integrator dynamics.
+Agents are initialized at random positions and have to merge
+into a line formed by two waypoints before reaching their final
+waypoints. While our safety filter ensures safety for all cases,
+the MARL method trained with a potential conflict penalty
+shows the most efficient behavior for reaching waypoints.
+Videos are available in the supplementary material.
+Effect of potential conflict penalty Cconflict compared to
+other penalty candidates (6, 7, 8 vs 9): Although method
+8 that uses Cnorm.diff consistently shows the lowest rate
+of potential conflict, and its performance is significantly
+impaired by the penalty. Our method achieves the best
+performance in most cases. Importantly, our method
+outperforms other methods, especially when there is a
+larger number of agents (Scenario 2).
+REFERENCES
+Hasan A Poonawala, Aykut C Satici, Hazen Eckert, and
+Mark W Spong. Collision-free formation control with de-
+centralized connectivity preservation for nonholonomic-
+wheeled mobile robots. IEEE Transactions on Control
+of Network Systems, 2014. 1
+Minghua Liu, Hang Ma, Jiaoyang Li, and Sven Koenig.
+Task and path planning for multi-agent pickup and de-
+livery. In Proceedings of the International Joint Con-
+ference on Autonomous Agents and Multiagent Systems
+(AAMAS), 2019. 1
+Keonyup Chu, Minchae Lee, and Myoungho Sunwoo.
+Local path planning for off-road autonomous driving
+with avoidance of static obstacles. IEEE Transactions
+on Intelligent Transportation Systems, 2012. 1
+Federal Aviation Administration.
+Urban Air Mobility
+Concept of Operations 2.0.
+Technical report, Federal
+Aviation Administration, 2023. 1, 3
+Li Wang, Aaron D. Ames, and Magnus Egerstedt. Safety
+Barrier Certificates for Collisions-Free Multirobot Sys-
+tems. IEEE Transactions on Robotics, 2017. 1, 2
+Xinrui Wang, Karen Leung, and Marco Pavone. Infusing
+Reachability-Based Safety into Planning and Control
+for Multi-agent Interactions. In IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+Ian M Mitchell. Scalable calculation of reach sets and
+tubes for nonlinear systems with terminal integrators: a
+mixed implicit explicit formulation. In Proceedings of
+the International Conference on Hybrid Systems: Com-
+putation and Control, 2011. 1
+Donggun Lee, Mo Chen, and Claire J. Tomlin. Removing
+Leaking Corners to Reduce Dimensionality in Hamilton-
+Jacobi Reachability. In IEEE International Conference
+on Robotics and Automation (ICRA), 2019. 1
+Frank J Jiang, Kaj Munhoz Arfvidsson, Chong He,
+Mo Chen, and Karl H Johansson.
+Guaranteed Com-
+pletion of Complex Tasks via Temporal Logic Trees
+and Hamilton-Jacobi Reachability.
+arXiv preprint
+Jason J Choi, Donggun Lee, Koushil Sreenath, Claire J
+value functions for safety-critical control.
+Conference on Decision and Control (CDC), 2021. 1,
+Federico Pizarro Bejarano, Lukas Brunke, and Angela P
+Schoellig.
+Safety Filtering While Training: Improving
+the Performance and Sample Efficiency of Reinforcement
+Learning Agents. IEEE Robotics and Automation Letters,
+Songyuan Zhang, Kunal Garg, and Chuchu Fan. Neu-
+ral graph control barrier functions guided distributed
+collision-avoidance multi-agent control. In Conference
+on Robot Learning. PMLR, 2023. 2
+Aaron D Ames, Xiangru Xu, Jessy W Grizzle, and
+Paulo Tabuada. Control barrier function based quadratic
+programs for safety critical systems. IEEE Transactions
+on Automatic Control, 2016. 2, 5, 6
+Mrdjan Jankovic, Mario Santillo, and Yan Wang. Mul-
+tiagent systems with CBF-based controllers: Collision
+avoidance and liveness from instability. IEEE Transac-
+tions on Control Systems Technology, 2023. 2
+Manohari Goarin, Guanrui Li, Alessandro Saviolo, and
+Giuseppe Loianno. Decentralized nonlinear model pre-
+dictive control for safe collision avoidance in quadrotor
+teams with limited detection range.
+arXiv preprint
+Quan Nguyen and Koushil Sreenath. Exponential con-
+trol barrier functions for enforcing high relative-degree
+safety-critical constraints. In American Control Confer-
+ence (ACC), 2016. 2, 9
+Zengyi Qin, Kaiqing Zhang, Yuxiao Chen, Jingkai Chen,
+and Chuchu Fan. Learning Safe Multi-agent Control with
+Decentralized Neural Barrier Certificates. In Proceedings
+of the International Conference on Learning Represen-
+tations (ICLR), 2021. 2
+Songyuan Zhang, Oswin So, Kunal Garg, and Chuchu
+framework for distributed safe multi-agent control. IEEE
+Transactions on Robotics, 2025. 2, 10
+Songyuan Zhang, Oswin So, Mitchell Black, and Chuchu
+Fan. Discrete GCBF Proximal Policy Optimization for
+Multi-agent Safe Optimal Control. In Proceedings of the
+International Conference on Learning Representations
+Mo Chen, Jennifer C. Shih, and Claire J. Tomlin. Multi-
+vehicle collision avoidance via hamilton-jacobi reacha-
+bility and mixed integer programming. In IEEE Confer-
+ence on Decision and Control (CDC), 2016. 3
+Richard Bellman.
+Dynamic Programming.
+Princeton
+University Press, 1957. 3
+Somil Bansal and Claire J Tomlin. Deepreach: A deep
+learning approach to high-dimensional reachability. In
+IEEE International Conference on Robotics and Automa-
+Kai-Chieh Hsu, Vicenc Rubies-Royo, Claire Tomlin, and
+Jaime F Fisac. Safety and Liveness Guarantees through
+Reach-Avoid Reinforcement Learning. In Proceedings of
+Kai-Chieh Hsu, Duy Phuong Nguyen, and Jaime Fer-
+nandez Fisac.
+critic for safety. In Learning for Dynamics and Control
+Conference. PMLR, 2023. 3
+Kai Zhu, Fengbo Lan, Wenbo Zhao, and Tao Zhang. Safe
+Multi-Agent Reinforcement Learning via Approximate
+Hamilton-Jacobi Reachability. Journal of Intelligent
+Robotic Systems, 2024. 3
+Jingqi Li, Donggun Lee, Jaewon Lee, Kris Shengjun
+Reachability Learning Using a New Lipschitz Contin-
+uous Value Function.
+IEEE Robotics and Automation
+Yujie Yang, Hanjiang Hu, Tianhao Wei, Shengbo Eben
+Scalable synthesis of formally
+verified neural value function for hamilton-jacobi reach-
+ability analysis. arXiv preprint arXiv:2407.20532, 2024.
+Albert Lin and Somil Bansal.
+Verification of neural
+reachable tubes via scenario optimization and conformal
+prediction.
+In Learning for Dynamics and Control
+Conference. PMLR, 2024. 3
+Abenezer G Taye, Josh Bertram, Chuchu Fan, and Peng
+Reachability based online safety verification for
+high-density urban air mobility trajectory planning. In
+AIAA Aviation Forum, 2022. 3
+Josh Bertram and Peng Wei. Distributed computational
+guidance for high-density urban air mobility with coop-
+erative and non-cooperative collision avoidance. In AIAA
+Scitech Forum, 2020. 3
+Eitan Altman. Constrained Markov decision processes.
+Santiago Paternain, Luiz Chamon, Miguel Calvo-Fullana,
+and Alejandro Ribeiro. Constrained reinforcement learn-
+ing has zero duality gap. Advances in Neural Information
+Processing Systems, 2019. 3
+Alex Ray, Joshua Achiam, and Dario Amodei. Bench-
+marking safe exploration in deep reinforcement learning.
+arXiv preprint arXiv:1910.01708, 2019. 3
+Shangding Gu, Jakub Grudzien Kuba, Munning Wen,
+Ruiqing Chen, Ziyan Wang, Zheng Tian, Jun Wang,
+Alois Knoll, and Yaodong Yang. Multi-agent constrained
+policy optimisation.
+arXiv preprint arXiv:2110.02793,
+Kai-Chieh Hsu, Haimin Hu, and Jaime F Fisac.
+safety filter: A unified view of safety-critical control
+in autonomous systems.
+Annual Review of Control,
+Mohammed Alshiekh, Roderick Bloem, Rudiger Ehlers,
+Bettina Konighofer, Scott Niekum, and Ufuk Topcu. Safe
+reinforcement learning via shielding. In Proceedings of
+the AAAI conference on artificial intelligence, 2018. 3
+Ingy ElSayed-Aly, Suda Bharadwaj, Christopher Am-
+Multi-Agent Reinforcement Learning via Shielding. In
+Proceedings of the International Joint Conference on
+Autonomous Agents and Multiagent Systems (AAMAS),
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+algorithms. 2017. 3
+Timothy P Lillicrap, Jonathan J Hunt, Alexander Pritzel,
+Nicolas Heess, Tom Erez, Yuval Tassa, David Silver, and
+Daan Wierstra. Continuous control with deep reinforce-
+ment learning. arXiv preprint arXiv:1509.02971, 2015.
+Chao Yu, Akash Velu, Eugene Vinitsky, Jiaxuan Gao,
+Yu Wang, Alexandre Bayen, and Yi Wu. The surprising
+effectiveness of ppo in cooperative multi-agent games.
+Advances in Neural Information Processing Systems,
+Ryan Lowe, Yi I Wu, Aviv Tamar, Jean Harb, OpenAI
+Pieter Abbeel, and Igor Mordatch.
+Multi-agent actor-
+critic for mixed cooperative-competitive environments.
+Advances in Neural Information Processing Systems,
+Siddharth Nayak, Kenneth Choi, Wenqi Ding, Sydney
+Scalable Multi-Agent Reinforcement Learning
+through Intelligent Information Aggregation. In Andreas
+International Conference on Machine Learning, PMLR,
+Nathan Slegers, Jason Kyle, and Mark Costello. Nonlin-
+ear model predictive control technique for unmanned air
+vehicles. Journal of Guidance, Control, and Dynamics,
+Sami El-Ferik, Bilal A Siddiqui, and Frank L Lewis.
+Distributed nonlinear MPC of multi-agent systems with
+data compression and random delays. IEEE Transactions
+on Automatic Control, 2015. 3
+Utku Eren, Anna Prach, Basaran Bahadr Kocer, Sasa V
+predictive control in aerospace systems: Current state
+and opportunities.
+Journal of Guidance, Control, and
+Dingjiang Zhou, Zijian Wang, Saptarshi Bandyopadhyay,
+and Mac Schwager. Fast, on-line collision avoidance for
+dynamic vehicles using buffered voronoi cells.
+Robotics and Automation Letters, 2017. 3
+Murad Dawood, Sicong Pan, Nils Dengler, Siqi Zhou,
+Angela P Schoellig, and Maren Bennewitz. Safe Multi-
+Agent Reinforcement Learning for Behavior-Based Co-
+operative Navigation. arXiv preprint arXiv:2312.12861,
+Tamer Basar and Geert Jan Olsder. Dynamic noncoop-
+erative game theory. SIAM, 1998. 3
+Antony Evans, Vikrant Vaze, and Cynthia Barnhart.
+Airline-driven performance-based air traffic manage-
+tion. Transportation Science, 2016. 3
+Thulasi Mylvaganam, Mario Sassano, and Alessandro
+Astolfi.
+A differential game approach to multi-agent
+collision avoidance.
+IEEE Transactions on Automatic
+David Fridovich-Keil, Ellis Ratner, Lasse Peters, Anca D
+quadratic
+approximations
+nonlinear
+multi-player
+general-sum differential games. In IEEE International
+Conference on Robotics and Automation (ICRA), 2020.
+Maulik Bhatt, Yixuan Jia, and Negar Mehr.
+Efficient
+constrained multi-agent trajectory optimization using dy-
+namic potential games. In IEEERSJ International Con-
+ference on Intelligent Robots and Systems (IROS), 2023.
+Haimin Hu, Gabriele Dragotto, Zixu Zhang, Kaiqu
+Plays First? Optimizing the Order of Play in Stack-
+elberg Games with Many Robots.
+arXiv preprint
+Forrest Laine, David Fridovich-Keil, Chih-Yuan Chiu,
+and Claire Tomlin.
+The computation of approximate
+generalized feedback nash equilibria. SIAM Journal on
+Jingqi Li, Somayeh Sojoudi, Claire J Tomlin, and David
+Fridovich-Keil. The Computation of Approximate Feed-
+back Stackelberg Equilibria in Multiplayer Nonlinear
+Constrained Dynamic Games. SIAM Journal on Opti-
+Parimal Kopardekar, Joseph L. Rios, Thomas Prevot,
+Marcus Johnson, Jaewoo Jung, and John E. Robinson.
+Unmanned Aircraft System Traffic Management (UTM)
+Concept of Operations. 2016. 3
+C. Tomlin, G.J. Pappas, and S. Sastry. Conflict resolution
+for air traffic management: a study in multi-agent hybrid
+systems. IEEE Transactions on Automatic Control, 1998.
+Mo Chen, Qie Hu, Jaime F Fisac, Kene Akametalu,
+Casey Mackin, and Claire J Tomlin. Reachability-based
+safety and goal satisfaction of unmanned aerial platoons
+on air highways.
+Journal of Guidance, Control, and
+Eva Cruck and John Lygeros.
+Subliminal air traffic
+In American Control Conference, 2007. 3
+Min Xue, Abraham K. Ishihara, and Paul U. Lee. Nego-
+tiation Model for Cooperative Operations in Upper Class
+E Airspace.
+In IEEEAIAA Digital Avionics Systems
+Conference (DASC), 2022. 3
+James Kuchar, John Andrews, Ann Drumm, Tim Hall,
+Val Heinz, Steven Thompson, and Jerry Welch.
+safety analysis process for the traffic alert and collision
+avoidance system (TCAS) and see-and-avoid systems on
+remotely piloted vehicles.
+In AIAA 3rd Unmanned
+Unlimited Technical Conference, Workshop and Exhibit,
+Heinz Erzberger and Karen Heere.
+Algorithm and
+operational concept for resolving short-range conflicts.
+Proceedings of the Institution of Mechanical Engineers,
+Part G: Journal of Aerospace Engineering, 2010. 3
+Jessica E Holland, Mykel J Kochenderfer, and Wesley A
+Olson. Optimizing the next generation collision avoid-
+ance system for safe, suitable, and acceptable operational
+performance. Air Traffic Control Quarterly, 2013. 3
+Claire Tomlin, G Pappas, J Lygeros, D Godbole, S Sastry,
+and G Meyer. Hybrid Control in Air Traffic Management
+Systems. IFAC Proceedings Volumes, 1996. 3
+Huabin Tang, Dallas Denery, Heinz Erzberger, and Rus-
+sell Paielli.
+Tactical Separation Algorithms and Their
+Interaction with Conflict Avoidance Systems. In AIAA
+Heinz Erzberger, Todd A Lauderdale, and Yung-Cheng
+Chu. Automated conflict resolution, arrival management,
+and weather avoidance for air traffic management. Pro-
+ceedings of the Institution of Mechanical Engineers, Part
+Shulu Chen, Antony D. Evans, Marc Brittain, and Peng
+Integrated Conflict Management for UAM With
+Strategic Demand Capacity Balancing and Learning-
+Based Tactical Deconfliction.
+IEEE Transactions on
+Intelligent Transportation Systems, 2024. 4
+Kim P. Wabersich, Andrew J. Taylor, Jason J. Choi,
+Koushil Sreenath, Claire J. Tomlin, Aaron D. Ames,
+and Melanie N. Zeilinger.
+Data-Driven Safety Filters:
+Hamilton-Jacobi Reachability, Control Barrier Functions,
+and Predictive Methods for Uncertain Systems.
+Control Systems Magazine, 2023. 5
+Stanford Autonomous Systems Lab.
+hj reachability:
+Hamilton-Jacobi reachability analysis in JAX, 2025. Ac-
+Somil Bansal, Mo Chen, Sylvia Herbert, and Claire J.
+Tomlin. Hamilton-Jacobi reachability: A brief overview
+and recent advances. In IEEE Conference on Decision
+and Control (CDC), 2017. 5, 6
+Jaime F Fisac, Neil F Lugovoy, Vicenc Rubies-Royo,
+Shromona Ghosh, and Claire J Tomlin.
+Bridging
+hamilton-jacobi safety analysis and reinforcement learn-
+ing. In IEEE International Conference on Robotics and
+Automation (ICRA), 2019. 5
+Vamsi Krishna Chilakamarri, Zeyuan Feng, and Somil
+Bansal. Reachability analysis for black-box dynamical
+systems. arXiv preprint arXiv:2410.07796, 2024. 5
+Jason J Choi, Donggun Lee, Boyang Li, Jonathan P
+A forward reachability perspective on robust
+control invariance and discount factors in reachability
+analysis. arXiv preprint arXiv:2310.17180, 2023. 5
+I.M. Mitchell, A.M. Bayen, and C.J. Tomlin. A time-
+dependent Hamilton-Jacobi formulation of reachable sets
+for continuous dynamic games. IEEE Transactions on
+Automatic Control, 2005. 6
+Jaime F. Fisac, Anayo K. Akametalu, Melanie N.
+A General Safety Framework for Learning-
+Based Control in Uncertain Robotic Systems.
+Transactions on Automatic Control, 2019. 6
+Ronojoy Ghosh and Claire Tomlin. Maneuver design for
+multiple aircraft conflict resolution. In American Control
+Sanmit Narvekar, Bei Peng, Matteo Leonetti, Jivko
+learning for reinforcement learning domains: A frame-
+work and survey. Journal of Machine Learning Research,
+Joby Aviation.
+Joby aviation - official website, 2025.
+Archer Aviation.
+Archer aviation - our aircraft, 2025.
+URL  Accessed: 2025-01-31.
+Wisk Aero. Wisk aero - our aircraft, 2025. URL https:
+wisk.aeroaircraft. Accessed: 2025-01-31. 8
+Kimberlee H. Shish, Nick B. Cramer, George Gorospe,
+Thomas Lombaerts, Vahram Stepanyan, and Keerthana
+Kannan. Survey of Capabilities and Gaps in External
+Perception Sensors for Autonomous Urban Air Mobility
+Applications. 2021. 8, 11
+Luis E Alvarez, Ian Jessen, Michael P Owen, Joshua
+ACAS sXu: Robust de-
+centralized detect and avoid for small unmanned aircraft
+systems. In IEEEAIAA Digital Avionics Systems Con-
+ference (DASC), 2019. 9
+John D. Anderson. Introduction to Flight. McGraw-Hill
+Federal Aviation Administration.
+Pilots Handbook of
+Aeronautical Knowledge.
+U.S. Department of Trans-
+Joshua Achiam, David Held, Aviv Tamar, and Pieter
+Constrained policy optimization.
+In Interna-
+tional Conference on Machine Learning. PMLR, 2017.
+Salar Asayesh, Mo Chen, Mehran Mehrandezh, and
+Kamal Gupta.
+Least-restrictive multi-agent collision
+avoidance via deep meta reinforcement learning and
+optimal control. In International Conference on Robot In-
+telligence Technology and Applications. Springer, 2022.
+Vishwanath Bulusu, Emin Burak Onat, Raja Sengupta,
+Pavan Yedavalli, and Jane Macfarlane. A Traffic Demand
+Analysis Method for Urban Air Mobility. IEEE Trans-
+actions on Intelligent Transportation Systems, 2021. 10
+Seungman Lee, Michael Abramson, James D. Phillips,
+and Huabin Tang.
+Preliminary Analysis of Separation
+Standards for Urban Air Mobility using Unmitigated
+Fast-Time Simulation.
+In IEEEAIAA Digital Avionics
+Systems Conference (DASC), 2022. 10, 11
+Federal Aviation Administration.
+Aeronautical In-
+formation
+Collision
+trafficpublicationsatpubs
+aim htmlchap7 section 7.html. Accessed: 26 January
+Albert Reuther, Jeremy Kepner, Chansup Byun, Sid-
+dharth Samsi, William Arcand, David Bestor, Bill Berg-
+Michael Jones, Anna Klein, Lauren Milechin, Julia
+and Peter Michaleas.
+Interactive supercomputing on
+IEEE High Performance extreme Computing Conference
+Insoon Yang, Sabine Becker-Weimann, Mina J Bissell,
+and Claire J Tomlin. One-shot computation of reachable
+sets for differential games. In Proceedings of the Interna-
+tional Conference on Hybrid Systems: Computation and
+Xubo Lyu and Mo Chen.
+Ttr-based reward for re-
+inforcement learning with implicit model priors.
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), 2020. 13

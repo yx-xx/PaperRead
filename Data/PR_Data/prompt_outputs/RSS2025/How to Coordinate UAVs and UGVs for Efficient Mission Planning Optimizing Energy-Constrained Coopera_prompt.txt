@@ -1,0 +1,1657 @@
+=== PDF文件: How to Coordinate UAVs and UGVs for Efficient Mission Planning Optimizing Energy-Constrained Coopera.pdf ===
+=== 时间: 2025-07-21 14:04:20.250169 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：How to Coordinate UAVs and UGVs for Efficient
+Mission Planning? Optimizing Energy-Constrained
+Cooperative Routing with a DRL Framework
+Md Safwan Mondal1,, Subramanian Ramasamy1, Pranav Bhounsule1
+AbstractEfficient mission planning for cooperative systems
+involving Unmanned Aerial Vehicles (UAVs) and Unmanned
+Ground Vehicles (UGVs) requires addressing energy constraints,
+excel in rapidly covering large areas but are constrained by
+limited battery life, while UGVs, with their extended operational
+range and capability to serve as mobile recharging stations, are
+hindered by slower speeds. This heterogeneity makes coordina-
+tion between UAVs and UGVs critical for achieving optimal
+mission outcomes. In this work, we propose a scalable deep
+reinforcement learning (DRL) framework to address the energy-
+constrained cooperative routing problem for multi-agent UAV-
+UGV teams, aiming to visit a set of task points in minimal
+time with UAVs relying on UGVs for recharging during the
+mission. The framework incorporates sortie-wise agent switching
+to efficiently manage multiple agents, by allocating task points
+and coordinating actions. Using an encoder-decoder transformer
+the UAV-UGV team in the task scenario. Extensive computational
+experiments demonstrate the frameworks superior performance
+over heuristic methods and a DRL baseline, delivering significant
+improvements in solution quality and runtime efficiency across
+diverse scenarios. Generalization studies validate its robustness,
+while dynamic scenario highlights its adaptability to real-time
+changes with a case study. This work advances UAV-UGV cooper-
+ative routing by providing a scalable, efficient, and robust solution
+for multi-agent mission planning. More details are available on
+the website:
+I. INTRODUCTION
+In applications like disaster response, search-and-rescue op-
+coverage of critical areas is essential. Unmanned Aerial Vehi-
+cles (UAVs) play a pivotal role in these tasks, providing real-
+time surveillance of disaster zones, wildfire perimeters, and
+critical infrastructure [13]. Their ability to access otherwise
+unreachable areas, such as dense forests, mountainous terrains,
+and urban rooftops, makes them invaluable for time-sensitive
+tasks. However, UAVs are fundamentally limited by their bat-
+tery capacity, requiring frequent recharges thereby disrupting
+sustained mission coverage .
+To mitigate this limitation, Unmanned Ground Vehicles
+(UGVs) have emerged as complementary agents in multi-
+agent systems. UGVs, capable of traversing road networks
+1Md Safwan Mondal, Subramanian Ramasamy, and Pranav Bhoun-
+sule are with the Department of Mechanical and Industrial Engineering,
+University of Illinois Chicago, IL, 60607 USA. mmonda4uic.edu,
+sramas21uic.edu, pranavuic.edu
+Corresponding author. This work was supported by ARO contract number
+Starting
+Rendezvous point
+Ground points
+UAV points
+Fig. 1: Illustration of the fuel-constrained UAV-UGV coopera-
+tive routing problem. UAV-specific task points (red hollow cir-
+cles) and ground task points (blue solid circles) must be visited,
+with rendezvous points (black circles) for UAVs recharging on
+the UGVs. The goal is to plan UAV and UGV routes (red dashed
+and blue solid paths, respectively) to minimize total mission
+time while adhering to UAV fuel and UGV speed constraints.
+and operating for extended durations, act as mobile recharging
+stations for UAVs, extending their operational range and en-
+abling uninterrupted mission execution. The synergy between
+UAVs and UGVs combining the agility of aerial operations
+with the endurance and logistical support of ground vehicles
+has shown immense potential for improving mission efficiency
+across diverse applications . However, this demands intelli-
+gent coordination to optimize routes, synchronize recharging
+The coordination of UAVs and UGVs in such cooperative
+missions presents unique challenges. UAVs must balance fuel
+consumption and mission routing (i.e., the order of task
+point visits) while timing their rendezvous with UGVs for
+recharging. UGVs, meanwhile, are constrained by their slower
+speeds and reliance on road networks. In multi-agent systems,
+these challenges are amplified as multiple UAVs and UGVs
+must collaboratively plan routes and synchronize operations
+for seamless task execution. Traditional heuristic-based or
+hierarchical optimization approaches often struggle to scale
+with the increasing complexity and dynamic nature of these
+problems. This highlights the need for a comprehensive coop-
+erative routing framework that optimally plans routes for UAVs
+and UGVs while synchronizing recharging rendezvous. Such a
+framework must account for the heterogeneous capabilities of
+these agents, balance their operational constraints, and deliver
+ensuring efficient and timely mission completion.
+A. Related works
+The cooperative routing problem has been extensively ex-
+plored within the fields of transportation  and robotics
+[7, 8], with various strategies proposed to address its inher-
+ent complexity. These approaches can be categorized into
+traditional optimization techniques, heuristic methods, and
+learning-based frameworks, including reinforcement learning
+for cooperative multi-agent systems. Traditional methods often
+model UAV-UGV cooperative routing as extensions of the
+Vehicle Routing Problem (VRP) or the Traveling Salesman
+Problem (TSP). In transportation, the Truck-Drone Delivery
+D) or TSP with Drones (TSP-D) has been formulated using
+Mixed Integer Linear Programming (MILP) to derive optimal
+solutions [9, 10]. MILP provides a rigorous mathematical
+framework for integrating energy constraints, time windows,
+and heterogeneous vehicle characteristics. However, MILPs
+applicability to large-scale, real-time problems is severely
+limited due to its computational complexity, as the number
+of nodes increases . Consequently, while MILP offers
+theoretical optimality, it becomes impractical for dynamic and
+complex scenarios.
+To address these scalability challenges, heuristic and meta-
+heuristic methods have been widely adopted as practical al-
+ternatives. Techniques such as Genetic Algorithms (GA) ,
+Tabu Search (TS) , and Simulated Annealing (SA)
+have shown effectiveness in approximating optimal solutions
+within reasonable computation times. Adaptive approaches,
+including Iterated Local Search  and Adaptive Large
+Neighborhood Search , further enhance solution quality by
+iteratively exploring and refining the solution space, balancing
+exploitation and exploration. In the context of UAV-UGV
+multi-level optimization frameworks to simplify coordination
+complexities. For instance, strategies like UGV first, UAV
+second decompose the problem into manageable subprob-
+Set Cover (MSC) formulations and routes are optimized
+through MILP or metaheuristic algorithms [4, 17, 18]. Seyedi
+et al. [19, 20] introduced a heuristic for cyclical patrolling
+by uniform UAV-UGV teams, leveraging spatial partitioning
+to optimize area coverage. While effective for continuous
+ios involving discrete task points. Despite their practicality,
+heuristic methods often require significant domain-specific
+settings. Furthermore, their performance in dynamic, real-
+time scenarios, particularly in large-scale multi-agent systems
+remains constrained, underscoring the need for more robust
+and scalable solutions.
+In recent years, learning-based approaches have emerged
+as promising alternatives for solving complex routing tasks.
+Deep Reinforcement Learning (DRL) has shown the capability
+to learn optimal policies through environment interaction,
+eliminating reliance on handcrafted heuristics [2124]. Vinyals
+et al.  introduced the Pointer Network, which leveraged
+attention mechanisms to solve the Traveling Salesman Problem
+(TSP). This framework was later extended by Bello et al.
+, who incorporated reinforcement learning to tackle more
+complex VRP and TSP variants. Kool et al.  advanced
+the field further by proposing an encoder-decoder transformer
+architecture with multi-head attention layers, achieving state-
+of-the-art performance on VRP tasks while surpassing tra-
+ditional heuristics. Zhang et al.  and Fuertes et al.
+developed DRL-based frameworks using transformer networks
+for multi-agent cooperative routing, demonstrating scalabil-
+ity and efficiency. However, most existing DRL frameworks
+focus on single-agent or homogeneous multi-agent systems,
+often overlooking scenarios with heterogeneous agents, such
+as UAV-UGV systems, which perform distinct roles. Wu et
+al.  applied DRL to optimize truck-drone delivery tasks
+but restricted their model to one-truck-one-drone systems.
+Fan et al.  proposed a DRL-based approach for energy-
+constrained UAVs, assuming fixed recharging locations, which
+limits flexibility. Furthermore, Ramasamy et al. [30, 31] em-
+phasized the importance of synchronizing recharging instances
+in cooperative routing, highlighting their impact on mission
+efficiency.
+This paper addresses the existing gaps in UAV-UGV cooper-
+ative routing by proposing a DRL framework that leverages an
+encoder-decoder transformer architecture with policy gradient
+method. The framework is designed to optimize coordinated
+routing for energy-constrained UAVs and UGVs, with UGVs
+acting as mobile recharging stations. It aims to minimize the
+total mission time while ensuring efficient synchronization
+between UAVs and UGVs. The primary contributions of this
+work are as follows:
+1. We formulate the energy-constrained multi-UAV-UGV co-
+operative routing problem as a bi-level optimization problem
+for approximate heuristic solutions and as a Markov Decision
+Process (MDP) to solve it through DRL using an encoder-
+decoder-based transformer architecture with attention layers.
+2. We introduce a one-agent-per-sortie agent selection strategy,
+enabling the decentralized framework to scale across varying
+team sizes and configurations. The approach is evaluated
+on diverse problem sizes and distributions, showcasing its
+generalization capability.
+3. We compare our method against heuristic-based bi-level
+optimization strategies for cooperative routing and a learning-
+based baseline with an alternative agent selection strategy. Our
+framework demonstrates superior solution quality and runtime
+4. Through a case study, we demonstrate the utility of our
+framework for online route planning, adapting to dynamically
+appearing task points and changing team configurations dur-
+ing the mission.
+II. PROBLEM FORMULATION
+A. Problem Overview
+In scenarios requiring rapid assessment, such as disaster relief,
+infrastructure monitoring, or environmental surveys, points
+of interest are often dispersed across a region. These points
+may include locations accessible via road networks (e.g.,
+near roads) or remote and inaccessible areas (e.g., forests,
+mountainous terrain, or rooftops). To address this challenge,
+a heterogeneous team of agents with UAVs and UGVs can
+be deployed. UAVs, with their high mobility and speed, can
+efficiently access both accessible and remote locations but
+are constrained by limited battery capacity. Conversely, UGVs
+operate exclusively on road networks at slower speeds, serving
+as mobile charging platforms to extend the operational range of
+UAVs (see Fig. 1). By effectively coordinating the operations
+of UAVs and UGVs, it is possible to maximize mission
+efficiency and ensure complete coverage of all task points.
+The problem can be defined as follows: Given a set of task
+points M  {m0, m1, . . . , mn}, partitioned into two subsets:
+ground points Mg, accessible by both UGVs and UAVs, and
+aerial points Ma, accessible only by UAVs and a heteroge-
+neous system comprising UAVs A  {ua
+and UGVs G  {ug
+i  i  1, . . . , N}, the goal is to determine
+optimal routes for all agents to visit every task point in
+the shortest possible time by any of the UAVs. UAVs, with
+higher speeds (va) but limited fuel capacity Fa, periodically
+rendezvous with UGVs at ground points for recharging. UGVs,
+operating at slower speeds (vg) along road networks, provide
+logistical support necessary for UAVs to sustain prolonged
+operations.
+Assumptions 1: The problem is modeled under the follow-
+ing assumptions:
+All UAVs and UGVs initiate the mission from the same
+starting depot.
+UAVs require a constant recharging time TR during each
+rendezvous with a UGV.
+The mission starts when any of the UAVs or UGVs
+departs from the depot and concludes when all task
+points have been visited, with UAVs completing their
+final recharge on any UGV.
+A UGV can provide recharging services to only one UAV
+at a time.
+Problem 1: The objective is to develop a coordinated strat-
+egy for UAVs and UGVs to minimize the total mission time.
+UAVs must operate within energy constraints and periodically
+recharge by rendezvousing with UGVs, which adhere to speed
+constraints. The strategy must ensure that all task points are
+visited in minimum time with the coordination between UAVs
+and UGVs.
+Challenges 1: The problem presents several challenges due
+to the heterogeneity of the agents and the operational con-
+Designing optimal routes for UAVs and UGVs to mini-
+mize overall mission time while addressing their opera-
+tional energy and mobility constraints.
+Synchronizing UAV-UGV recharging events to avoid de-
+lays while balancing safety (failure because of fuel deple-
+tion) and efficiency. Frequent recharging ensures safety
+but prolongs mission time, whereas fewer recharges re-
+duce time but risk fuel depletion and mission failure.
+Managing the interdependence of UAV and UGV routes
+to ensure seamless coordination, particularly in schedul-
+ing rendezvous points and allocating recharging tasks.
+B. MDP Formulation
+This cooperative routing problem is modeled as a sequential
+decision-making process, where agents iteratively select task
+points to visit or recharge. The problem is formalized as a
+Markov Decision Process (MDP), characterized by the tuple
+1) The state space S represents the environments status
+at any decision step. At time t, the state st S is defined
+as st  (pt, ft, qt), where pt  {xt, yt} indicates the current
+position of the active agent (i.e., the agent taking action), ft
+denotes its remaining fuel level, and qt  {xi, yi, di
+t} encodes
+the coordinates and visitation status of all task points mi M.
+t  1 if task point mi has been visited, and di
+otherwise.
+2) The action space A includes all feasible task points that
+the active agent can select at each decision step. Actions at
+A involve either visiting a task point or recharging at a ground
+point. Ground points Mg serve dual purposes: visiting and
+recharging. The action space is thus: A  {Mg (recharging)
+Mg (visiting)Ma (visiting)}. Infeasible actions are masked
+based on the current state st, ensuring only valid options are
+available.
+3) The reward function rt  r(st, at) is defined as the
+travel time tij between two task points i and j, plus a fixed
+recharging time TR: rt  tij  TR. Here, TR  0 for visiting
+actions. This per-step reward accumulates to form the overall
+mission cost. The return R measures the total mission cost
+and is defined as the maximum cumulative time taken by any
+agent and a penalty P  800 is added in case of mission
+4) The transition function T governs how the environment
+evolves from st to st1  (pt1, ft1, qt1) based on action
+at. The agents position is updated to the selected node:
+pt1  {xt1, yt1} at. The fuel level is updated as
+ft1  ft fij for visiting actions or reset to Fa for
+recharging. The visitation status updates as di
+t1  1 for the
+selected point mi. Agent switching is governed by a sortie-
+wise selection strategy (see Section IV). All transitions are
+deterministic.
+The goal of the DRL agent is to learn a policy  that
+minimizes the expected return R, corresponding to the worst-
+case mission time across all agents. Formally:
+E [R]  arg min
+This formulation aligns with the cooperative routing objective:
+to minimize total mission completion time.
+III. HEURISTICS FRAMEWORK
+In this section, we formulate the multi-agent cooperative rout-
+ing problem using a bilevel optimization framework, which
+serves as a benchmark that can be addressed using heuristic
+methods with standard solvers.
+A. Bilevel Optimization Framework
+The bilevel optimization framework, also referred to as a
+multi-echelon strategy, provides a hierarchical approach for
+solving heterogeneous multi-agent cooperative routing prob-
+lems. This methodology decomposes the problem into two
+interdependent levels, often guided by sequencing strategies
+such as UGV first, UAV second, UAV first, UGV second,
+or other prioritization routines [4, 17, 18]. At the first (outer)
+considering predefined mission parameters and environmen-
+tal constraints. This planned route serves as a reference or
+constraint for the second (inner) level, where the routing
+of the other vehicle type is optimized. The second level
+incorporates the interactions between the vehicles, addressing
+critical factors such as task allocation, temporal coordination,
+and spatial synchronization. By dividing the problem into
+manageable subproblems, this hierarchical approach simplifies
+the complexity of multi-agent coordination and enables the
+application of heuristic or optimization methods tailored to
+the unique operational characteristics and constraints of each
+vehicle type.
+For the multi-UAV-UGV cooperative routing problem, we
+adopt the UGV first, UAV second strategy . In the outer
+their slower speeds, restriction to road networks, and role as
+mobile recharging stations. In the inner level, UAV sorties are
+optimized based on the UGVs preplanned routes, ensuring
+efficient energy management and synchronized recharging
+schedules. Both the stages are discussed in detail:
+1) Outer level: Determining UGVs route sorties
+The UGVs operational routes within the road network are
+determined through a two-step hierarchical process. Initially
+in the first phase, a Minimum Set Cover (MSC) problem
+is solved to identify the essential refueling stops Re
+required to ensure that all task nodes M are accessible to
+UAVs from the road network following the work of . The
+task nodes represent target locations, while the UAVs fuel
+capacity Fa defines the coverage radius. The MSC solution
+provides the minimum set of refueling stops that guarantee
+UAV coverage for all task nodes. Once the refueling stops
+Re are identified, the UGV routes are optimized by solving
+a Traveling Salesman Problem (TSP). This step determines
+the most efficient sequence for the UGV to traverse the
+refueling stops, starting and ending at a fixed depot. The TSP
+optimization minimizes the UGVs total travel distance and
+provides an ordered route for visiting the refueling stops. In the
+second phase of the outer level, the problem is divided into n
+independent subproblems, where n corresponds to the number
+of refueling stops (including the depot). The UGV is assumed
+to travel only between two consecutive refueling stops within
+each subproblem. Each task point is assigned to its nearest
+refueling stop (including the depot) within the coverage radius.
+In each subproblem, the starting refuel stop acts as the source
+UAV task points associated with the destination refuel stop
+are allocated to the corresponding subproblem. This division
+ensures that each subproblem contains distinct task points and
+well-defined UGV traversal paths. Further details about the
+MSC formulation and subproblem division are provided in
+the Appendix.
+2) Inner level: Determining UAVs route sorties
+Following the division of the problem into subproblems
+and the allocation of tasks, each subproblem is modeled as
+an Energy-Constrained Vehicle Routing Problem with Time
+Windows (E-VRPTW). In this formulation, the source and des-
+tination refueling stops establish time windows to synchronize
+the operations of UAVs and UGVs. The time window for the
+destination refueling stop is calculated based on the UGVs
+travel time to that stop. As UAVs can only land on UGVs
+after their arrival at the refuel stop, the lower bound of the
+time window is given by:
+(x0, xr) S
+where xr denotes the destination refueling stop coordinates,
+x0 represents the source refueling stop in subproblem S, and
+vg is the UGVs speed. If the UGVs arrive at the refuel
+stops earlier than the UAVs, they are assumed to wait for
+the UAVs to land for recharging. To account for multiple
+recharging events, the destination refuel stop and its time
+window are duplicated, forming a set of refuel stops Xr where
+each duplicated instance corresponds to a separate recharging
+event (xr Xr).
+The E-VRPTW formulation represents the problem as a
+graph-based model where task nodes Ms within each subprob-
+of the graph: V  Ms Xr. Edges between nodes i and
+j are defined as: E  {(i, j)  i, j V, i  j}, with a
+non-negative arc cost tij representing the travel time between
+nodes. Decision variables xijk indicate whether UAV k travels
+from vertex i to vertex j. UAVs begin their routes at the source
+depot S, visit task points, and recharge at the designated refuel
+stop xr Xr. The objective function, as defined in Eq. 1,
+minimizes the total travel time for all UAVs. Eq. 2 ensures that
+each task point is visited exactly once by any UAV. The fuel
+constraints are enforced through Eq. 3, which mandates that
+UAVs are fully recharged at the destination refuel stop, and
+Eq. 4, ensures that UAV fuel levels remain within operational
+limits throughout the mission. Eq. 5 governs fuel consumption
+and prevents subtour formation by ensuring that the fuel level
+decreases according to the travel distance. Time constraints are
+introduced through Eq. 6, which ensures that UAVs respect the
+time windows for refueling stops, and Eq. 7, which updates
+the UAVs arrival time at each node based on travel time.
+The flow conservation constraint in Eq. 8 guarantees route
+continuity by enforcing that every UAV entering a node must
+also exit from it. The starting and ending conditions of UAV
+routes are stated in Eqs. 9-10, ensuring that UAVs initiate
+their journeys from the depot and conclude them at a refueling
+stop. Finally, Eq. 11 enforces feasibility conditions, preventing
+UAVs from selecting actions that would result in infeasible
+fuel consumption. These constraints collectively ensure that
+the UAVs operate efficiently while adhering to energy lim-
+within the multi-UAV cooperative routing framework.
+xijk  1,
+i V  {S, Xr},
+ijxijk)  L1(1 xijk),
+xijk  0,
+if fij > fi,k,
+The UAVs route sorties are derived by solving the E-
+VRPTW formulation using standard optimization solvers.
+These solutions provide the sortie end times, denoted as tR,
+along with the designated UGVs facilitating the recharging
+operations. The rendezvous times are subsequently used to
+calculate both the UGVs waiting times at refueling stops and
+the UAVs waiting times for recharging, as each UGV can
+accommodate only one UAV at a time during the recharging
+process. At each rendezvous point, the UAV spends a fixed
+recharging time TR to complete recharging before resuming
+its assigned mission. After determining the UAV and UGV
+route sorties for a specific subproblem, the process advances
+to the next subproblem. This iterative approach continues se-
+quentially until all subproblems have been addressed, ensuring
+that every task point is visited and the mission objectives are
+successfully accomplished. A sample solution of UAVs route
+sorties is shown in the Appendix.
+To establish a non-learning baseline for our cooperative
+routing problem, we adopt the bilevel optimization frame-
+work detailed earlier. This approach leverages the Google
+OR-ToolsCP-SAT solver , which employs constraint
+programming (CP) techniques to solve the E-VRPTW. To
+enhance the solvers capability and reduce the likelihood of
+convergence to local optima, the solver can incorporate differ-
+ent metaheuristic methods: 1) Guided Local Search (GLS),
+2) Tabu Search (TS), and 3) Simulated Annealing (SA).
+These metaheuristics improve the solvers ability to explore the
+solution space, producing high-quality approximations within
+significantly shorter runtimes compared to traditional Mixed
+Integer Linear Programming (MILP) approaches. This baseline
+serves as a robust benchmark against which the performance
+of our proposed DRL-based framework is evaluated.
+IV. REINFORCEMENT LEARNING FRAMEWORK
+This section introduces a Deep Reinforcement Learning (DRL)
+methodology for cooperative routing of multiple UAVs and
+UGVs. We propose an encoder-decoder transformer-based
+architecture combined with a reinforcement learning algorithm
+to learn an optimized routing policy , where  represents the
+models trainable parameters. Starting from an initial state s0,
+the policy  selects actions at at each timestep t, determining
+whether the active agent visits a task point or performs a
+recharging operation based on the current environment state
+st. This iterative decision-making continues until the terminal
+state sT is reached. The output of the trained policy forms
+a cooperative route T , comprising a sequence of visited task
+points and coordinated recharging events between UAVs and
+UGVs. The routing policy is represented as a joint probability
+A. Encoder-Decoder Transformer Architecture
+The routing policy  leverages an encoder-decoder trans-
+former architecture , recognized for its robust performance
+in sequential data processing tasks such as natural language
+[3638]. This architecture is adapted to process the cooperative
+routing problem, as illustrated in Fig. 3. The encoder gener-
+ates high-dimensional embeddings of task points, capturing
+essential spatial and contextual relationships. The decoder
+subsequently selects the active agent and determines its actions
+based on contextual information derived from the current state.
+This transformer-based approach efficiently models complex
+interactions between agents and task points, enabling the
+learning of an optimal routing policy for the UAV-UGV
+Batch normalization
+Multi-head
+attention
+Encoder embedding
+Batch normalization
+Feed forward layer
+Context vector
+Encoder embedding
+Encoder embedding
+assigned UAVs
+Context vector
+Input vectors
+embedding
+1. mission status
+2. agent position
+3. fuel level
+concatenation
+concatenation
+Agent selection strategy
+leaky relu
+1. UGV current time
+2. UAVs landing times
+3. UAVs landing locations
+concatenation
+UAV assignment strategy
+landing location
+embedding
+probability
+probability
+time embedding
+Multi-head
+attention
+single-head
+attention
+which task points
+to visit or recharge ?
+which UAV landing locations
+to visit for recharge ?
+if active agent type : UGV
+if active agent type : UAV
+Fig. 3: Architecture of the proposed transformer network. The encoder consists of three attention layers that process raw input data to
+generate node embeddings. The decoder employs an agent selection strategy to determine the active agent type (UAV or UGV) and
+constructs a context vector based on the current state of the selected agent. It uses the input embeddings and the context vector to
+determine action for the selected active agent.
+1) Encoder
+The encoder utilizes a multi-head attention (MHA) mech-
+anism to transform raw features of the problem instance into
+high-dimensional representations. The input to the encoder
+is a 3D vector representation of task points, denoted as
+X  {oi  (xi, yi, bi)  mi M}, where (xi, yi) are the
+normalized coordinates of a task point, and bi is a binary
+indicator denoting whether mi is a ground point eligible for
+UAV-UGV rendezvous (bi  1 if mi is ground point and
+bi  0 otherwise). Each input vector is initially projected
+into an embedding space using a linear transformation, h0
+W 0oi  b0. Here, W 0 and b0 are trainable parameters, and
+the embedding dimension is set to dh  128. The initial
+embeddings h0
+i are processed through L  3 attention layers
+to capture complex task point relationships, yielding the final
+embeddings hL
+Each attention layer l {1, 2, . . . , L} comprises an MHA
+with ReLU activation, and batch normalization (BN). Within
+the MHA module, the Query, Key, and Value vectors are
+computed from the node embeddings of the previous layer. The
+dimensions of the QueryKey and Value vectors are defined as
+dq  dk  dv  dh
+heads. For each attention head j {1, 2, ..., M}, attention
+scores Zl
+j are computed using the following equations:
+j  softmax
+)  Cat(Zl
+and Value for attention head j, respectively. The trainable
+parameter matrices W l
+attention heads are concatenated to produce the final output of
+the MHA module, MHA(hl1
+). The MHA output is passed
+through a feed-forward (FF) network with a ReLU activation
+normalization (BN) layers. These operations are summarized
+i  BN(hl1
+i  BN(hl
+i  FF(ReLU(hl
+After processing through all attention layers, the final node
+embedding hL
+is obtained, which serves as input to the
+decoder for subsequent processing.
+2) Decoder
+At each decision-making step t, the decoder executes two
+primary tasks: it first identifies the active agent using an agent
+selection strategy, and subsequently determines the task point
+to visit or perform recharging action using an action selection
+strategy.
+Agent Selection Strategy:
+The agent selection strategy adopts a sortie-wise agent
+switching mechanism to improve coordination. This approach
+allows each agent to complete an entire sortie (defined as
+the sequence of actions from one recharge event to the
+next), before switching to another agent. It refines the one-
+agent-per-decoding-step strategy proposed previously in ,
+transitioning from alternating agents at every decision point to
+a more structured sortie-based routine.
+At the beginning of the mission, UAVs are given priority
+as active agents. The UAV with the smallest time dimension
+value is selected first. This UAV completes its sortie by
+Arrange UAVs as per their
+time dimension values
+UAVs action selection strategy
+all UAVs
+completed ?
+Arrange UGVs as per their
+time dimension values
+UAV assignmnet strategy
+UGVs action selection strategy
+all UAVs
+recharged ?
+All task points
+visited ?
+select active UAV
+select active UGV
+Fig. 4: Agent selection strategy during the mission progress
+visiting multiple task points and concluding at a refueling
+node. Subsequently, the next UAV, determined by the smallest
+remaining time dimension value, is selected to begin its sortie.
+This process continues until all UAVs have completed their
+sorties.
+Once all UAV sorties are completed, the UGVs are pri-
+oritized as active agents. The UGV with the smallest time
+dimension value is selected first to ensure efficient scheduling.
+In scenarios with multiple UGVs, UAV assignment becomes
+critical to determine which UAVs each UGV will service. A
+greedy UAV assignment policy is employed, where UAVs are
+assigned to UGVs based on proximity. Specifically, UAVs
+whose landing locations are closest to a UGVs current po-
+sition are allocated to that UGV. Each UGV then executes
+its sortie by visiting its assigned UAVs refueling points and
+recharging the respective UAVs. The sequence in which refu-
+eling points are visited within a UGVs sortie is determined
+by the action selection strategy. After all UGV sorties are
+round of sorties, maintaining the same time-based prioriti-
+zation. This alternating process where UAVs complete their
+sorties sequentially, followed by UGVs continues iteratively
+until all task points are visited, completing the mission as
+illustrated in Fig. 4.
+We can understand this agent selection mechanism with an
+example of a 3 UAVs2 UGVs system. Suppose UAV0 has a
+time dimension value of t  105 min, UAV1 has t  100 min,
+UAV2 has t  110 min, UGV0 has t  50 min, and UGV1
+has t  60 min. The agent selection sequence would prioritize
+UAV1 first, followed by UAV0, and then UAV2. Once all UAV
+sorties are completed, UGV0 is selected next, followed by
+UGV1. If the greedy UAV assignment policy assigns UAV0
+and UAV2 to UGV0 (based on proximity) and UAV1 to UGV1,
+UGV0 will visit and recharge UAV0 and UAV2 (with the order
+determined by the action selection strategy), while UGV1 will
+recharge UAV1. This strategy ensures efficient synchronization
+between UAVs and UGVs, reducing idle time and optimizing
+overall mission performance.
+Action Selection Strategy:
+Once the active agent is selected, the decoder determines the
+probability of selecting each available node as an action based
+on the encoders node embedding hL
+i and a context vector
+strategies are employed for UAVs and UGVs to construct the
+context vector based on their unique operational characteris-
+For a UAV, the context vector hc
+t is constructed using the
+UAVs current position embedding hL
+the current position of the agent, the mission status di
+UAVs fuel level ft, and the encoders node embeddings hL
+is concatenated with the
+mission status di
+A mean graph embedding ht is then computed by averaging
+these projections across all nodes. Additionally, the UAVs
+current position embedding hL
+level ft, and this concatenated vector is linearly projected. The
+final context vector hc
+t is obtained by combining the mean
+graph embedding and the projected UAV state, as follows:
+i0(Cat(hL
+t  ht  Cat(hL
+formulation ensures that the context vector captures both the
+global state of the mission and the local status of the active
+Once the context vector hc
+t is constructed, the decoder uses
+a multi-head attention (MHA) mechanism to calculate the
+glimpse vector hg
+t . The context vector is treated as the Query,
+while the encoders node embeddings serve as the Key and
+t  MHA(hc
+k and W g
+v are tunable weight matrices for project-
+ing the node embeddings. The resulting glimpse vector hg
+subsequently used as the Query qt, while the encoders node
+embeddings hL
+i serve as the Key kt in a single-head attention
+mechanism. This mechanism computes the compatibility score
+ht for each node, which determines the likelihood of select-
+ing the corresponding node as action. Importantly, infeasible
+actions are masked based on logical constraints derived from
+the current scenario state. The masking criteria include: 1)
+previously visited task points (for visiting actions), 2) task
+points unreachable with the current fuel level of the UAV
+and 3) task points that would prevent the UAV from reaching
+a refuel stop after visiting. The compatibility scores ht are
+computed as follows:
+Cp  tanh
+if feasible
+otherwise.
+Cp  10 is a clipping parameter to encourage exploration
+during training. Finally, the probabilities of selecting actions
+are derived using the softmax function:
+(atst)  softmax(ht)
+In the case of a UGV as the active agent, the decoder
+constructs the context vector hc
+t by integrating spatial and
+temporal information about its assigned UAVs. The UAV
+assignments are determined using a greedy UAV assignment
+The decoder utilizes the landing locations of the assigned
+from the encoder hL
+the UGVs current time.
+The process begins by passing the UAVs landing time
+information through a Leaky ReLU activation function to
+generate the landing time embedding hlt
+i . Concurrently, the
+current time of the active UGV is linearly projected and
+processed through a ReLU activation layer to produce the
+UGVs current time embedding ht
+ugv. These two embeddings
+are combined element-wise to form a unified time vector
+htime. Subsequently, the landing location embeddings hloc
+the assigned UAVs are concatenated with htime, followed by
+a linear projection and ReLU activation to generate the final
+context vector hc
+t. The computations are as follows:
+i  LeakyReLU(LandingTimeiWlt), i assigned UAVs,
+ugv  ReLU(CurrentTimeugvWt),
+htime  hlt
+t  ReLU(Cat(hloc
+where Wlt, Wt, and Wc are trainable weight matrices, and
+Cat represents the concatenation operation.
+Once the context vector hc
+t is constructed, it is cross-
+multiplied with the encoder node embedding hL
+i to compute
+the vector ht. The resulting vector ht undergoes mean pool-
+ing across its second dimension to calculate the probability
+distribution over the action space. Similar to the UAV case,
+infeasible actions are masked to ensure valid decision-making.
+signed UAVs have landed are considered feasible action nodes.
+The probability distribution is computed over this constrained
+action space, and an action is selected to determine the task
+point where the UGV will go to recharge the UAV at the
+specified node.
+Following the above process, the decoder selects the active
+agent and sequentially determines actions to visit task points or
+perform recharging until the mission is completed. We employ
+two decoding strategies: a greedy strategy that consistently
+selects the action with the highest probability at each decision-
+making step, and a sampling strategy that chooses actions
+based on their probabilities. During training, we adopt the
+sampling strategy to encourage better exploration. In the
+evaluation phase, we assess and compare the effectiveness of
+both strategies.
+B. Training method
+The training process, as illustrated in Algorithm 1, employs
+the REINFORCE policy gradient method  for optimizing
+the routing policy. This method uses two neural networks:
+the policy network , responsible for calculating the action
+probability distribution and sampling actions, and the baseline
+network but selects actions greedily, choosing the action with
+the highest probability.
+During each training iteration, the algorithm computes
+routes and their associated rewards for a batch of problem
+instances. For the same instances, expected baseline rewards
+are determined using the greedy rollout generated by the
+baseline network (lines 4-13). The parameters of the policy
+network are then updated using the policy gradient method
+(lines 14-16). To ensure consistency and improve baseline
+with those of the policy network after each epoch if the
+baseline network performs worse than the policy network
+based on a paired t-test (lines 17-19).
+By iteratively updating both the policy and baseline net-
+policy over time. This iterative process allows the policy
+network to continually enhance its decision-making ability
+through reinforcement learning, while the baseline network
+serves as a comparative benchmark to refine the updates and
+guide the learning process effectively.
+Algorithm 1: Policy network training using REIN-
+FORCE algorithm
+of batches N, batch size B, episode length T, UAV-UGV
+system A, G
+1 for epoch in 1 . . . E do
+Sample N batches from dataset
+for iteration in 1 . . . N do
+for instance b in 1 . . . B do
+Initialize s0,b at t  0
+while t < T do
+Get action at,b (at,bst,b)
+Obtain reward rt,b and st1,b
+Calculate return Rb
+Baseline return R
+b from greedy rollout with
+Compute gradient:
+Update   J
+if OneSidedPairedTTest(, ) < 0.05 then
+V. RESULTS
+To validate the effectiveness of our proposed Deep Rein-
+forcement Learning (DRL) framework for solving the energy-
+constrained UAV-UGV cooperative routing problem, we con-
+duct extensive computational experiments. These evaluations
+compare the framework against baseline methodologies, assess
+its robustness through generalization studies, and demonstrate
+its practical applicability through a case study involving dy-
+namic task variations and dynamic changes in UAV-UGV team
+configurations.
+A. Dataset Details
+The UAV-UGV cooperative routing problem is simulated over
+a 20 km20 km operational area with varying UAV-UGV team
+configurations. UAVs operate at a constant speed of va
+10 ms, while UGVs traverse the road network at vg  4.5 ms.
+Each UAV is equipped with a fuel capacity of Fa  287.7 kJ,
+and its fuel consumption follows a profile modeled after :
+This consumption model corresponds to a maximum flight
+endurance of approximately 25 minutes when flying at va
+10 ms. The UAV-UGV team begins each mission from a
+common depot. UAVs are tasked with visiting task points
+located both outside the road network (Ma) and on the road
+network (Mg), while UGVs, restricted to the road network,
+provide logistical support by recharging UAVs at ground
+points. This ensures continuous mission execution. The task
+points Ma are uniformly sampled within a 7-kilometer radius
+around road points Mg. Although the UGV road network G
+remains fixed, the specific road points are randomly selected
+for each instance to introduce variability across simulations.
+The framework is evaluated on two problem sizes. The smaller
+problem instance, denoted as U15G5, involves 15 UAV task
+points and 5 ground points. The larger instance, U45G15,
+includes 45 UAV task points and 15 ground points. For both
+problem sizes, separate models are trained for four UAV-UGV
+team configurations: 1 UAV and 1 UGV, 2 UAVs and 1 UGV,
+2 UAVs and 2 UGVs, and 4 UAVs and 2 UGVs.
+Each model is trained on a total of 5,120,000 instances,
+processed in batches of 256 across 200 batches for 100
+epochs. The training data is generated dynamically, ensuring a
+diverse and robust set of scenarios for each epoch. The Adam
+optimizer is used with an initial learning rate of 104, which
+decays at the end of each epoch at a rate of   0.995. The
+decayed learning rate is computed as:
+lrdecayed  lr  nepoch
+where lr is the current learning rate, lrdecayed is the decayed
+learning rate, and nepoch is the epoch number. Training is
+performed on an NVIDIA RTX 4090 Ti GPU, with hyper-
+parameters kept consistent across all problem sizes and team
+configurations.
+B. Comparative analysis
+Given the complexity and specificity of the UAV-UGV coop-
+erative routing problem, standard benchmarks are unavailable,
+and deriving exact solutions becomes increasingly impractical
+as the number of task points and agents grows, making the
+problem intractable. Over the years, multi-level or multi-
+echelon optimization strategies have been widely employed
+for cooperative routing involving heterogeneous agents. These
+Avg. cost
+Avg. cost
+1 uav-1 ugv
+2 uavs-1 ugv
+2 uavs-2 ugvs
+4 uavs-2 ugvs
+1 uav-1 ugv (MF)
+2 uavs-1 ugv (MF)
+2 uavs-2 ugvs (MF)
+4 uavs-2 ugvs (MF)
+U15G5 scenarios
+U45G15 scenarios
+Fig. 5: Training curves across two problem sizes and different
+UAV-UGV team compositions. DRL(MF) is a baseline DRL
+model with the agent selection strategy of Fan et al.
+strategies decompose the problem into smaller subproblems,
+which are then solved optimally using standard solvers. Fol-
+lowing this approach, we adopt a bi-level optimization strategy
+as the heuristic baseline for addressing our multi-agent coop-
+erative task, as detailed in Section III. Within this framework,
+we incorporate three metaheuristic methods: 1) Guided Local
+Search (GLS), 2) Tabu Search (TS), and 3) Simulated
+Annealing (SA) to solve the E-VRPTW subproblems. These
+methods serve as heuristic baselines to compare against the
+performance of our proposed deep reinforcement learning
+(DRL) framework.
+To further analyze the impact of our proposed one-agent-
+per-sortie agent selection strategy within the decoder of the
+DRL framework, we include an alternative agent selection
+another baseline. In Fan et al.s approach , the decoder
+selects the agent at each decision step t based on the index
+t  A, where A is the set of UAVs and A represents the
+number of agents. For a fair comparison, we retain the encoder
+and the overall decoder architecture of our DRL framework
+while substituting the agent selection routine with Fan et al.s
+method. The Fig. 5 shows the training curves across two
+problem sizes with the four team compositions with these two
+agent selection strategies.
+During evaluation, the DRL-based frameworks employ two
+decoding strategies: a) greedy decoding, where the action with
+the highest probability is selected at each decision step, and b)
+sampling decoding, where N trajectories are sampled to form
+a solution pool, and the best solution is selected. We evaluate
+TABLE I: Comparison evaluation of the DRL policy across problem sizes (all metric values represent averages over the test instances)
+Team configuration
+1 UAV-1UGV
+2 UAVs-1UGV
+2 UAVs-2UGVs
+4UAVs-2UGVs
+Problem size: U15G5
+DRL (greedy)
+DRL MF et al. ( greedy)
+DRL (1024)
+DRL MF et al. ( 1024)
+DRL MF et al. ( 10240)
+Problem size: U45G15
+DRL (greedy)
+DRL MF et al. (greedy)
+DRL (1024)
+DRL MF et al. (1024)
+DRL MF et al. (10240)
+the framework with two sampling configurations: N  1024
+(DRL(1024)) and N  10240 (DRL(10240)). To ensure
+strategies across our DRL framework and the modified DRL
+model (DRL MF et al.) based on Fan et al.s  agent
+selection strategy. Given the longer mission durations and the
+computational requirements of the heuristic approaches, we
+evaluate on 100 test instances and the average objective value
+across these instances is used as the primary performance
+metric to evaluate all baseline methods and our proposed
+framework for the four UAV-UGV team compositions. All
+computations are implemented in Python on a Linux system.
+Table I shows that the proposed DRL framework con-
+sistently outperforms heuristic-based baselines (GLS, TS,
+and SA), achieving the lowest average mission time across
+all problem sizes and team configurations. Among the
+DRL strategies, sampling-based methods (DRL(1024) and
+DRL(10240)) demonstrate superior scalability and efficiency,
+with DRL(10240) delivering the best performance in terms of
+average objective values. For smaller problem sizes (U15G5),
+DRL(10240) achieves up to a 9 reduction in mission time
+compared to DRL(greedy) in the 1 UAV1 UGV setup.
+higher computation time, making DRL(1024) a more practical
+alternative. DRL(1024) offers a favorable trade-off, achiev-
+ing average objective values within 23 of DRL(10240)
+while requiring up to 78 times less computation time. For
+DRL(1024) achieves an objective value only 2.2 higher than
+DRL(10240), but requires 10 times less computation time.
+Adding more agents generally reduces mission time but
+exhibits diminishing returns due to recharging constraints
+because the addition of UAVs increases waiting times for
+time. This effect is more pronounced in smaller problem sizes
+with fewer task points. For larger problem sizes (U45G15), the
+DRL framework continues to outperform baseline methods,
+with DRL(10240) consistently achieving the best objective
+values. In the U45G15 configuration with 4 UAVs-2 UGVs,
+DRL(10240) achieves an average objective value of 219.3
+33.8, respectively. DRL(1024) again provides an efficient
+while requiring significantly less computation time. For ex-
+DRL(1024) achieves an objective value of 236.6 minutes, just
+1.8 higher than DRL(10240), with less than a third of the
+computation time.
+The DRL framework with the one-agent-per-decoding-step
+strategy (DRL MF et al.) demonstrates strong performance but
+is consistently outperformed by the proposed DRL framework.
+While DRL MF et al.(10240) achieves comparable results,
+its objective values are slightly higher. For instance, in the
+U45G15 configuration with 2 UAVs-2 UGVs, DRL MF et
+al.(10240) achieves an objective value of 240.9 minutes com-
+pared to 232.5 minutes for DRL(10240).
+Task completion times are generally higher in larger prob-
+lem sizes due to the increased number of task points and the
+complexity of agent coordination. For example, in the U15G5
+configuration with 1 UAV-1 UGV, DRL(10240) achieves an
+objective value of 218.6 minutes, which increases to 355.6
+minutes in the U45G15 configuration. Heuristic baselines
+consistently perform worse, with higher objective values and
+longer computation times. In the U45G15 configuration with 4
+UAVs-2 UGVs, GLS delivers an objective value 32.5 higher
+than DRL(10240) while requiring more computation time.
+Since Table I presents only the average and standard devi-
+ation of the mission time metric, we introduce an additional
+metric win rate to better capture performance variability. Win
+rate is defined as the percentage of test instances where a
+method achieves the lowest objective value compared to oth-
+ers. In both the U15G5 and U45G15 scenarios, DRL(10240)
+attains the highest win rate across all methods. Detailed win
+rate results, along with the distribution of objective values
+across the test instances, are provided in the Appendix.
+C. Generalization analysis
+To evaluate the generalization capability of the proposed DRL
+retraining. These tests involve the following aspects: 1. Larger
+Problem Size: We increase the problem size beyond the
+original training size and evaluate the performance of the pre-
+trained model on these larger scenarios to assess its scalability
+and adaptability. 2. Varying Team Composition: On a given
+problem scenario, we modify the number of UAVs and UGVs
+in the team composition and implement the pre-trained model
+to examine its robustness to changes in the agent configuration.
+3. Different Task Point Distributions: To simulate diverse
+operational environments, we create problem scenarios with
+two different distributions of task points and evaluate the
+task points. These generalization experiments aim to test the
+extrapolation capability of the trained models in handling
+slightly altered problem scenarios. This analysis ensures that
+the framework can adapt to conditional changes in real-
+world applications without requiring retraining. The detailed
+methodology for each generalization experiment is described
+1) Larger problem size
+In the first experiment, we assess the models ability to
+handle larger problem scenarios than its original training size
+by creating 100 test instances of two larger sizes. Firstly, we
+increase the number of task points to a) 60 UAV points and 20
+ground points (U60G20) and b) 75 UAV points and 25 ground
+points (U75G25). Secondly, we extend road network for more
+available points for recharging. The models performance is
+compared against the baselines on these U60G20 and U75G25
+test instances, as listed in Table II.
+The table illustrates that the DRL framework, particularly
+DRL(10240), achieves competitive mission completion times
+across all team configurations, demonstrating its generaliza-
+tion capability. However, DRL MF et al.(10240) occasionally
+outperforms DRL(10240), with an maximum optimality gap of
+less than 2. For example, in the U60G20 configuration with
+4 UAVs-2 UGVs, DRL MF et al.(10240) achieves the lowest
+average objective value of 268.0 minutes, slightly outperform-
+ing DRL(10240). Despite this, DRL MF et al.(10240) typi-
+cally requires more computation time. A similar performance
+trend is observed in U75G25 scenarios, where DRL methods
+outperform heuristic baselines. For instance, in the U75G25
+configuration with 4 UAVs-2 UGVs, DRL(10240) achieves an
+average objective value of 294.1 minutes, outperforming GLS,
+respectively. The DRL(1024) variant provides near-optimal
+results with significantly faster computation times, offering
+an effective balance between solution quality and runtime
+efficiency. In general, despite being trained on smaller problem
+achieving competitive results without requiring retraining.
+In contrast, heuristic baselines (GLS, TS, and SA) exhibit
+significantly higher mission times and computation costs,
+highlighting their limitations in handling complex scenarios.
+Increasing the number of agents reduces mission times across
+all methods, but the improvement diminishes due to task
+coordination constraints, especially in scenarios with limited
+UGVs. DRL models achieve higher win rate values compared
+to heuristic methods. Detailed results and distributions of
+objective values are provided in the Appendix.
+2) Team configuration variation
+In the second generalization experiment, we evaluate the
+performance of a model, trained on a specific UAV-UGV team
+composition (4 UAVs-2 UGVs), when applied to altered team
+configurations. Specifically, we test the trained model on the
+U75G25 problem size with two larger team compositions: 5
+UAVs-3 UGVs and 6 UAVs-4 UGVs. Table III presents the
+efficiency.
+For the 5 UAVs-3 UGVs configuration, the proposed
+DRL framework outperforms all baselines, with DRL(10240)
+TABLE II: Comparison evaluation of the DRL policy across larger problem sizes (all metric values represent averages over the test
+instances)
+Team configuration
+1 UAV-1UGV
+2 UAVs-1UGV
+2 UAVs-2UGVs
+4UAVs-2UGVs
+Problem size: U60G20
+DRL (greedy)
+DRL MF et al. ( greedy)
+DRL (1024)
+DRL MF et al. ( 1024)
+DRL MF et al. ( 10240)
+Problem size: U75G25
+DRL (greedy)
+DRL MF et al. (greedy)
+DRL (1024)
+DRL MF et al. (1024)
+DRL MF et al. (10240)
+TABLE III: Performance evaluation of the DRL policy across
+scenarios with changed team compositions (all metric values
+represent averages over the test instances)
+Team configuration
+5 UAVs-3 UGVs
+6 UAVs-4 UGVs
+Problem size: U75G25
+DRL (greedy)
+DRL MF et al. (greedy)
+DRL (1024)
+DRL MF et al. (1024)
+DRL MF et al. (10240)
+achieving the best solution quality. DRL(10240) records an
+average mission time of 262.9 minutes, significantly lower
+than heuristic baselines such as GLS, which achieves 345.6
+minutes in 87.6 seconds. DRL(1024) provides near-optimal
+performance with a mission time of 273.2 minutes in just 5.7
+and computation time. In comparison, the greedy decoding
+strategy (DRL(greedy)) offers the fastest runtime (2.0 seconds)
+but sacrifices solution quality, with an optimality gap of 37.8
+compared to DRL(10240). Heuristic methods (GLS, TS, and
+SA) have higher mission times and computation costs, with
+optimality gaps of 68 relative to DRL(10240).
+For the 6 UAVs-4 UGVs configuration, the DRL framework
+outperforms heuristics while being significantly faster, up to
+1.510 times faster than heuristic approaches. DRL(10240)
+achieves an average mission time of 263.9 minutes in just
+47.2 seconds. DRL(1024) continues to demonstrate efficiency,
+achieving a mission time of 274.3 minutes in 5.5 seconds,
+balancing computation time and solution quality effectively.
+Across both configurations, the proposed DRL framework
+outperforms the DRL MF et al. model in both solution quality
+and runtime efficiency. For example, in the 5 UAVs-3 UGVs
+minutes compared to 282.1 minutes by DRL MF et al.(10240),
+while being faster computationally. These results highlight
+the robustness of the proposed DRL framework in adapting
+to altered team compositions without retraining. More details
+about the distribution of the mission time values are in the
+Appendix.
+3) Task points distribution variation
+In our third generalization experiment, we assess the adapt-
+ability of the proposed DRL policy by testing it on 100
+scenarios with two distinct distributions of UAV task points
+around the road network: (a) Gaussian distribution and (b)
+Rayleigh distribution. The DRL policy, initially trained on a
+uniform distribution of task points, is evaluated to determine its
+capacity to generalize to these alternative distributions. In the
+Gaussian distribution, UAV task points are concentrated near
+a central location, with the density decreasing symmetrically
+as the distance from the center increases. This distribution is
+particularly suited for surveillance tasks centered around criti-
+cal areas, such as buildings or urban hubs, where activities are
+most likely concentrated. In contrast, the Rayleigh distribution
+features a sparse density of UAV task points near the center,
+which increases up to a certain radial distance before taper-
+ing off. This pattern reflects scenarios where the immediate
+vicinity of a central location requires minimal surveillance,
+while the surrounding buffer zone demands higher attention,
+such as securing areas around critical infrastructure. Fig.
+6 provides example scenarios for these distributions. These
+diverse distributions are designed to evaluate the robustness of
+the DRL policy to varying real-world mission requirements. To
+test its performance, we use the U45G15 problem size with the
+four UAV-UGV team configurations and compare the results
+of the DRL policy against baseline methods. The outcomes of
+this experiment are summarized in Table IV.
+UAV points
+Ground points
+Distance (k.m.)
+UAV points
+Ground points
+Distance (k.m.)
+Distance (k.m.)
+Gaussian distribution
+Rayleigh distribution
+Fig. 6: Scenario instances from different distributions of UAV
+points around the road network
+The results highlight the consistent superiority of the DRL
+Gaussian and Rayleigh distributions. DRL(10240) achieves
+the lowest mission completion times across most team con-
+sian distribution, DRL(10240) records an average objective
+value of 179.0 minutes, outperforming TS by 21.5. The
+Gaussian distribution generally results in shorter mission times
+compared to the Rayleigh distribution due to the centralized
+clustering of task points. In the 4 UAVs-2 UGVs configura-
+tion under the Rayleigh distribution, DRL MF et al.(10240)
+outperforms DRL(10240) with a 2.5 optimality gap but
+requires slightly more computation time. Among the heuristic
+methods but remain significantly slower and less efficient. SA
+performs the worst, with higher objective values and longer
+computation times. As observed in previous trends, within
+the DRL framework, sampling-based methods (DRL(1024)
+and DRL(10240)) consistently deliver superior solution quality
+compared to DRL(greedy), though with increased computa-
+tion times. DRL(greedy), while the fastest in computation,
+produces suboptimal solutions, making it suitable for time-
+critical scenarios where computational speed is prioritized over
+solution quality. The distributions of the objective values are
+in the Appendix.
+TABLE IV: Comparison evaluation of the proposed DRL policy across variation of UAV task points distribution (all metric values
+represent averages over the test instances)
+Team configuration
+1 UAV-1UGV
+2 UAVs-1UGV
+2 UAVs-2UGVs
+4UAVs-2UGVs
+Gaussian distribution
+DRL (greedy)
+DRL MF et al. ( greedy)
+DRL (1024)
+DRL MF et al. ( 1024)
+DRL MF et al. ( 10240)
+Rayleigh distribution
+DRL (greedy)
+DRL MF et al. (greedy)
+DRL (1024)
+DRL MF et al. (1024)
+DRL MF et al. (10240)
+D. Case study
+To evaluate the utility of our proposed framework as an
+online planner, we conduct a case study using a simulated
+scenario involving 45 UAV task points distributed across a
+road network. This scenario demonstrates the frameworks
+capability to manage dynamic changes in task environments
+and team configurations. The study focuses on two key aspects
+of dynamic route planning: the addition of new task points
+during the mission and changes in the UAV-UGV team com-
+position. Based on earlier evaluations, DRL(1024) is selected
+for this case study as it offers the best balance between
+solution quality and runtime among DRL-based strategies. The
+replanning process in both scenarios assumes computations are
+performed during UAV-UGV recharging operations, ensuring
+efficient planning with minimal mission interruptions.
+1) Dynamic change in task scenario
+In the first experiment, new task points are introduced
+randomly during mission execution. The system triggers a
+replanning process to integrate these additional points into the
+existing mission plan. Fig. 7 illustrates the temporal adaptation
+of UAV route sorties in a 2 UAVs1 UGV system as new
+task points are added. The UAVs dynamically adjust their
+their sorties. This highlights the frameworks ability to adapt
+to evolving task environments without compromising mission
+efficiency or continuity.
+2) Dynamic change in team configuration
+In the second experiment, the system adapts to changes in
+team composition during task execution. The mission begins
+with a 2 UAVs1 UGV configuration, which is subsequently
+modified to both a reduced team of 1 UAV1 UGV and an
+expanded team of 4 UAVs2 UGVs at different stages of the
+mission. Fig. 8 illustrates the temporal adaptation of route
+sorties under these varying team configurations. When team
+size is reduced, the system effectively reassigns task points
+to the remaining UAVs and UGVs, ensuring mission com-
+pletion despite fewer resources. Conversely, when additional
+vehicles are introduced, the framework efficiently scales to
+accommodate the increased resources, redistributing the task
+load to optimize coverage and minimize mission time. This
+adaptability demonstrates the robustness of the framework in
+dynamic operational scenarios.
+E. Discussion  limitations
+The experimental results demonstrate the scalability, robust-
+for UAV-UGV cooperative routing. The framework effectively
+scales across different team compositions, from a 1 UAV1
+UGV system to a 6 UAV4 UGV system, maintaining strong
+performance as problem complexity increases. Across all
+in both solution quality (minimum task completion time) and
+runtime efficiency. The frameworks generalization capabil-
+ity is validated by extending problem scenarios beyond the
+original training conditions, including increasing the number
+of task points, expanding the road network, altering task
+point distributions, and scaling up team sizes. In all cases, it
+outperforms baseline approaches, demonstrating its robustness.
+to handle online planning, showcasing its adaptability to
+dynamic changes such as new task points or modified team
+configurations.
+In comparative analyses, the DRL framework with a sam-
+pling decoding strategy, particularly the DRL(10240) and
+DRL(1024) policies, consistently outperforms heuristic base-
+lines such as GLS, TS, and SA in terms of mission completion
+times across various problem sizes, task distributions, and team
+configurations. The agent selection strategy in the proposed
+DRL model proves impactful, as it outperforms the DRL MF
+et al. model in most instances. While DRL(10240) delivers the
+best solution quality, DRL(1024) provides a practical trade-
+making it suitable for time-sensitive applications.
+The DRL framework surpasses bilevel optimization ap-
+UGV route
+UAV 1 route
+UAV 2 route
+unvisited UAV points
+visited UAV points
+rendezvous location
+Ground points
+New UAV points
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Fig. 7: Dynamic adaptation of the 2 UAVs1 UGV system to newly added task points. Less opaque points indicate visited UAV task
+85 minutes.
+UGV route
+UAV 1 route
+UAV 2 route
+unvisited UAV points
+visited UAV points
+Ground points
+rendezvous location
+Starting depot
+UGV route
+UAV 1 route
+visited UAV points
+UGV routes
+UAV 1 route
+UAV 2 route
+visited UAV points
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Distance (in km)
+UAV 3 route
+Fig. 8: Dynamic route planning under varying team configurations. The system adapts to changing team compositions, starting with 2
+UAVs1 UGV, transitioning to reduced and expanded configurations while ensuring all task points are visited efficiently. Less opaque
+points indicate visited UAV task points, while solid circles represent unvisited points.
+proaches due to its problem formulation and solution method-
+ology. In bilevel optimization, the problem is addressed hier-
+UAV route sorties. Although this two-stage approach simplifies
+the problem, it introduces coupling between the stages. Even if
+both stages produce optimal solutions, the overall mission may
+not be optimal. For instance, solving E-VRPTW may yield op-
+timal UAV route sorties for individual subproblems but fails to
+ensure an optimal overall mission route. In contrast, the DRL
+framework mitigates these limitations by jointly evaluating the
+entire cooperative route at the end of the mission. Its reward-
+based feedback mechanism enhances performance by aligning
+the planning process with global mission objectives rather
+than isolated subproblem solutions. This unified evaluation
+ensures a more coherent and effective approach to UAV-UGV
+collaborative routing, achieving superior mission performance
+overall.
+Despite its promising results, the proposed framework has
+several limitations. A key limitation is the assumption of a
+fixed road network for UGV operations. While the gener-
+alization tests included extended road layouts, incorporating
+randomized road networks in future work could improve
+the models robustness. Additionally, the current study is
+constrained to a maximum of six UAVs and four UGVs due to
+computational limitations. Scaling to larger team sizes remains
+a direction for future research. To address this, we propose
+using curriculum learning by fine-tuning pre-trained models
+on progressively more complex instances. Another limitation
+is the use of a greedy strategy for assigning UAVs to UGVs
+for recharging. Future work will focus on integrating this
+assignment process directly into the DRL framework to enable
+more efficient and coordinated decision-making.
+VI. CONCLUSION
+This paper introduces a novel Deep Reinforcement Learning
+(DRL)-based framework for addressing the energy-constrained
+multi UAV-UGV cooperative routing problem. By utilizing
+an encoder-decoder transformer architecture with attention
+between UAVs and UGVs, ensuring all task points are visited
+within minimal mission time while adhering to operational
+constraints. The proposed DRL framework demonstrates sig-
+nificant advantages over heuristic-based bilevel optimization
+(TS), and Simulated Annealing (SA), by delivering superior
+solution quality and reduced runtime across all problem sizes.
+ducing robust solutions in larger scenarios and across diverse
+task point distributions. The frameworks adaptability is further
+highlighted through its performance in dynamic environments,
+such as scenarios with evolving task points or changing UAV-
+UGV configurations. The case study underscores the practical
+applicability of the approach, making it a promising tool
+for real-world applications, including disaster response and
+environmental monitoring, where dynamic and efficient multi-
+agent coordination is critical.
+ACKNOWLEDGMENTS
+The authors would like to thank Luca Russo from the Univer-
+sity of Illinois Chicago, and James D. Humann and James M.
+Dotterweich from the DEVCOM Army Research Laboratory
+for their insightful suggestions. Due to delays in internal
+approval processes, it was not possible to include them as co-
+authors at the time of the conference submission. The authors
+also declare that there are no conflicts of interest among the
+contributors to this work.
+REFERENCES
+Taku Noguchi and Yosuke Komiya. Persistent coopera-
+tive monitoring system of disaster areas using uav net-
+works. In 2019 IEEE smartworld, ubiquitous intelligence
+computing  communications, cloud  big data comput-
+WorldSCALCOMUICATCCBDComIOPSCI),
+Mingyang Lyu, Yibo Zhao, Chao Huang, and Hailong
+Huang. Unmanned aerial vehicles for search and rescue:
+A survey. Remote Sensing, 15(13):3266, 2023.
+Md Safwan Mondal, Subramanian Ramasamy, James D
+Marshal A Childers, and Pranav Bhounsule. A robust
+uav-ugv collaborative framework for persistent surveil-
+lance in disaster management applications.
+International Conference on Unmanned Aircraft Systems
+(ICUAS), pages 12391246. IEEE, 2024.
+Parikshit
+Kaarthik
+Sivakumar Rathinam, and PB Sujit. Cooperative aerial
+ground vehicle route planning with fuel constraints for
+coverage applications. IEEE Transactions on Aerospace
+and Electronic Systems, 55(6):30163028, 2019.
+Yulong Ding, Bin Xin, and Jie Chen.
+A review of
+recent advances in coordination between unmanned aerial
+and ground vehicles. Unmanned Systems, 9(02):97117,
+Chase C Murray and Amanda G Chu.
+The flying
+sidekick traveling salesman problem: Optimization of
+drone-assisted parcel delivery. Transportation Research
+Part C: Emerging Technologies, 54:86109, 2015.
+Jianqiang Li, Genqiang Deng, Chengwen Luo, Qiuzhen
+ning method in unmanned airground vehicle (uavugv)
+cooperative systems.
+IEEE Transactions on Vehicular
+Satyanarayana
+Kaarthik
+David W Casbeer. Cooperative routing for an airground
+vehicle teamexact algorithm, transformation method,
+and heuristics. IEEE Transactions on Automation Science
+and Engineering, 17(1):537547, 2019.
+Luigi Di Puglia Pugliese and Francesca Guerriero. Last-
+mile deliveries by using drones and classical vehicles. In
+Optimization and Decision Science: Methodologies and
+Nils Boysen, Dirk Briskorn, Stefan Fedtke, and Ste-
+fan Schwerdfeger.
+Drone delivery from trucks: Drone
+scheduling for given truck routes. Networks, 72(4):506
+Diego Cattaruzza, Nabil Absi, and Dominique Feillet.
+Vehicle routing problems with multiple trips.
+Kai Peng, Jingxuan Du, Fang Lu, Qianguo Sun, Yan
+A hybrid genetic
+algorithm on routing and scheduling for vehicle-assisted
+multi-drone parcel delivery.
+IEEE Access, 7:49191
+Daniel Schermer, Mahdi Moeini, and Oliver Wendt. A
+hybrid vnstabu search algorithm for solving the vehicle
+routing problem with drones and en route operations.
+Computers  Operations Research, 109:134158, 2019.
+Rahmad Inca Liperda, AAN Pewira Redi, Nandini N
+and Anna Maria Sri Asih. Simulated annealing algorithm
+performance on two-echelon vehicle routing problem-
+mapping operation with drones. In 2020 IEEE Interna-
+tional Conference on Industrial Engineering and Engi-
+neering Management (IEEM), pages 11421146. IEEE,
+Toshihide Ibaraki, Shinji Imahori, Koji Nonobe, Kensuke
+local search algorithm for the vehicle routing problem
+with convex time penalty functions.
+Discrete Applied
+Duygu Tas, Nico Dellaert, Tom van Woensel, and Ton
+De Kok. The time-dependent vehicle routing problem
+with soft time windows and stochastic travel times.
+Transportation Research Part C: Emerging Technologies,
+Parikshit Maini and PB Sujit. On cooperation between a
+fuel constrained uav and a refueling ugv for large scale
+mapping applications. In 2015 international conference
+on unmanned aircraft systems (ICUAS), pages 1370
+Fernando Ropero, Pablo Munoz, and Mara D R-Moreno.
+uav exploration. Engineering Applications of Artificial
+Sepehr Seyedi, Yasin Yazicioglu, and Derya Aksaray.
+Persistent surveillance with energy-constrained uavs
+and mobile charging stations.
+Xiaoshan Lin, Yasin Yazcoglu, and Derya Aksaray.
+Robust planning for persistent surveillance with energy-
+constrained uavs and mobile charging stations.
+Robotics and Automation Letters, 7(2):41574164, 2022.
+Mingfeng Fan, Yaoxin Wu, Tianjun Liao, Zhiguang Cao,
+Hongliang Guo, Guillaume Sartoretti, and Guohua Wu.
+Deep reinforcement learning for uav routing in the pres-
+ence of multiple charging stations. IEEE Transactions
+on Vehicular Technology, 2022.
+Oriol Vinyals, Meire Fortunato, and Navdeep Jaitly.
+Pointer networks. Advances in neural information pro-
+cessing systems, 28, 2015.
+Md Safwan Mondal, Subramanian Ramasamy, James D
+Marshal A Childers, and Pranav Bhounsule.
+attention-aware deep reinforcement learning framework
+for uav-ugv collaborative route planning.
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 1368713694. IEEE, 2024.
+Md Safwan Mondal, Subramanian Ramasamy, James D
+Marshal A Childers, and Pranav Bhounsule. Risk-aware
+energy-constrained uav-ugv cooperative routing using
+attention-guided reinforcement learning.
+Irwan Bello, Hieu Pham, Quoc V Le, Mohammad
+timization with reinforcement learning. arXiv preprint
+Wouter Kool, Herke Van Hoof, and Max Welling. At-
+Zixian Zhang, Geqi Qi, and Wei Guan.
+nated multi-agent hierarchical deep reinforcement learn-
+ing to solve multi-trip vehicle routing problems with
+soft time windows. IET Intelligent Transport Systems,
+Daniel Fuertes, Carlos R del Blanco, Fernando Jau-
+routing problems for multiple cooperative unmanned
+aerial vehicles using transformer networks. Engineering
+Applications of Artificial Intelligence, 122:106085, 2023.
+Guohua Wu, Mingfeng Fan, Jianmai Shi, and Yanghe
+Reinforcement learning based truck-and-drone
+coordinated delivery.
+IEEE Transactions on Artificial
+Subramanian Ramasamy, Md Safwan Mondal, Jean-
+Paul F Reddinger, James M Dotterweich, James D Hu-
+Heterogenous vehicle routing: comparing parameter tun-
+ing using genetic algorithm and bayesian optimization.
+In 2022 International Conference on Unmanned Aircraft
+Systems (ICUAS), pages 104113. IEEE, 2022.
+Md Safwan Mondal, Subramanian Ramasamy, James D
+Marshal A Childers, and Pranav Bhounsule. Optimizing
+fuel-constrained uav-ugv routes for large scale coverage:
+Bilevel planning in heterogeneous multi-agent systems.
+In 2023 International Symposium on Multi-Robot and
+Multi-Agent Systems (MRS), pages 114120. IEEE, 2023.
+Wei Gao, Junren Luo, Wanpeng Zhang, Weilin Yuan, and
+Zhiyong Liao. Commanding cooperative ugv-uav with
+nested vehicle routing for emergency resource delivery.
+Nabil H Mustafa and Saurabh Ray. Improved results on
+geometric hitting set problems.
+Discrete  Computa-
+tional Geometry, 44:883895, 2010.
+Google OR-tools.
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+and Illia Polosukhin. Attention is all you need. Advances
+in neural information processing systems, 30, 2017.
+Liang Xin, Wen Song, Zhiguang Cao, and Jie Zhang.
+Step-wise deep learning models for solving routing prob-
+IEEE Transactions on Industrial Informatics,
+Jun Yu, Jing Li, Zhou Yu, and Qingming Huang. Multi-
+modal transformer with multi-view visual representation
+for image captioning. IEEE transactions on circuits and
+systems for video technology, 30(12):44674480, 2019.
+Fei Sun, Jun Liu, Jian Wu, Changhua Pei, Xiao Lin,
+Wenwu Ou, and Peng Jiang. Bert4rec: Sequential rec-
+ommendation with bidirectional encoder representations
+from transformer.
+In Proceedings of the 28th ACM
+international conference on information and knowledge
+Ronald J Williams. Simple statistical gradient-following
+algorithms for connectionist reinforcement learning. Ma-
+chine learning, 8:229256, 1992.
+Arnon M Hurwitz, James M Dotterweich, and Trevor A
+Mobile robot battery life estimation: battery
+energy use of an unmanned ground vehicle. In Energy
+Harvesting and Storage: Materials, Devices, and Appli-
+cations XI, volume 11722, pages 2440. SPIE, 2021.
+APPENDIX
+A. Minimum Set Cover (MSC) Formulation and Subproblem
+Division for UGV Route Planning
+Maini et al.  demonstrated that in order to establish a
+viable cooperative route, it is necessary to ensure that at least
+one refueling stop is located within the UAV fuel coverage
+radius for each task point. Thus to determine the minimum
+number of refueling stops required to cover the entire mission
+(MSC). To determine the minimum number of refueling stops
+Re required to cover the entire task scenario M, we employ
+a linear integer programming formulation solved using a Con-
+straint Programming (CP) method. The problem is modeled
+with binary decision variables: xj, which indicates whether a
+Starting depot
+(Refuel stop 1)
+Starting depot
+(Refuel stop 1)
+Refuel stop 2
+Refuel stop 2
+Refuel stop 3
+Refuel stop 4
+UGV direction
+UGV direction
+Refuel stop 3
+UGV direction
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Fig. A.1: Refuel stops obtained from MSC, with circles indicating the fuel coverage radius of the UAV. (a) Subproblem 1: starting
+depot (Refuel Stop 1) with allocated UAV points. (b) Subproblem 2: Refuel Stop 1 as the origin and Refuel Stop 2 as the destination
+with allocated UAV points. (c) Subproblem 3: Refuel Stop 2 as the origin and Refuel Stop 3 as the destination with allocated UAV
+points. (d) Subproblem 4: Refuel Stop 3 as the origin and Refuel Stop 4 as the destination with allocated UAV points.
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Distance (in km)
+Distance (in km)
+UGV route
+UAV 1 route
+UAV 2 route
+UGV route
+UAV 1 route
+UAV 2 route
+UGV route
+UAV 1 route
+UAV 2 route
+UGV route
+UAV 1 route
+UAV 2 route
+Fig. A.2: UAV route sorties as obtained after solving E-VRPTW. (a) UAV route sorties for Subproblem 1. (b) UAV and UGV route
+sorties for Subproblem 2. (c) UAV and UGV route sorties for Subproblem 3. (d) UAV and UGV route sorties for Subproblem 4.
+task point mj is chosen as a refueling stop, and yij, which
+indicates whether a task point mi is assigned to a refueling
+stop rj. The objective function minimizes the total number of
+refueling stops:
+Subject to:
+mi M, rj Re,
+if dij > 0.5Fa,
+mi M, rj Re,
+mi M, rj Re.
+to at least one refueling stop rj. Equation 2 ensures that a
+task point mi can only be assigned to a refueling stop rj if
+that stop is selected. Equation 3 excludes task points mi from
+being assigned to refueling stops rj that lie beyond the UAVs
+coverage radius 0.5Fa. Equation 4 enforces binary decision
+variables. We use Googles OR-Tools CP-SAT solver  to
+solve this integer programming problem efficiently. The MSC
+solution identifies the essential refueling stops Re, which are
+connected by solving traveling salesman problem (TSP) to get
+the optimal direction of UGVs traversal.
+Fig. A.1 illustrates the process of subproblem division and
+task allocation strategy on the case study scenario. Refueling
+A.1 and serve as key nodes for structuring UGV routes and
+partitioning the task space into distinct subproblems. In the
+first subproblem (Fig. A.1(a)), the starting depot, which also
+functions as Refuel Stop 1, acts as both the origin and destina-
+tion node. UAV task points within the coverage radius of this
+refueling stop are allocated to it. The subsequent subproblems
+follow a similar pattern. In Subproblem 2 (Fig. A.1(b)), the
+starting depot (Refuel Stop 1) becomes the origin node, and
+Refuel Stop 2 is designated as the destination node. Task points
+assigned to Refuel Stop 2, based on their proximity, define
+the task set for this subproblem. This process is repeated for
+additional subproblems. For instance, in Subproblem 3 (Fig.
+A.1(c)), Refuel Stop 2 serves as the origin node, and Refuel
+Stop 3 is the destination node. Similarly, in Subproblem 4 (Fig.
+A.1(d)), Refuel Stop 3 becomes the origin node, and Refuel
+Stop 4 is the destination. The UGV travels between these
+refueling stops in each subproblem, establishing time windows
+at the destination stops for UAVs to land and recharge.
+Fig. A.3: Distribution of mission completion times across test instances for the U15G5, U45G15, U60G20 and U75G25 scenarios.
+Results are shown for four team configurations and all compared methodologies.
+B. UAV Route Sorties from E-VRPTW
+Considering a 2 UAVs-1 UGV system, The UAV sorties are
+generated by solving the E-VRPTW model, as described in
+the problem formulation section. Figure A.2 illustrates the
+UAV routes obtained after solving the E-VRPTW for each
+subproblem. In each subproblem, UAVs visit their assigned
+task points while adhering to fuel constraints. The UAVs
+recharge at the destination refuel stop before continuing their
+ation. The figure
+A.2 highlights the coordinated routing of
+UAVs and UGVs, where the UGVs establish refueling points
+while the UAVs efficiently cover task points within the defined
+subproblem regions.
+C. Distribution of Objective Values
+To better capture the performance variability of different
+as the percentage of test instances in which a method achieves
+the lowest objective value compared to all others. It is formally
+defined as:
+win rate   instances where method has the lowest objective
+total instances
+Fig. A.4: Distribution of mission completion times across test instances for the gaussian and rayleigh distribution scenarios. Results
+are shown for four team configurations and all compared methodologies.
+est win rates across all problem sizes and team configurations,
+demonstrating strong robustness and generalization capability.
+In the U15G5 scenarios, DRL(10240) achieves win rates of
+respectively. This is followed by DRL MF et al. (10240), with
+corresponding win rates of 25, 42, 29, and 30. Other
+methods win rates are comparatively less. For the U45G15
+and 43, while DRL MF et al. (10240) achieves 48, 39,
+In the U60G20 scenarios, DRL(10240) records win rates
+of 30, 56, 42, and 35, whereas DRL MF et al.
+(10240) attains 62, 33, 26, and 33, respectively. For the
+U75G25 scenarios, DRL(10240) achieves win rates of 55,
+2 UAVs2 UGVs, and 4 UAVs2 UGVs configurations. In
+and 37, respectively.
+Gaussian
+distribution
+DRL(10240)
+achieves win rates of 49, 47, 51, and 28 across the
+1 UAV1 UGV, 2 UAVs1 UGV, 2 UAVs2 UGVs, and 4
+UAVs2 UGVs configurations, respectively. Meanwhile, DRL
+MF et al. (10240) achieves 42, 46, 14, and 37, re-
+spectively. In the Rayleigh distribution scenarios, DRL(10240)
+obtains win rates of 49, 41, 31, and 31, while DRL MF
+et al. (10240) records 41, 51, 13, and 46, respectively.
+UGVs and 6 UAVs4 UGVs, DRL(10240 achieves win rates
+of 44 and 42, respectively. In comparison, DRL MF et al.
+(10240) achieves 36 and 20 in these setups.
+Figures A.3, A.4, and A.5 show the distribution of objective
+values (mission completion times) across all test scenarios.
+Heuristic methods (GLS, TS, SA) display a wider spread, indi-
+Fig. A.5: Distribution of mission completion times across test
+instances for extended team configurations (5 UAVs3 UGVs
+and 6 UAVs4 UGVs) in the U75G25 scenarios.
+cating higher variability, while DRL-based approaches exhibit
+narrower distributions, reflecting greater consistency. Among
+DRL methods, the greedy strategy shows more variability than
+sampling-based methods (DRL(1024), DRL(10240)). More-

@@ -1,0 +1,1341 @@
+=== PDF文件: Coherance-based Approximate Derivatives via Web of Affine Spaces Optimization.pdf ===
+=== 时间: 2025-07-21 13:45:17.168921 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Coherence-based Approximate Derivatives via
+Web of Affine Spaces Optimization
+Daniel Rakita, Chen Liang, Qian Wang
+Equal Contribution
+Department of Computer Science, Yale University
+{daniel.rakita, dylan.liang, peter.wang.qw262}yale.edu
+AbstractComputing derivatives is a crucial subroutine in
+computer science and related fields as it provides a local
+characterization of a functions steepest directions of ascent or
+descent. In this work, we recognize that derivatives are often
+not computed in isolation; conversely, it is quite common to
+compute a sequence of derivatives, each one somewhat related to
+the last. Thus, we propose accelerating derivative computation
+by reusing information from previous, related calculationsa
+general strategy known as coherence. We introduce the first
+instantiation of this strategy through a novel approach called
+the Web of Affine Spaces (WASP) Optimization. This approach
+provides an accurate approximation of a functions derivative
+object (i.e. gradient, Jacobian matrix, etc.) at the current input
+within a sequence. Each derivative within the sequence only
+requires a small number of forward passes through the function
+(typically two), regardless of the number of function inputs and
+outputs. We demonstrate the efficacy of our approach through
+several numerical experiments, comparing it with alternative
+derivative computation methods on benchmark functions. We
+show that our method significantly improves the performance of
+derivative computation on small to medium-sized functions, i.e.,
+functions with approximately fewer than 500 combined inputs
+and outputs. Furthermore, we show that this method can be
+effectively applied in a robotics optimization context. We conclude
+with a discussion of the limitations and implications of our
+work. Open-source code, visual explanations, and videos are
+located at the paper website:
+RSS-WASP-website.
+I. INTRODUCTION
+Mathematical derivatives are fundamental to much of sci-
+ence. At a high level, derivatives offer a local characteriza-
+tion of a functions steepest ascent or descent directions. In
+navigating downhill through the landscape of a function .
+For example, derivative-based optimization is widely used
+in robotics for tasks such as inverse kinematics, trajectory
+strained planning.
+Since derivative computation often takes place within a
+this process is critical to maintaining sufficient performance.
+For example, consider a legged robot using a derivative-based
+model predictive control (MPC) algorithm to maintain balance
+[7, 15]. If the robot is nudged, it must compute derivatives
+very rapidly to guide the optimization process and allow the
+real-time reactive actuations of its legs to stay upright.
+In this work, we present an approach for efficiently computing
+a sequence of approximate derivatives by reusing information from recent
+calculations. Our approach first isolates an affine solution space where the true
+derivative must lie (purple line). Next, a closed-form optimization procedure
+locates the point in this space that is the closest orthogonal distance (red lines)
+to a web of affine spaces (dark blue lines) that intersects at the previous
+approximate derivative (orange dot). This optimal point will be the transpose
+of the approximate derivative matrix, D(green dot).
+As we will discuss in II, there are several standard tech-
+niques to calculate the derivatives of a function . These
+techniques generally involve repeatedly evaluating the function
+with slightly modified arguments, observing the resulting
+perturbations in the functions input or output space, and
+constructing the derivative from these observations. However,
+since the number of function evaluations required typically
+scales with the number of inputs or outputs of the function,
+these approaches can quickly become prohibitively expensive
+when either, or especially both, of these dimensions increase.
+In this work, we recognize that derivatives are often not
+computed in isolation; conversely, it is quite common to
+calculate a sequence of derivatives, each one building on the
+last. For example, in optimization, function inputs typically
+change only slightly between iterations as small steps are taken
+The key insight of this work is that derivative computation can
+be accelerated by reusing information from previous, related
+calculationsa strategy known as coherence.
+We present a first instantiation of this coherence-based strat-
+egy for derivative computation through a novel approach called
+the Web of Affine Spaces (WASP) Optimization. At its core,
+this approach frames derivative computation as a constrained
+least-squares minimization problem . Each iteration of the
+algorithm requires only one Jacobian-vector product (JVP)
+which creates an affine space within which the true derivative
+is guaranteed to lie. The optimization is then tasked with
+finding the transpose of an approximate derivative that lies
+on this affine space (specified by a hard constraint) while best
+aligning with previous, related computations (specified in the
+objective function). This process is illustrated in Figure 1.
+We provide a closed-form solution to this minimization
+problem by directly solving its corresponding Karush-Kuhn-
+Tucker (KKT) system [9, 19]. Our algorithm that uses this
+minimization also incorporates an error detection and correc-
+tion mechanism that automatically identifies when its outputs
+drift too far from the ground-truth derivatives, allocating
+additional iterations to realign its results as needed. This
+mechanism is guided by two user-adjustable parameters, af-
+fording a flexible balance between accuracy and computational
+performance tailored to specific applications.
+The algorithm associated with our approach (V) is straight-
+forward to implement and can be easily interfaced with exist-
+ing code. The algorithm does not require tape-based variable
+tracking or an external automatic differentiation library ; it
+simply uses standard forward passes through a function. All
+ideas presented in this work can be implemented in less than
+100 lines of code in any programming language that supports
+numerical computing.
+We demonstrate the effectiveness of our approach through
+a series of numerical experiments, benchmarking it against
+alternative derivative computation methods. We show that
+our approach improves the performance of computing a se-
+quence of derivatives on small to medium-sized functions,
+i.e., functions with approximately fewer than 500 combined
+inputs and outputs. Additionally, we demonstrate its practical
+applicability in a robotics optimization context, showcasing its
+use in a Jacobian-pseudoinverse-based root-finding procedure
+to determine the pose of a quadruped robot with specified foot
+and end-effector placements. We conclude with a discussion
+of the limitations and implications of our work.
+II. BACKGROUND
+In this section, we provide background for our approach,
+including notation, problem setup, standard approaches for
+derivative computation, and relevant prior work.
+A. Notation
+The main mathematical building blocks through this work
+are matrices and vectors. Matrices will be denoted with bold
+upper case letters, e.g., A, and vectors will be denoted with
+bold lower case letters, e.g., x. Indexing into matrices or
+vectors will use sub-brackets, e.g., A[0,1] or x. A full row
+or column of a matrix can be referenced using a colon, e.g.,
+A[:,0] is the first column and A[0,:] is the first row.
+B. Problem Setup
+In this work, we will refer to some function under con-
+sideration as f, which has n inputs and m outputs, i.e.,
+is computable and differentiable.
+The mathematical object we are trying to compute is the
+derivative object of f at a given input xk Rn, denoted as
+xk. This derivative will be an m  n matrix, i.e., f
+This matrix is referred to as a Jacobian, or specifically as
+a gradient when m  1 . Throughout this work, however,
+we will consistently use the broader term, derivative.
+C. Problem Statement
+In this work, we are specifically looking to compute a
+sequence of approximate derivative matrices:
+Our goal is to compute these approximate derivatives as
+quickly and as accurately as possible. We assume that the
+derivative computation at an input xk can utilize knowledge
+of all prior inputs and calculations (i.e., information available
+up to and including k), but it has no access to information
+about future inputs (i.e., data beyond k).
+There is an implicit assumption in our problem that adjacent
+the case in iterative optimization. However, our approach
+does not impose any specific requirement for the closeness
+of neighboring inputs. Instead, it is informally assumed that
+the approach will perform more effectively when the inputs
+are closer to each other with efficiency or accuracy likely
+diminishing as the distance between inputs increases.
+D. Standard Derivative Computation Algorithms
+A common strategy for computing derivatives involves
+introducing small perturbations in the input or output space
+surrounding the derivative and incrementally constructing the
+derivative matrix by analyzing the local behavior exhibited by
+the derivative in response to these perturbations .
+looks like the following:
+derivative Rmn
+tangent Rn
+Jacobian-vector product Rm
+The x object here is commonly called a tangent, and the
+resulting f is known as the Jacobian-vector product (JVP)
+or directional derivative [1, 12]. Conversely, perturbing the
+derivative in the output space looks like the following:
+adjoint R1m
+derivative Rmn
+vector-Jacobian Product R1n
+The f object here is commonly called an adjoint, and
+the result xis known as the vector-Jacobian product (VJP)
+In general, there are two standard ways of computing JVPs:
+(1) forward-mode automatic differentiation; and (2) finite-
+differencing. Forward-mode automatic differentiation propa-
+gates tangent information alongside standard numerical com-
+putations. This technique commonly involves overloading
+floating-point operations to include additional tangent data
+. A JVP via first-order finite-differencing derives from the
+standard limit-based definition of a derivative:
+x f(xk  x) f(xk)
+If  is small, this approximation is close to the true JVP.
+Note that this JVP requires two forward passes through f,
+and additional JVPs at the same input xk would only require
+one additional forward pass through f each.
+a VJP: reverse-mode automatic differentiation, often called
+backpropagation in a machine-learning context [1, 20]. This
+process involves building a computation graph (or Wengert
+List ) on a forward pass, then doing a reverse pass over this
+computation graph to backward propagate adjoint information.
+In general, VJP-based differentiation is more challenging to
+implement and manage compared to its JVP-based counter-
+part. This approach typically requires an external library to
+track variables and operations, enabling the construction of
+a computation graph [4, 21]. As a result, all downstream
+computations within a function must adhere to the same code
+structure or use the same library.
+Note that the concepts of JVPs and VJPs now give a clear
+strategy for isolating the whole derivative matrix. For instance,
+using one-hot vectors for tangents or adjoints, i.e., vectors
+where only the i-th element is 1 and all others are 0, can
+effectively capture the i-th column or i-th row of the derivative
+fully recovered using n JVPs or m VJPs.
+In practice, a JVP-based approach is typically used if n <
+m and a VJP-based approach is typically used if m < n.
+increase  these approaches can quickly become inefficient.
+E. Other Related Works
+Our work builds on previous methods aimed at accelerating
+derivative computations through approximations. For first-
+order derivatives, our approach is closest to Simultaneous
+Perturbation Stochastic Approximation (SPSA) . SPSA,
+primarily used in optimization, estimates gradients using only
+two function evaluations by perturbing the function along one
+sampled direction. This idea has inspired more recent work
+that approximates a gradient via a bundle of stochastic samples
+at a point [2, 26].
+Our approach also approximates derivatives by perturbing
+inputs in random directions and observing the output changes.
+Like SPSA (and related methods), it aims to achieve an
+approximate derivative with a small number forward passes
+through the function. However, we treat the random directions
+as a matrix in a least squares optimization, aligning the result
+with prior observations. Also, unlike previous methods that
+primarily focus on gradients, our approach handles derivative
+objects of any shape, including full Jacobian matrices.
+been widely explored for first-order derivatives, they are
+frequently used in second-order derivative computations of
+scalar functions within optimization algorithms. For exam-
+(DFP) , Symmetric Rank 1 (SR1) , and Broy-
+denFletcherGoldfarbShanno (BFGS) [8, 5, 22] use the
+secant equation to iteratively build approximations of the Hes-
+sian matrix over a sequence of related inputs. However, these
+algorithms cannot compute gradients directly, as they rely on
+them as inputs. Through this lens, our current approach can be
+viewed as quite related to quasi-Newton methods for Hessian
+III. TECHNICAL OVERVIEW
+In this section, we overview the central concepts and
+intuitions of our idea.
+A. Differentiation as Linear System
+As covered in II, each pass through the function in JVP-
+based differentiation generates one JVP: f
+xkx  f. We
+can bundle several tangents together in a matrix in order to
+get a matrix of JVPs:
+Note that the i-th tangent vector and JVP are denoted
+as xi and fi, respectively. We use this same notation
+throughout the paper. From Equation 6, we see that JVP-based
+differentiation can also be interpreted as setting X to be the
+identity matrix and solving a linear system:
+This concept is mathematically straight forward, but it is
+important to note that generating F can be computationally
+expensive as it requires n forward passes through f. Our idea
+builds on this linear system idea, with X no longer only
+being an identity matrix.
+B. Differentiation as Least Squares Optimization
+In the section above, we assessed the linear system
+xkX  F. If we take the transpose of both sides, we
+get the following:
+This equation now nicely matches a standard Ax  b
+linear system, with x being an unknown matrix variable,
+in our case. We cast this linear system as a least squares
+formulation offers a clear analytical framework for considering
+general solutions, even when X is not a square or identity
+matrix. The closed-form solution for this optimization problem
+is the following :
+D (X)FD  F X
+where the  symbol denotes the Moore-Penrose Pseudoinverse
+. If X is full rank, r n (i.e., Xis square or tall),
+and F is a matrix of JVPs corresponding to the tangents in
+we would still have to compute F, which was the most
+expensive step from before.
+A key insight in this work is that F in the minimization
+above can be replaced with an approximation,
+Rather than fully recomputing F for each new input, we
+incrementally update
+F across a sequence of inputs. Since
+F is an approximation, the entire minimization process now
+becomes an approximation as well. Through the remainder
+of this work, we argue that, given an additional constraint
+on Equation 10 and a particular strategy for updating
+this approach is more efficient than standard approaches for
+computing a sequence of derivative matrices while maintaining
+accuracy sufficient for practical use.
+IV. TECHNICAL DETAILS
+In this section, we detail the Web of Affine of Spaces
+(WASP) Optimization approach for computing a sequence of
+approximate derivatives matrices.
+A. Affine Solution Space
+As discussed above, the bottleneck of Equation 8 is the
+calculation of F, the matrix bundle consisting of r JVPs,
+where r n. Rather than relying solely on r JVPs, we
+first think about how much information about the derivative
+solution can be inferred from only one JVP.
+Suppose we have one fixed tangent of random values, x
+Rn with a corresponding JVP, f Rm. We can plug these
+vectors into Equation 8, with XxR1n and
+Ff R1m. If n > 1, we have Xas a wide
+matrix that elicits an under-determined least squares system
+with infinitely many solutions . The space of all solutions
+is parameterized as follows:
+(x)f  ZxY
+where ZxRn(n1) is the null space matrix of x
+(i.e., xZx 0), and Y is any matrix in R(n1)m.
+Equation 11 defines an (n 1)  m-dimensional affine space
+encompassing all possible solutions, where ZxY represents
+the associated vector space, and (x)f (the minimum-
+norm solution) serves as the offset from the origin. Even
+with just one JVP, we have captured a space where the true
+derivative must lie for some setting of Y. Our idea, covered
+in Equation 11, while also maintaining alignment with recent
+computations.
+B. Web of Affine Spaces
+In the previous section, we isolated a space where the true
+derivative must lie given only a single JVP. We now assess
+what happens if we consider more JVPs.
+Consider r JVPs, fi, with corresponding tangents xi,
+where i 1, ..., r. Each JVP defines its own affine so-
+lution space, within which the true derivative must reside:
+i Y. Knowing that the true derivative must
+lie within all of these affine spaces, we can deduce that it
+must be located at the intersection of these spaces. Indeed,
+when r n, the intersection of all these spaces results in a
+precisely what the solution in Equation 9 achieves.
+We now return to the idea presented in Equation 10. What
+if some JVPs are approximate,
+f? The idea here is that, if we have one ground-truth JVP,
+we can still force the solution to lie on (x
+in a manner that gets as close as possible to the affine spaces
+corresponding to the other approximate JVPs, (x
+j Y. We refer to these approximate JVP affine spaces as
+the web of affine spaces.
+C. Web of Affine Spaces Optimization
+In this section, we overview the mathematical side of the
+Web of Affine Spaces (WASP) Optimization. We specify the
+algorithmic details that instantiate this math in practice in V.
+Suppose X is a full rank n  r matrix where r n.
+We consider the columns of X to be r separate tangent
+vectors where the i-th column is denoted as xi. Assume we
+have a current input, xk, a selected tangent vector, xi, and
+a JVP corresponding to xk in the xi direction, fi (likely
+computed using Equation 4). Also, assume we have a web of
+affine spaces matrix,
+We cast the optimization described above as a modified
+version of Equation 10 with an added constraint:
+This constrained optimization best matches the intersection of
+the web of affine spaces, specified in the objective function,
+while also restricting the solution to lie on the affine solution
+The solution to Equation 12 is the following:
+This solution is derived using a Karush-Kuhn-Tucker (KKT)
+the transpose of the approximate derivative matrix and
+R1m is a vector of Lagrange multipliers. We can rewrite the
+solution in Equation 13 by taking the block matrix inverse of
+the left matrix :
+A1 A1xis1
+A  2XX, si  x
+Because we do not use the Lagrange multipliers in this
+D A1(Inn s1
+found in Equation 14. For interested readers, we discuss the
+geometric significance of Equation 15 in the Appendix X-A.
+procedure behind the Web of Affine Spaces Optimization. In
+including how to initialize and update
+and cache parts of Equation 15 to accelerate the optimiza-
+tion at runtime, how to determine if Dis an acceptable
+the expected error is too high.
+D. Derivation of Web of Affine Spaces Solution
+In this section, we derive the solution specified in Equation
+13. First, note that another way of writing the objective
+function XD
+F is the following:
+where tr is the matrix trace. We now multiply the terms within
+the trace function:
+tr( DXXD2
+Writing the whole optimization out in this form:
+tr(DXXD2
+we form the Lagrangian of the optimization:
+L(D, )  tr( DXXD2
+where  Rm1 are the Lagrange multipliers.
+A first-order necessary condition for an optimal solution is
+that the Karush-Kuhn-Tucker (KKT) conditions are satisfied
+. Specifically, for an equality constrained problem, this
+means that the partial derivatives of the Lagrangian with
+respect to both the decision variables and the Lagrange mul-
+tipliers (associated with the equality constraints) are zero:
+We start with the first requirement:
+We now set the term equal to zero:
+2XXDxi 2X
+For the second requirement from the Lagrangian,
+we have the following:
+Algorithm 1: getcache( n, m )
+F 0mn  m  n matrix of zeros
+2 X gettangentmatrix( n )
+3 C1 [ ]  will store cached matrices
+4 C2 [ ]  will store cached matrices
+6 for i {1, ..., n} do
+xi X[:,i]
+A1(Inn s1
+i A1)2X  cached
+A1xi  cached matrix
+11 cache  A cache object that will store preprocessed items
+12 cache.i 0  assuming matrices are using 0-indexing
+13 cache.
+14 cache.X X
+15 cache.C1 C1
+16 cache.C2 C2
+17 return cache
+Algorithm 2: gettangentmatrix( n )
+1 T randomly sampled n  n matrix
+2 U, , Vsvd(T)  singular value decomposition on matrix
+3 X UV guaranteed to be an orthonormal matrix
+4 return X
+Putting the previous components together into a KKT sys-
+Using the matrix inverse, our final solution is the following:
+matching the solution seen in Equation 13.
+V. ALGORITHMIC DETAILS
+In this section, we present algorithms that transform the
+mathematical framework from the previous section into a
+is found in Algorithms 14.
+A. Approximate Differentiation as Iterative Process
+Our algorithm for computing approximate derivatives for a
+sequence of inputs (xk, xk1, ...) is structured as an iterative
+process. This process centers around three matrices introduced
+in previous sections: (1) D, the current approximate deriva-
+tive matrix; (2)
+and (3) X, the matrix of tangents.
+Given an input in the sequence, xk, our algorithm aims to
+compute an approximate derivative at that input,
+process begins by using the X matrix and current
+F matrix
+Algorithm 3: wasp( f, xk, n, cache, d, d)
+1 fxk f(xk)
+2 while True do
+i cache.i
+xi cache.X[:,i]  i-th column of tangent bundle matrix
+f(xkxi)fxk
+get ground truth JVP in current
+direction;  should be a small value, e.g.,   0.00001
+f i cache.
+F[:,i]  current approximation for JVP in xi
+direction
+F[:,i] fi  set i-th column to be ground truth JVP
+C1 cache.C1[i]
+C2 cache.C2[i]
+F cache.
+solution from eq. 15
+cache.i (i  1)n  increment i
+if closeenough(
+return D
+Algorithm 4: closeenough(a, b, d, d)
+a b 1  > d then
+return False
+3 if min(  a
+a 1  ) > dthen
+return False
+5 return True
+to compute an updated version of D. Subsequently, the new
+Dmatrix is used to update
+F. These two steps are repeated
+iteratively for the current input xk until there is evidence that
+the current Dmatrix is close enough to the ground truth
+derivative matrix, f
+This procedure is applied to all inputs in the sequence,
+interleaving updates to the Dand
+F matrices on-the-fly.
+Detailed steps are presented in the sections below.
+B. Algorithm Explanation
+Our approach begins at Algorithm 1, which outputs a cache
+object. This cache object holds key data that will be utilized
+during runtime, such as the tangent matrix, X (initialized
+in Algorithm 2) and the web of affine spaces matrix,
+Algorithm 1 serves as a one-time preprocessing step, with no
+part of this subroutine being re-executed at runtime.
+The runtime component of our algorithm is detailed in
+Algorithm 3. This subroutine takes as input the function to
+be differentiated, f, the current input at which the derivative
+will be approximated, xk, the number of function inputs, n,
+a cache object generated by Algorithm 1, and two distance
+threshold values, d and d. This algorithm consists of five
+main steps:
+1) Ground-truth JVP computation (Alg. 3, lines 45): A
+ground truth JVP, fi, is computed in the direction xi at
+the given input xk using Equation 4.
+2) Error detection and correction (Alg. 3, lines 69  17
+18): Error detection involves comparing the current approxi-
+mation of the i-th JVP,
+f i, with the just computed ground-
+(a) The web of affine spaces, encoded as the columns of the
+F matrix, start an iteration as intersecting at the previously computed derivative
+this case) is shifted away from the other affine spaces. This affine space, illustrated as a purple line, is guaranteed to contain the transpose of the ground truth
+derivative at the current input. (c) The constrained optimization step locates the point on the solution space that is closest (in terms of Euclidean distance) to
+the web of other affine spaces. (d) This point is the transpose of the approximate derivative at the current input, and the web of affine spaces (via the
+matrix) is updated such that they now intersect at this new point. The space is now ready for either another iteration of the algorithm on the same input, if
+truth JVP, fi. These vectors are compared using Algorithm
+4. Specifically, this subroutine checks whether the angle and
+norm between the two vectors are below specified threshold
+it indicates that
+fi aligns closely in direction and magnitude
+with fi, suggesting that the approximate derivative used to
+f i is likely a good approximation of the ground-
+truth derivative. Conversely, if this subroutine returns False,
+the current approximate derivative must not match the true
+the same input xk. This loop continues until the approximate
+JVP is deemed close enough to the ground truth JVP (lines
+3) Ground-truth JVP update (Alg. 3, line 10): Prior to
+line 10 in Algorithm 3, the
+F matrix satifies the equation
+approximate derivative. In other words, recalling IV-B, the
+affine spaces (x
+j Y for all j {1, ..., n}
+(where Zx
+is the null-space matrix of the 1  n matrix
+j ) only intersect at a single point: the transpose of the
+previously computed solution D, illustrated in Figure 2a.
+After the current approximation of the i-th JVP,
+compared with the just computed ground-truth JVP, fi, the
+ground truth can now replace the approximation in the web
+of affine spaces matrix,
+F. This effectively shifts the affine
+space associated with the i-th JVP, leaving the other n 1
+affine spaces still intersecting at the previous solution D.
+This shift is illustrated in Figure 2b.
+4) Optimization (Alg. 3, lines 1014): Line 14 reflects the
+mathematical procedure specified in Equation 15. This process
+locates the point on the affine space (x
+that is closest (in terms of Euclidean distance) to the other
+n 1 affine spaces that are still intersecting at the previous
+are used to speed up this result without needing to compute
+matrix inverses at runtime. The output from this step is a new
+matrix D.
+5) Web of affine spaces matrix update (Alg. 3 line 15): The
+web of affine spaces matrix is updated such that DX
+F. After this update, the affine spaces within
+F will all
+intersect again at the just computed D, illustrated in Figure
+2d. The matrix is now ready for either another iteration of the
+algorithm on the same input, if needed, or the next input in
+the sequence, xk1.
+C. Initializing and Updating Matrices
+Two key components of our approach are the tangent matrix,
+F. The tangent
+matrix is initialized in Algorithm 2, where it is specifically
+constructed as a random orthonormal matrix, meaning its
+columns have unit length and are mutually orthogonal. For
+interested readers, we provide full analysis and rationale for
+this structure in the Appendix X-B. To generate a random
+orthonormal matrix, we apply singular value decomposition
+(SVD) to a uniformly sampled random n  n matrix.
+The web of affine spaces matrix is initialized as a zero
+matrix in algorithm 1. This matrix will dynamically update
+through the error detection and correction mechanism as
+needed. For instance, on the first call to Algorithm 3, the
+closeenough function will almost surely return False for
+several iterations, allowing the matrix to progressively improve
+in accuracy over these updates.
+D. Run-time Analysis
+In this section, we analyze the run-time of our approach
+compared to alternatives. We will use the notation rt(.) to
+denote the run-time of a subroutine. Approximate runtimes
+for several algorithms can be seen in Table I.
+For WASP, PQ and RS are the matrix multiplications in
+Equation 15 (after preprocessing) and q is the number of
+iterations needed to achieve sufficient accuracy. In many cases,
+q  1, though note that even in the worst case, it is guaranteed
+that q n because when k  n, all columns in
+F will be
+ground-truth JVPs.
+Comparing to other approaches, we see that WASP shifts
+the computational burden of scaling m and n to matrix
+APPROXIMATE RUN-TIMES FOR DERIVATIVE COMPUTATION APPROACHES
+Approach
+Approximate runtime
+rt(f)  q[ rt(f)  rt( P
+Differencing
+(n  1)  rt(f)
+Forward AD
+n  rt(withtangents(f))
+Reverse AD
+rt(buildcomputationgraph(f))
+m  rt(reverse(f))
+multiplications rather than repeated forward or reverse calls to
+f. This adjustment is expected to yield run-time improvements
+when rt(f) > rt(PQ)  rt(RS), particularly when a low
+value of q is achievable due to a sequence of closely related
+VI. EVALUATION 1: COMPARISON ON BENCHMARK
+FUNCTION
+In Evaluation 1, we compare our approach to several other
+derivative computation approaches on a benchmark function.
+A. Procedure
+Evaluation 1 follows a three step procedure: (1) The bench-
+mark function shown in Algorithm 5 in initialized with given
+parameters n, m, and o. This function will remain fixed and
+deterministic through the remaining steps; (2) a random walk
+trajectory is generated following the process seen in Algorithm
+6 with a given number of waypoints (w), dimensionality (n),
+and step length (); (3) For all conditions, derivatives of the
+benchmark function are computed in order on the w inputs in
+the random walk trajectory. This trajectory is kept fixed for
+all conditions. Metrics are recorded for all conditions.
+The benchmark function used in this experiment is a ran-
+domly generated composition of sine and cosine functions.
+This function, detailed in Algorithm 5, was designed to be
+highly parameterizable, allowing for any number of inputs (n),
+outputs (m), and operations per output (o). Sine and cosine
+were selected for their smooth derivatives and composability,
+given their infinite domain and bounded range. Moreover,
+numerous subroutines in robotics and related fields involve
+many compositions of sine and cosine functions, making this
+function a reasonable analogue of these processes.
+Evaluation 1 is divided into several sub-experiments, de-
+tailed below. Each sub-experiment varies which parameters of
+Algorithm 5: benchmark(x Rn, m, o )
+1 out []
+2 for i 1...m do
+r random list of o  1 integers between 1 and n
+s random list of o integers, either 1 or 2
+tmp  x[r]
+for j 1..o do
+if s[j]  1 then
+tmp  sin(cos(tmp)  x[r[j1]])
+if s[j]  2 then
+tmp  cos(sin(tmp)  x[r[j1]])
+tmp  append to output
+12 return out
+Algorithm 6: getrandomwalk( w, n,  )
+1 out []
+2 x random sample from Rn
+3 for i 0..w do
+v random sample from Rn  random direction
+v  normalize the direction
+x x  v  take a -length step in x direction
+x  add state to output list
+8 return out
+the procedure are allowed to change or remain fixed, aiming
+to assess different facets of the differentiation process.
+B. Conditions
+Evaluation 1 compares five conditions:
+1) Reverse-mode automatic differentiation with PyTorch
+backend (abbreviated as RAD-PyTorch)
+2) Finite-differencing with NumPy  backend (abbrevi-
+ated as FD)
+3) Simultaneous Perturbation Stochastic Approximation
+with NumPy  backend (abbreviated as SPSA)
+4) Web of Affine Spaces Optimization with orthonormal
+X matrix and NumPy  backend (abbreviated as
+WASP-O).
+5) Web of Affine Spaces Optimization with random, non-
+orthonormal X matrix and NumPy  backend (ab-
+breviated as WASP-NO).
+All conditions in this section are implemented in Python
+and executed on a Desktop computer with an Intel i9 4.4GHz
+processor and 32 GB of RAM. To ensure a fair comparison,
+the underlying benchmark function code remained consistent
+across all conditions, with backend switching managed via
+Tensorly1. The conditions in this section were required to
+remain fully compatible with the given benchmark function
+implemented in Tensorly, without any modifications, optimiza-
+We note that JAX , a widely-used automatic differ-
+entiation library, is not included in this section. Although
+JAX is theoretically compatible with Tensorly, we found
+that extensive code modifications were required to enable
+optimal performance through just-in-time (JIT) compilation.
+Preliminary tests showed that JAX, when not JIT-compiled,
+exhibited run-times that were unreasonably slow and did not
+Algorithm 7: angularerror( D, D )
+2 for i 0..m do
+D[i,:]  normalized i-th row of ground-truth derivative
+D[i,:]  normalized i-th row of approximate derivative
+arccos(r  r)  angle between vectors
+7 return avgm
+Algorithm 8: normerror( D, D )
+2 for i 0..m do
+D[i,:]  norm ratio between the i-th rows of the ground
+truth and approximate derivative
+D[i,:]  norm ratio between the i-th rows of the ground
+truth and approximate derivative (other possible ordering)
+b1 1 a1  distance from 1
+b2 1 a2  distance from 1 (other possible ordering)
+avg avg  min(b1, b2)
+8 return avgm
+reflect its full potential. Therefore, we chose not to report non-
+JIT-compiled JAX results in this section.
+For readers interested in further insights, supplementary re-
+sults are provided in the Appendix (X-C). These results relax
+the Tensorly-based uniformity constraints, allowing modifica-
+possible performance. Conditions in this supplemental section
+include JAX implementations compiled for both CPU and
+C. Metrics
+We record and report on three metrics in Evaluation 1:
+1) Average runtime (in seconds) of derivative computation
+through the sequence of w inputs.
+2) Average number of calls to the benchmark function
+for a derivative computation through the sequence of
+w inputs. Note that this value will be constant for all
+conditions aside from WASP.
+3) Average accuracy of the derivative through the sequence
+of w inputs. We measure accuracy as the sum of angular
+error (Algorithm 7) and norm error (Algorithm 8). The
+components of this error measure to what extent the
+rows of the returned derivative are facing the correct
+direction and have the correct magnitude, respectively. If
+this value is zero, the returned derivative exactly matches
+the ground-truth derivative.
+D. Sub-experiment 1: Gradient Calculations
+In sub-experiment 1, we run the procedure outlined in
+VI-A with parameters, m  1, o  1000, w  100,
+Our goal in sub-experiment 1 is to observe how the different
+conditions scale as the number of function inputs n grows
+while m remains fixed at 1. In other words, the benchmark
+function here is a scalar function and its derivative is a 1  n
+row-vector gradient.
+Results for sub-experiment 1 can be seen in Figure 3 (top
+row). We observe that both WASP conditions outperform
+all other methods in runtime, except for SPSA, up to ap-
+proximately 600 inputs. Beyond this point, RAD-PyTorch.
+nitude fewer function calls compared to FD, reflecting the
+goal of WASP to reuse recent information to avoid redun-
+dant calculation at the current input. While SPSA achieves
+the fastest runtime in sub-experiment 1, it incurs significant
+error. In contrast, the WASP conditions demonstrate much
+higher accuracy. Notably, the WASP condition utilizing the
+orthonormal tangent matrix structure maintains very low error,
+even for functions with up to 1000 inputs.
+E. Sub-experiment 2: Square Jacobian Calculations
+In sub-experiment 2, we run the procedure outlined in
+VI-A with parameters (n, m)
+(x, x) where x
+d  0.1, and d 0.1. Our goal in sub-experiment 2 is
+to observe how the different conditions scale as the number
+of function inputs and number of function outputs both grow.
+the same number of inputs and outputs, and its derivative is
+an n  n square Jacobian.
+Results for sub-experiment 2 can be seen in Figure 3
+(middle row). The WASP conditions demonstrate greater
+efficiency compared to RAD-PyTorch and FD, achieving a
+runtime comparable to SPSA. This efficiency advantage is
+likely primarily due to the lower number of function calls, as
+seen in the middle graph. Notably, WASP exhibits much lower
+error than SPSA, particularly in the variant incorporating the
+orthonormal matrix structure. This demonstrates that WASP
+more accurately approximates ground-truth Jacobian matrices.
+F. Sub-experiment 3: Varying step size
+In sub-experiment 3, we run the procedure outlined in
+VI-A with parameters, n  10, m  10, o  1000, w  100,
+goal in sub-experiment 3 is to observe how the different con-
+ditions scale as the step-length in the random walk trajectory
+Results for sub-experiment 3 can be seen in Figure 3
+(bottom row). As expected, the performance of the WASP
+conditions generally declines as the step length increases.
+results show that the error approaches nearly zero, seemingly
+outperforming the trials with   1 in terms of accuracy. This
+improved accuracy, however, comes at the cost of significantly
+more function calls, resulting in a much higher average run-
+time. Essentially, a step length of   10 in this case was
+so large that the error detection and correction mechanism
+consistently triggered additional iterations until reaching the
+upper limit (n). As a result, the WASP conditions effectively
+defaulted to a standard finite-differencing strategy, hence why
+Average Runtime
+Average Runtime
+(Sub-Experiment 1)
+Average  of Function Calls
+Average  of Function Calls
+(Sub-Experiment 1)
+Average Error
+Average Error
+(Sub-Experiment 1)
+Average Runtime
+Average Runtime
+(Sub-Experiment 2)
+Average  of Function Calls
+Average  of Function Calls
+(Sub-Experiment 2)
+Average Error
+Average Error
+(Sub-Experiment 2)
+step length
+Average Runtime
+Average Runtime
+(Sub-Experiment 3)
+step length
+Average  of Function Calls
+Average  of Function Calls
+(Sub-Experiment 3)
+step length
+Average Error
+Average Error
+(Sub-Experiment 3)
+RAD-Pytorch
+WASP-O (ours)
+WASP-NO (ours)
+Results for Evaluation 1, Sub-Experiment 1 (top) Sub-Experiment 2 (middle) and Sub-Experiment 3 (bottom)
+the WASP conditions are equivalent to the FD condition in
+terms of runtime and number of function calls in this scenario.
+VII. EVALUATION 2: ERROR PROPAGATION ANALYSIS
+In V-B, we described the error detection and correction
+mechanism in our algorithm, which is designed to prevent
+error accumulation over a sequence of approximate deriva-
+tive computations. In Evaluation 2, we analyze how errors
+propagate through our algorithm under different parameter
+mechanism over long derivative sequences.
+A. Procedure
+Evaluation 2 follows the same procedure as Evaluation 1,
+described in VI-A. We use parameters n  50, m  1,
+o  1000, w  50,000,   0.05, where n is the number of
+inputs to the benchmark function, m is the number of outputs
+from the benchmark function, o is the number of operations
+per output in the benchmark function, w is the number of
+waypoints in the random walk trajectory, and  is the step
+length along the random walk trajectory.
+B. Conditions
+The primary values we are varying and assessing in Evalu-
+ation 2 are the error threshold parameters, d and d, outlined
+in V-B. Specifically, we use parameter settings (d, d)
+settings allow us to evaluate error behavior across different
+error thresholds (the d and dparameters) over a long input
+sequence (as specified by the w parameter above).
+The WASP method in this evaluation uses a fixed orthonor-
+mal X matrix shared across all d and dconfigurations.
+We also compare the WASP variants against standard Finite
+Differencing using a NumPy backend.
+All conditions in Evaluation 2 are implemented in Python
+using Tensorly for backend switching and executed on a
+Desktop computer with an Intel i7 5.4GHz processor and 32
+GB of RAM.
+C. Metrics
+We record and report on four metrics in Evaluation 2:
+1) Runtime (in seconds) per each derivative computation
+through the sequence of w inputs.
+Results for Evaluation 2. These results show the norm error (first row), angular error (second row), the number of function calls (third row), and
+runtime (fourth row) per derivative computation over a sequence of 50,000 derivatives (x-axis).
+2) Number of calls to the benchmark function for each
+derivative computation through the sequence of w in-
+3) The angular error of each derivative through the se-
+quence of w inputs (Algorithm 7).
+4) The norm error of each derivative through the sequence
+of w inputs (Algorithm 8).
+D. Results
+Results for Eavluation 2 are shown in Figure 4. At a high
+error over long sequences, even when high error thresholds
+are used. For instance, even at the 50,000-th input, the errors
+remain low. In general, there are subtle ebbs and flows in error,
+naturally requiring more or fewer function calls throughout the
+sequence. At certain points, such as between the 13,000-th and
+under high thresholds, suggesting that this portion of the input
+sequence is less compatible with the WASP heuristic. How-
+and usable bounds (e.g., less than 0.4 radians from the ground
+truth gradient), and the algorithm successfully self-corrects
+after these brief periods of elevated error without diverging.
+As expected, using lower error thresholds consistently results
+in low error, but at the cost of additional function calls and
+runtime. In the limit as d and dapproach 0, both the
+accuracy and runtime performance converge to that of full
+finite differencing.
+VIII. EVALUATION 3: APPLICATION IN ROBOT
+OPTIMIZATION
+In Evaluation 3, we compare our approach to several other
+derivative computation approaches in a robotics-based root-
+finding procedure.
+Evaluation 3 involves assessing performance in a robotic root-finding
+and end-effector at predefined locations or orientations.
+A. Procedure
+Evaluation 3 follows a three step procedure: (1) A robot
+state is sampled for a simulated Unitree B1 quadruped robot2
+with a Z1 manipulator3 mounted on its back (shown in Figure
+5). This robot has 24 degrees of freedom (including a floating
+base to account for mobility). This sampled state, x0 R24,
+will be an initial condition for an optimization process; (2)
+A Jacobian pseudo-inverse method (Algorithm 9) is used to
+find a root for a constraint function (Algorithm 10). The
+constraint function has five outputs: four for specifying foot
+placements and one for specifying the end-effector pose for
+the manipulator mounted on the back. Thus, the Jacobian of
+this constraint function is a 524 matrix; (3) Step 12 are run
+50 times per condition. Metrics are recorded for all conditions.
+Algorithm 9: rootfinding( f, x0 )
+1 x x0  set state to be given initial condition
+2 y f(x)  initialize residuals. The goal is for this vector to be all
+zeros (at a root)
+3 for i 0..max iterations do
+x y  Compute direction using Jacobian matrix
+pseudoinverse
+x x x  take a step in the x direction. We use a value of
+y f(x)  update residuals
+if y <  then
+return x  If the residual is small, the optimization has
+converged and the result should be returned. In practice, we
+use a value of   0.01
+Algorithm 10: robotconstraintfunction( x )
+1 l fk(x)  forward kinematics on given robot state. Returns an ordered
+list of SE(3) poses for all robot links.
+2 ee pose goal se3matrix(
+the SE(3) end-effector pose goal for the back-mounted robot arm. The
+arguments here are translation then Euler angle parameters, thus the
+pose goal has no added rotation.
+3 t1 l.translation
+02  error signal
+for front left foot placement
+4 t2 l.translation
+02  error signal for
+front right foot placement
+5 t3 l.translation
+02  error signal
+for back left foot placement
+6 t4 l.translation
+02  error signal for
+back right foot placement
+7 t5 ln( l1  ee pose goal )2  the ln here is the logarithm
+map for the SE(3) Lie group ; it maps to the se(3) Lie algebra.
+8 return
+return a 5-vector of all the terms
+B. Conditions
+The conditions in Evaluation 3 are the same as those listed
+in VI-B. All conditions are implemented in Python and
+executed on a Desktop computer with an Intel i7 5.4GHz
+processor and 32 GB of RAM. Only the CPU was used
+for these experiments and Tensorly was again used for all
+backend-switching to maintain uniformity.
+C. Metrics
+We record and report on two metrics in Evaluation 3:
+1) Average runtime (in seconds) to converge on a robot
+configuration sufficiently close to the constraint surface.
+2) Average number of optimization steps needed to con-
+verge on a robot configuration sufficiently close to the
+constraint surface.
+D. Results
+Results for Evaluation 3 can be seen in Table II. The results
+show that the WASP conditions achieve significantly faster
+convergence compared to alternative approaches. Addition-
+enhances convergence efficiency. In contrast, the SPSA con-
+dition failed to converge, highlighting that certain derivative
+approximation methods may lack the accuracy required for
+some optimization procedures.
+TABLE II
+EVALUATION 3 RESULTS. THE SYMBOL MEANS THAT THE CONDITION
+NEVER CONVERGED IN THE MAXIMUM NUMBER OF ITERATIONS (10,000).
+RANGE VALUES DENOTE STANDARD DEVIATION.
+Approach
+Average runtime
+(seconds)
+Average  of
+iterations
+RAD-PyTorch
+WASP-O (ours)
+WASP-NO (ours)
+IX. DISCUSSION
+In this work, we introduced a coherence-based approach for
+efficiently calculating a sequence of derivatives. Our approach
+leverages a novel process, the Web of Affine Spaces (WASP)
+affine space containing the ground-truth derivative that also
+aligns well with prior related calculations. Through extensive
+widely used techniques such as automatic differentiation and
+finite differencing in terms of efficiency, while delivering
+greater accuracy compared to other derivative approximation
+methods. In this section, we discuss the limitations and broader
+implications of our approach.
+A. Limitations
+We note several limitations of our work that suggest future
+avenues of research and extensions. First, the derivatives
+produced by our approach are approximations. Although our
+method can, in theory, achieve high accuracy comparable to
+standard finite differencing, attaining such precision would
+necessitate additional iterations, likely compromising its ef-
+ficiency. For applications demanding exact derivatives in all
+and initial proofs of concept for the WASP derivative ap-
+proach. While we believe this technique has potential for
+impact across robotics and other fields, exploring its full range
+of applications and establishing best practices across many
+different problems is beyond the scope of this paper.
+tiveness of our approach diminishes significantly as the gap
+between inputs increases. We aim to refine or reformulate
+aspects of our approach going forward to reduce its strong
+sensitivity to step size.
+nique performs well in practice, it does not guarantee the accu-
+racy of the approximations relative to ground-truth derivatives.
+as a proxy for true derivatives. While this provides a necessary
+condition for correctness, it is not a sufficient condition. In
+other words, the true derivative will always yield matching
+directional derivatives, but matching directional derivatives
+do not necessarily guarantee the underlying derivatives are
+correct. Ideally, the error detection and correction mechanism,
+along with its associated parameters, would relate directly
+to the true derivatives. However, addressing this issue is
+inherently challenging and perhaps infeasible. To illustrate,
+such a solution seems to elicit a circular reasoning problem: if
+one could sufficiently estimate the ground-truth derivative well
+enough to bound the approximation, that same information
+could be used to directly select a closer approximation to the
+true derivative in the first place. This issue remains an open
+question that requires further investigation.
+to medium-sized problems, it does not scale effectively to
+large-scale functions. For example, applying this method to
+neural network training with millions or billions of parameters
+would be infeasible due to the prohibitive size of the matrices
+required for the optimization process. In future work, we plan
+to explore scalable adaptations of this approach that better
+manage storage and computational demands.
+B. Implications
+Due to the ubiquity of derivative computation in robotics
+and beyond, we believe our work has the potential for broad
+impact and applicability. For example, it could prove to be
+valuable in areas such as model predictive control, physics
+more. Our goal is to enable the community to leverage these
+derivatives to streamline computationally expensive subrou-
+ifications. By doing so, we aim to unlock new levels of
+interactivity and adaptability for robots, empowering them to
+operate seamlessly and responsively in real-time environments.
+ACKNOWLEDGMENTS
+This work was supported by Office of Naval Research award
+REFERENCES
+Atilim Gunes Baydin, Barak A Pearlmutter, Alexey An-
+dreyevich Radul, and Jeffrey Mark Siskind. Automatic
+differentiation in machine learning: a survey. Journal of
+machine learning research, 18(153):143, 2018.
+Atlm Gunes Baydin, Barak A Pearlmutter, Don Syme,
+Frank Wood, and Philip Torr. Gradients without back-
+propagation. arXiv preprint arXiv:2202.08587, 2022.
+Ake Bjorck. Numerical methods for least squares prob-
+lems. SIAM, 2024.
+Matthew James Johnson, Chris Leary, Dougal Maclaurin,
+George Necula, Adam Paszke, Jake VanderPlas, Skye
+transformations of PythonNumPy programs, 2018.
+Charles George Broyden.
+The convergence of a class
+of double-rank minimization algorithms 1. general con-
+siderations. IMA Journal of Applied Mathematics, 6(1):
+William C Davidon. Variable metric method for min-
+imization.
+SIAM Journal on optimization, 1(1):117,
+Jared Di Carlo, Patrick M Wensing, Benjamin Katz,
+Gerardo Bledt, and Sangbae Kim. Dynamic locomotion
+in the mit cheetah 3 through convex model-predictive
+control. In 2018 IEEERSJ international conference on
+intelligent robots and systems (IROS), pages 19. IEEE,
+Roger Fletcher.
+A new approach to variable metric
+algorithms. The computer journal, 13(3):317322, 1970.
+Roger Fletcher. Practical methods of optimization. John
+Wiley  Sons, 2000.
+Roger Fletcher and Michael JD Powell. A rapidly con-
+vergent descent method for minimization. The computer
+Gene H Golub and Charles F Van Loan. Matrix compu-
+tations. JHU press, 2013.
+Andreas Griewank and Andrea Walther.
+Evaluating
+differentiation. SIAM, 2008.
+Charles R Harris, K Jarrod Millman, Stefan J Van
+Der Walt, Ralf Gommers, Pauli Virtanen, David Cour-
+Nathaniel J Smith, et al. Array programming with numpy.
+Roger A Horn and Charles R Johnson. Matrix analysis.
+Cambridge university press, 2012.
+Scott Kuindersma, Robin Deits, Maurice Fallon, Andres
+based locomotion planning, estimation, and control de-
+sign for the atlas humanoid robot. Autonomous robots,
+Chen Liang, Qian Wang, Andy Xu, and Daniel Rakita.
+library in rust. arXiv preprint arXiv:2504.15976, 2025.
+Kevin Lynch and Frank Park. Modern Robotics. Cam-
+bridge University Press, 2017.
+Charles C Margossian. A review of automatic differen-
+tiation and its efficient implementation. Wiley interdisci-
+plinary reviews: data mining and knowledge discovery,
+Jorge Nocedal and Stephen J Wright. Numerical opti-
+mization. Springer, 1999.
+Adam Paszke, Sam Gross, Soumith Chintala, Gregory
+Alban Desmaison, Luca Antiga, and Adam Lerer. Auto-
+matic differentiation in pytorch. 2017.
+Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer,
+James Bradbury, Gregory Chanan, Trevor Killeen, Zem-
+ing Lin, Natalia Gimelshein, Luca Antiga, et al. Pytorch:
+An imperative style, high-performance deep learning
+library.
+Advances in neural information processing
+David F Shanno. Conditioning of quasi-newton methods
+for function minimization. Mathematics of computation,
+James C Spall. Multivariate stochastic approximation us-
+ing a simultaneous perturbation gradient approximation.
+IEEE transactions on automatic control, 37(3):332341,
+James Stewart. Calculus: early transcendentals. Cengage
+Gilbert Strang. Introduction to linear algebra. SIAM,
+Hyung Ju Terry Suh, Tao Pang, and Russ Tedrake. Bun-
+dled gradients through contact via randomized smooth-
+ing. IEEE Robotics and Automation Letters, 7(2):4000
+Robert Edwin Wengert. A simple automatic derivative
+evaluation program. Communications of the ACM, 7(8):
+X. APPENDIX
+A. Geometric Interpretation of Solution
+in Equation 15. First, we split the solution into two terms:
+A1(Inn s1
+A  2XX, si  x
+We overview each term separately.
+1) Geometric Interpretation of Term 1: We begin by look-
+ing at the first component of Term 1:
+A1(Inn s1
+This matrix can be rewritten in the following form:
+Mi  A1Pi,
+Pi  Inn xix
+geometric understanding.
+Proposition 1. Piy (A1xi)y Rn, i.e. the matrix-
+vector product Piy is orthogonal to A1xi for all y Rn
+(A1xi)Piy  x
+i (A1)Piy
+Note that A1 is symmetric, thus (A1) A1. Multi-
+plying out this expression:
+i A1Piy  x
+i A1(Inn xix
+i A1y  0
+Proposition 2. Miy x
+i y Rn, i.e. the matrix-vector
+product Miy is orthogonal to xi for all y Rn.
+i Miy  x
+i A1y  0
+Proposition 3. xi is in the null space of Pi
+Pixi  (Inn xix
+xi xi  0
+Proposition 4. xi is in the null space of Mi
+Mixi  A1xi A1xix
+A1xi A1xi
+A1xi A1xi  0
+Proposition 5. xi spans the whole null space of Pi
+from Proposition 3. Now, suppose z is a vector in the null
+space of Pi that is not a scaling of xi, i.e., z  xi. In
+this case, we would have the following:
+Piz  z xix
+i A1xi R. This contradicts our assumption
+that z is not a scaling of xi, meaning xi must span the
+whole null space of Pi.
+Proposition 6. xi spans the whole null space of Mi
+from Proposition 4. Now, suppose z is a vector in the null
+space of Mi that is not a scaling of xi, i.e., z  xi. In
+this case, we would have the following:
+Miz  A1z A1xix
+A1(z xix
+We know that A1 must be invertible by definition, implying
+that the term in parentheses must equal zero:
+i A1xi R. This statement contradicts our
+assumption that z is not a scaling of xi, meaning xi must
+span the whole null space of Mi.
+Proposition 7. rank(Pi)  n 1
+nullity(Pi). We know the nullity of Pi is 1 from Proposition
+Proposition 8. rank(Mi)  n 1
+nullity(Mi). We know the nullity of Mi is 1 from Proposition
+In summary, Pi projects any n-vector onto the subspace of
+Rn that is orthogonal to A1xi (Propositions 1, 5, and 7),
+and Mi projects any n-vector onto the subspace of Rn that is
+orthogonal to xi (Propositions 2, 6, and 8). Concretely, let
+us examine the effect of mapping a vector y using the matrix
+Miy  A1Piy.
+intermediate space that is orthogonal to A1xi. Then, this
+intermediate vector is further transformed by A1 into a space
+that is orthogonal to xi.
+Note that the Mi matrix functions similarly to the Zx
+null space basis matrix in Equation 11. The columns of both
+of these matrices span a space that is orthogonal to xi. Also,
+the matrix in the second part of Term 1, 2X
+, serves as
+an analogue to the Y matrix in Equation 11. The columns of
+are projected by Mi onto the subspace of Rn that
+is orthogonal to xi, identifying the region within this infinite
+space where an approximation of the derivativeexcluding
+components in the xi directionresides.
+2) Geometric Interpretation of Term 2: Rewriting Term 2
+here for convenience:
+We see that this term is a rank-1 matrix induced by an outer
+product. Note that this matrix is reminiscent of the minimum
+norm solution (x)f matrix in Equation 11. This com-
+parison with Equation 11 seemingly integrates nicely with our
+analysis regarding Term 1 above. Since Term 1 provides an
+approximation of the derivative with all contribution from the
+direction xi removed (analogous to ZxY in Equation 11),
+our expectation would be that Term 2 would restore the part of
+the solution only along this missing xi direction (analogous
+to (x)f in Equation 11).
+Although the hypothetical analysis above suggests a strong
+geometric symmetry between Term 2 and (x)f , there
+is a subtle complication that prevents a perfect correspondence.
+While (x)f scales in the x direction, contributing
+only in this direction missing from ZxY, the Term 2
+expression s1
+scales in the A1xi direc-
+tionnot just xi. As a result, this term may reintroduce
+parts of the solution outside of the xi direction, potentially
+interfering with the partial solution already provided by Term
+1. We assess where this misalignment comes from and how
+to address this issue below.
+B. Tangent Matrix Structure
+A key element in our approach is the matrix of tangent
+r matrixEquation 15 can indeed yield an optimal solution
+with respect to any chosen Xin this section, we explore
+whether enforcing a particular structure on X might enhance
+the results overall.
+Our goal is to address the potential misalignment between
+Term 1 and Term 2 presented in X-A2. In other words,
+we want Term 2 to only reintroduce parts of the solution in
+the xi direction without interfering with the partial solution
+already provided by Term 1. Note that to achieve this result,
+all xi vectors cannot be rotated at all by their corresponding
+A1 matrix. Instead, the xi must only be scaled by A1,
+meaning that it must be an Eignevector of this matrix, i.e.,
+A1xi  xi.
+Average Runtime
+Average Runtime
+(Sub-Experiment 1)
+Average  of Function Calls
+Average  of Function Calls
+(Sub-Experiment 1)
+Average Error
+Average Error
+(Sub-Experiment 1)
+Average Runtime
+Average Runtime
+(Sub-Experiment 2)
+Average  of Function Calls
+Average  of Function Calls
+(Sub-Experiment 2)
+Average Error
+Average Error
+(Sub-Experiment 2)
+step length
+Average Runtime
+Average Runtime
+(Sub-Experiment 3)
+step length
+Average  of Function Calls
+Average  of Function Calls
+(Sub-Experiment 3)
+step length
+Average Error
+Average Error
+(Sub-Experiment 3)
+FAD-JAX-GPU
+RAD-JAX-GPU
+FAD-Rust
+RAD-Rust
+WASP-O-Rust
+WASP-NO-Rust
+Results for Evaluation 1supplemental conditions: Sub-experiment 1 (top) Sub-experiment 2 (middle) and Sub-experiment 3 (bottom)
+for some scalar value . Through the proposition below, we
+demonstrate that this result is always achieved when X is
+orthonormal.
+Proposition
+9. When X is orthonormal, xi is al-
+ways an Eigenvector of A1 for all i, meaning Term
+A1(Inn s1
+A1(Inn s1
+i A1xi. When X
+is orthonormal, it follows that
+which implies
+1 simplifies to
+2Inn(Inn 1
+As expected, Term 1 is a matrix that maps vectors to the sub-
+space of Rn that is orthogonal to xi (shown in Propositions
+X is orthonormal, we can simplify this term as follows:
+This simplification for Term 2 shows that
+for all i, meaning xi is always an Eigenvector of A1 with
+an associated Eigenvalue of
+2. Thus, Term 2 is indeed or-
+thogonal to Term 1 as the only component being reintroduced
+is in the direction of xi, thereby addressing the potential
+misalignment between the two terms as noted in X-A2.
+Given this analysis, the default structure for the X matrix
+in our algorithm is square and orthonormal, as seen in Algo-
+rithm 2. In the evaluation in VI, we empirically demonstrate
+the advantage of using an orthonormal matrix structure for
+C. Evaluation 1: Supplemental Conditions
+As discussed in VI-B, the main version of Evaluation 1
+requires that the conditions remain entirely compatible with
+the benchmark function implemented in Tensorly, without
+any modifications, optimizations, or condition-specific code
+adjustments. While this ensures a fair and uniform comparison,
+it also imposes significant constraints on approaches that
+rely on custom code or specialized configurations to achieve
+optimal performance. In this section, we aim to lift these
+setup to maximize performance.
+We assess nine conditions in this section:
+1) Forward-mode automatic differentiation with JAX
+2) Reverse-mode automatic differentiation with JAX
+3) Forward-mode automatic differentiation with JAX
+JAX-GPU)
+4) Reverse-mode automatic differentiation with JAX
+JAX-GPU)
+5) Forward-mode automatic differentiation with Rust ad-
+trait  backend (abbreviated as FAD-Rust)
+6) Reverse-mode automatic differentiation with Rust ad-
+trait  backend (abbreviated as RAD-Rust)
+7) Finite Differencing with Rust ad-trait  backend (ab-
+breviated as FD-Rust)
+8) Web of Affine Spaces Optimization with orthonormal
+X matrix and Rust ad-trait  backend (abbreviated
+as WASP-O-Rust).
+9) Web of Affine Spaces Optimization with random, non-
+orthonormal X matrix and and Rust ad-trait
+backend (abbreviated as WASP-NO-Rust).
+We follow the same three sub-experiments outlined in
+sub-experiments adhere to the same procedure described in
+VI-A and employ the metrics defined in VI-C.
+All experiments in this section are executed on a Desktop
+computer with an Intel i9 4.4GHz processor, 32 GB of RAM,
+and Nvidia RTX 4080 GPU (with CUDA enabled for the JAX
+GPU conditions).
+Results for the supplemental Sub-experiment 1 can be seen
+in the top row of Figure 6. The WASP conditions have faster
+runtime than several other conditions, especially for n < 500.
+For instance, WASP-O-Rust and WASP-NO-Rust are faster
+than all JAX conditions over this range, with no practical
+difference observed between CPU and GPU configurations.
+than FD-Rust and FAD-Rust all the way up to n  1000 due
+to significantly fewer calls to the function. Also, we see that
+all conditions, including WASP, are considerably slower than
+RAD-Rust for nearly all settings of n. Thus, if a high-quality
+reverse-mode AD is available and feasible to maintain, this
+will likely lead to favorable efficiency and accuracy outcomes
+for gradient calculations. Lastly, the average error results again
+indicate that the orthonormal structure of X is important
+for stable and more accurate results, as our analyses in X-B
+would suggest.
+Results for the supplemental Sub-experiment 2 can be seen
+in the middle row of Figure 6. These results resemble the
+trends seen in the main version of Sub-experiment 2 in VI-E.
+We see that the WASP conditions are more efficient due to
+fewer calls to the function, though this efficiency comes at
+the cost of a small amount of error. Again, we see that the
+accuracy is more stable when WASP uses an orthonormal X.
+Results for the supplemental Sub-experiment 3 can be seen
+in the bottom row of Figure 6. Again, these results match
+the takeaways from VI-F. The WASP conditions are highly
+sensitive to step size. When the step size becomes too large, the
+error detection and correction mechanism will almost always
+trigger another iteration meaning that WASP will essentially
+revert to a finite differencing strategy.

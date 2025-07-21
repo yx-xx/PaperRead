@@ -1,0 +1,1149 @@
+=== PDF文件: Vysics Object Reconstruction Under Occlusion by Fusing Vision and Contact-Rich Physics.pdf ===
+=== 时间: 2025-07-21 13:47:59.800031 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Fusing Vision and Contact-Rich Physics
+Bibit Bianchini, Minghan Zhu, Mengti Sun, Bowen Jiang, Camillo J. Taylor, Michael Posa
+The first two authors contributed equally to this work.
+General Robotics, Automation, Sensing, and Perception (GRASP) Laboratory
+University of Pennsylvania, Philadelphia, PA 19104
+AbstractWe introduce Vysics, a vision-and-physics frame-
+work for a robot to build an expressive geometry and dynamics
+model of a single rigid body, using a seconds-long RGBD video
+and the robots proprioception. While the computer vision com-
+munity has built powerful visual 3D perception algorithms, clut-
+tered environments with heavy occlusions can limit the visibility
+of objects of interest. However, observed motion of partially oc-
+cluded objects can imply physical interactions took place, such as
+contact with a robot or the environment. These inferred contacts
+can supplement the visible geometry with physible geometry,
+which best explains the observed object motion through physics.
+Vysics uses a vision-based tracking and reconstruction method,
+from an RGBD video, and an odometry-based model learning
+geometry from the trajectory through implicit contact dynamics
+optimization. The visible and physible geometries jointly factor
+into optimizing a signed distance function (SDF) to represent the
+object shape. Vysics does not require pretraining, nor tactile
+or force sensors. Compared with vision-only methods, Vysics
+yields object models with higher geometric accuracy and better
+dynamics prediction in experiments where the object interacts
+with the robot and the environment under heavy occlusion.
+Project page:
+I. INTRODUCTION
+In-the-wild manipulation will require robots to encounter a
+vast array of different objects. While some might be recog-
+nized from an existing database, others will require physical
+interaction to be newly understood on the spot. Dexterous
+manipulation of these objects will benefit from the ability
+to rapidly learn or identify object properties: geometry is
+most critical, but inertial properties are also valuable for
+predicting motion, particularly under forceful manipulation.
+Use of such models boasts the benefits of interpretability and
+expected generalizability, at the cost of requiring the model.
+This paper presents Vysics, which builds dynamics models of
+novel objects from vision and physical interaction, even in the
+face of substantial visual occlusions (Figure 1).
+Rapid modeling requires combining all available infor-
+mation in a unified fashion. This work leverages recent
+results from visual tracking and object reconstruction
+in combination with contact-implicit model learning [9, 53]
+via the shared connection of object geometry Depth camera
+measurements on an objects surface are direct observations of
+(a) BundleSDF
+(b) Vysics (ours)
+Fig. 1: Vision-based shape reconstruction (projection shown in
+green) can be limited by occlusion. Fusing vision and contact-
+rich physics, our method recovers the occluded geometry
+through object interactions with the robot and environment.
+The robot end effector in yellow shows the robot-object
+interaction.
+portions of its geometry, and observations of the objects state
+evolution can inject more geometric information when contact
+is inferred. Visual information is limited by occlusions, but
+ble geometry.
+Consider the example depicted in Figure 1 of a robot arm
+interacting with an object, which is significantly obscured by
+a stack of books in the foreground. A vision-only approach
+would only reconstruct the portions of the geometry that is
+visible but is also able to detect object motions. By reasoning
+about physics, we can infer more about the geometry by
+assuming object trajectories are explainable by its physical
+interactions with the environment and robot. In the Figure 1
+object from its occluded end. While not explained by visible
+namely that the geometry should extend to the right to make
+contact with the robot.
+Estimating geometry through contact-rich interactions is not
+a trivial problem. Object trajectories result from the sum of
+all forces on the object, including continuous and contact
+just geometry . Additionally, making and breaking contact
+introduces multi-modality into the dynamics, further compli-
+cating system identification [5, 52]. We take an approach that
+embraces the multi-modal nature of the dynamics [8, 53], start-
+ing by feeding it visually-estimated trajectories, then fusing
+visually-observed with physically-inferred geometry.
+Our aim is to leverage vision and contact-rich physics to
+perform dynamics model building directly from RGBD data in
+extreme low data regimes  learning a dynamics model whose
+geometry matches or outperforms vision-based approaches
+while learning other critical simulation parameters like inertia,
+with only seconds of data.
+A. Contributions and Outline
+We make the following contributions in this work:
+Introduce Vysics, a novel method that builds expressive
+dynamics models of objects from RGBD videos featuring
+contact-rich trajectories. With seconds of data, Vysics can
+identify an objects geometry with no fundamental priors
+as well as its inertial properties, automatically generating
+an accompanying Unified Robotics Description Format
+(URDF) file and mesh.
+Present and make available a new RGBD video dataset
+of a Franka Panda robot arm interacting with objects on
+a table in the face of significant visual occlusions (code
+and data can be found on our project page).
+Demonstrate our methods efficacy on shape reconstruc-
+tion and learning dynamics models. We compare against
+vision-only shape reconstruction and show the benefits
+of the additional contact physics information source with
+small amounts of data.
+In II, we review related work from computer vision and
+dynamics model learning. We discuss preliminaries for our
+work in III before outlining Vysics in IV. V describes
+experiment details before VI presents results, followed by a
+discussion of limitations in VII and conclusion in VIII.
+II. RELATED WORK
+A. Vision-Based Geometry Reconstruction and Completion
+Contact is at the heart of robotic manipulation, and contact
+is driven by geometry. Computer vision has made strides in ge-
+ometry reconstruction from image inputs. Dense visual SLAM
+systems [10, 61, 41] recover dense geometry from multi-view
+RGB or depth streams, yet leave occluded regions unresolved.
+Neural implicit methods represent shapes as continuous fields:
+foundational works like [50, 43] encode object-level geometry,
+while [6, 47] extend these representations to full scenes.
+When portions of the object remain unseen, learned com-
+pletion methods infer missing geometry from partial data.
+Synthetic shape datasets  enable learning shape priors of
+common object categories, facilitating various tasks including
+shape completion [72, 19], point cloud completion [73, 16],
+and single-image shape reconstruction [45, 18]. However,
+most operate in an object-centered canonical frame, limiting
+their applicability to raw sensor data, with a few exceptions
+[62, 55] leveraging 2.5D representations to guide camera-
+frame shape learning. Robotics and VR applications have
+prompted camera-frame shape completion from partial point
+clouds [63, 46] or RGBD observations [69, 37], with recent
+extensions to multi-object scenes [68, 30]. Moreover, advances
+in image generation models , 3D scene representations
+[44, 32], and large-scale 3D object datasets [22, 21] have
+spurred 3D generative pipelines [39, 42, 27, 38, 71, 76],
+though these typically require unobstructed RGB inputs and do
+not integrate depth. Unlike these vision-only and data-driven
+physics-based hypotheses extracted from a short RGBD video
+to regress a class-agnostic shape.
+B. Vision-Based Object Pose Estimation
+While there are many works that perform robotic manip-
+ulation without explicitly estimating object poses (e.g. ),
+access to object pose estimates remains a commonplace as-
+sumption in robotics. Classical vision-based pose estimators
+require the 3D shape model of the target object to facilitate
+the pose estimate [34, 33, 51], often impractical in realistic
+applications. Other new approaches do not require geometry
+models beforehand , but this has its own challenges.
+Model-free methods without this assumption rely on sparse
+frames with known pose [12, 59], without building a coherent
+object model. Such approaches are susceptible to long-term
+. Limiting a pose estimators scope to tracking in-category
+objects can boost pose accuracy [36, 23, 15], but limits
+generalization.
+C. Simultaneous Tracking and Shape Reconstruction
+Recent computer vision works combine the pose and shape
+estimation problems [75, 31, 66, 58]. Solving both problems
+simultaneously has its benefits, including that maintaining a
+geometry estimate can improve novel-object pose estimation
+and vice versa [57, 64]. Other applications include multiple
+sparse-view alignment [40, 59, 33] and single-view pose
+estimation [48, 74].
+D. Trajectory-Based Dynamics Model Learning
+System identification is an important robotics subfield that
+aims to build accurate system models, which can then be
+leveraged via model-based control techniques. Differentiable
+simulators [35, 29, 20] have pushed recent advancements,
+though they can struggle to find good solutions when applied
+in contact-rich settings [5, 8]. While high-stiffness contact dy-
+namics generally are a challenge for system identification ,
+more creative strategies can make finding inertial parameters
+, contact parameters , or both  possible and efficient.
+Many of these methods rely on access to state information,
+limiting their use to lab-based settings where fiducials are
+vision-based solution.
+E. Physics as a Prior for Shape Reconstruction
+Some prior works have used physics as a prior for shape
+reconstruction. Unlike Vysics, these other works either assume
+objects of interest are statically stable [49, 3] or avoid learning
+other non-geometric dynamic properties like inertia [1, 56].
+The most similar in spirit to Vysics is , as they recon-
+struct geometries with occlusions through physical robot and
+environment interactions. While  avoids the problematic
+gradients in contact-rich scenarios by using a gradient-free
+search over a discrete set of hypothesized geometries, Vysics
+leverages smooth, implicit-based losses and thus can directly
+regress the object geometry based on visual measurements.
+This enables Vysics to avoid the need for a high-dimensional
+graph search that limits geometries to a relatively small set of
+possibilities.
+III. BACKGROUND
+Vysics leverages a vision-based pose and shape estimation
+ing tool, Physics Learning Library (PLL) [9, 53], which are
+described in III-A and III-B, respectively. Neither of these
+tools requires pretraining on an extensive dataset. BundleSDF
+and PLL both train on and generate results from only the
+measurements provided or inferred by their per-instance input
+robot encounters and needs to model an object.
+A. Vision-Based Pose and Shape Estimation
+BundleSDF  takes masked RGBD videos as input, and
+outputs both estimated poses of the object over time as well
+as a geometry estimate. It is built on top of the generalizable,
+model-free 6D pose tracker, BundleTrack . Alongside the
+pose estimator, BundleSDF introduces a parallel Neural Object
+Field that simultaneously maintains an estimate of the objects
+to encourage long-term consistency.
+To represent geometry, BundleSDF uses a signed distance
+function (SDF), an expressive implicit shape representation
+with no imposed restrictions such as an inherent resolution
+limit or convexity prior. Due to their expressivity, SDFs have
+seen great success in representing shapes of objects and
+An SDF is a function of the form,
+SDF(p)  d,
+where any 3D point p relative to a geometrys reference frame
+can be queried, and the scalar signed distance d away to the
+nearest surface point is returned. See Figure 2 for illustration.
+From RGBD data, not only do depth returns imply points at
+which d  0, but samples along the camera rays of valid object
+depth returns can additionally yield supervision for points with
+d > 0. The result is that BundleSDF trains its neural network
+SDF with supervision from sets of points and signed distances
+{(p, d)i}. BundleSDF implements a hybrid SDF model on this
+set of points, by only regressing points whose target signed
+distance is within a truncation distance, as in [60, 50]. We refer
+Fig. 2: A 2D depiction of the physical meaning of a DSF (3)
+and its implication on the SDF (1). Shades of green points
+have exact SDF values and are subject to (8), and the orange
+example point qs signed distance can be lower-bounded by
+the supporting hyperplane as in (11).
+interested readers to  for more details on BundleSDF loss
+components. Upon termination, the marching cubes algorithm
+extracts a mesh from the underlying SDF.
+B. Physics-Inspired Dynamics Learning
+PLL [9, 53] is an odometry-based method that jointly
+learns continuous and contact dynamics of objects undergoing
+contact-rich trajectories. Given only a state trajectory (no
+direct observation of contact events), PLL is able to iden-
+tify the geometry, frictional properties, and inertia, all from
+hypothesizing contact forces that best explain observed state
+transitions. Its key insight is in its implicit loss formulation,
+which has provably better generalization than alternatives
+that require differentiable simulation . The loss applies a
+cost to the current model beliefs incompatibility with the
+hypothesized contact forces; see [9, 53] for more details.
+The geometry of the object directly determines when it
+makes and breaks contact with the robot and environment, thus
+playing a critical role in its dynamics. PLL solves the inverse
+ics. The estimated geometry is represented using PLLs deep
+support function (DSF) , an input-convex, homogeneous
+deep neural network . Like an SDF, a DSF has no inherent
+resolution limits, however it can only represent the convex
+hull of any given shape. In our application where our robot
+interacts with convex and nonconvex objects, this assumption
+is satisfied as long as collisions occur only on the objects
+convex hull. A DSF has all the expressivity required for those
+scenarios while also being concise and fast to compute.
+A DSFs input can be any 3D point, but for physically
+meaningful outputs, PLL only queries the DSF with unit
+vectors. A DSF takes as input a unit vector in the objects body
+frame and outputs the scalar distance the geometry extends
+in that direction . The gradient of a DSF with respect to
+its input is (almost always ) the 3D point on the object
+geometry that extends furthest in the queried input direction.
+represented by the set S, a DSF yields the following output
+Fig. 3: Detailed Vysics diagram. Blue arrows denote the vision-based information flow through BundleSDF , and green
+arrows for PLL [9, 53]. Purple arrows indicate the unifying connections Vysics makes to factor both vision and contact-rich
+physics into the geometry learning problem.
+and gradient,
+DSF(n)  max
+siS si  n,
+nDSF (n)  arg max
+siS si  n : s.
+The queried normal direction n and its associated support
+point s fully define a supporting hyperplane of the object
+geometry . See Figure 2 for an example of a queried
+normal direction n, its corresponding support point s, and the
+constraints they impose on the SDF (explained in detail in
+section IV-B). A mesh may be exported by PLL with vertices
+{si} as outputs of nDSF on a uniformly sampled set of unit
+vectors {ni}.
+IV. APPROACH
+Figure 3 illustrates Vysics from input RGBD videos and
+robot states (left) to URDF output (right). Its core components
+are BundleSDF  for vision-based tracking and shape
+learning. Beyond the insights that led to this systems integra-
+these two powerful tools together such that they supervise
+each other and output an object dynamics model, featuring
+geometry informed by both vision and contact.
+Referring to the labeled arrows in Figure 3, we obtain
+the object trajectory (b) and the initial shape estimates (c)
+from masked input RGBD images (a) via BundleSDF. The
+object trajectories are converted to an inertial reference frame,
+where the table surface (d) identified in the depth images is
+on a known plane. From this plane (d) and the processed
+poses (e), PLL detects physible portions of the geometry
+by inferring contact events in the observed dynamics. PLL is
+also subject to supervision from BundleSDF (f) to encourage
+consistency with the visible geometry. BundleSDF runs again,
+fusing both the visible (a) and physible data (i) into a
+geometric model consistent with both information streams.
+The final output of Vysics inherits the physics-supervised
+inertial parameters (g) and jointly-supervised geometry (j).
+This is exported as a URDF which can be simulated to produce
+dynamics predictions.
+The basis of our contribution is in how we unify the visible
+and physible geometry measurements together. IV-A dis-
+cusses how vision helps in the contact learning problem (f),
+and IV-B describes how we inject the geometric information
+estimated from the contact dynamics back into the vision-
+based shape estimation (i).
+A. Supervising Contact-Based Geometry with Vision
+Contact-based geometry reconstruction has the ability to
+learn the full convex hull of any shape as long as every point
+on its convex hull makes contact with the known environment
+plane or robot over its recorded trajectory. In extreme low-
+data regimes where many sides of the geometry never contact
+the robot or ground, the complete geometry is unobservable,
+and the solutions of the geometry that can accurately explain
+the trajectories are non-unique. Since PLLs violation-based
+implicit loss function has terms that scale with the magnitude
+of inferred contact forces , it is encouraged to find the DSF
+that minimizes the inferred contact force magnitudes while
+explaining the trajectory data. In finding a geometry-force
+combination that explains a net observed torque, PLL can be
+biased to learn large geometries to increase lever arms and thus
+reduce force magnitudes. Without intervention, this scenario is
+common and problematic in low-data, where many sides of the
+object may never contact the robot or ground. However, vision
+can provide an additional source of information (denoted by
+superscript v) to disambiguate the possible geometries that
+may explain the trajectory.
+Given an RGBD video, BundleSDF yields an object mesh
+corresponding to the zero SDF level set. We first calculate the
+convex hull of the mesh since DSF in PLL can only represent
+convex shapes. Then, we apply a visibility check to preserve
+only the vertices visible in the RGBD video, and we call this
+set of points V, the visible geometry.
+The visible geometry V can supervise the surface predicted
+by PLLs DSF. For each sv V, we wish to penalize the
+Supervising
+contact-
+based DSF network with
+visible geometry sv V.
+Supervising
+vision-based
+network with physible geometry
+(np, sp) P.
+Fig. 4: Visualization of the loss functions as the incorporation
+of vision and contact dynamics. Blue represents the geometry
+learned from vision, and green represents the geometry learned
+from contact dynamics.
+distance from the nearest surface point sp predicted by the
+on the DSF closest to a given point, since the DSF is an
+implicit shape representation. To approximate, we sample the
+DSF to create a mesh and find the point sp on its surface that
+is closest to sv. The vector
+is an approximation of the querying vector np such that
+DSF(np)  sp. The approximation is up to the angular
+resolution of the unit vector samples when converting the DSF
+to a mesh. The direction of the vector np is chosen to always
+point outwards from the shape. In the end, we use
+Lbsdf  1
+DSF(np) sv
+as the vision-based supervision of the PLL training. See Fig-
+ure 4a for an illustration. See Appendix A for hyperparameters,
+including the relative loss term weights in PLL.
+B. Supervising Vision-Based Geometry with Contact
+As mentioned in section IV-A, the SDF estimated by
+BundleSDF may only capture the visible geometry, while
+PLL estimates a convex shape, in the form of DSF, that
+best explains the trajectory through contact dynamics. We
+combine the two streams of information into a single geometry
+estimation. We use SDF as the final geometry representation,
+given its capability to model non-convex shapes. The SDF
+training in the BundleSDF is run on the RGBD video for
+the second time but with new contact-induced losses from the
+1) From PLL to the Physible Geometry: The DSF from
+PLL can be represented as a set of DSF inputoutput pairs,
+{(np, sp)}. However, only the local area where contacts hap-
+pened may be effectively supervised through contact dynamics
+with unreliable DSF value. Therefore, we filter the set and only
+preserve an (np, sp) pair if it is associated with contact force,
+estimated by PLL, above a certain threshold. The filtered set,
+2) Support Point Loss: Given a physible geometry data
+point (np, sp), not only is sp on the object boundary and
+should have SDF(sp)  0, but we can use np to infer
+constraints on the local geometric region. Consider the ray
+r from sp pointing in direction np. Any point on this ray,
+lying a distance l [0, ) on the ray from s, has a signed
+distance of exactly l,
+SDF (sp  lnp)  l.
+See Figure 2 for illustration. For sv  sp  lnp, we denote
+SDF(sv) : l to represent the signed distance induced from
+DSF. If we extend the possible range for l values to go
+crossings in the SDF network, but the negative signed distance
+values may not be strictly correct for certain geometries and
+choices of . In practice, this can be accurate enough during
+supervision with small  and enables more meaningful change
+at the geometry surface. Thus, we introduce a support point
+loss for sv Psp(np, sp),
+SDF(sv) SDF(sv)
+Psp(np, sp)  {svsv  sp  lnp,
+is the set of support points induced by the physible point
+(np, sp). Lsp encourages signed distance consistency at and
+around observed physible points. Figure 4b depicts four such
+sampled points sv and their supervised signed distance values
+l induced from a single support point sp.
+3) Hyperplane-Constrained Loss: On this ray, (8) imposes
+strong supervision on the SDF network, though only local
+to areas near PLL-inferred contacts. However, as depicted in
+Figure 2, any point q can have its signed distance minimum-
+bounded based on a support directionpoint pair (n, s). Con-
+sider a pair (np, sp) P, its supporting hyperplane implies
+that the signed distance at sv can be lower bounded by the
+distance from sv to the supporting hyperplane,
+any sv R3,
+Lhc  min
+Figure 4b gives one example of a point sv whose signed
+distance is lower bounded with respect to a support direc-
+tionpoint (8). While sv may be sampled arbitrarily, we
+sample them around a cylindrical neighborhood of the support
+points in practice.
+4) Convexity Loss: In comparison to the dense visible
+away from the set of visible points. With the assumption
+that the robot is interacting with a single object at a time,
+we add a bias loss term to encourage the estimated shape to
+be convex when no observed RGBD data signals otherwise.
+This helps the sparse contact points attach to the visible
+shape in the SDF regression. We randomly sample pairs of
+points from the near-surface points estimated by the SDF
+{sv R3  SDF(sv) }, and the
+collection of support points (9) induced by all physible
+points Sp0  {svsv Ssp(np, sp), (np, sp) P}. Points
+in Sv0 have SDF supervision from the RGBD video, while
+points in Sp0 have induced SDF supervision from the contact
+dynamics. Then we sample an interpolated point between each
+pair of points. The interpolated SDF serves as the upper bound
+of the SDF prediction at the interpolation point if we assume
+the shape is convex,
+SDF(sv) l SDF(s1)  (1 l) SDF(s2),
+for sv  ls1  (1 l)s2, 0 l 1, where s1 Sv0, s2 Sp0
+are samples from the near-surface points and support points.
+Lcvx  max
+l SDF(s1)  (1 l) SDF(s2)
+See Appendix A for hyperparameters used in our experiments,
+including the relative loss term weights in BundleSDF.
+V. EXPERIMENTAL SETUP
+A. Dataset
+We consider a new dataset of RGBD videos of a Franka
+Emika Panda arm with a spherical end effector interacting
+with an object repeatedly on a flat table surface. These robot
+interactions were teleoperated via commanded end effector
+poses tracked with impedance control. The dataset includes
+the RGBD videos of the objects in interactions with object
+mask annotations, as well as the robot joint states. In PLL, the
+object can collide with the tip of the end effector (modeled as
+a sphere) and the table surface (modeled as a plane). The end-
+effector sphere location is known from the robot joint states
+in combination with the transform between the camera and
+the robot base, and the height of the table surface is detected
+automatically based on the depth readings from the camera.
+The ground truth shapes of the objects are provided in the form
+of meshes for evaluation. The end-effector pose commands by
+the teleoperator are also included for the dynamics prediction
+evaluation (see section V-B). There are substantial visual
+occlusions preventing the camera from directly seeing much
+of the object geometry.
+The objects in our dataset are a mixture of everyday items
+depicted in Figure 5. We used a RealSense D455 collecting
+640x480 pixel RGBD images at 30Hz. The object masks for a
+video were semi-automatically generated from manual masks
+Fig. 5: The 7 objects and their names in our dataset.
+on the first frame using XMem . For every object, we
+collected multiple sessions of the robot arm interacting with
+the object with its the spherical end effector. Each session
+is around 10 seconds long. The dataset varies in starting
+e.g. sliding vs. pivoting vs. toppling and in what directions. In
+the evaluation, we excluded the sessions in which BundleSDF
+lost track of the object and failed to yield the object trajectory.
+While PLL is capable of identifying friction coefficients
+essentially by observing acceleration during periods of sliding,
+sliding motions in our dataset largely occur during sustained
+object-robot contact, making it difficult to uniquely identify
+frictional ground contact forces from contact forces with
+the robot. Thus, we use PLL to learn only geometry and
+inertia. We set the pair-wise friction coefficients to reasonable
+values of 0.26 (object-table) and 0.15 (object-robot) for all
+silicone mat on the table.
+B. Metrics
+We evaluate the performance of the identified geometry
+and dynamics in two ways. First, we evaluate the geometric
+error between the estimated shape and the ground truth shape.
+intersection-over-union (IoU) between the learned geometry
+and the ground truth geometry, which we align with manual
+annotation and ICP for refinement. This alignment step is only
+for geometric evaluation, not for training or deployment of the
+learned model. Second, we perform dynamics predictions to
+evaluate the geometry through the resulting trajectories. We
+implemented our impedance controller in simulation and ran
+it on the recorded end effector pose commands to reproduce
+the robots actions. Using the estimated object geometry and
+its tracked pose at the first frame as the initial condition, we
+generate simulated trajectories of the object. The predicted
+trajectories are compared with the real-world trajectory tracked
+by BundleSDF to show how well the estimated geometry
+explains the dynamics.
+To quantify the dynamics prediction error, we use three
+bakingbox bottle
+milk oatly styrofoam toblerone
+3DSGrasp
+BundleSDF
+Vysics (ours)
+TABLE I: Average chamfer distance (unit: cm) of shape com-
+pletion baselines compared with BundleSDF and our method.
+(a) RGB input
+(b) OpenLRM [27, 26]
+(d) TriplaneGaussian
+Fig. 6: A qualitative example of generative single-view recon-
+struction on an occluded RGB image of the egg object.
+metrics. The first is average pose error (split into position
+and rotation terms), which measures the difference between
+the tracked pose and the simulated pose throughout the open-
+loop simulation. As contact dynamics are naturally chaotic,
+any open-loop simulation is subject to substantial uncertainty.
+To provide an alternative assessment of the accuracy of the
+learned model, our second metric is time-before-divergence,
+which measures the time from the start of the simulation
+to the point when the simulated pose error is higher than a
+given threshold. We use a positional threshold of 10 cm and
+a rotational threshold of 45 degrees. The third is the temporal
+IoU of contact activation, which measures the overlap of when
+the robot-object contact happens in the simulated rollout and
+in the real experiment. The real contact duration is manually
+annotated by inspecting the RGBD videos. This metric high-
+lights the compatibility between the physical contact and the
+estimated geometry. Both average pose error and time before
+divergence are with respect to the BundleSDF estimated poses.
+C. Baselines
+Using quantitative geometry reconstruction metrics, we
+compare against vision-only methods, including BundleSDF
+and a variety of shape completion methods: 3DSGrasp  for
+point cloud completion (we use points from visible mesh faces
+reconstructed by BundleSDF as input); IPoD  for single-
+object completion from an RGBD image; and V-PRISM
+and OctMAE  for multi-object scene completion from an
+RGBD image. All of these methods, like Vysics, are category-
+agnostic. For shape completion methods based on an RGBD
+IPoD and foreground masks for V-PRISM and OctMAE, then
+(a) An example reconstruction of bottle in a pushing interaction.
+(b) An example reconstruction of oatly in a pivoting interaction.
+Fig. 7: A qualitative comparison of the geometry reconstruc-
+tion under heavy occlusion between our method and the
+vision-only baseline. In the image view, the mesh projection is
+shown in green, and the robot end effector is shown in yellow
+to illustrate the robot-object interaction.
+segment the object from their scene completion outputs. We
+use published pretrained models for evaluation. We addition-
+ally provide a qualitative comparison against methods of 3D
+reconstruction from a single RGB image: OpenLRM [26, 27],
+models trained with large-scale 2D and 3D data can recover
+the complete shape from a partial view.
+For dynamics predictions, we compare against fair vari-
+ations of BundleSDF and PLL. The BundleSDF variation
+features the geometry from BundleSDF and inertia centered on
+its geometric centroid. We explored instead using the inertia
+learned by PLL in combination with the BundleSDF geome-
+due to the PLL-learned center of mass landing outside the
+BundleSDF geometrys convex hull. The PLL variation is the
+result of running PLL on the BundleSDF pose estimates plus
+vision supervision via (6); this is the same as Vysics without
+the second round of BundleSDF.
+Fig. 8: The quantitative comparison of the geometric recon-
+struction accuracy. Each dot is one session. The results of the
+same session from different methods are connected by a gray
+line. means higher is better. means lower is better.
+VI. RESULTS
+A. Geometry Reconstruction
+We first compare the geometry reconstruction of our method
+with that of shape completion models and single-view 3D
+generation models. Table I presents the quantitative results of
+shape completion models in chamfer distance, averaged per
+object and over all objects, compared with BundleSDF and
+Vysics. Under severe occlusion, while the shape completion
+models can achieve similar or slightly lower chamfer distance
+than pure vision-based reconstruction, BundleSDF, they fall
+behind Vysics by a large margin, showing that the data-driven
+completion models are not as successful as Vysics at filling in
+the missing pieces. Qualitative results of the single-view 3D
+generation models are shown in Figure 6. We find that these
+generative models typically assume an unobstructed view of
+the object and do not generate a complete shape when given
+a partially occluded view. Therefore, we do not evaluate these
+models quantitatively.
+In the following, we provide detailed comparisons between
+Vysics and BundleSDF, as they both do not require a pre-
+trained model on a large object dataset. Qualitative compar-
+isons of Vysics and BundleSDF geometric reconstruction is
+shown in Figure 7. In these examples, the robot arm touches
+Fig. 9: The quantitative comparison of the dynamics prediction
+accuracy in pose error. Trajectories are predicted by replaying
+the robot interaction with the estimated geometry in simula-
+an occluded portion of the geometry and causes motion of
+the object. The view of the object is heavily occluded by the
+obstacles (booksblanket), resulting in BundleSDF missing a
+significant portion of the object in its geometry estimate. In
+the robot arms interactions with the objects can explain the
+observed object trajectory. Figure 8 shows the quantitative
+results of geometric reconstruction for each individual ses-
+sion in terms of the surface-based metric, chamfer distance,
+and the volume-based metric, IoU. Our method recovers the
+occluded geometry through physics-based reasoning over the
+observed trajectories, substantially and consistently improving
+the geometric accuracy in both metrics.
+B. Dynamics Predictions
+We further use dynamics predictions to show that the
+geometry estimated by our method better explains the observed
+trajectory. Figure 9 shows the average position and rotation
+errors when predicting the entire length of the original trajec-
+tory as an open-loop rollout. The trajectories range in length
+from 3 to 18 seconds. Compared with the shape estimated
+by the vision-only method, the geometry estimated by our
+method enabled much smaller simulation pose errors across
+Fig. 10: The dynamics prediction accuracy evaluated by the
+duration of the simulated trajectory under small pose error.
+Fig. 11: The dynamics prediction accuracy evaluated by the
+temporal overlap of robot-object contact happening in simu-
+lation and in the real world. The real world ground truth was
+manually annotated.
+the dataset.
+A similar trend can be found in the time-before-divergence
+metric in Figures 10 and 12. Our method maintained a small
+pose error for a longer time than the vision-only baseline in
+simulations. Figure 12 compares Vysics against the vision-
+only baseline, physics-only baseline, and a baseline featuring
+Fig. 12: For quantifying dynamics prediction performance,
+we compare how far into an open-loop rollout the predicted
+pose stays within 10cm of position error and within 45
+degrees of rotational error from the BundleSDF tracked poses.
+We normalize the y-axis to the length of the trajectory. An
+example interpretation from the right plot (the orange dashed
+lines): 60 into the predicted trajectory, approximately half of
+the BundleSDF dynamics predictions diverged in orientation
+compared to 30 of the Vysics dynamics predictions and 10
+of the ground truth geometry and PLL predictions.
+a simulation with the ground truth geometry. As expected, the
+ground truth geometry simulations maintained more accurate
+dynamics predictions for the longest. We point out that even
+this baseline is imperfect, despite using essentially perfect
+object rigidity and the divergent nature of the dynamics in
+many of our robot interactions. Vysics and PLL perform
+closely to this baseline, though Vysics is moderately worse
+in orientation divergence. While most of the dynamics perfor-
+mance by PLL is retained in Vysics, it is unsurprising to see a
+slight performance drop, given PLL optimizes only for physics
+accuracy while Vysics balances with visual objectives. The
+vision-only baseline is the least performant in both position
+and orientation rollout accuracy.
+The temporal IoU of contact activation is shown in Fig-
+ure 11. Our method achieved better temporal consistency
+between the observed contact and the contact reproduced in
+the simulations than the vision-based geometry. Despite the
+chaotic nature of open-loop simulation, our method achieved
+consistent improvements in all three dynamics prediction
+metrics across the dataset, which shows the capability of our
+method in building better object models by exploiting the
+vision and physics information.
+VII. LIMITATIONS AND FUTURE WORK
+A limitation of Vysics is that it does not incorporate notions
+of object elasticity or bounciness into the learning problem.
+This shortcoming means the dynamics predictions of our
+learned models could deviate drastically from the ground-truth
+energy dissipation. While automated searches for simulator
+contact parameters exist , preliminary attempts to improve
+our dynamics prediction accuracy with these methods did
+not yield significant improvements over our inelastic contact
+A considerable limitation of our method in its current form
+is that it often cannot recover from poor pose estimates. In our
+lengths usually resulted in more consistent pose tracking, but
+this is at odds with the benefits of more data for dynamics pa-
+rameter regression. It is possible that the geometry supervision
+from PLL during BundleSDFs second run can help it perform
+better pose estimation. In this case, we could cyclically repeat
+our BundleSDF-PLL process until both shape and trajectories
+converge. Future versions of Vysics may consider posing a
+single joint learning problem that performs pose estimation
+and dynamics model building simultaneously.
+The scarcity of observation fundamentally limits the quality
+of the reconstructed shape from our method. The visual data
+is heavily occluded, while the contact signal is sparse by
+over. Therefore, readers may find the reconstructed shapes
+qualitatively unappealing, with noisy artifacts and limited
+details. A potential future direction is to leverage the data-
+based priors in foundation models to guide shape estimation
+while respecting visual and physics signals.
+teleoperation with diversity of interactions in mind. In a
+closed-loop system, it could be possible for explorative strate-
+gies to determine where the robot should initiate contact to
+lower its uncertainty about the objects properties. While this
+interactive approach is compatible with Vysics as designed,
+this remains future work.
+VIII. CONCLUSION
+Vysics equips robots with the ability to construct high-
+fidelity dynamics models of novel objects, identified from
+vision and proprioception, in the face of contact-rich inter-
+actions and extremely small amounts of data. This is the
+first step toward unifying vision-based geometry estimation
+with contact dynamics. Beyond improvements to the core
+method of Vysics, discussed in VII, future work might
+replace teleoperated data collection with autonomous, active
+exploration or the integration of these learned models with
+planning and control to accomplish some desired task.
+ACKNOWLEDGMENTS
+We thank our anonymous reviewers, who provided thorough
+and fair feedback that improved the quality of our paper. This
+work was supported by a National Defense Science and En-
+gineering Graduate (NDSEG) Fellowship, an NSF CAREER
+Award under Grant No. FRR-2238480, and the RAI Institute.
+REFERENCES
+Jad Abou-Chakra, Krishan Rana, Feras Dayoub, and
+Niko Suenderhauf. Physically embodied gaussian splat-
+8th Annual Conference on Robot Learning, 2024. URL
+Brian Acosta, William Yang, and Michael Posa. Vali-
+dating robotics simulators on real-world impacts. IEEE
+Robotics and Automation Letters, 7(3):64716478, 2022.
+William Agnew, Christopher Xie, Aaron Walsman, Oc-
+tavian Murad, Yubo Wang, Pedro Domingos, and Sid-
+dhartha Srinivasa. Amodal 3d reconstruction for robotic
+manipulation via stability and connectivity. In Confer-
+ence on Robot Learning, pages 14981508. PMLR, 2021.
+Brandon Amos, Lei Xu, and J Zico Kolter. Input convex
+neural networks. In International Conference on Machine
+Rika Antonova, Jingyun Yang, Krishna Murthy Jataval-
+Rethinking optimization
+with differentiable simulation from a global perspec-
+tive. In Conference on Robot Learning, pages 276286.
+Dejan Azinovic, Ricardo Martin-Brualla, Dan B Gold-
+surface reconstruction. In Proceedings of the IEEECVF
+Conference on Computer Vision and Pattern Recognition,
+Mokhtar S Bazaraa, Hanif D Sherali, and Chitharanjan M
+Shetty. Nonlinear programming: theory and algorithms.
+John wiley  sons, 2013.
+Bibit Bianchini, Mathew Halm, Nikolai Matni, and
+Michael Posa. Generalization bounded implicit learning
+of nearly discontinuous functions.
+In Learning for
+Dynamics and Control Conference, pages 11121124.
+Bibit Bianchini, Mathew Halm, and Michael Posa. Si-
+multaneous learning of contact and continuous dynamics.
+In Conference on Robot Learning, pages 39663978.
+Davison.
+Codeslamlearning
+optimisable
+representation for dense visual slam. In Proceedings of
+the IEEE conference on computer vision and pattern
+Stephen P Boyd and Lieven Vandenberghe.
+optimization. Cambridge university press, 2004.
+Pedro Castro and Tae-Kyun Kim. Posematcher: One-shot
+6d object pose estimation by deep feature matching. In
+Proceedings of the IEEECVF International Conference
+on Computer Vision, pages 21482157, 2023.
+Angel X Chang, Thomas Funkhouser, Leonidas Guibas,
+Pat Hanrahan, Qixing Huang, Zimo Li, Silvio Savarese,
+Manolis Savva, Shuran Song, Hao Su, et al. Shapenet:
+An information-rich 3d model repository. arXiv preprint
+Tao Chen, Megha Tippur, Siyang Wu, Vikash Kumar, Ed-
+ward Adelson, and Pulkit Agrawal. Visual dexterity: In-
+hand reorientation of novel and complex object shapes.
+Science Robotics, 8(84):eadc9244, 2023.
+Xu Chen, Zijian Dong, Jie Song, Andreas Geiger, and
+Otmar Hilliges. Category level object pose estimation
+via neural analysis-by-synthesis.
+In Computer Vision
+ECCV 2020: 16th European Conference, Glasgow, UK,
+August 2328, 2020, Proceedings, Part XXVI 16, pages
+139156. Springer, 2020.
+Zhikai Chen, Fuchen Long, Zhaofan Qiu, Ting Yao,
+Wengang Zhou, Jiebo Luo, and Tao Mei. Anchorformer:
+Point cloud completion from discriminative nodes.
+Proceedings of the IEEECVF conference on computer
+vision and pattern recognition, pages 1358113590,
+Ho Kei Cheng and Alexander G Schwing. Xmem: Long-
+term video object segmentation with an atkinson-shiffrin
+memory model. In European Conference on Computer
+Hsin-Ying
+Alexander G Schwing, and Liang-Yan Gui.
+Multimodal 3d shape completion, reconstruction, and
+generation. In Proceedings of the IEEECVF conference
+on computer vision and pattern recognition, pages 4456
+Ruihang Chu, Enze Xie, Shentong Mo, Zhenguo Li,
+Matthias Niener, Chi-Wing Fu, and Jiaya Jia. Diffcom-
+Advances in neural information processing systems, 36:
+Filipe de Avila Belbute-Peres, Kevin Smith, Kelsey
+differentiable physics for learning and control. Advances
+in neural information processing systems, 31:71787189,
+Matt Deitke, Ruoshi Liu, Matthew Wallingford, Huong
+in Neural Information Processing Systems, 36:35799
+Matt Deitke, Dustin Schwenk, Jordi Salvador, Luca
+Kiana Ehsani, Aniruddha Kembhavi, and Ali Farhadi.
+ceedings of the IEEECVF conference on computer vision
+and pattern recognition, pages 1314213153, 2023.
+Yan Di, Ruida Zhang, Zhiqiang Lou, Fabian Manhardt,
+Xiangyang Ji, Nassir Navab, and Federico Tombari.
+geometry-guided point-wise voting.
+In Proceedings of
+the IEEECVF Conference on Computer Vision and Pat-
+tern Recognition, pages 67816791, 2022.
+Nima Fazeli, Samuel Zapolsky, Evan Drumwright, and
+Alberto Rodriguez.
+Learning data-efficient rigid-body
+contact models: Case study of planar impact. In Confer-
+ence on Robot Learning, pages 388397. PMLR, 2017.
+Mathew Halm. Addressing Stiffness-Induced Challenges
+in Modeling and Identification for Rigid-Body Systems
+With Friction and Impacts.
+PhD thesis, University of
+Zexin He and Tengfei Wang.
+large reconstruction models.
+Yicong Hong, Kai Zhang, Jiuxiang Gu, Sai Bi, Yang
+single image to 3d.
+arXiv preprint arXiv:2311.04400,
+Tingbo Hou, Adel Ahmadyan, Liangkai Zhang, Jianing
+pose estimation for unseen objects with weak shape
+supervision. arXiv preprint arXiv:2003.03522, 2020.
+Taylor A Howell, Simon Le Cleach, J Zico Kolter,
+Mac Schwager, and Zachary Manchester.
+differentiable simulator for robotics.
+arXiv preprint
+Shun Iwase, Katherine Liu, Vitor Guizilini, Adrien
+Zero-shot multi-object scene completion.
+European Conference on Computer Vision, pages 96
+113. Springer, 2024.
+Hanwen Jiang, Zhenyu Jiang, Kristen Grauman, and
+Yuke Zhu. Few-view object reconstruction with unknown
+categories and camera poses. International Conference
+on 3D Vision (3DV), 2024.
+Bernhard Kerbl, Georgios Kopanas, Thomas Leimkuhler,
+and George Drettakis. 3d gaussian splatting for real-time
+radiance field rendering. ACM Trans. Graph., 42(4):139
+Yann Labbe, Justin Carpentier, Mathieu Aubry, and Josef
+6d pose estimation.
+In Computer VisionECCV 2020:
+16th European Conference, Glasgow, UK, August 23
+Stephen Tyree, Stan Birchfield, Jonathan Tremblay,
+Justin Carpentier, Mathieu Aubry, Dieter Fox, and Josef
+Sivic. Megapose: 6d pose estimation of novel objects
+via render  compare. arXiv preprint arXiv:2212.06870,
+Simon Le Cleach, Mac Schwager, Zachary Manchester,
+Vikas Sindhwani, Pete Florence, and Sumeet Singh.
+Single-level differentiable contact simulation.
+Robotics and Automation Letters, 2023.
+Yunzhi Lin, Jonathan Tremblay, Stephen Tyree, Patri-
+cio A Vela, and Stan Birchfield.
+Keypoint-based
+category-level object pose tracking from an rgb sequence
+with uncertainty estimation.
+In 2022 International
+Conference on Robotics and Automation (ICRA), pages
+Stefan Lionar, Xiangyu Xu, Min Lin, and Gim Hee Lee.
+hood decoder and repulsive udf.
+Advances in Neural
+Information Processing Systems, 36:6301163022, 2023.
+Minghua Liu, Ruoxi Shi, Linghao Chen, Zhuoyang
+single image to 3d objects with consistent multi-view
+generation and 3d diffusion.
+In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Ruoshi Liu, Rundi Wu, Basile Van Hoorick, Pavel Tok-
+In Proceedings
+of the IEEECVF international conference on computer
+Yuan Liu, Yilin Wen, Sida Peng, Cheng Lin, Xiaoxiao
+alizable model-free 6-dof object pose estimation from rgb
+images. In European Conference on Computer Vision,
+pages 298315. Springer, 2022.
+John McCormac, Ronald Clark, Michael Bloesch, An-
+drew Davison, and Stefan Leutenegger. Fusion: Vol-
+umetric object-level slam. In 2018 international confer-
+ence on 3D vision (3DV), pages 3241. IEEE, 2018.
+Luke Melas-Kyriazi, Iro Laina, Christian Rupprecht, and
+Andrea Vedaldi.
+any object from a single image. In Proceedings of the
+IEEECVF conference on computer vision and pattern
+Lars Mescheder, Michael Oechsle, Michael Niemeyer,
+Sebastian Nowozin, and Andreas Geiger.
+Occupancy
+In Proceedings of the IEEECVF conference on computer
+vision and pattern recognition, pages 44604470, 2019.
+Ben Mildenhall, Pratul P Srinivasan, Matthew Tancik,
+Jonathan T Barron, Ravi Ramamoorthi, and Ren Ng.
+view synthesis. Communications of the ACM, 65(1):99
+Paritosh Mittal, Yen-Chi Cheng, Maneesh Singh, and
+Shubham Tulsiani. Autosdf: Shape priors for 3d comple-
+IEEECVF conference on computer vision and pattern
+Seyed S Mohammadi, Nuno F Duarte, Dimitrios Dimou,
+Yiming Wang, Matteo Taiana, Pietro Morerio, Atabak
+Del Bue, et al.
+robotic grasp. In 2023 IEEE International Conference
+on Robotics and Automation (ICRA), pages 38153822.
+Zak Murez, Tarrence Van As, James Bartolozzi, Ayan
+images. In Computer VisionECCV 2020: 16th European
+Van Nguyen Nguyen, Thibault Groueix, Georgy Poni-
+and Vincent Lepetit.
+timation from a Single Image.
+In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Junfeng Ni, Yixin Chen, Bohan Jing, Nan Jiang, Bin
+and Siyuan Huang. Phyrecon: Physically plausible neural
+scene reconstruction. 2024.
+Jeong Joon Park, Peter Florence, Julian Straub, Richard
+continuous signed distance functions for shape represen-
+tation. In Proceedings of the IEEECVF conference on
+computer vision and pattern recognition, pages 165174,
+6d pose estimation.
+In Proceedings of the IEEECVF
+International Conference on Computer Vision, pages
+Mihir Parmar, Mathew Halm, and Michael Posa. Fun-
+damental challenges in deep learning for stiff contact
+dynamics. In 2021 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 5181
+Samuel Pfrommer, Mathew Halm, and Michael Posa.
+with Smooth, Implicit Representations.
+In The Con-
+ference on Robot Learning (CoRL), 2020. URL https:
+proceedings.mlr.pressv155pfrommer21a.html.
+Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+Patrick Esser, and Bjorn Ommer. High-resolution image
+synthesis with latent diffusion models. In Proceedings
+of the IEEECVF conference on computer vision and
+pattern recognition, pages 1068410695, 2022.
+Daeyun Shin, Charless C Fowlkes, and Derek Hoiem.
+tations for single view 3d object shape prediction.
+Proceedings of the IEEE conference on computer vision
+and pattern recognition, pages 30613069, 2018.
+Changkyu Song and Abdeslam Boularias. Inferring 3d
+shapes of unknown rigid objects in clutter through in-
+verse physics reasoning. IEEE Robotics and Automation
+Manuel Stoiber, Martin Sundermeyer, and Rudolph
+Triebel. Iterative corresponding geometry: Fusing region
+and depth for highly efficient 3d tracking of textureless
+objects. In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition, pages 6855
+Edgar Sucar, Kentaro Wada, and Andrew Davison.
+shape reconstruction. In 2020 International Conference
+on 3D Vision (3DV), pages 949958. IEEE, 2020.
+Jiaming Sun, Zihao Wang, Siyu Zhang, Xingyi He,
+Hongcheng Zhao, Guofeng Zhang, and Xiaowei Zhou.
+models. In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition, pages 6825
+Sudharshan Suresh, Haozhi Qi, Tingfan Wu, Taosha
+nal Kalakrishnan, Roberto Calandra, Michael Kaess,
+Neural feels with neural fields: Visuo-tactile
+perception for in-hand manipulation.
+arXiv preprint
+Zachary Teed and Jia Deng. Droid-slam: Deep visual
+slam for monocular, stereo, and rgb-d cameras. Advances
+in neural information processing systems, 34:16558
+Anh Thai, Stefan Stojanov, Vijay Upadhya, and James M
+3d reconstruction of novel object shapes from
+single images. In 2021 International Conference on 3D
+Vision (3DV), pages 8595. IEEE, 2021.
+Mark Van der Merwe, Qingkai Lu, Balakumar Sundar-
+continuous 3d reconstructions for geometrically aware
+grasping.
+In 2020 IEEE International Conference on
+Robotics and Automation (ICRA), pages 1151611522.
+Chen Wang, Roberto Martn-Martn, Danfei Xu, Jun Lv,
+Cewu Lu, Li Fei-Fei, Silvio Savarese, and Yuke Zhu. 6-
+keypoints. In 2020 IEEE International Conference on
+Robotics and Automation (ICRA), pages 1005910066.
+Bowen Wen and Kostas Bekris. Bundletrack: 6d pose
+tracking for novel objects without instance or category-
+level 3d models, 2021.
+Bowen Wen, Jonathan Tremblay, Valts Blukis, Stephen
+tracking and 3d reconstruction of unknown objects. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 606617, 2023.
+Bowen Wen, Wei Yang, Jan Kautz, and Stan Birchfield.
+of novel objects. arXiv preprint arXiv:2312.08344, 2023.
+Johnson-
+mapping of unknown tabletop scenes. In 2024 IEEERSJ
+International Conference on Intelligent Robots and Sys-
+tems (IROS), pages 10781085. IEEE, 2024.
+Chao-Yuan
+Jitendra
+Christoph
+Gkioxari.
+Multiview compressive coding for 3d reconstruction. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 90659075, 2023.
+Yushuang Wu, Luyue Shi, Junhao Cai, Weihao Yuan,
+Lingteng Qiu, Zilong Dong, Liefeng Bo, Shuguang Cui,
+and Xiaoguang Han. Ipod: Implicit field learning with
+point diffusion for generalizable 3d object reconstruc-
+tion from single rgb-d images.
+In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Yinghao Xu, Zifan Shi, Wang Yifan, Hansheng Chen,
+Ceyuan Yang, Sida Peng, Yujun Shen, and Gordon Wet-
+efficient 3d reconstruction and generation. In European
+Conference on Computer Vision, pages 120. Springer,
+Xingguang Yan, Liqiang Lin, Niloy J Mitra, Dani
+representation. In Proceedings of the IEEECVF Confer-
+ence on Computer Vision and Pattern Recognition, pages
+Xumin Yu, Yongming Rao, Ziyi Wang, Zuyan Liu, Jiwen
+with geometry-aware transformers. In Proceedings of the
+IEEECVF international conference on computer vision,
+Jason Y Zhang, Deva Ramanan, and Shubham Tulsiani.
+single objects in the wild. In European Conference on
+Computer Vision, pages 592611. Springer, 2022.
+Weiming Zhi, Haozhan Tang, Tianyi Zhang, and Matthew
+Johnson-Roberson.
+Simultaneous geometry and pose
+estimation of held objects via 3d foundation models.
+IEEE Robotics and Automation Letters, 2024.
+Zi-Xin Zou, Zhipeng Yu, Yuan-Chen Guo, Yangguang Li,
+Ding Liang, Yan-Pei Cao, and Song-Hai Zhang. Triplane
+meets gaussian splatting: Fast and generalizable single-
+view 3d reconstruction with transformers. In Proceedings
+of the IEEECVF Conference on Computer Vision and
+Pattern Recognition, pages 1032410335, 2024.
+APPENDIX
+A. BundleSDF Hyperparameters
+Description
+Symbol in
+RGB loss weight
+Uncertain free space loss weight
+Uncertain free space SDF target
+Empty space loss weight
+Near-surface space loss weight
+Truncation distance of the near-surface
+SDF target corresponding to the trunca-
+tion distance
+Eikonal loss weight
+(Ours) Support point loss weight on (8)
+Hyperplane-constrained
+weight on (11)
+(Ours) Convexity loss weight on (13)
+TABLE II: Hyperparameters for modified BundleSDF .
+BundleSDF  employed five loss terms to optimize the
+object SDF and poses:
+RGB loss: a penalty on the discrepancy between the color
+rendered from the SDF and object pose and the observed
+RGB value.
+Uncertain free space loss: encourages the SDF to predict
+a small constant in regions near observed object surfaces.
+This preserves the shapes contour while being able to
+quickly adapt to more reliable observations.
+Empty space loss: encourages the foreground empty
+space in front of the depth readings up to a truncation
+distance to predict the constant truncation SDF.
+Near-surface loss: for near-surface points with distance
+to the depth readings under the truncation distance, en-
+courages the SDF to be predicted exactly.
+Eikonal loss: encourages the regressed SDF to have a
+gradient of magnitude 1 at any point. While described in
+, this loss term has a weight of 0 in BundleSDFs
+official implementation.
+The weights for the loss terms introduced in Vysics are listed
+in Table II.
+B. PLL Hyperparameters
+Description
+Symbol in
+Prediction loss weight
+Complementarity loss weight
+Dissipation loss weight
+Penetration loss weight
+(Ours) BundleSDF loss weight on (6)
+TABLE III: Loss term weights for modified PLL [9, 53].
+PLL [9, 53] features a violation-based implicit loss function
+with 4 main components:
+Prediction loss: a penalty on the difference between the
+dynamics models predicted next state (using hypothe-
+sized contact forces) and the observed next state.
+Complementarity loss: a penalty on violation of con-
+tact complementarity, i.e. penalize any predicted contact
+forces if the geometry model does not predict contact.
+Dissipation loss: a penalty on violation of the Coulomb
+friction model.
+Penetration loss: a penalty on the penetration of the
+current geometric model into the known environment
+surface at the end of the time step.
+PLL learns dynamics models as a bilevel optimization prob-
+selected to minimize the sum of the above terms. 2) Between
+descent. See  for more details. We add (6) as a term
+directly to the above from PLL with the loss weights according
+to Table III.
+C. Other Vysics Hyperparameters
+1) Hyperparameters for converting from PLL outputs to
+modified BundleSDF inputs: IV-B describes querying the
+PLL geometry for supervising BundleSDF via (8) and (11).
+Since odometry-based contact learning may lack signal in
+many directions, data for supervising the next round of
+BundleSDF is extracted by running all of the input trajectory
+data again (after PLL has already been trained) through PLLs
+violation-based implicit loss. Vysics retains only the queried
+points with the top fraction of hypothesized contact normal
+forces  we used the top 30. Thus, we yield hypothesized-
+force-filtered data points {(np, sp)i} that confidently saw
+contact during PLL training.
+We go from one DSF inputoutput pair (np, sp) to many
+SDF inputsoutputs {(p, l)j} subject to (8) by sampling on
+the ray r defined by (np, sp):
+100 points randomly sampled up to 5mm from sp in the
+np direction (into the convex hull),
+100 points randomly sampled up to 5mm from sp in the
+np direction, and
+50 points randomly sampled up to 10cm from sp in the
+np direction.
+Per epoch, BundleSDF randomly picks up to 1K of these SDF
+inputoutput pairs.
+For obtaining SDF inputslower bounds {(q, lmin)k} subject
+to (11), we first sample 25K points evenly-spaced on the PLL
+mesh. We filter out any points that are more than 1mm away
+from a supporting hyperplane defined by the hypothesized-
+force-filtered support points and directions {(np, sp)i}. This
+yields a set of points sampled on the PLL learned mesh plus
+their associated faces outward normal, {( m, v)n}. Sampling
+on the mesh instead of using the support points and directions
+directly yields supervision over a broader portion of the
+geometry even after filtering based on supporting hyperplane
+can be highly local. We go from one directionpoint pair
+{( m, v)} to many SDF inputslower bounds {(q, lmin)k} by
+200 points randomly sampled within a cylinder of radius
+m direction,
+100 points randomly sampled within a cylinder of radius
+m direction, and
+100 points randomly sampled within a cylinder of radius
+the  m direction.
+Per epoch, BundleSDF randomly picks up to 5K of these
+inputSDF limit pairs.
+2) Hyperparameters for converting from BundleSDF out-
+puts to modified PLL inputs:
+IV-A describes querying
+the BundleSDF geometry to obtain DSF inputoutput pairs
+{(nv, sv)i} for supervising PLL via (6). We query 5,768
+approximately evenly-spaced nv directions and obtain their
+corresponding support points sv on the BundleSDF geometry.
+Per epoch, PLL randomly picks up to 1K of these points to
+incorporate into its loss via (6).

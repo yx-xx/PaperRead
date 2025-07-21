@@ -1,0 +1,2271 @@
+=== PDF文件: Boxi Design Decisions in the Context of Algorithmic Performance for Robotics.pdf ===
+=== 时间: 2025-07-21 14:24:46.915534 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Algorithmic Performance for Robotics
+Jonas Frey,1,3
+Turcan Tuna,1
+Lanke Frank Tarimo Fu,2
+Cedric Weibel1
+Katharine Patterson1
+Benjamin Krummenacher1
+Matthias Mller1
+Julian Nubert1,3
+Maurice Fallon2
+Cesar Cadena1
+Marco Hutter1
+1 ETH Zurich
+2 University of Oxford
+3 Max Planck Institute for Intelligent Systems
+Equal contribution. Contact: jonfreyethz.ch
+Fig. 1: Boxi can be deployed handheld, on a legged robot, or a wheeled robot across a variety of environments.
+AbstractAchieving robust autonomy in mobile robots op-
+erating in complex and unstructured environments requires a
+multimodal sensor suite capable of capturing diverse and com-
+plementary information. However, designing such a sensor suite
+involves multiple critical design decisions, such as sensor selection,
+component placement, thermal and power limitations, compute
+the importance of these key aspects is widely recognized, they
+are often overlooked in academia or retained as proprietary
+knowledge within large corporations. To improve this situation,
+we present Boxi, a tightly integrated sensor payload that enables
+robust autonomy of robots in the wild. This paper discusses the
+impact of payload design decisions made to optimize algorithmic
+performance for downstream tasks, specically focusing on state
+estimation and mapping. Boxi is equipped with a variety of sensors:
+two LiDARs, 10 RGB cameras including high-dynamic range,
+global shutter, and rolling shutter models, an RGB-D camera, 7
+inertial measurement units (IMUs) of varying precision, and a
+dual antenna RTK GNSS system . Our analysis shows that time
+impact on the state estimation performance. We frame this analysis
+in the context of cost considerations and environment-specic
+challenges. We also present a mobile sensor suite cookbook
+to serve as a comprehensive guideline, highlighting generaliz-
+able key design considerations and lessons learned during the
+development of Boxi. Finally, we demonstrate the versatility
+of Boxi being used in a variety of applications in real-world
+I. INTRODUCTION
+Designing a capable perception payload is fundamental to
+the success of mobile robotics systems. The performance of
+perception algorithms is inherently upper bounded by the
+quality of the input sensor data, which might be corrupted by
+aleatoric sensor noise and epistemic design issues, regardless of
+the applied algorithm. Therefore, it is key to select the appro-
+priate sensors while considering time synchronization, sensor
+hardware design decisions to enable the next generation of
+mobile robots to operate reliably in complex environments.
+Previous studies have emphasized the critical role of time
+synchronization [75, 70, 7], rolling shutter correction ,
+SLAM performance under various conditions [45, 76], and
+accurate intrinsic and extrinsic calibration [56, 26, 16, 30, 44]
+in determining downstream task performance.
+To this end, we introduce Boxi, a compact, standalone
+sensing payload designed to enable the development of
+autonomy solutions for mobile robots, with a particular focus
+on quadrupedal legged robots. Boxi integrates best practices in
+system design, and was co-developed in collaboration with
+Leica Geosystems. We leverage Boxi to establish a direct link
+between design decisions and algorithmic performance on
+downstream tasks such as robot localization.
+System Name
+Other Sensors
+GNSS Solution
+Reference
+SubT-MRS
+FLIR Boson
+Versatile
+CatPack[33, 54]
+FLIR Lepton 3.5 thermal
+VersaVIS
+Versatile
+Shepards Stick
+Handheld
+FusionPortable
+2x Event Camera
+RTKMOCAPScanner
+Versitale
+Scanner  RTK
+HW (STM32 MCU)
+Scout V1.0
+Versatile
+(Industrial) BLK2Go
+Handheld
+WHU-Helmet
+EverySync
+Wheeled Robot
+INS  MOCAP
+Wheeled Robot
+TartanDrive [68, 61]
+Offroad Car
+Handheld  Wheeled
+Boxi (Ours)
+1x Barometer
+Legged Robot
+TABLE I: Overview of Existing Sensor Payloads. Symbols:  present,  absent.
+The design of Boxi is driven by four primary objectives:
+(1) developing a state-of-the-art mobile robot sensor suite,
+(2) fostering a better understanding between payload design de-
+cisions and algorithmic performance, (3) allowing the collection
+of large scale multi-sensor datasets with high-quality calibration
+and time synchronization and (4) enabling autonomous mobile
+navigation. Based on these objectives, we equipped Boxi with
+accessible state-of-the-art sensors featuring two spinning Li-
+DARs (repetitive and non-repetitive), 10 cameras (high-dynamic
+based depth camera, 7 inertial measurement units (IMUs) of
+varying precision and cost (5 USD to 12 000 USD), as well as
+a dual antenna RTK-GNSS system  and tight integration
+to Leica Geosystems MS60 Total Station (Reector Prism
+Receiver Link). Compared to autonomous driving payloads,
+Boxi is more compact and lightweight, but shares similar design
+requirements provided in . It is based on the principle that
+payload design must consider algorithmic performance .
+To support and extend this notion to general robotics, we
+present a sensory payload cookbook that summarizes design
+decisions and lessons learned, enabling the development of
+future perception systems beyond Boxi.
+onboard state estimation, mapping, and navigation. At the core
+of this work, we use Boxi to conduct a rigorous study to
+investigate the state estimation performance across multiple
+dimensions (e.g., accuracy, robustness to time, and extrinsic
+calibration) with respect to hardware and software design
+decisions in 7 different environments.
+We begin by analyzing the performance of different sensor
+modalities using popular and state-of-the-art approaches for
+each modality (LiDAR, Camera, Proprioception, and GNSS).
+We then compare different camera types (high dynamic range,
+global shutter, and rolling shutter) in terms of image quality
+and Visual Interial Odometry (VIO) performance. In addition,
+we compare the performance impact of IMUs (5 USD to
+12 000 USD) on dead-reckoning and LiDAR Interial Odometry
+(LIO) performance. Lastly, we simulate time synchronization
+and extrinsic calibration errors to investigate the effect on
+state estimation. Through the steps described above, we will
+address the following research question: Which sensors should
+be purchased given the mapping accuracy requirements, budget
+are extrinsic and intrinsic calibration, as well as time syn-
+further research, the full hardware and software design is made
+available open-source.
+In summary, the main contributions of this work are:
+multi-modal sensor payload optimized for data collection
+on mobile robotic platforms.
+Ablation studies on the effect of modalities, time syn-
+chronization accuracy, and extrinsic calibration accuracy
+across multiple real-world environments.
+Compiling a comprehensive cookbook, featuring insights,
+lessons learned, and best practices for designing payloads
+for robotic platforms.
+II. RELATED WORKS
+A. Payloads for Autonomous Driving
+The development of mobile mapping systems initially
+focused on integration into wheeled platforms due to their
+capacity to accommodate heavy sensors and their ability to
+drive long distances . These systems often incorporated a
+combination of cameras, LiDAR sensors, IMU, and GNSSa
+sensor suite that continues to form the foundation of our work.
+One of the milestones in the development of autonomous driv-
+ing was marked by the introduction of the KITTI dataset ,
+which featured comprehensive data from cameras, LiDAR,
+the eld today. Subsequent data collection platforms focused
+on semantic understanding  and temporal changes .
+While the previous works were primarily driven by academia,
+multiple industry-driven sensory payloads were used to release
+high-quality datasets, such as NuScenes , Waymo , and
+Argoverse . These datasets often feature similar sensor con-
+gurations; however, detailed information on calibration, time
+able. More recent efforts have introduced modern sensors such
+as 360Field of View (FoV) radar  or event cameras .
+B. Compact Vision Payloads
+Within the last decade, a variety of more mobile and
+lightweight payloads based on multi-camera setups were intro-
+Co-Design
+Deployment
+Calibration
+3 x HDR Camera
+1 x Stereo Camera
+5 x Global Shutter
+1 x Hesai XT32
+1 x Livox Mid-360
+1 x Mini-Prism GRZ101
+1 x GNSS Receiver
+7 x IMUs 5USD - 10kUSD
+Mechanical
+Electrical
+Software
+Boxi Components
+Fig. 2: Co-design of hardware, electrical systems, software, and calibration is essential for developing a robust sensor payload.
+duced. The authors in  introduced the DLR 7, a stereo cam-
+era system with FPGA-based time synchronization, enabling
+handheld operation at just 800 g. Similarly, Nikolic et al.
+developed an ultra-lightweight unit integrating stereo cameras
+and an IMU with FPGA-based synchronization and exposure
+time compensation, tailored for online visual feature extraction.
+Zhang et al.  presented the PIRVS system, which directly
+integrated the SLAM algorithms on-board, while considering
+the latency between the image exposure period and CPU
+processing. Expanding on these designs, Tschopp et al.
+introduced VersaVIS, an open, versatile multi-camera and IMU
+sensor suite with precise hardware synchronization, which later
+evolved into the commercial Sevensense CoreResearch .
+Although all previous work highlights the importance of calibra-
+tion and time synchronization and includes FPGAs or ISPs for
+processing or triggering, no systematic experimental evaluation
+of their impact on state estimation performance is provided.
+1) Compact Multi-Modal Sensor Payloads: The develop-
+ment of more compact multi-modal sensor suites has been
+of interest in industry and research
+[64, 75, 54] driven by
+their promising potential to enhance precision and resilience
+in challenging environments. An industrial example is the
+Leica Geosystems BLK2Go , a tightly integrated handheld
+scanning device, which is equipped with three global shutter
+that provides measurements up to 3 mm accuracy.
+EverySync  is a multi-sensor payload focusing on time
+synchronization accuracy. EverySync relies on the methods
+developed in VersaVIS  to perform triggering and time
+synchronization. Moreover, the authors of EverySync provided
+an extensive analysis of accurate time synchronization and
+achieved a time synchronization accuracy of 1 ms between
+and Inertial payloads [31, 54, 35] showed the importance of
+time synchronization and extrinsic calibration between modali-
+ties for SLAM and state estimation purposes. Liu et al.
+integrated and demonstrated a multi-LiDAR, multi-camera,
+and multi-IMU setup with precise time synchronization up to
+1 s using Precision Time Protocol (PTP) and a self-designed
+STM32 MCU triggering board. Recently, Nguyen et al.
+integrated a sensor payload and proposed using a continuous
+time B-spline trajectory representation for reference pose esti-
+mation. They showed that this formulation mitigates the impact
+of time synchronization errors for SLAM and state estimation
+evaluation.
+III. OVERVIEW
+A. How to read the paper
+This paper is structured as follows. Section III-B details
+Boxis key specications, providing the foundation for the
+algorithmic performance analysis provided in Section IV, which
+is self-contained and highlights the most relevant experiments
+and ndings. Finally, Section V serves as a comprehensive
+lessons learned as well as generalizable ndings for the design
+of future sensor payloads.
+B. Boxi Overview
+Boxi is designed to enable autonomy and provide a
+comprehensive understanding of the payload design decisions
+on downstream task performance. This requires the integration
+of different sensing modalities and sensor types. Therefore,
+Boxi includes exteroceptive sensors such as two LiDARs and
+a stereo camera setup for geometric perception. In addition,
+the payload is equipped with high-dynamic range, global
+and various tiers of IMUs for inertial sensing. Boxi provides
+time synchronization accuracy ranging between 5 ms to 10 s
+(sensor-dependent Section V-D2), and accurate extrinsic
+calibrations (cam-to-cam 0.3 mm1, cam-to-LiDAR 1.0 mm
+corner detection accuracy) between all cameras and LiDARs.
+Precise extrinsic calibration is achieved by CNC machining
+Boxi out of an aluminum mono-block with a manufacturing
+precision of 0.05 mm in combination with state-of-the-art
+calibration algorithms (customized version of Kalibr [56, 26],
+IMU intrinsic , LiDAR extrinsic ).
+The cameras and LiDARs on Boxi are carefully positioned to
+capture the near-eld surroundings of the robot, which is crucial
+for locomotion and navigation as opposed to a reality capture
+setup. The complete sensor payload weighs 7.1 kg, making it
+Description
+est. Price
+Livox Mid-360
+6.5 W (avg)
+Hesai XT-32
+10 W (avg)
+3000 USD
+(CoreResearch)
+Sevensense CoreResearch
+12 W (max)
+2000 USD
+TierIV C1
+1.7 W (max)
+Stereolabs ZED2i
+2 W (max)
+Reference
+Modied Leica AP20
+MS60 Total Station Bluetooth Communication  Synchronization
+5000 USD
+Mini-Prism GRZ101
+Static Accuracy 2 mm (3),
+hFoV 360,
+1000 USD
+Novatel Span CPT7
+Dual RTK GPS, Intertial Explorer, TerraStar
+18 W(max)
+40 000 USD
+3GNSSA-XT-1
+Multiband GPS Antenna [BeiDou, L-Band, GLONASS, GPS, Galileo, Navic]
+1 W (each)
+Honeywell HG4930
+20 ggrav, GBI 0.25 h1,
+ABI 0.025 mg
+2 W (max)
+12 000 USD
+(STIM320)
+Safran STIM320
+5 ggrav,
+GBI 0.3 h1,
+2 W (max)
+8000 USD
+(AP20-IMU)
+Proprietary IMU (AP20)
+Mid-Range
+Analog Devices ADIS16475-2
+8 ggrav,
+GBI 2.5 h1,
+ABI 0.0036 mg
+Bosch BMI085 (CoreResearch)
+16 ggrav
+TDK ICM40609 (Livox)
+32 ggrav
+(ZED2i-IMU)
+Unknown (ZED2i)
+TABLE II: Boxi Components: GSGlobalShutter, RSRollingShutter. Used camera settings are provided under their respective sections.
+ABIAccelerometer Bias Instability, GBIGyro Bias Instability. The (AP20) requires a Leica MS60 Total Station at a cost of 50 000 USD.
+suitable for deployment with a harness or with adaptable mount-
+ing options that can be deployed on different robotic platforms.
+The sensor arrangement is optimized for near-eld perception
+(stereo camera baseline of 12 cm) and long-range using a high-
+accuracy repetitive LiDAR. Throughout this work, each sensor
+will be referred to by its abbreviation outlined in Table II.
+IV. ALGORITHMIC PERFORMANCE
+A. Real-World Datasets
+We evaluated our hardware and software decisions on
+data from seven real-world environments collected in the
+wild (Figure 3), which are part of the GrandTour dataset.
+All data were gathered by the legged robot ANYmal
+equipped with Boxi and teleoperated by an expert human. The
+selected scenarios are diverse in lighting and include indoor
+and outdoor settings, conned spaces, wide open spaces, and
+both structured and unstructured scenes. The deployments
+take between 3 min-7 min and cover distances around 300 m
+and more details are available in Appendix A.
+B. Algorithms
+As a representative of multi-camera visual-inertial state esti-
+loop closures. Moreover, a customized version of the state-
+of-the-art LiDAR-inertial geometric-observer based odometry
+pipeline Direct LiDAR Inertial Odometry (DLIO)  is
+used to represent tightly coupled LiDAR-inertial methods. In
+represent the performance of proprioceptive state-estimation
+methods. Alongside these modules, the post-processed GNSS-
+IMU solution of the Inertial Explorer  is provided as an
+industrial positioning solution for outdoor datasets. The sum-
+mary of the algorithms is provided in Table III.
+Algorithm
+Modality
+Description
+Visual-Inertial
+Multi-Camera VIO with Loop Closure
+LiDAR-Inertial
+Tightly coupled Filter-based LIO
+Kinematic-Inertial
+Proprioceptive Filter-based
+Inertial Explorer
+GNSS-Inertial
+Industrial ofine INS
+TABLE III: Summary of the State Estimation Algorithms
+C. State Estimation - Effect of Modality
+Different sensors provide complementary information that
+allows a robot to operate in various environments that are
+challenging for one or more sensor modalities. The goal of
+this analysis is to present a rough estimate of how different
+modalities perform across diverse environments, helping to
+select the most suitable sensor for specic environments and
+state estimation requirements. Before interpreting the results, it
+is crucial to understand that the performance of each modality
+is highly dependent on the motion pattern (e.g., motion blur,
+saturation effects) and the environment (e.g., LiDAR degrada-
+It is not possible to provide fully generalized claims that apply
+to all possible scenarios, but we can deduce guiding principles.
+We compare DLIO  (fuses data from Hesai and
+HG4930), OKVIS2  (fuses data from CoreResearch-
+Stereo pair and HG4930), GNSS  (IE-TC more details in
+Appendix B) and TSIF . Table IV and Table V presents
+Mission Name
+Kinematic
+Research Station
+Mountain Ascent
+Excavation Site
+Demolished Building
+Warehouse
+TABLE IV: Modality Comparison in RTE per dataset.
+Excavation Site
+Research Station
+Demolished
+Mountain Ascent
+Fig. 3: Subset of the GrandTour Datasets Overview: (top-row) left, front, and right HDR camera images; (bottom-row) satellite image with
+projected GNSS path and camera image viewpoint; The warehouse dataset is not displayed.
+Mission Name
+Kinematic
+Research Station
+Mountain Ascent
+Excavation Site
+Demolished Building
+Warehouse
+TABLE V: Modality Comparison in ATE per dataset.
+Relative Trajectory Error (RTE) and Absolute Trajectory Error
+(ATE) results respectively across all seven tested environments
+compared against the total station (TPS) measurements. DLIO,
+consistently outperforms OKVIS2 and kinematic-based state
+estimation in terms of ATE. With sufcient satellite coverage,
+the ofine-optimized GNSS solution provides highly accurate
+terms of RTE, kinematic-based state estimation performs well,
+verifying its common use for control.
+D. State Estimation - LiDAR Comparison
+In the following, all Absolute Position Error (APE) and
+Relative Position Error (RPE) error metric computations are
+done with respect to our 6-Degrees of Freedom (DoF) ground
+truth pose estimate, which is obtained by fusing TPS, IMU,
+and Inertial Explorer post-processed poses (see Appendix B).
+We test how the Hesai, an accurate long-range LiDAR,
+compares against the lower-cost and lightweight Livox. For
+Camera Comparision
+Alphasense
+LiDAR Comparision
+Fig. 4: Camera and LiDAR Comparison using OKVIS2 (HG4930)
+and DLIO (HG4930). (A-2, A-3, A-1, Z-2, H-3) indicates respective
+camera conguration (see Section IV-E). The Camera is evaluated
+on the Mountain Ascend dataset while the LiDAR comparison is
+provided on the Hike (Open) and Warehouse (Conded) datasets.
+this comparison, we selected an open (Hike) and conned
+environment (Warehouse) and reported the results in Figure 4.
+The Hike dataset contains limited geometric features compared
+to the Warehouse dataset. Across both datasets, the Hesai
+outperforms the Livox. However, in the dataset with a large
+featureless space, the gap is more signicant.
+E. State Estimation - Camera Comparison
+In this study, we compare the accuracy of different cameras
+for VIO using OKVIS2. We evaluated multiple different
+camera congurations:
+ADIS16475
+AP20-IMU
+Mean  0.5x Std Dev
+ADIS16475
+AP20-IMU
+IMU type
+Mean  0.5x Std Dev
+Fig. 5: Effect of different IMUs on the performance of DLIO module
+on the Mountain Ascend dataset. The generated APE and RPE errors
+are visualized.
+with the number representing the camera conguration. Detailed
+mounting and FoV specications are available in Section V-C1.
+We evaluated the performance in the Mountain Ascent
+dataset (see Figure 4). Both the H-1 and Z-1 congurations
+The CoreResearch unit, utilizing global shutter cameras,
+consistently delivers the best accuracy across all environments.
+For the HDR image, we provide OKVIS2 with the timestamp
+of the center line in the middle of the exposure period; however,
+the rst line is captured approximately 15 ms earlier, while the
+last line is captured 15 ms later. Our results indicated that not
+accounting for the rolling shutter effect signicantly degrades
+performance. The ZED2i rolling shutter camera is connected
+via USB (unlike the HDR camera, which uses GMSL2).
+limited to the accuracy of the USB serial buffer readout. The
+three HDR cameras have limited overlapping FoV compared
+to the ZED2i stereo-pair. This explains the worse performance
+of the three HDR cameras in comparison to the two ZED2i
+cameras. Our results highlight the need to account for the
+rolling shutter effect, and our paired multi-camera dataset
+enables rigorous future studies and algorithmic development.
+F. State Estimation - Effect of IMUs
+IMUs are fundamental to state estimation due to their high-
+rate measurements and their ability to perceive angular velocity
+alongside linear acceleration. Numerous IMUs with different
+noise characteristics and costs are available to researchers.
+While the general relation between noise characteristics and
+algorithmic performance is well-understood, how this relation
+can manifest itself in real-world scenarios has received limited
+attention [20, 49]. To bridge this gap, we tested six different
+IMUs using DLIO  with Hesai LiDAR again on the Moun-
+tain Ascend dataset. Figure 5 shows only a marginal difference
+in APE for different IMUs. We hypothesize that this is the
+case due to the tightly coupled LiDAR point cloud registration.
+The point cloud registration corrects the inaccuracies in the
+Time [s]
+TPS Measurements
+Time [s]
+TPS Measurements
+Time [s]
+TPS Measurements
+Fig. 6: IMU Dead-Reckoning during TPS measurement dropout (4.5 s-
+9 s and 17 s-22 s).
+IMU state propagation and ensures the correct bias estimation.
+To analyze the impact of IMU noise characteristics indepen-
+dent of the tightly-coupled LiDAR processing, we conducted a
+dead-reckoning experiment. The TPS measurements are fused
+with IMU measurements using Holistic Fusion (HF) , simi-
+lar to our ground truth pose estimate explained in Appendix B.
+During a TPS measurement dropout, IMU dead-reckoning
+provides insight into the performance difference based on the
+noise characteristics. The results are shown in Figure 6. TPS
+measurements are unavailable between 4.5 s to 9 s as well as
+from 17 s to 22 s. As seen in Figure 6, the tactile-grade HG4930
+performs the best, resulting in a smooth alignment with the
+TPS measurement after the dropout period. On the other hand,
+consumer-grade IMUs diverge after a short period (around 5 s)
+of dead-reckoning time. For a fair comparison, Holistic Fusion
+was provided with the noise characteristics specied in the
+IMU datasheet.
+G. State Estimation - Ablations
+The importance of accurate time synchronization and extrin-
+sic sensor calibration has been highlighted by the community
+as discussed in Section I and Section II. Despite this common
+calibration accuracy are often vaguely stated. Therefore, we
+provide an ablation study on how different time and extrinsic
+calibration offsets affect performance.
+1) Perturbation on Time Synchronization: Similar to Sec-
+tion IV-F, we deployed DLIO fusing Hesai and HG4930
+measurements. We added different constant time delays to
+the IMU measurements and provided APE and RPE metrics
+in Figure 7. A time offset less than 5 ms negligibly impacts
+performance. We attribute this to the fact that the HG4930
+Mean  0.5x Std Dev
+Time Oset Value [ms]
+Mean  0.5x Std Dev
+Fig. 7: Time Offset - Performance DLIO (Hesai  HG4930) in APE
+and RPE with offset applied to the IMU measurements.
+Mean  0.5x Std Dev
+Translation Oset Value [mm]
+Mean  0.5x Std Dev
+Fig. 8: Extrinsic Translation Offset - Performance DLIO (Hesai
+HG4930) in APE and RPE with an offset applied to the positive X-
+axis of the extrinsic calibration.
+IMU operates at 100 Hz, with a respective measurement period
+of 10 ms, which is larger than the time offset. We validated
+the accuracy of the IMU time synchronization in Section V-D2
+and further found that different IMUs have varying offsets,
+which can be potentially attributed to internal ltering.
+2) Perturbation on Extrinsic Calibration: Another funda-
+mental property of a well-designed sensor payload is the avail-
+ability of reliable and accurate extrinsic calibration between
+sensors. Similar to Section IV-G1, we use DLIO and perturb
+the extrinsic calibration in translation and rotation and provide
+the results in Figure 8 and Figure 9, respectively.
+Below 5 mm translation offset, DLIO performance is
+minimally impacted (Figure 8). Moreover, as the offset
+from this systematic error, and the LiDAR registration cannot
+converge. DLIO does not perform online extrinsic calibration.
+The translation offset might be negated by the point cloud
+registration process employed after the IMU state propagation.
+The rotational component of the extrinsic calibration is more
+sensitive to perturbations, and errors as small as 2cause the
+estimates to diverge (Figure 9). This observation aligns with
+the fact that the Hesai is a long-range LiDAR, and the far-
+away measurements are affected more by the rotational offset.
+propagate the state; this geometric observer has convergence
+characteristics in rotation and subsequently in translation,
+which explains the robustness against the perturbations.
+Mean  0.5x Std Dev
+Rotation Oset Value [deg]
+Mean  0.5x Std Dev
+Fig. 9: Extrinsic Rotational Offset - Performance DLIO (Hesai
+HG4930) in APE and RPE with an offset applied to the positive pitch
+angle of the extrinsic calibration.
+Alphasense
+Fig. 10: Image Quality Comparison. The HDR camera excels in dark
+and low-light conditions. The ZED2i misses details in challenging
+scenarios (Row 1: Tree, Row 2: Sky). The CoreResearch struggles
+with overexposure and misses crucial details that are essential for
+localization.
+3) Summary: Using Boxi, we demonstrated that performance
+across modalities varies among the tested environments. Naively
+replacing images recorded from a global shutter camera with
+rolling shutter images results in a signicant performance drop.
+to a lower-accuracy short-range LiDAR leads to a signicant
+decrease in performance. While using a tactile-grade IMU does
+not directly lead to superior state estimation for DLIO, in the
+dead reckoning scenarios, the lower noise tactile-grade IMU
+can temporarily mitigate drift effectively. Our ndings show
+that DLIO is robust to small time-delay errors (up to 2 ms) and
+large translation offsets. However, accurate rotational extrinsic
+calibration remains critical to ensure precise state estimation.
+H. Perception - Mapping
+To showcase that Boxi is not only a SLAM-ready payload
+but also an autonomy-ready payload, we integrated on-board
+mapping and traversability analysis. Namely, we integrated a
+previously established elevation mapping  framework that
+combines visual and geometric information (see Figure 11-
+d). This framework relies on accurate timestamps and precise
+extrinsic calibration to associate camera images with the map.
+We choose HDR camera images to be projected onto the
+Fig. 11: Example Deployment of Boxi: (a) TPS setup used for the ground truth pose generation. (b) Accurate intrinsic and extrinsic camera
+calibration enables precise projection of RGB data onto the colorized elevation map. (c) Accumulated point cloud and trajectory visualization
+based on the registration by the DLIO module. (d) The 2.5D elevation mapping shows the smoothness of the local geometry perception. (e)
+Traversability analysis derived from the elevation map. (f) 3D Volumetric map generated using the Wavemap  module.
+map for their superior image quality. While various works
+have previously shown that different cameras yield varying
+performance for state estimation, in Figure 10, we show the
+inuence of different lighting conditions on image quality. It
+is clear that the HDR camera consistently provides the best
+visual image quality across all environments, which is crucial
+for effective mapping and scene understanding. Additionally,
+we demonstrate how the elevation map can be utilized to assess
+traversability risks for a legged robot (Figure 11-e).
+We also integrated the 3D volumetric mapping framework,
+sentation of the scene and is capable of handling overhanging
+obstacles (Figure 11-f). The 3D representations and elevation
+map can be used by the robot for downstream path planning.
+I. Limitations - Algorithmic Performance
+Even when evaluating methods over a large number of
+hold across environments, motion characteristics, and different
+systems. However, the above represents our best attempt to
+quantitatively assess the sensitivity of different hardware design
+decisions on state estimation performance.
+We have tuned the parameters of DLIO to the best of
+our knowledge to achieve competitive performance across all
+datasets. However, for OKVIS2, we did not ne-tune the param-
+eters for each camera setting. In addition, using a framework
+that directly incorporates rolling shutter compensation could
+offer deeper insights, as performance is signicantly affected
+when rolling shutter effects are not accounted for. Additionally,
+for many experiments, we do not measure effects in isolation
+e.g., changing the shutter type alone is not feasible, as the
+underlying imaging sensor differs between cameras. While
+we ensured that resolution and FoV were comparable (e.g.,
+between HDR and CoreResearch), other factors, such as dy-
+namic range and sensor characteristics, still vary. While we
+can provide accurate extrinsic and intrinsic calibration for the
+camera and LiDARs, we found preliminary evidence for a time
+synchronization offset between IMUs and other sensors within
+the IMU periods. However, since our evaluation across multiple
+datasets did not reveal a strong dependence of DLIO on time
+are valid. Further time synchronization validations are available
+in Section V-D2.
+V. COOKBOOK TO A SENSOR PAYLOAD
+In this section, we provide a generalizable cookbook to
+design a sensor payload, covering the most important require-
+ments. We explain at rst general requirements (Section V-A),
+followed by the component selection (Section V-B), mechanical
+design (Section V-C), electronics and communication (Sec-
+tion V-D), calibration (Section V-E), software (Section V-F),
+and our lessons learned (Section VI).
+A. Boxi Payload Requirements
+We required Boxi to rely only on an external power source
+and provide a communication line for simple and seamless
+integration into different platforms without requiring substantial
+adaptations or modications. In addition to being compact, the
+system should be exible and expandable, allowing for the
+retrotting of additional sensing modalities. A rigid and stiff
+chassis is essential for protecting all components as well as
+reliable extrinsic calibration, which must remain consistent over
+time. For Boxi, the observability of the kinematic chain between
+the robot and the sensor payload is required, therefore rendering
+hardware low-pass ltering, such as vibration dampeners, not
+suitable.
+The payload should incorporate mature, proven, and
+production-ready sensors, which have already been tested in
+real-world scenarios. To enable on-board autonomy, the Boxi
+has to offer sufcient computational power. This includes
+adequate CPU and GPU capabilities as well as enough band-
+hour datasets. In accordance with the sensor and compute
+should not exceed 300 W to guarantee long-term deployment
+with limited battery capacity. Similarly, the weight of the
+payload is not allowed to exceed 10 kg to allow for hand-held
+and general-purpose legged robot operation.
+All components must be synchronized and intrinsically cali-
+brated up to industry standard accuracy. Each sensor must have
+an appropriate FoV to enable autonomous navigation, as this
+is the primary task of the payload, and the FoV between the
+sensors should overlap adequately. Finally, the system should
+be designed to be rugged. It must handle occasional falls and
+impacts while operating in all-weather conditions, and must
+be dust-proof and waterproof to the IP65 standard.
+B. Component Selection
+1) Cameras: To select the best vision suite, we considered
+Sensor  Lens, Interfacing  Control, and Software. Despite
+many important attributes such as resolution, frame rate,
+and FoV being typically taken into consideration, two
+equally important aspects are often neglected: lens distortion
+characteristics and depth of eld. The former leads to a
+distorted version of an image compared to a pin-hole camera
+is in focus. The desired focus range depends on the application
+and can range from centimeter-scale for inspection tasks to
+10 m-100 m for autonomous driving.
+The camera sensor and shutter mechanism (global or rolling)
+determine the image quality, as well as the sensors sensitivity,
+sensed spectrum, and dynamic range. Although a rolling shutter
+is more cost-effective, it can introduce additional complexity on
+the software processing side for certain types of environments
+and motion characteristics.
+The camera interface determines how the captured images
+are transmitted to the host PC, with common options being
+and Ethernet. Each connection type has unique benets or
+or increased compute requirements on the host PC. Among
+the available interfaces, GMSL2 is currently the emerging
+industry standard for automotive driving cameras. However,
+integrating GMSL2 may require additional effort compared to
+simpler options such as Ethernet and USB, as GMSL2 requires
+additional deserialization hardware.
+synchronization capabilities and whether it supports hardware
+triggering. For advanced applications, synchronizing the camera
+exposure with the timestamp of other modalities is desirable.
+In multi-camera setups, particularly for stereo depth estimation,
+synchronized exposure and triggering may be required. Lastly,
+the availability of software drivers (e.g., in ROS1, ROS2,
+availability of in-built white balancing and color correction
+features can save signicant development effort.
+selected
+industry-standard
+range. The three selected camera systems are detailed in
+Appendices C to E.
+NUC-1340PD5
+Orin 32GB
+Rogue Carrier Board
+TierIV C1
+Hesai XT32
+Raspberry PI
+Compute Module 4 32GB
+Analog Devices
+ADIS16475-2
+Robotic System
+Alphasense
+Core Research
+StereoLabs
+Livox MID360
+UbiSwitch Module
+Totalstation
+Fig. 12: Communication Overview: The camera sensors are directly connected to the processing compute units to reduce network load.
+Camera - Recipe
+Interface (GMSL, Ethernet, USB, ...)
+Camera Sensor (Size, FPS, Shutter, Dynamic Range, ...)
+Lens (Distortion, FoV, ...)
+Timing (Synchronization, Triggering, Latency)
+Driver Support  Host Device Requirements
+2) LiDARs: There exists a variety of LiDAR types, each
+offering trade-offs in range, accuracy, intensity sensing, multi-
+return features, wavelength, scan pattern, FoV, point density,
+laser disparity, beam divergence, noise characteristics, and
+cost. Most of these trade-offs are straightforward; however,
+we would like to highlight laser disparity as a key factor,
+where higher disparity may be desirable for navigation
+while low disparity is favorable for localization. Further,
+time synchronization is especially crucial for LiDAR. Unlike
+LiDARs effectively produce point estimates in time.
+For Boxi, we chose spinning LiDARs over solid-state Li-
+DARs as the latter typically have a smaller FoV, are less mature,
+and are designed mainly for autonomous driving. Boxi primarily
+targets legged robots operating at lower velocities but higher ac-
+celerations and with omnidirectional movement, therefore bene-
+ting from the extended FoV of spinning LiDARs. More details
+about the two selected LiDARs are available in Appendix F.
+LiDAR - Recipe
+Type (Spinning, Solid State...)
+Characteristics (FoV, Accuracy, Rate, Distance, Pointss )
+Timing (Synchronization, Triggering, Latency)
+Driver Support  Host Device Requirements
+3) IMUs: IMUs can be classied into different categories:
+their pricing and stability. Most IMUs used in mobile robots
+are consumer-grade IMUs and are based on MEMS technology.
+Key performance metrics include gyroscope and accelerom-
+eter bias instability, hysteresis, temperature drift, aging effects,
+as well as the random walk characteristics of angular and linear
+velocity noise. However, datasheet specications often do not
+reect the actual conditions of the target use case. As a result,
+other error sources, such as temperature dependence or specic
+surement errors in real-world applications. When choosing an
+input range, specically the maximum acceleration and angular
+for IMU is typically crucial for the motion characteristics of
+the target application. Generally, for all IMUs, it is crucial
+to ensure that the measurement aggregation conguration and
+point-of-percussion  correction is available to the user.
+Different IMUs require different communication protocols
+(Serial, SPI, I2C, CAN, Ethernet), which, in combination
+with time synchronization and setting up on-device ltering
+selecting an IMU, we recommend considering software support,
+bias instability, aging effects, temperature sensitivity, and the
+availability of low-level drivers provided by the manufacturers,
+which can signicantly reduce integration efforts. More details
+of all selected IMUs are provided in Appendix G.
+IMU - Recipe
+Time synchronization requirements
+Gyroscope and Accelerometer instability
+Maximum Acceleration and Angular Velocity Rating
+Software Support - Reducing Integration Effort
+4) GNSS: Global Navigation Satellite System (GNSS) pro-
+vides drift-free position estimation, making it indispensable
+for global navigation. Typical position accuracy ranging from
+1 m to 10 m. Many receivers support external atmospheric
+correction data to compute a Real-Time Kinematic (RTK) so-
+approximately 1 cm in the best case. GNSS receivers typically
+support single-antenna or dual-antenna setup; the latter not
+only yields improved positional accuracy, but also provides
+heading estimation. The selection of antennas and receiver
+capabilities ultimately dictates which satellite constellations
+can be used. Moreover, the considerations of electromagnetic
+interference (EMI) turned out to be critical when selecting an
+antenna placement, as noted in Section V-D1. The atmospheric
+correction data can be received from one or more nearby base
+stations via the online GNSS correction providers or a radio
+link from a local base station. In environments where real-
+time communication to the base station is not possible, Precise
+Point Positioning (PPP) solutions can be employed. With PPP,
+correction data is received through single-path communication
+via satellite over a large geographic area, resulting in an
+X in [m]
+Y in [m]
+X in [m]
+Y in [m]
+Alphasense
+X in [m]
+Z in [m]
+X in [m]
+Z in [m]
+Alphasense
+Fig. 13: Visualization of LiDAR and Camera FoV: (Far Left) Top-down view of HDR FoV projected on at ground plane. The black outline
+represents the rectied FoV; The distorted FoV overlaps while the undistorted one does not overlap. (Left Center) Top-down view of the
+CoreResearch camera FoV projected on the ground plane. Overlap in both distorted and undistorted FoV. (Right Center) Side view of FoV
+for CoreResearch, HDR, and ZED2i cameras, with ZED2i tilted downward at a 15angle and rotated 180in its image axis for better space
+management within Boxi. (Far Right) FoV of Hesai and Livox LiDARs.
+accuracy up to 2.5 cm. More details about our GNSS receiver
+and postprocessing software are available in Appendix H.
+GNSS - Recipe
+Dual or Single Receiver (Baseline)
+Single or multi-band support
+Online Corrections (None, RTK, PPP)
+EMI (Antenna Placement, Receiver Placement)
+Postprocessing Support (Correction data)
+Synchronization against GNSS Time
+Connectivity  Driver Support  Host Device Requirements
+5) Network Switch:
+Reliable communication between
+Ethernet-enabled sensors and computers requires a switch or
+a managedunmanaged router. Key considerations include the
+number of ports, port speeds, form factor, cost, and switching
+capacity. One desirable feature is the hardware support for PTP
+time synchronization (IEEE 1588v2), as using a non-compliant
+switch can increase time synchronization errors. More details
+about the selected switch are provided in Appendix I.
+Switch - Recipe
+Management (active or passive)
+Switching Capacity, Speed, Size
+PTP-enabled
+6) Compute: To establish a versatile research platform
+capable of deploying various algorithms, we require both a
+CUDA-accelerated NVIDIA GPU and an x86 CPU architecture.
+Due to the large amount of raw sensory data, two computers
+are required to perform the required raw data processing and
+allow for online image compression (see Section V-F). This, in
+addition to the demand for accurate time-stamping and other
+a NUC, Jetson, and Raspberry Pi (see Figure 12). More details
+for each selected module are provided in Appendix J.
+Compute - Recipe
+Workload Analysis (CPU, GPU)
+Reduce Compute Units to Minimum
+Hardware Acceleration (NVEC H.265, GPU)
+Connectivity (Ethernet, USB-X, SPI, GMSL, PCI-E ..)
+Time synchronization capabilities (PPS, PTP)
+C. Mechanical
+The entire payload has been designed with a strong focus on
+positioning accuracy and stiffness while minimizing weight.
+1) Component Placement: In general, the component place-
+ment requires balancing multiple, often conicting, objectives.
+The most important criterion is the safety of each component,
+specically the LiDAR sensors and the GNSS antennas, which
+require a rollover cage. Apart from thermal, dust-proong,
+and water-proong considerations, the FoV for each sensor is
+essential for the placement of the exteroceptive components.
+During autonomous operation, each sensor should capture
+a comprehensive but overlapping view of the environment,
+which is also key for calibration and multi-modal algorithms.
+For example, sufcient overlap between LiDARs and cameras
+allows calibration of the extrinsic parameters using inexpensive
+targets rather than requiring a dedicated calibration room. Fig-
+ure 13 illustrates the overlapping FoV between all cameras and
+LiDARs. When mounted on an ANYmal robot with a standing
+height of approximately 0.8 m, the cameras capture the ground
+in front of the feet of the robot starting at a distance of 0.75 m.
+This setup effectively balances peripheral coverage and ground
+visibility for local navigation. The front-facing CoreResearch
+stereo pair has a baseline of 11 cm, which results in accurate
+depth estimates up to a distance of 20 m and enables a direct
+comparison to the ZED2i with rolling shutter.
+The Livox is mounted upside down, allowing for accurate es-
+timation of the terrain directly around the robot, which is crucial
+for 3D near-eld mapping. The Hesai is mounted horizontally
+on top of the camera bundle for optimal FoV for localization.
+In addition, the primary GNSS antenna is rigidly connected
+to the lid through standoffs and a copper-shielded element.
+Our empirical ndings showed that the EMI resulting from the
+LiDARs interferes with the GNSS signal (see Section V-D3).
+Component Placement - Recipe
+Interference Analysis
+Field of View Analysis
+Protection  Ease of Calibration
+2) Tolerances and Assembly: To meet the 10 kg weight
+requirement while maintaining structural integrity, Boxi (base
+and lid) is machined from a single AL-6061 T4 aluminum
+mono-block with a minimum wall thickness of 2 mm. This
+material offers a favorable strength-to-weight ratio and enables
+in-house manufacturing.
+All parts follow ISO 2768-1 with a ne tolerance class
+(0.05 mm). A full 3D CAD model was created to account for
+connector spacing and cabling constraints. Positioning pins are
+used at all interfaces, including between the lid and body and
+for all sensor mounts, to minimize offsets due to screw backlash
+and machining tolerances. A protective cage is mounted on
+the lid to house the Livox unit and prism while shielding the
+LiDARs from impact.
+Tolerances and Assembly - Recipe
+Material (Weight, Stiffness, Number of Interfaces)
+Thermal behavior of the Material
+Manufacturing (Cost, Precision, Quantity)
+Positioning Pins, Thread-locking Adhesives, Torque
+Consider Assembly (Plugging in Connectors)
+3) Thermal Considerations: The primary thermal load
+within Boxi originates from the two main compute modules
+and the DC-DC converter. To balance cooling performance,
+based cooling strategy. All heat-generating components were
+strategically placed at the rear, while cameras and LiDAR
+sensors were placed at the front of Boxi to limit the adverse
+effects of thermal expansion. To improve thermal management,
+cooling ns were integrated beneath the two compute modules,
+complemented by a single radial fan to actively circulate air.
+To verify the efcacy of the cooling system and better un-
+derstand the impact of temperature changes on the deformation
+of Boxi and, in turn, the effect on extrinsic calibration, we con-
+ducted a thermal Finite Element Method (FEM) simulation un-
+der maximum thermal load. The maximum heat generation from
+all signicant sources adds up to 92 W dissipation. The FEM
+simulation results shown in, Figure 14, indicate a low overall de-
+formation in the sensor area. Under maximum load, the relative
+rotation between the sensors remains within 0.004, which is
+less than the machine tolerance and the accuracy of the calibra-
+tion. The simulation validates our thermal design and shows that
+aluminum AL6061-T4 is sufcient, even though it has double
+the thermal expansion coefcient of regular stainless steel .
+We also veried the thermal design of Boxi under normal load
+(recording, see. Section V-F) with an ambient temperature of
+19 C. We monitored the maximum temperature of the housing
+using a Fluke Thermal Camera and measured the internal CPU
+PJetson40W
+Fig. 14: (a) Thermal deformation from heat generated by the compute
+modules. The deformation is amplied and visualized for clarity, with
+the mounting points assumed to remain at a constant temperature. (b-
+d) Thermal imaging of the box during recording.
+temperature of the NUC at 55 C and the Jetson at 51 C.
+The entire housing remained well below 30 C, while the fan
+operated at 30  speed. The CPT7 with 43 C and all cameras
+and LiDARs with a temperature below 40 C remained well
+within the operation specications.
+Thermal Considerations - Recipe
+Heat Sources (Compute Units, Sensors)
+Ambient Conditions (Temp. Range, Humidity Levels)
+Thermal FEM Simulation (Angular and Linear Deformation)
+4) Advanced Topics: As Boxi is intended to be mounted on
+a legged robotic platform, we also considered topics such as
+these topics are provided in Appendix O.
+5) Recommendations and Reections: The dust- and water-
+proof design proved to be highly effective, particularly with the
+ns strategically placed on the exterior. Integrating an off-the-
+shelf modular cable pass-through was both simple to integrate
+and offered exibility. When designing rollover cages, it is
+crucial to always assume the worst-case scenario and identify
+potential failure points under various conditions. While the
+compact form-factor fan was desirable, it generates substantial
+noise at high RPMs.
+We initially used the manufacturers camera FoV to design
+the housing. However, this specication was applied to rectied
+of the image because of the sheye effect. Manufacturing
+the base body from a single block of aluminum signicantly
+improved stiffness, precision, and thermal properties while sim-
+plifying the design. However, this approach may be impractical
+and prohibitively expensive for commercial applications.
+D. Electronics and Communication
+1) Power: Boxi supports a wide input voltage range from
+18 V to 60 V for compatibility across platforms. Power is dis-
+tributed via a custom PCB integrating two step-down converters:
+a 12 V, 300 W (Traco TEQ 300-4812WIR) and a 5 V, 15 W.
+To mitigate EMI and ground loop issues, we used ground-
+isolated converters, added input lter coils, and implemented
+a star ground layout. Distinct connector types were chosen
+for different power levels to prevent misconnection and ensure
+electrical safety. We recommend analyzing required voltage
+levels and power consumption, considering the inrush currents
+of all components, and hot-plug battery exchange if desired.
+Power - Recipe
+Power Analysis (Voltage Levels, Power, Inrush Current)
+Distribution (Cabling, Polarized Connectors)
+Best practices to prevent EMI
+2) Communication and Synchronization: Extending on the
+basic knowledge on communication and time synchroniza-
+tion provided in Appendix K, components that operate on
+independent clocks require active synchronization to mitigate
+drift. Typical consumer-grade crystal oscillators drift at a
+rate of 50 ppm (parts per million), leading to 29.9 ms drift
+per 10 min. Two common synchronization protocols are PTP
+(e.g., ptp4l, phc2sys) and NTP (e.g., chrony). PTP is
+generally preferred when reliable network connections are
+mentioned before, the GNSS module CPT7 is used as a clock
+reference and PTP Grandmaster clock. Since the switch in
+Boxi does not support hardware PTP synchronization (IEEE
+1588v2; see Section V-B5), we conducted a 43 h continuous,
+time synchronization drift analysis, showcasing high-quality
+time-synchronization over the entire period. More details and
+results on this experiment can be found in Appendix L.
+a) Synchronization - Camera and LiDAR: The time
+synchronization of both LiDARs has been established with the
+IEEE 1588v2 (2008) standard PTP protocol, which indicates
+PTP clock accuracy 1 s and PTP clock drift 1 s s1.
+Both LiDARs provide a per-point timestamp for accurate
+integration to downstream tasks. Different from the LiDARs,
+cameras require an exposure time of around 10 ms for normal
+lighting conditions. Ideally, the timestamp should correspond to
+the midpoint of the exposure for each pixel. In the case of our
+rolling shutter HDR cameras, one needs to calculate the expo-
+sure time for every i-th horizontal line of the image separately:
+rst. Similarly to the LiDAR case, compensating for this
+different trigger and readout time improves state estimation
+and requires precise synchronization . Manufacturer data
+is not available for the ZED2i, regarding exposure time or
+global shutter compensation.
+b) Synchronization - IMUs: All 7 IMUs available within
+Boxi are time synchronized to a varying level of precision. The
+Raspberry Pi Compute Module 4 handles the time synchro-
+nization ADIS and STIM320 using hardware timestamping via
+custom-written kernel modules. The other IMUs are synchro-
+nized by the manufacturer-provided drivers. More information
+about the IMU time synchronization details can be found in
+the Appendix M.
+c) Synchronization - Verication: When it comes to time
+of the claimed accuracy. While tools such as ptp4l provide
+the estimated time tracking offset  (see Appendix L), this
+is harder to achieve for sensors synchronized with other means.
+Since we have IMUs connected to each PC, the time syn-
+chronization accuracy can be validated by aligning the angular
+velocities of the IMUs over time, similar to the approaches
+in [23, 31]. We have developed a standalone, open-source tool
+for verifying time synchronization between two IMU time series
+measurements at arbitrary rates. We ran the verication tool
+across all recorded missions to obtain a condence interval per
+mission using the HG4930 as a reference IMU. We applied the
+tool to three 30 s snippets per axis for each mission. The results
+are shown in Table VI and indicate that the offset between all
+IMUs can be estimated up to a standard deviation of around
+0.5 ms and is constantly below 4.5 ms, which can be attributed
+to the exposure time of the IMU and internal time delays. The
+details of the time synchronization validation tool and procedure
+are provided in Appendix N. For verication of the camera
+AP20-IMU
+TABLE VI: Evaluation of the IMU Software Alignment Tool across
+dataset. We provide alignment results for each axis, along with the
+mean and standard deviation.
+time synchronization, there is the option to hardware trigger an
+external LED; however, this procedure is time-intensive and out
+of the scope of this work . Lastly, all IMUs, and LiDARs
+operate in free-running mode. It was sufcient for our use
+case to only trigger cameras of the same type simultaneously.
+Synchronization - Recipe
+Bandwidth and Latency
+Precision Time Protocol (PTP) (Preferred)
+Network Time Protocol (NTP) (Unreliable Network)
+Hardware Timestamping (Linux Kernel Modules)
+Verication Tools
+3) Electro Magnetic Interface (EMI): EMI mitigation in
+Boxi focused on minimizing both emissions and internal in-
+terference. Analog signal integrity was prioritized by placing
+sensitive components, such as the GNSS receiver, outside the
+enclosure and using additional EMI absorbers. Testing showed
+that maximizing the distance between the GNSS antennas and
+the main housing, avoiding direct contact with the metal struc-
+interference. Inside the enclosure, all signal lines use shielded
+cables where possible. An exception is the 1 Gbps Ethernet
+Two openings in the aluminum housing on the side panels are
+tted with 3D-printed plastic parts, enabling the mounting of
+Wi-Fi antennas within Boxi. This design represents a trade-
+off between compact integration and EMI mitigation. As an
+EMI - Recipe
+EMI Emission Requirements
+Signal Integrity (GNSS Sensitive)
+E. Calibration
+all sensors, covering the calibration methods, procedures, and
+verication techniques. These calibrations comprise the intrinsic
+and extrinsic calibration of all cameras with respect to each
+other (the bundle of all cameras), the extrinsic calibration of
+each LiDAR, jointly, to all CoreResearch cameras, the extrinsic
+calibration of each IMU to the front-facing global shutter cam-
+bundle. Additionally, the IMU drift parameters are calibrated.
+Alphasense
+Kalibr (ours)
+TotalRecon
+Camera Bundle
+LiDAR Cal
+Fig. 15: An overview of the calibrations done. The arrows indicate
+the transforms that are explicitly calibrated.
+Given the large number of available sensors  2 LiDARS,
+10 cameras, 7 IMUs, and a reector prism  we carefully
+designed the calibration method, setup, and procedure.
+1) Calibration Chain: Central to the calibration of our sys-
+tem are the intrinsic and extrinsic calibrations of the 10 cameras.
+Since cameras cover a wide FoV, sufcient overlap is available
+to robustly calibrate the extrinsic parameters by detecting a
+calibration target placed in various poses. The camera bundle
+calibration forms the foundation for calibrating all other sensors
+in the subsequent steps of the calibration chain Figure 15.
+2) Camera Intrinsic and Extrinsic: For camera intrinsic and
+extrinsic calibration, we re-implemented Kalibr [26, 56] to
+allow for online calibration and feedback during the recording
+session. The calibration can be decomposed into an intrinsic and
+extrinsic phase. During the intrinsic phase, the operator moves
+an AprilGrid  in front of all cameras until sufcient samples
+are collected (see Appendix P1). Then, in the extrinsic phase,
+it is required to statically place the target at different locations
+around the Boxi or move the payload itself until sufcient
+static samples are collected to avoid time synchronization
+Fig. 16: LiDAR reconstruction of the calibration target using camera-
+detected poses and the optimized extrinsic calibration. The recon-
+structed corner locations are sub-millimeter accurate.
+errors and motion blur (see Appendix P1). We periodically
+estimate the covariance of the intrinsic and extrinsic parameters
+in real-time to provide feedback on the sufciency of the
+data collected. We used the Kannala-Brandt  equidistant
+distortion model for the wide-angle sheye CoreResearch [53,
+64] and HDR cameras, and the rad-tan distortion model for
+the ZED2i. More details on why we chose the AprilGrid can
+be found in Appendix P2. Similarly, details on reprojection
+errors across all cameras are provided in Appendix P3
+In Table VII, we show the numerical evaluation of the
+estimates of the extrinsic and intrinsic parameters, which are
+also presented live to the user during the calibration procedure.
+The standard deviation of the translation and rotation for
+all cameras is excellent. The total intrinsic and extrinsic
+calibration procedure takes around 5 min compared to the
+default Kalibr workow of multiple hours.
+3) Camera to IMU: Before calibrating the camera-IMU ex-
+trinsic parameters, we collect static data of the IMUs over 18 h
+to model the Allan variances of each of the IMUs using . We
+then perform camera-IMU extrinsic calibration using the front-
+facing global shutter CoreResearch cameras using Kalibr .
+To collect camera data capable of capturing the dynamic motion
+required for the camera-IMU calibration accurately, we set the
+camera frame rate to 17 Hz, with an exposure time of 1 ms.
+With this exposure time, we also employ uniform articial
+lighting of the static calibration target to aid in the detection
+of the calibration target. More details about the motions and
+individual IMUs can be found in the Appendix Q
+4) LiDAR to Camera Extrinsic: To efciently perform the
+LiDAR to camera extrinsic calibration, we used a variant of the
+intensity alignment extrinsic calibration DiffCal . Unlike
+plane matching, which requires many samples spanning differ-
+ent orientations, this intensity-matching method can recover
+the calibration using a single sample. Additionally, intensity
+matching allows one to incorporate partial observations of the
+calibration target in the LiDAR point cloud, which is typical
+for our Hesai LiDAR with a narrow FoV. Allowing for partial
+observations enables the collection of calibration data closer
+to the cameras, where the detected poses are more accurate.
+For this calibration, we used a different calibration target
+formed of a checkerboard pattern. Each LiDAR is individually
+calibrated against the 5 CoreResearch cameras. Using the
+Translation (m)
+Rotation ()
+Error (px)
+CoreResearch-Front-Center
+CoreResearch-Front-Right
+CoreResearch-Front-Left
+CoreResearch-Left
+CoreResearch-Right
+HDR-Front
+HDR-Left
+HDR-Right
+ZED2i-Left
+ZED2i-Right
+TABLE VII: Typical results from a full camera-camera intrinsic and extrinsic calibration. The spatial transforms are with respect to
+ZED2i camera during calibration, yet the result is precisely consistent with the stereo baseline of the camera.
+Fig. 17: Example calibration data samples used for the LiDAR to
+camera calibration. Hesai LiDAR points are overlayed on the image,
+and colored by each points intensity channel. The calibration target
+reects the LiDAR beams with intensity contrast between the black
+and white squares seen in the camera image.
+calibrated extrinsic parameters between the cameras, the
+detected calibration target poses from each camera are fused and
+jointly calibrated with respect to each LiDAR, without rening
+the intra-camera extrinsic parameters. More details on the cali-
+bration target and data collection can be found in Appendix R.
+Figure 16 shows a dense, reconstructed point cloud of
+the calibration target, colored by the intensity channel. This
+reconstruction has the coordinate system of the calibration
+target as its origin. From this dense reconstruction, we use a
+line-based corner detection algorithm (similar to ) to detect
+the locations of the checkerboard corners in the reconstruction.
+Figure 17 shows the sub-millimeter consistency between the
+detected corners and their true positions on the canonical
+calibration target. In Figure 17, we show example overlays of
+the LiDAR points on the calibration target, after optimization.
+Another example of camera-LiDAR overlay during rapid
+motion is provided in Appendix R1.
+5) Camera to Prism: Due to the lack of existing methods,
+we developed a custom calibration procedure, TotalRecon, to
+calibrate the front-facing CoreResearch cameras to the total
+station prism. Using TPS measurements and camera detections
+of a static calibration target, we solve for a 9-DoF state: the
+prism position relative to the camera, and the 6-DoF pose of
+the target with respect to the total station. To ensure accurate
+target detection, the camera is positioned within 1 m of the
+target. The total station tracks the prism while Boxi is held static
+at various poses around the target using a tripod. Sufcient
+samples are collected to excite all translational and rotational
+degrees of freedom. We validate the calibration by checking the
+consistency of prism estimates across all cameras, transforming
+them to the front-center camera frame using known extrinsics.
+The routine yields 3 mm cross-camera consistency and achieves
+accuracy below the mechanical mounting tolerance.
+Calibration - Recipe
+Calibration Requirements and Chains
+Available Calibration Methods (CAD, Tools)
+Calibration Targets and Procedure Requirements
+Calibration Intervals
+Change of Calibration (Time, Temperature)
+Calibration Verication
+F. Software
+The hardware and software design of Boxi were co-
+developed. To ensure ease of use for researchers, the software
+is based on Ubuntu 20.04 LTS with ROS1 Noetic and ROS2
+the Raspberry Pi Compute Module 4 to enable IIO support
+and accurate kernel timestamping. For all ROS1 components,
+we ran a single roscore instance per PC and enabled inter-
+PC communication using the fkie multi-master package ,
+which utilizes gRPC under the hood.
+1) Recording: In line with best practices established in
+previous research [28, 53], we only run the required sensor
+drivers and prioritize the recording of raw driver data to mini-
+mize artifacts, minimize processing time during recording, and
+preserve future processing exibility. As an example, the UDP
+packets are recorded for Hesai LiDAR instead of point clouds,
+and the serialized SVO2 les are recorded for the ZED2i RGB-
+D camera to maintain maximum delity. We implemented a dis-
+tributed recording system, which stores data on the Jetson, NUC,
+and CPT7, minimizing network bandwidth and distributing load
+across machines. Specic details about image compression and
+recording details can be found in Appendix R1. In summary,
+recording for 10 minutes results in 14.4 GB HDR, 5.77 GB
+and >100 MB for all IMU and other auxiliary status, diagnostic
+During this recording, the Jetson exhibited higher CPU usage
+(72.0) compared to the NUC (49.2), while only the Jetson
+showed GPU activity (7.0). The NUC utilized the network
+at 58.2 Mbps, whereas the Jetson showed no network activity.
+at 18.7 Mbps, compared to 13.5 Mbps on the NUC.
+Software - Recipe
+Co-development of Hardware and Software
+Testing of all Software on Prototype (Desk Setup)
+Ensuring Driver and Hardware Compatibility
+Adaptable and Modular Software Design
+Hardware Acceleration (Video Compression, GPU)
+Simplicity  Maintainability  Documentation
+G. Limitations - Boxi Design
+Starting with the mechanical design, Boxi lacks a robust
+rollover cage to protect the system under the full load of a
+legged robot tipping over. While the lid provides sufcient
+stiffness for mounting, it cannot absorb the energy generated
+during falls, especially under the robots full weight.
+To address this issue, the development of a newly designed
+protective rollover cage is essential. The cage should be fully de-
+coupled from Boxi and directly mounted onto the robot, offering
+enhanced protection and durability. During our thermal simula-
+units. However, the heat generated by individual sensors is also
+non-neglectable and currently not taken into consideration.
+While we can measure highly accurate time synchronization
+via PTP offsets, starting the development with more verication
+tools in mind would have helped. The developed IMU align-
+ment tool conrmed good time synchronization. Further, we
+did not implement verication, such as active LED targets, to
+validate the manufacturers rolling shutter effect compensation.
+The decision to use the Jetson Orin with the compact
+ConnectTech carrier board was motivated by its smaller form
+factor. However, the absence of real-time interrupt pins resulted
+in a Raspberry Pi being required to manage the STIM320 and
+ADIS IMUs. This introduced further complexities, including
+a custom Raspberry Pi PCB design and PTP synchronization.
+In retrospect, avoiding the integration of IMUs such as the
+ADIS and STIM320 due to their limited ROS1ROS2 driver
+supportwould have signicantly reduced integration efforts
+and further improved the maintainability of the software stack.
+Comprehensive environmental testing, including shock and
+vibration resistance assessments, has yet to be performed.
+Although extrinsic and intrinsic calibrations have demonstrated
+stability over time, broader environmental validation remains
+a critical area for future work.
+VI. LESSONS LEARNED AND DISCUSSIONS
+1. Hardware and software should be jointly developed:
+The interdependence of software and hardware turned out to be
+the most difcult part to get right. An exhaustive analysis of
+software and hardware requirements and the interdependence
+between components is essential.
+2. Select components for the application: While technical
+specications in datasets are important, having access to good
+software support and easy integration can be more important
+and justify additional cost, weight, size, or worse specications.
+synchronization
+targeted
+based on the application and the software. State-estimation and
+SLAM tasks might require s or ms level time synchronization
+between LiDAR and IMUs.
+4. Develop software before hardware: We recommend
+implementing the software early in the design process to
+identify any compatibility issues.
+5. Develop verication tools for everything: How can
+you verify that the software functions as intended? The
+development of tools to ensure time synchronization and data
+integration is essential.
+6. Perform rapid-prototyping during development: We
+recommend building a cheap mock-up setup and 3D-printed
+prototypes before moving to advanced CNC milling.
+7. Calibration targeted for you application: Dene your
+calibration requirements, and which tools and setups are
+required to achieve it. An overlapping FoV, use of cheap
+desirable for us.
+8. Keep it simple: What is better than a ptp-enabled switch?
+Using no switch. We recommend using as few compute
+implement custom PCBs if they signicantly simplify the
+design. The same applies to the software: e.g. integrating
+ROS1 and ROS2 inherently increased the complexity.
+VII. CONCLUSION
+In conclusion, Boxi has proven to be an invaluable tool,
+enabling the collection of the GrandTour dataset with high-
+quality ground truth reference data. Through the algorithmic
+performance analysis (Section IV), we demonstrated that sensor
+payload design should consider the target application, software
+Out of the selected components, NovAtel SPAN CPT7 and
+Leica Geosystems components (custom AP20 and MS60) stood
+out as vital components, due to their excellent software support
+and performance, despite their cost. The design of the power
+distribution board also contributed to a clean assembly and
+minimized EMI problems, with the placement of the GNSS
+antenna being the only challenge we encountered.
+set of sensors, which will include the two LiDARs, three
+HDR cameras, and a single updated next-generation NVIDIA
+Jetson processor, alongside a PTP-enabled switch for improved
+synchronization. These renements will further enhance Boxis
+for future research and applications in robotics. Lastly, a
+drawback of Boxi is the lack of auxiliary modalities such as
+the usefulness and effectiveness of the sensor payload in various
+environments.
+REFERENCES
+Cpt7 product sheet, 2024. URL
+DownloadProdukteNovAtelSPANCPT7Datenblatt
+DatasheetNovAtelCPT7.pdf. Accessed: 2025-01-21.
+Inertial explorer, 2024. URL
+WaypointContentInertialExplorerOverviewofIE.
+htm. Accessed: 2025-01-21.
+The Engineering ToolBox (2005). Metals - temperature
+expansion
+engineeringtoolbox.comthermal-expansion-metals-d
+859.html.
+Sameer Agarwal, Keir Mierle, and The Ceres Solver
+Team. Ceres Solver, 10 2023. URL
+ceres-solverceres-solver.
+Michael Bloesch, Michael Burri, Hannes Sommer, Roland
+recursive estimation for mobile robots. IEEE Robotics
+and Automation Letters, 3(1):573580, 2017.
+Leonardo Brizi, Emanuele Giacomini, Luca Di Gi-
+rome. arXiv preprint arXiv:2404.11322, 2024.
+A. Bry, C. Richter, and N. Roy. Spatial and temporal cali-
+bration of multi-sensor systems with application to stereo
+vision. In IEEE International Conference on Robotics
+and Automation (ICRA), pages 38633870, 2015.
+Russell Buchanan. Allan variance ros, November 2021.
+Keenan Burnett, David J Yoon, Yuchen Wu, Andrew Z
+A multi-season autonomous driving dataset. The Interna-
+tional Journal of Robotics Research, 42(1-2):3342, 2023.
+Michael Burri, Janosch Nikolic, Pascal Gohl, Thomas
+vehicle datasets. The International Journal of Robotics
+Holger Caesar, Varun Bankiti, Alex H Lang, Sourabh
+Yu Pan, Giancarlo Baldan, and Oscar Beijbom. nuscenes:
+A multimodal dataset for autonomous driving. In Pro-
+ceedings of the IEEECVF conference on computer vision
+and pattern recognition, pages 1162111631, 2020.
+Alexander Carballo, Jacob Lambert, Abraham Monrroy,
+David Wong, Patiphon Narksri, Yuki Kitsukawa, Eijiro
+multiple 3d lidar dataset. In 2020 IEEE intelligent vehicles
+symposium (IV), pages 10941101. IEEE, 2020.
+Ming-Fang Chang, John Lambert, Patsorn Sangkloy, Jag-
+jeet Singh, Slawomir Bak, Andrew Hartnett, De Wang,
+Peter Carr, Simon Lucey, Deva Ramanan, et al. Argo-
+Proceedings of the IEEECVF conference on computer
+vision and pattern recognition, pages 87488757, 2019.
+Kenny Chen, Ryan Nemiroff, and Brett T Lopez. Direct
+lidar-inertial odometry: Lightweight lio with continuous-
+time motion correction.
+In 2023 IEEE international
+conference on robotics and automation (ICRA), pages
+Marius Cordts, Mohamed Omran, Sebastian Ramos, Timo
+Uwe Franke, Stefan Roth, and Bernt Schiele.
+cityscapes dataset. In CVPR Workshop on the Future of
+Datasets in Vision, volume 2, page 1, 2015.
+Andrei Cramariuc, Aleksandar Petrov, Rohit Suri, Mayank
+camera miscalibration detection. In 2020 IEEE Interna-
+tional Conference on Robotics and Automation (ICRA),
+pages 49975003. IEEE, 2020.
+Igor Cvisic, Ivan Markovic, and Ivan Petrovic. Enhanced
+calibration of camera setups for high-performance visual
+odometry. Robotics Auton. Syst., 155:104189, 2022. URL
+Efe Daum, Maxime Vaidis, and Franois Pomerleau.
+Benchmarking ground truth trajectories with robotic total
+stations. arXiv preprint arXiv:2309.05134, 2023.
+Timothy A. Davis and Yifan Hu. The university of orida
+sparse matrix collection. ACM Trans. Math. Softw., 38(1),
+Mattia De Agostino, Ambrogio Maria Manzino, and
+Marco Piras.
+Performances comparison of different
+mems-based imus. In IEEEION Position, Location and
+Navigation Symposium, pages 187201. IEEE, 2010.
+Graziella Del Duca and Carol Machado. Assessing the
+quality of the leica blk2go mobile laser scanner versus
+the focus 3d s120 static terrestrial laser scanner for a
+preliminary study of garden digital surveying. Heritage,
+Gian Erni, Jonas Frey, Takahiro Miki, Matias Mattamala,
+and Marco Hutter. Mem: Multi-modal elevation mapping
+for robotics and learning. In 2023 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 1101111018. IEEE, 2023.
+Anastasiia
+Software clock synchronization with microseconds
+accuracy using mems-gyroscopes.
+Dapeng Feng, Yuhua Qi, Shipeng Zhong, Zhiqiang Chen,
+Qiming Chen, Hongbo Chen, Jin Wu, and Jun Ma. S3e:
+A multi-robot multimodal dataset for collaborative slam.
+IEEE Robotics and Automation Letters, 2024.
+Lanke Frank Tarimo Fu, Nived Chebrolu, and Maurice
+Fallon. Extrinsic calibration of camera to lidar using a
+differentiable checkerboard model. In 2023 IEEERSJ In-
+ternational Conference on Intelligent Robots and Systems
+(IROS), pages 18251831, 2023. doi: 10.1109IROS55552.
+Paul Furgale, Joern Rehder, and Roland Siegwart. Unied
+temporal and spatial calibration for multi-sensor systems.
+In 2013 IEEERSJ International Conference on Intelligent
+Robots and Systems, pages 12801286. IEEE, 2013.
+Mathias Gehrig, Willem Aarents, Daniel Gehrig, and
+Davide Scaramuzza. Dsec: A stereo event camera dataset
+for driving scenarios. IEEE Robotics and Automation
+Andreas Geiger, Philip Lenz, Christoph Stiller, and Raquel
+Urtasun. Vision meets robotics: The kitti dataset. The
+International Journal of Robotics Research, 32(11):1231
+Michael Grupp. evo: Python package for the evaluation of
+odometry and slam.
+Annika Hagemann, Moritz Knorr, Holger Janssen, and
+Christoph Stiller. Inferring bias and uncertainty in camera
+calibration. International Journal of Computer Vision,
+pages 116, 2022.
+Michael Helmberger, Kristian Morin, Beda Berner, Nitish
+slam challenge dataset. IEEE Robotics and Automation
+Xiangcheng Hu, Linwei Zheng, Jin Wu, Ruoyu Geng,
+Yang Yu, Hexiang Wei, Xiaoyu Tang, Lujia Wang, Jianhao
+ing with prior-assisted 6-dof trajectory generation and
+uncertainty estimation.
+IEEEASME Transactions on
+Nicolas Hudson, Fletcher Talbot, Mark Cox, Jason
+Heterogeneous ground and air platforms, homogeneous
+ranean challenge. arXiv preprint arXiv:2104.09053, 2021.
+Marco Hutter, Christian Gehring, Andreas Lauber, Fabian
+Pter Fankhauser, Remo Diethelm, Samuel Bachmann,
+Michael Blsch, et al. Anymal-toward legged robots for
+harsh environments. Advanced Robotics, 31(17):918931,
+Edo Jelavic, Dominic Jud, Pascal Egli, and Marco Hutter.
+Towards autonomous robotic precision harvesting: Map-
+harvester. arXiv preprint arXiv:2104.10110, 2021.
+Jianhao Jiao, Hexiang Wei, Tianshuai Hu, Xiangcheng
+sensor campus-scene dataset for evaluation of localization
+and mapping accuracy on diverse platforms. In 2022
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 38513856. IEEE, 2022.
+Juho Kannala and Sami Brandt. A generic camera model
+and calibration method for conventional, wide-angle, and
+sh-eye lenses. IEEE transactions on pattern analysis
+and machine intelligence, 28:133540, 09 2006.
+Leica Geosystems. Leica grz101 360 mini reector. https:
+shop.leica-geosystems.comde-DEsurveyaccessory
+geosystemsleica-grz101-360-degree-mini-reectorbuy.
+Geosystems.
+multista-
+Leica Geosystems AG. Leica BLK2GO - Handheld Laser
+globalleica-blkblk2gobuy. Accessed: 19 Oct 2024.
+Stefan Leutenegger. Okvis2: Realtime scalable visual-
+inertial slam with loop closure.
+arXiv preprint
+Jianping Li, Weitong Wu, Bisheng Yang, Xianghong
+evaluation of real-time 3d mapping in large-scale gnss-
+denied environments. IEEE Transactions on Geoscience
+and Remote Sensing, 2023.
+Kailai Li, Meng Li, and Uwe D Hanebeck. Towards
+high-performance solid-state-lidar-inertial odometry and
+mapping. IEEE Robotics and Automation Letters, 6(3):
+Yuanzhi Liu, Yujia Fu, Minghui Qin, Yufeng Xu, Baoxin
+wei Yu, Chun Liu, et al. Botanicgarden: A high-quality
+dataset for robot navigation in unstructured natural envi-
+ronments. IEEE Robotics and Automation Letters, 2024.
+W. Maddern, A. Stewart, C. Linegar, and P. Newman.
+Real-time kinematic ground truth for the oxford robotcar
+dataset. In IEEE International Conference on Robotics
+and Automation (ICRA), pages 52795286, 2016.
+Will Maddern, Geoffrey Pascoe, Chris Linegar, and Paul
+Newman. 1 year, 1000 km: The oxford robotcar dataset.
+The International Journal of Robotics Research, 36(1):
+Thien-Minh Nguyen, Shenghai Yuan, Thien Hoang
+campus dataset for robot perception.
+In Proceedings
+of the IEEECVF Conference on Computer Vision and
+Pattern Recognition, pages 2230422313, 6 2024. URL
+Janosch Nikolic, Joern Rehder, Michael Burri, Pascal
+Siegwart. A synchronized visual-inertial sensor system
+with fpga pre-processing for accurate real-time slam.
+In 2014 IEEE international conference on robotics and
+automation (ICRA), pages 431437. IEEE, 2014.
+Simona Nobili, Marco Camurri, Victor Barasuol, Michele
+Fallon. Heterogeneous sensor fusion for accurate state
+estimation of dynamic legged robots. In Robotics: Science
+and System XIII, 2017.
+Julian Nubert, Etienne Walther, Shehryar Khattak, and
+Marco Hutter. Learning-based localizability estimation for
+robust lidar localization. In 2022 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 1724. IEEE, 2022.
+Julian Nubert, Turcan Tuna, Jonas Frey, Cesar Cadena,
+Katherine J Kuchenbecker, Shehryar Khattak, and Marco
+Hutter. Holistic fusion: Task-and setup-agnostic robot
+localization and state estimation with factor graphs. arXiv
+preprint arXiv:2504.06479, 2025.
+Edwin Olson.
+ducial system. In 2011 IEEE International Conference
+on Robotics and Automation, pages 34003407, 2011.
+Milad Ramezani, Yiduo Wang, Marco Camurri, David
+college dataset: Handheld lidar, inertial and vision with
+ground truth. In 2020 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 4353
+Milad Ramezani, Kasra Khosoussi, Gavin Catt, Peyman
+and Navinda Kottege. Wildcat: Online continuous-time
+3d lidar-inertial slam. arXiv preprint arXiv:2205.12595,
+Joern Rehder, Janosch Nikolic, Thomas Schneider, Timo
+brating the extrinsics of multiple imus and of individual
+axes. In 2016 IEEE International Conference on Robotics
+and Automation (ICRA), pages 43044311, 2016. doi:
+Joern Rehder, Janosch Nikolic, Thomas Schneider, Timo
+brating the extrinsics of multiple imus and of individual
+axes. In 2016 IEEE International Conference on Robotics
+and Automation (ICRA), pages 43044311. IEEE, 2016.
+Victor Reijgwart, Cesar Cadena, Roland Siegwart, and
+Lionel Ott. Efcient volumetric mapping of multi-scale en-
+vironments using wavelet-based compression. In Robotics:
+Science and Systems (RSS), 2023. doi: 10.15607RSS.
+orgrss19p065.pdf. Code available at
+ethz-aslwavemap.
+Korbinian Schmid and Heiko Hirschmller. Stereo vision
+and imu based real-time ego-motion and depth image
+computation on a handheld device. In 2013 IEEE Inter-
+national Conference on Robotics and Automation, pages
+Sevensense Robotics AG. Core research development kit,
+2022. URL
+researchmanual. Accessed: 19 Oct 2024.
+Henrique Simas, Raffaele Di Gregorio, Roberto Simoni,
+and Marco Gatti. Parallel pointing systems suitable for
+robotic total stations: Selection, dimensional synthesis,
+and accuracy analysis. Machines, 12(1):54, 2024.
+Matthew Sivaprakasam, Parv Maheshwari, Mateo Guaman
+2.0: More modalities and better infrastructure to further
+self-supervised learning research in off-road driving tasks.
+arXiv preprint arXiv:2402.01913, 2024.
+Matej Smid and Jiri Matas.
+Rolling shutter camera
+synchronization with sub-millisecond accuracy. arXiv
+preprint arXiv:1902.11084, 2019.
+Pei Sun, Henrik Kretzschmar, Xerxes Dotiwalla, Aurelien
+perception for autonomous driving: Waymo open dataset.
+In Proceedings of the IEEECVF conference on computer
+vision and pattern recognition, pages 24462454, 2020.
+Yifu Tao, Miguel ngel Muoz-Ban, Lintong Zhang,
+Jiahao Wang, Lanke Frank Tarimo Fu, and Maurice
+Fallon. The oxford spires dataset: Benchmarking large-
+scale lidar-visual localisation, reconstruction and radiance
+eld methods. arXiv preprint arXiv:2411.10546, 2024.
+Tomas Thalmann and Hans Neuner. Sensor fusion of
+robotic total station and inertial navigation system for
+6dof tracking applications. Applied Geomatics, 16(4):933
+Alexander Tiderko, Frank Hoeller, and Timo Rhling.
+The ROS Multimaster Extension for Simplied Deploy-
+ment of Multi-Robot Systems, pages 629650. Springer
+International Publishing, Cham, 2016. ISBN 978-3-319-
+Marco Tranzatto, Frank Mascarich, Lukas Bernreiter, Car-
+olina Godinho, Marco Camurri, Shehryar Khattak, Tung
+et al. Cerberus: Autonomous legged and aerial robotic
+exploration in the tunnel and urban circuits of the darpa
+subterranean challenge. arXiv preprint arXiv:2201.07067,
+page 3, 2022.
+Samuel Triest, Matthew Sivaprakasam, Sean J Wang,
+Wenshan Wang, Aaron M Johnson, and Sebastian Scherer.
+dynamics models. In 2022 International Conference on
+Robotics and Automation (ICRA), pages 25462552. IEEE,
+Maciej Trzeciak, Kacper Pluta, Yasmin Fathy, Lucio
+and Pierre Alliez. Conslam: Construction data set for
+slam. Journal of Computing in Civil Engineering, 37(3):
+Florian Tschopp, Michael Riner, Marius Fehr, Lukas
+Versavisan open versatile multi-camera visual-inertial
+sensor suite. Sensors, 20(5):1439, 2020.
+Turcan Tuna, Julian Nubert, Yoshua Nava, Shehryar
+lidar registration for robust localization in extreme envi-
+ronments. IEEE Transactions on Robotics, 2023.
+Turcan Tuna, Julian Nubert, Patrick Pfreundschuh, Cesar
+aware point cloud registration in the wild. arXiv preprint
+Maxime Vaidis, Mohsen Hassanzadeh Shahraji, Efe
+Pomerleau. Rts-gt: Robotic total stations ground truthing
+dataset.
+In 2024 IEEE International Conference on
+Robotics and Automation (ICRA), pages 1705017056.
+Steve T Watt, Shankar Achanta, Hamza Abubakari, Eric
+ing and applying precision time protocol. In 2015 Saudi
+Arabia Smart Grid (SASG), pages 17. IEEE, 2015.
+Xuankang Wu, Haoxiang Sun, Rongguang Wu, and Zheng
+Fang. Everysync: An open hardware time synchronization
+sensor suite for common sensors in slam.
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 1258712593. IEEE, 2024.
+Zhe Zhang, Shaoshan Liu, Grace Tsai, Hongbing Hu,
+Chen-Chi Chu, and Feng Zheng. Pirvs: An advanced
+visual-inertial slam system with exible sensor fusion
+and hardware co-design. In 2018 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Shibo Zhao, Yuanjun Gao, Tianhao Wu, Damanpreet
+Yuheng Qiu, Warren Whittaker, Ian Higgins, et al. Subt-
+mrs dataset: Pushing slam towards all-weather environ-
+ments. In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition, pages 22647
+APPENDIX
+In the appendix, we provide further details on the design
+and development of Boxi.
+ACKNOWLEDGMENTS
+Jonas Frey and Julian Nubert are supported by the Max
+Planck ETH Center for Learning Systems.
+This work was supported and partially funded by Leica
+express our gratitude to Benjamin Mller, Benjamin Schll,
+Sprenger Bernhard, Eisenreich Stefan, and Jonas Nussdorfer
+for their invaluable expertise in networking, calibration, time-
+of calibration data. We gratefully acknowledge the support of
+NovAtel Inc., Hexagon - Autonomy  Positioning division,
+with special thanks to Ryan Dixon for his contributions.
+In addition, this work was supported by the National Centre
+of Competence in Research Robotics (NCCR Robotics), the
+ETH RobotX research grant funded through the ETH Zurich
+innovation program under grant agreement No 101016970, No
+Grant No. 21-1 ETH-27. This work was supported by the Open
+Research Data Grant at ETH Zurich. We acknowledge that
+the International Foundation High Altitude Research Stations
+Jungfraujoch and Gornergrat (HFSJG), 3012 Bern, Switzerland,
+made it possible for us to carry out our experiment(s) at the
+High Altitude Research Station at Jungfraujoch. We also thank
+the custodians, Mrs. Daniela Bissig and Mr. Erich Bissig, guide
+Ms. Doris Graf Jud (Jungfraubahnen), and Annette Fuhrer
+(Jungfraubahnen) for the support of our activities during the
+Jungfraujoch trip.
+Our sincere appreciation goes to William Talbot for his work
+in integrating the ADIS IMU. We also thank Elena Krasnova
+for her assistance with Blender and for helping develop the new
+roll cage. We are grateful to Flurin Schindele for his efforts in
+integrating the Box onto various robots, and to Victor Reijgwart
+for his assistance with integrating Wavemap. We extend our
+thanks to Johann Schwab for his support in integrating the
+TierIV C1 cameras, and to Cyrill Pntener for his expertise
+in network congurations. We thank Ulrich Huemer for his
+design of the mechanical subsystems within Boxi, and Thomas
+Mantel for his work on the mechanical integration of the
+Livox MID360 and Prism. Lastly, we thank Laurin Schmid
+and Andreas Binkert for their contributions to the integration
+of various 3D-printed parts.
+A. Dataset Descriptions
+In this section, the details of each dataset is provided.
+gravel in a very large environment where optimization
+degradation  might occur. The robot traverses 330 m
+in 405 s.
+within a conned warehouse starting from the outdoor
+court. The environment features items, shelves, and a roll-
+up door for feature-based state estimation problems. The
+robot traverses 202 m in 370 s.
+Research Station: Acting as a simple dataset, the robot
+walks outside a research station featuring industrial metal
+stairs on an elevated metal grid platform. In this dataset,
+the robot traverses 210 m in 262 s.
+Excavation Site: In this outdoor dataset, the robot walks
+around an operating excavator. This dataset contains large
+site containers, which bring unique features. The robot
+traverses 262 m in 200 s.
+a cog railway station onto a terrace towards a large
+university building where limited features are available
+for short-range sensors while features are in abundance
+for large-scale perception. The robot traverses 200 m in
+283 s seconds.
+Demolished Building: Walking from the outside into a
+search and rescue training facility through a demolished
+building with an open staircase and over multiple oors.
+The robot traverses 290 m in 368 s.
+Mountain Ascent: The robot starts by walking the
+scaffolding stairs, crossing a train station, and then
+traversing a narrow, very steep hiking path in sunny
+The robot traverses 300 m in 384 s.
+B. Reference Ground Truth Pose Generation
+The availability of a precise 6DoF ground truth robot poses as
+a reference is critical for evaluating many robotic applications,
+such as state estimation and SLAM performance. Contrary
+to many previous works, our deployments are indoors and
+level precision to evaluate LiDAR-based state estimation meth-
+ods. These requirements directly render LiDAR-based and only
+RTK-GNSS based references unsuitable [28, 9, 77]. While
+using Motion Capture (MOCAP) systems can provide high pre-
+cision ground truth pose estimates at high frequency, these sys-
+tems are restricted to a small workspace [10, 24], making them
+unsuitable for large-scale deployments. Many approaches [53,
+representation of the environment and register LiDAR measure-
+ments against these maps. However, the registration accuracy is
+bounded by the sensor noise characteristics itself, the accuracy
+of the map, and the registration algorithm . Moreover,
+iterative registration methods can not retrieve accurate poses in
+LiDAR-degraded environments [71, 50], and the generation of
+accurate maps requires signicant manual effort  or may
+not even be feasible in challenging dynamic environments, such
+as a forest on a windy day. Recent works [73, 65, 18] used one
+or more TPS to obtain ground truth position estimates with
+millimeter-to-sub-millimeter accuracy . A TPS is a device
+commonly employed in construction and surveying to measure
+the 3D position of a reector target. By mounting a prism
+Time [s]
+TPS Measurements
+50x Std. Dev. X
+Std. Dev. X
+Time [s]
+TPS Measurements
+50x Std. Dev. Y
+Std. Dev. Y
+Time [s]
+TPS Measurements
+50x Std. Dev. Z
+Std. Dev. Y
+Std. Dev. [m]
+Std. Dev. [m]
+Std. Dev. [m]
+Fig. 18: Ground truth trajectory generated with Holistic Fusion
+(HF) for the Excavation Site dataset is shown with the covariance-
+based uncertainty region overlaid. Given that the uncertainty is on a
+millimeter scale, we display 50x the standard deviation as an overlay
+and provide the numerical value on the right axis in the dotted orange
+line. The red regions indicate TPS measurement dropouts.
+target on a robot TPS measurements of the robots position
+can be acquired during direct line-of-sight from the TPS to
+the robot. To overcome the direct line-of-sight limitation, our
+solution fuses TPS measurements with precise IMU and GNSS
+measurements to obtain 6DoF ground truth poses. Specically,
+we use a single Leica Geosystems MS60 Total Station , and
+the Leica Geosystems 360Mini-Prism GRZ101 , which
+has a static accuracy of around 1.5 mm (3) within 360
+heading rotation and a pitch angle of 30. To stream the data
+up to 20 Hz from the TPS to Boxi, Leica Geosystems provided
+the Bluetooth radio handle RH18 together with an AP20 special
+edition. The AP20 runs a special rmware (not commercially
+available), which enables streaming of time-synchronized TPS
+measurements with time-sync jitter of 1 ms (3).
+The acquired TPS measurements are then fused with
+HG4930 IMU measurements, and post-processed GNSS poses.
+The GNSS solution is provided by the proprietary NovAtel
+Precise Positioning Product called Inertial Explorer  and the
+NovAtel SPAN CPT7 GNSS receiver mounted on Boxi. Using
+accurate atmospheric corrections, Inertial Explorer can provide
+a tightly-coupled pose solution with accuracies up to 1 cm ,
+which we will refer to as IE-TC. Inertial Explorer also produces
+loosely coupled (IE-LC) and a precise point positioning (IE-
+PPP) solution; NovAtel recommended that in most cases IE-TC
+is most precise solution. To fuse the TPS measurements and the
+IE-TC estimates, we rst solve an online and then, an ofine
+factor-graph optimization problem to obtain the fused highly
+HF-Optimized wo IE
+HF-Optimized
+TABLE VIII: ATE and RTE (per 1 m distance traveled) for the
+Excavation Site dataset are shown (best in bold), and the second best
+is underlined. HS indicates the output of Holistic-Fusion in different
+operation modes.
+accurate 6DoF robot pose, following a similar approach to
+PaLoc . We build on the publicly available Holistic Fusion
+(HF) framework  and refer to the ofine factor-graph
+optimization output as our ground truth robot pose estimation.
+Details and code will be made available open-source.
+1) Ground Truth Verication: For verication, we compare
+our ground truth poses against the TPS measurements. It is
+important to note that this analysis is conducted to show that
+the sensor fusion and factor-graph optimization steps do not
+alter the alignment accuracy against the TPS measurements
+but extend it with the HG4930 IMU measurements and the
+IE-TC odometry. As a result, the Holistic-Fusion-Optimized
+method is expected to produce the best position estimates
+against TPS measurements because it has privileged access to
+it. Here, extension refers to estimating the robot pose instead of
+a position even during the dropout of the TPS measurements.
+The analysis is conducted for the Excavation Site dataset,
+which has consistent GNSS coverage and TPS measurements
+throughout the deployment except for the beginning, the end,
+and 84 s to 121 s time period of the mission. The error metrics
+ATE and RTE are obtained using evo . Crucially, as we
+compare the accuracy against the TPS measurements, the
+results provided in Table VIII do not reect the accuracy of
+position during the dropout periods of the TPS measurements.
+Table VIII shows that the HF-Optimized and HF-Optimized
+wo IE solutions perform identically and produce the least error
+against the TPS measurements. This is expected since we con-
+gured the Holistic Fusion (HF) framework to rely on the TPS
+measurements when available. As seen, the HS-Live method
+performs worse than HF-Optimized, which builds a graph or
+slow batch optimization to minimize the error. Moreover, both
+the IE-LC and IE-TC methods have higher ATE errors than
+the satellite-based GNSS correction. In terms of RTE, which
+is a measure of trajectory smoothness, the methods perform
+During the previously mentioned drop out of TPS measure-
+of TPS. To highlight this case, the HF-Optimized output is
+compared against the IE-TC output, and the occlusion period is
+highlighted in red. Figure 18 shows the generated trajectories.
+As seen, the marginal covariance estimation correlates with
+the mismatch between the TPS and IE-TC measurements, and
+the uncertainty increases in the absence of the TPS measure-
+marginal covariance is a measure of how well the measurements
+align with each other and not the true covariances.
+C. Sevensense CoreResearch
+The Sevensense CoreResearch is a global shutter camera unit
+introduced in 2020 . The unit supports up to 8 cameras,
+with a resolution of 0.4 MP or 1.6 MP. It is connected via
+Gigabit Ethernet (1000BASE-T, IEEE 802.3ab) and PTP time-
+synchronized. The cameras support hardware triggering full
+exposure time control and synchronization between cameras.
+For Boxi, we chose to use 5  1.6 MP cameras (1440  1080)
+with three color and two monochrome cameras, with the two
+monochrome cameras positioned in a stereo setup. All cameras
+are equipped with 2.4 mm focal length 165.4horizontal FoV
+lenses and run at a maximum rate of around 10 Hz due to
+bandwidth limitations on the Ethernet interface despite efforts
+to optimize it. This unit has been proven reliable and highly
+valued in academic research, being used for the latest SuBT
+Challenge  and popular datasets [31, 53, 64]. The manufac-
+turer provides well-documented, closed-source ROS1 drivers,
+but ROS2 drivers are not yet available. Since the provided driver
+also lacked support for debayering, white balancing, and color
+D. StereoLabs ZED2i
+The StereoLabs ZED2i is a 12 cm baseline stereo rolling shut-
+ter camera unit introduced in 2023 marketed specically for out-
+door robotic operation. Through the ROS12 drivers provided
+by StereoLabs, the camera provides classical and learning-based
+depth estimation, but it requires an NVIDIA GPU (CUDA sup-
+port) for operation. In addition, the driver provides barometric
+and thermal measurements at 100 Hz and IMU measurements at
+400 Hz during real-time operation. The camera is connected via
+USB 3.0 technology, and thus, time-synchronization to the host
+PC (USB buffer arrival timestamp) or hardware triggering is not
+supported. It can provide image resolution up to 2K (2208
+1242) and comes with different lens options. We chose the wide
+FoV 110horizontal version with a 2.1 mm focal length lens.
+coding in H.264, H.265, or lossless formats and supports serial-
+ized recording of the measurements with exceptional efciency.
+As an exception, the serialized format can record the IMU mea-
+surements only up to a rate of 45 Hz as of SDK version 4.2.5.
+E. TierIV C1
+The Tier IV C1 is a 120 dB high dynamic range and rolling
+shutter camera with 2.5 MP chip resulting in (1920  1280) im-
+ages at 30 Hz with a horizontal FoV of 120. The camera can be
+connected through GMSL2. The exact read time per line of the
+image is provided by the manufacturer, and the camera can be
+hardware-triggered via an f-sync signal. The camera performs
+automatic white-balancing and TierIV provides calibration tools
+as well as a custom lens correction model. Integration of the
+camera requires a sophisticated understanding of the Linux
+device tree and kernel modules to set up hardware triggering.
+F. LiDARs
+Given the above attributes, we integrated the Livox Mid360,
+a research community favorite for its affordability and unique
+scan pattern, making it ideal for near-eld mapping due to its
+lower range (40 m) and high disparity (multiple cm at 20 m).
+For mapping and localization, we integrated the Hesai XT32
+sparse LiDAR, with a range of 0.5 m to 120 m and high point
+accuracy of 1 cm. Both LiDARs have well-maintained drivers,
+PTP synchronization, intensity returns, and Ethernet connectiv-
+ity. Both LiDARs are congured to aggregate measurements
+over a 100 ms period and provide point clouds at 10 Hz. A
+comparison of various spinning LiDARs can be found in
+and  compares a solid-state LiDAR to a spinning LiDAR.
+For Boxi, we choose to integrate three tiers of IMUs. Two
+(high-end) tactical-grade MEMS IMUs, namely the HG4930
+and the STIM320. For the mid-range IMU, we chose the
+ADIS16475-2 IMU, where the predecessor model has been
+used for the collection of popular existing datasets . The
+AP20-IMU is also a mid-range industrial grade IMU, however
+it only provides measurements, while connected to the Leica
+Geosystems MS60 Total Station via Bluetooth. The Livox,
+the IMUs on Boxi at a range from 100-500 Hz, excluding the
+ZED2i IMU dropout due to serialization.
+We use the NovAtel SPAN CPT7 industrial inertial naviga-
+tion solution, which, though expensive (see Table II), offers
+a compact design, features one of the best commercially
+available MEMS IMU (see HG4930 in Table II), good ROS1
+HG4930 IMU within the CPT7 is pinned down, and the CPT7
+internally uses the factory extrinsic calibration provided by
+Honeywell. Critically, CPT7 functions as Boxis Grandmaster
+clock of the PTP network, internally synchronizing with the
+received GPS time when available. In addition to providing the
+current GNSS solution and IMU measurements in real-time,
+the CPT7 allows for onboard data logging. The log les can
+be post-processed using Inertial Explorer to correct the GNSS
+measurements in hindsight through precise multi-constellation
+atmospheric corrections, obtained from the Leica Geosystems
+HGxN SmartNet GNSS correction service. Furthermore, we
+use NovAtel TerraStar-C Pro Multi-Constellation Correction
+PPP solution, which requires L-Band satellite communication
+to provide accurate pose estimation without relying on base
+station measurements during deployment.
+I. Network Switch
+According to these criteria, we selected the cost-efcient
+UbiSwitch Module with UbiSwitch Baseboard that supports
+three 10GBASE-T and 8 1GBASE-T standard connections.
+This switch meets most requirements, specically the excellent
+form factor and rugged design. However, it lacks IEEE 1588v2
+support (see Section VII).
+J. Compute
+For handling CPU-intensive tasks, we chose the industrial
+AsRock Intel i5 NUC-1340PD5, which offers a strong balance
+between performance and power efciency, with excellent
+single-core performance; the ITX motherboard supports dual
+2.5 Mbps Ethernet ports, 64 GB of RAM, and a 4 TB capacity
+M.2 form factor SSD.
+For GPU-based computing, we selected the NVIDIA AGX
+Jetson Orin compute module paired with the ConnectTech
+Rogue Carrier Board and the ConnectTech GMSL2 adapter
+board. The carrier board is equipped with dual 10 Gbps Eth-
+2 TB M.2 SSD. However, despite supporting I2C, SPI, and
+dual UART interfaces, the ConnectTech Rogue Carrier Board
+exposes an insufcient number of interrupt pins for hardware
+timestamping. To address this gap, we integrated a Raspberry
+Pi Compute Module 4 to handle timestamping for two IMUs,
+manage status LEDs and buttons, and control fan speed. All
+computers support PTP time synchronization to efciently
+synchronize with all sensors that support the protocol. We
+emphasize that our compute choices should not be directly
+applied to commercial systems without careful consideration. In
+commercial applications, where custom software development
+and other operating systems are feasible, e.g. more power-
+efcient ARM-based chipsets may be preferable. In hindsight,
+despite the better form factor of the ConnectTech carrier board,
+it would have been easier to integrate Nvidias Developer Kit,
+reducing the number of computers to a minimum.
+K. Cookbook: Time Synchronization Basics
+To understand the relationship between time synchronization
+and position estimation, we compute the resulting position error
+for different time synchronization errors for robots moving at
+different constant velocities, under the assumption of a fully
+observable state. For a robot moving at 1 m s1, achieving
+millimeter-level position estimation accuracy requires time syn-
+chronization errors below 10 s. The position estimation error
+e due to time synchronization error t can be approximated as:
+e  v  t, where v is the robots velocity and t is the time
+synchronization error. Similar computations can be performed
+for the angular velocity. As a further rst principle example of
+the effects of time-offsets, we consider a LiDAR measurement
+at a distance of 25 m while the robot rotates at an angular
+velocity of 200 s1. A timestamp offset of 1 ms will lead to
+an offset of 0.2or around 8.7 cm error. In comparison, the
+vertical beam divergence of the Hesai is 0.047horizontally.
+TCPIP networks, USB controllers, serialization, and kernel
+Offset Ranges
+Percentage of Measurements
+Ethernet - Clock Offsets Below Threshold over 43h
+Clock Offsets
+ptp4ljetson
+phc2sysjetson
+ptp4lnuc
+phc2sysnuc
+Fig. 19: PTP synchronization experiment of Jetson and Nuc synchro-
+nizing against CPT7 (the PTP Grandmaster). We report ptp4l and
+phc2sys offsets calculated as a percentage of samples within a
+given time synchronization range.
+scheduling can easily exceed the time precision required for
+millimeter-precise localization. This highlights the clear need
+for hardware timestamping of all sensor measurements and is
+particularly crucial for the long-range LiDARs, where each
+point must be accurately time-stamped.
+L. Cookbook: Time Synchronization PTP
+To analyze the synchronization between the PCs we logged
+the offsets of ptp4l and phc2sys every second and summa-
+rized the results in Figure 19. The ptp4l offset represents the
+difference between the built-in clock of the network interface
+card (NIC) of the respective Ethernet port and the CPT7
+Ethernet interface Grandmaster clock. The phc2sys offset, on
+the other hand, measures the discrepancy between the Ethernet
+interface clock and the system time of the respective PC.
+This phc2sys offset consistently remains below 10 s. The
+absence of IEEE 1588v2 standard synchronization can, in rare
+cases of packet loss, lead to incorrect estimations of the line
+delay. This, in turn, may result in improper clock adjustments,
+manifesting as outlier measurements seen in the phc2sys
+offset for the Jetson exceeding 1 ms in rare events. Peak offset
+readings do not inherently indicate poor clock synchronization,
+as the proportional-derivative (PD) controller compensates for
+such offsets. Similarly, inaccurate line delay measurements
+do not directly imply a failure in time synchronization. Our
+experiment remained within the normal bandwidth limits of
+the network switch, so the impact of bandwidth saturation was
+not assessed. While integrating a low-drift MasterClock was
+as a time receiver and overall weight constraints.
+M. Cookbook: Time Synchronization IMUs
+Time synchronization for the STIM320 IMU is handled via
+custom kernel modules that use GPIO interrupts triggered on
+falling edges (IRQFTRIGGERFALLING). Each interrupt
+invokes a kernel-space ISR that captures precise timestamps
+using ktimegetrealts64() and stores them in a ring
+buffer. These timestamps are accessed from userspace via a
+sysfs interface, allowing safe retrieval and clearing by the
+front-end driver for integration with ROS. This setup requires
+kernel-level expertise in GPIOs, IRQ handling, timestamping,
+and sysfs design. Fixed sensor latencies, such as low-pass
+lter delays, must be compensated manually. In hindsight,
+synchronizing the IMU to an external trigger would offer
+cleaner integration than free-running operation. By contrast, the
+ADIS IMU leverages the Linux IIO subsystem, which natively
+supports timestamping. However, enabling this functionality
+on the Raspberry Pi Compute Module 4 requires non-trivial
+kernel modications and device tree conguration.
+N. Cookbook: Time Synchronization Validation
+We developed a time synchronization verication tool
+that calculates the time offset between data streams of IMU
+measurements. It rst transforms the angular velocity readings
+of the IMUs into a common reference frame by compensating
+for different orientations using their respective extrinsic
+calibration. In the second step, a single axis of the transformed
+measurements is selected, and the signal is linearly interpolated
+to a frequency of 500 Hz, the maximum rate collected with
+Boxi. A correlation analysis between the two angular velocity
+signals provides an initial time offset estimate between the
+IMUs. We then rene this estimate using gradient-based
+optimization. This involves iteratively interpolating the original
+measurement signals based on the current time-offset estimate.
+We minimize the mean squared error (MSE) between the two
+interpolated IMU signals until convergence.
+verify that IMU sensor readings fall within the expected IMU
+rate intervals of 10 ms based on the HG4930 reference IMU
+operating at a 100 Hz.
+The results of applying this tool across all recorded missions
+is provided in the main paper Table VI. We applied the tool
+to three 30 s snippets per axis for each mission to estimate
+the standard deviation. Since the missions were recorded
+across seven different days, we assume that any remaining
+biases originate from the internal IMU-specic triggering time.
+high accuracy, achieving an average sigma of 0.5 ms when
+averaging the estimated offset across runs, different axes, and
+different time intervals across deployments. The remaining time
+offsets most likely stem from the variations in the triggering of
+the IMU exposure time and internal IMU delays. This analysis
+highlights the importance of having robust verication tools to
+ensure high-quality sensor data and to understand biases within
+the data. The STIM320 IMU is excluded from the above
+analysis as during testing, it was observed that the userspace
+front-end might have an initial time offset while reading the
+sysfs virtual le. This offset is constant for each sequence and
+is characterized by the period of the IMU 2 ms. This offset is
+compensated in hindsight with the tool discussed in this section.
+O. Cookbook: Hardware
+1) Vibrations: During operation, Boxi experiences constant
+vibrations due to the radial fan and the motion of the legged
+robot. Using vibration-damping mounts or isolators between
+the base platform and Boxi is prohibited by the fact that the
+kinematic chain must remain accurately observable. Internal
+vibrations can also arise from rotating components, specically
+the radial fan and internally spinning LiDARs. These vibrations
+can interfere with the readings from the IMUs; therefore,
+securely mounting all components is essential. Similarly, screw-
+in or clip-in connectors can help prevent loose connections
+and prevent component failures.
+2) Weatherproong: To ensure weatherproong, we incor-
+porated an O-ring between the main body of Boxi and the
+lid. A modular IP67-rated cable passthrough proved to be
+particularly useful for the exible integration of the components
+on the lid. The entire enclosure is air-tight; however, to prevent
+water ingress due to condensation caused by temperature
+uctuations between the interior and exterior of the box, we
+added a pressure relief valve. In previous hardware designs,
+we experienced short circuits resulting from this condensation,
+which this design aims to mitigate.
+3) Protection: We generally recommend performing a haz-
+ard analysis before the mechanical design of the payload. This
+analysis aims to identify risks early in the design process and,
+in turn, helps to design mitigation strategies. Generally, the
+later risks are identied, the more burdensome their mitigation
+becomes. To protect Boxi from impacts, we added a 3D-printed
+structure around the front and the side. The 3D structure
+specically protects the exposed lenses from damage. The
+current dual-purpose roll-over cage protecting the LiDARs is
+insufcient to absorb the force generated by the robot falling.
+A more sophisticated protection concept could introduce a
+decoupled roll-over cage directly mounted to the robot or an
+intended breaking point between the robot and Boxi.
+Protection - Recipe
+Hazard Analysis (Fall, Shock, Water, Temperature)
+Mitigation Plan (Cage, Lenses, Damping, IP-rating)
+P. Calibration: Camera Intrinsic and Extrinsic
+1) Kalibr Ceres Online Version: Initially, we experimented
+with the off-the-shelf tool Kalibr [26, 56] but were quickly
+set back by three main challenges: i) the batched nature of
+the calibration formulation, along with the information gain
+computation at each batch iteration made the optimization
+problem prohibitively slow for our use case, taking up to 6 h;
+ii) given the wide coverage of our cameras, sub-batches of our
+data rarely contained observation data from all cameras, and
+the optimization problem typically diverged; iii) the ofine
+nature of the workow required transfer of around 100 GB of
+redundant uncompressed image data which was a bottleneck.
+Guided by these challenges, we developed our own calibra-
+tion workow that provides live feedback on the validity of the
+calibration data collected, does not store redundant calibration
+To make calibration feasible on-board, we delegated tasks
+across the running computers. The Jetson and NUC platforms
+that run the camera drivers would also perform calibration
+target detection. Only the target information is transferred
+Fig. 20: Heatmap of reprojection errors across all cameras. The consistent sub-pixel reprojection array throughout the image plane veries the
+selection of the respective distortion model. Units are in pixels.
+to the operator PC, where the calibration optimization and
+live user visual feedback are run. Additionally, the calibration
+target detector nodes log the raw images where the calibration
+target was detected.
+At initialization, the calibration routine estimates only the in-
+dividual camera intrinsics. To achieve this, data is accumulated
+from all the cameras as the user moves the calibration target
+within the FoV of the camera bundle. Simultaneously, a separate
+visualization program shows a heatmap of the regions in each
+image that have already received calibration data. Once the
+program receives sufcient new observations (in this case, 300
+corners), a non-linear least squares optimization, implemented
+using Ceres Solver , is run to solve for the camera
+intrinsic parameters using a pre-determined initial guess of the
+parameters.This phase temporarily halts the processing of new
+target detections, displaying on-screen feedback to inform the
+user that the program is currently busy running an optimization
+process. To keep the interaction close to real-time, the
+optimization program is run for a maximum of three iterations.
+After solving the optimization problem, we estimate the
+diagonal of the covariance of the intrinsic parameters and the
+reprojection errors for each camera. The user receives feedback
+on this information through a 2D plot of the reprojection errors
+and a bar plot of the uncertainty of the intrinsic parameters.
+Once the maximum standard deviation of the projection param-
+eters is less than two pixels across all cameras, the calibration
+program proceeds and is ready for extrinsic calibration.
+Unlike the data used for intrinsic calibration, the data for
+extrinsic calibration requires the calibration target to remain
+static relative to the sensors. To ensure this, we detect a static
+target if its previous and next positions show less than 1 mm of
+movement. To synchronize between the cameras, we use a ring
+buffer to store the last 10 detected target positions, timestamps,
+and detections for each camera.
+After the joint intrinsicextrinsic optimization, we estimate
+the diagonal of the covariance of all intrinsic and extrinsic pa-
+to collect calibration data such that the estimated square root
+of the diagonal of the covariance matrix is under 1 mm.
+To reduce the amount of redundant calibration data collection,
+we rst experimented with an information gain-based threshold
+but found that the computation of the information matrix was
+too time-consuming to use effectively on-board, even when
+using sparse matrix implementations . Instead, we opted
+for an approximate but effective measure of information gain.
+We divided the image into 33 blocks, allocating to each block
+a maximum capacity of 10 corner observations. When a new
+observation is received (each observation contains up to 144
+corner locations), the corners are mapped to their designated
+for new observations, all corners of this new observation are
+added to the respective blocks. Note that this means that each
+block can exceed its set maximum capacity.
+2) Calibration Target: To facilitate the convenient collection
+of calibration corner data close to the edges of the cameras with
+high distortion, we used a calibration target formed of a planar
+grid of AprilTag targets  (also known as an AprilGrid),
+which enables partial detection of the calibration target. The
+6  6 of square patterns provide up to 144 corner detections.
+With squares on the sides 8.3 cm, the target is condently
+detected in the range of the calibration data collected.
+3) Camera Calibration Reprojection Errors: The reprojec-
+tion errors of the detected corners across all cameras are
+provided in Figure 20. The projection errors are, on average,
+below 0.5 px and the samples cover the full FoV.
+Q. Calibration: Camera to IMU
+An operator performs the calibration motion manually,
+smoothly moving the cameras along all three axes of translation
+and rotation while maintaining the view of the calibration target
+in the cameras. This calibration is done in post-processing, as
+the calibration target detector is not fast enough to run in real-
+time without dropping some of the images streaming at 17 Hz.
+camera accounting for the axis-scale using the extension to
+Kalibr . All other IMUs are individually calibrated relative
+to the camera bundle, without renements to the intra-camera
+Alphasense Left
+Alphasense Center
+Alphasense Right
+Fig. 21: Overlay of the LiDAR point cloud while moving forward at 1 m s1, showcasing the consistency of the sensor calibration and the
+motion undistortion of the point cloud.
+extrinsic parameters. The IMUs are placed in very different lo-
+cations across the sensor suite, with the HG4930 roughly 30 cm
+away. From the individual calibrations, we can verify that the
+estimated relative transform between STIM320 and the HG4930
+is consistent with the pinned-down CAD measurements.
+R. Calibration: LiDAR to Camera Extrinsic
+For this calibration, we used a different calibration target
+formed of a checkerboard pattern with 89 squares of size 8 cm
+with a special surface nish. Crucially, the print nish of the cal-
+ibration target admits an intensity contrast in the 905 nm wave-
+length of the laser beams emitted by the LiDARs, as seen in Fig-
+ure 17. Each LiDAR is individually calibrated against the 5 Cor-
+eResearch cameras. Using the calibrated extrinsic parameters
+between the cameras, the detected calibration target poses from
+each camera are fused and jointly calibrated with respect to each
+The calibration data is collected by placing the target stati-
+cally in various poses around the sensors in the overlapping
+area between the FoV of the LiDARs and the CoreResearch
+cameras. Our calibration program automatically detects these
+static segments by assessing the camera-detected calibration
+target motion. When the inter-frame motion is under 1 mm, the
+segment is deemed static. Since the Hesai LiDAR has a sparse
+scanning pattern along the vertical axis, the calibration target
+is placed diagonally in certain poses as seen in Figure 17, to
+better constrain the alignment of the vertical axis of the LiDAR
+to the camera. As the Livox LiDAR has a non-repeating pattern,
+we accumulate all its points in a given static segment to create
+a single dense point cloud to align to the camera detections.
+This data collection typically takes under 10 min.
+1) LiDAR to Camera Overlay: The established time syn-
+to-IMU extrinsic calibration allow us to motion-compensate
+the LiDAR points and accurately project them onto all Cor-
+eResearch images. In Figure 21, an example scene showcases
+the excellent data association that can be achieved across all
+directions during motion.
+In our evaluation of image recording, we considered different
+to the large storage requirements. Lossless PNG compression,
+while preserving image quality, proved too computationally
+expensive for real-time processing of large images. MJPEG,
+being more efcient, offered a higher compression rate (typi-
+cally around 10:1, depending on quality settings), and beneted
+from native support in ROS. Lastly, H.265 video compression
+can further decrease storage requirements up to a factor of
+100 and leverage hardware acceleration on the Jetson, which
+signicantly reduces the CPU workload.
+For all CoreResearch cameras, we opted for standard ROS1
+JPEG compression due to the NUCs inability to support
+hardware video encoding, while still being capable of han-
+dling the CPU compression workload. A notable drawback of
+this method is that images must be transferred through the
+ROS1 TCPIP layer before being stored, introducing signicant
+overhead due to serialization and deserialization processes.
+While there are more sophisticated compression methods that
+can run on CPU, this approach was necessary as we lacked
+access to the camera drivers to maximize efciency in storing
+serialized image data. Similarly, for the HDR cameras, we
+also applied JPEG compression, but we used ROS2, which
+allowed us to leverage interprocess communication (IPC). This
+enables efcient storage of compressed images directly into
+MCAP les, highlighting one of the key advantages of ROS2
+for our application. Lastly, for the ZED2i camera, we used
+the StereoLabs API to record highly serialized and efcient
+SVO2 les, beneting from hardware-accelerated H.265 video
+compression with an SSIM 97.3  providing the best image
+quality and compression ratio while using the least resources.

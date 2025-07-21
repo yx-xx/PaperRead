@@ -1,0 +1,1396 @@
+=== PDF文件: On the Surprising Robustness of Sequential Convex Optimization for Contact-Implicit Motion Planning.pdf ===
+=== 时间: 2025-07-21 14:27:26.737081 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：On the Surprising Robustness of Sequential Convex
+Optimization for Contact-Implicit Motion Planning
+Yulin Li,, Haoyu Han, Shucheng Kang, Jun Ma, and Heng Yang
+The Hong Kong University of Science and Technology
+Harvard University
+(c) Transport
+(d) Waiter
+(a) Cartpole with Soft Walls
+(b) Push Box
+(e) Hopper
+(f) Real World Push T
+Fig. 1: CRISP computes entirely new contact sequences from naive and even all-zero initializations. For (a), (b), (c), and (d),
+the left side shows the initial trajectories and the right side displays the optimized trajectory from CRISP. For (e) the hopper
+(from blue to yellow). For (f), we implement the policy derived from CRISP in a Model Predictive Control (MPC) framework
+for real-world push tasks. Detailed descriptions of these tasks are provided in IV.
+AbstractContact-implicit motion planningembedding con-
+tact sequencing as implicit complementarity constraintsholds
+the promise of leveraging continuous optimization to discover new
+contact patterns online. Nevertheless, the resulting optimization,
+being an instance of Mathematical Programming with Comple-
+mentary Constraints, fails the classical constraint qualifications
+that are crucial for the convergence of popular numerical
+solvers. We present robust contact-implicit motion planning with
+sequential convex programming (CRISP), a solver that departs
+from the usual primal-dual algorithmic framework but instead
+focuses only on the primal problem. CRISP solves a convex
+quadratic program with an adaptive trust region radius at each
+using weighted 1 penalty. We (i) prove sufficient conditions on
+CRISPs convergence to first-order stationary points of the merit
+function; (ii) release a high-performance C implementation of
+CRISP with a generic nonlinear programming interface; and (iii)
+demonstrate CRISPs surprising robustness in solving contact-
+implicit planning with naive initializations. In fact, CRISP solves
+several contact-implicit problems with an all-zero initialization.
+I. INTRODUCTION
+Robots must intelligently establish and disengage contacts
+to successfully perform complex tasks in the physical world,
+such as manipulation of daily objects and locomotion in rough
+terrains. However, the hybrid nature of combining continuous
+dynamics with discrete contact events, the discontinuities in
+force profiles, and the potential for stick-slip transitions, make
+it notoriously difficult to plan through contact.
+Contact-implicit motion planning. Among the many ef-
+forts for motion planning through contact (see V for a
+review), the so-called contact-implicit formulation stood out
+as a particularly popular and promising approach [47, 62].
+This formulation distinguishes itself by integrating contact
+dynamics into the motion planning framework through the in-
+troduction of complementarity constraints, which allow simul-
+taneous optimization of the state-control trajectories and the
+contact forces without explicit (and discrete) mode switching
+(cf. (6)). However, the contact-implicit formulation circum-
+objective level set
+linearized feasible cone
+tangent cone
+Fig. 2: Geometric intuition of MPCC through Example 1.
+vents explicit mode switching at the price of arriving at an
+optimization problem known as Mathematical Programming
+with Complementarity Constraints (MPCC). Although they
+look like smooth and continuous optimization problems,
+MPCC problems are known to fail the classical constraint
+qualifications (CQs) at all feasible points (e.g., Linear Inde-
+pendence Constraint Qualification and Mangasarian-Fromovitz
+Constraint Qualification) [48, 49, 61]. To make this concrete,
+we provide the geometric intuition through a simple MPCC
+problem.
+Example 1 (Geometric Intuition of MPCC). Consider the
+following two-dimensional MPCC problem:
+(x1,x2)R2 f(x) : x2
+subject to g1(x) : x1 0,
+where (1d) is a complementarity constraint. As depicted
+in Fig. 2, the objective level sets are circles in R2, and the
+feasible set consists of the union of the two coordinate axes
+in the first quadrant
+The optimal solution of problem (1) lies at the origin (0, 0).
+To understand the local geometry at the origin, we need to
+characterize two types of cones around the origin.
+(a) The tangent cone (TC) at a point is defined as the set of
+tangent vectors of all curves approaching the point from the
+feasible region . Thus, the tangent cone at (0, 0) is:
+This consists of two directions: one along the positive x1-axis
+and one along the positive x2-axis, see Fig. 2.
+(b) The linearized feasible cone (LFC) is formed by all
+active constraints at that point :
+i.e., the entire first quadrant. Therefore, we conclude that
+TC LFCthe TC is a strict subset of the LFC at (0, 0).
+We remark that the TC is geometric, while the LFC
+is algebraic. While the definition of LFC involves the
+algebraic constraints and their linearizations, the definition
+of TC characterizes the local geometry regardless of how the
+feasible set is algebraically parameterized.
+After noticing the gap between the TC and the LFC, the
+reader might wonder why this is a problem. The reason lies
+in that, the equivalence of TC and LFCtypically ensured by
+CQsis a prerequisite to establish the KarushKuhnTucker
+(KKT) conditions for local optimality . Moreover, al-
+most all primal-dual nonlinear programming (NLP) solvers
+(e.g., SNOPT , IPOPT ) rely on the KKT optimality
+conditionsthey search for a pair of primal and dual variables
+satisfying the KKT conditions. Therefore, the inherent absence
+of CQs and the gap between TC and LFC of the MPCC
+problems break the theoretical foundations for primal-dual
+algorithms. The numerical consequence of this, as we will
+show in IV, is that primal-dual solvers can exhibit poor
+instabilities when solving contact-implicit MPCC problems.
+Relaxation? An extensively studied strategy to mitigate the
+failure of CQs is to relax the complementarity constraint.
+the complementarity constraint (1d) as x1  x2   for  > 0.
+In [49, 50], a different relaxation scheme where x1x2  for
+> 0 is proposed. In both relaxations, CQs are restored (i.e.,
+no gap between the TC and the LFC) and KKT optimality
+conditions are reassured. However, since   0 is the original
+non-relaxed problem we want to solve, a homotopy scheme
+is needed to start with  very large and gradually push
+to zero. There are two issues with the relaxation approach.
+instead of just one, making this approach computationally
+expensive. Second, while the problem with  very large
+is generally well conditioned, as  0, numerical issues
+appear again. For these reasons, to the best of our knowledge,
+there does not exist a well-accepted implementation of the
+relaxation approach. Recently in robotics,  targeted at
+linear complementarity constraintswhich are indeed KKT
+optimality conditions of a lower-level convex quadratic pro-
+gram (QP)and designed a bilevel optimization algorithm
+where the lower-level QP is solved in a differentiable way
+to provide gradient for the upper-level trajectory optimization
+problem. Crucially, to ensure the QP is differentiable with
+respect to contact, relaxation (or smoothing) is applied again,
+but this time to the interior point algorithm used for solving the
+QP. However, (a) it is unclear whether the approach extends
+to nonlinear complementarity constraints studied in our paper;
+and (b) the implementation provided by  does not follow
+a generic nonlinear programming interface. Therefore, we did
+not benchmark against  in IV.
+Can we solve contact-implicit motion planning in a numer-
+ically robust way, without relaxation?
+Contributions. The answer is rather discouraging if consid-
+ering a generic nonconvex MPCC problem, as highlighted by
+the mathematical optimization literature [20, 22, 21]. Never-
+a unique property: the objective function is often convex (and
+quadratic), as the goal typically involves tracking a trajectory
+or reaching a target. Formally, we consider the problem:
+subject to
+ci(v, ) 0, i I
+ci(v, )  0, i E
+where v includes the trajectory of both robot state and control
+associated with contact forces. We assume the objective func-
+tion J(v, ) is convexusually a quadratic loss function of
+tracking errors and control efforts. Constraint (6b) represents
+the nonlinear system dynamics. Constraints (6c) and (6d)
+are general inequality and equality constraints. The nonlin-
+ear complementarity constraint (6e) enforces the relationship
+between  and the nonlinear function (v, ). The expression
+(x, )  should be interpreted as i(x, )  i  0, or
+its equivalent form i(x, )  i 0 as suggested by ,
+for every entry of () and . It should be emphasized that
+problem (6) is nonlinear and nonconvex, as we impose no re-
+strictions on the convexity of the constraints. This formulation
+is classified as a nonlinear complementarity problem (NCP)
+due to constraints (6e). A key distinction between NCP and
+linear complementarity problem (LCP) lies in the nonlinearity
+present in both the complementarity constraints and other
+constraints. While one can use s  (v, ) to recast com-
+plementarity constraints as  s, this transformation merely
+shifts the nonlinearity to the additional constraint s  (v, ).
+In the linear complementarity problem (LCP) literature, both
+and other constraints are typically required to be linear (as
+in  and LCQpow ). In contrast, CRISP is capable of
+handling generic nonlinear dynamics, as demonstrated in our
+examples. We will give concrete examples of (6) in IV. For
+Our major contribution is to depart from the usual primal-
+dual algorithmic frameworkdue to the failure of CQs in
+MPCCand propose a primal-only algorithm named CRISP
+(Robust Contact-Implicit motion planning with Sequential
+convex Programming). CRISP features a merit function with
+weighted 1 penalty to measure primal feasibility and objective
+reduction. It solves a series of trust-region convex quadratic
+programs (QPs) formulated using local second-order infor-
+mation of the objective and first-order information of the
+constraints. In stark contrast with the well-known sequential
+quadratic programming (SQP) framework, CRISP (a) does
+not require second-order information of the constraints, and
+(b) does not maintain and update dual variables. Since the
+objective function is convex, the inner-loop QP subproblem
+inherits convexity by construction. These make CRISP both
+simple to implement and computationally efficient.
+One then wonders whether a simple algorithm like CRISP
+can offer any convergence guarantees. We show that the
+convexity of the objective function allows us to prove sufficient
+conditions under which CRISP can guarantee convergence to
+the stationary points of the merit function. Importantly, the
+sufficient conditions are numerically verifiable, and hence the
+convergence can be certified from the numerical iterations
+of CRISP. Moreover, we show that the local minima of the
+merit function are indeed the local minimizers of the original
+problem if feasible for the original problem to close the loop.
+tation of CRISP. Our C implementation follows a generic
+nonlinear programming interface where the user defines ob-
+jective function and constraints. We leverage automatic dif-
+ferentiation to obtain gradient and Hessian information. We
+then apply CRISP to solve six contact-implicit motion planning
+problems and benchmark its performance against both generic
+and robotics-specific solvers. We believe the way we model
+some of the contact-implicit planning problems is also new.
+Our numerical results demonstrate that CRISP consistently
+generates non-trivial and entirely new contact sequences from
+naive and even all-zero initializations, while existing solvers
+can struggle to find even feasible solutions.
+To summarize, our contributions are:
+Theory and Algorithm. We propose a primal-only algo-
+rithm for contact-implicit motion planning called CRISP
+and provide theoretical guarantees.
+Implementation.
+open-source
+performance C implementation of CRISP.
+Benchmark. We model six contact-rich planning prob-
+lems using the contact-implicit formulation and bench-
+mark CRISP against existing solvers.
+Paper organization. We present the theory and algorithm
+for CRISP in II, its implementation details in III, and bench-
+mark results in IV. We postpone the related work review to
+V and conclude in VI. Appendix and project website provide
+proofs and the detailed contact-implicit formulation for the five
+planning problems, as well as the animations of numerically
+computed motion trajectories.
+II. CRISP: THEORY AND ALGORITHM
+transformed into a generic NLP problem, which also aligns
+with our implemented C solver. Let x  [v, ], we denote
+the NLP formulation of (6) as:
+subject to
+ci(x)  0,
+ci(x) 0.
+Fig. 3: Depiction of the 1 penalty merit function for Example 1 with different penalty parameters .
+c for simplicity. Primal-only merit function. From a primal-
+only perspective, the core optimization challenge is to balance
+descent of the objective function with satisfaction of the
+constraints . In CRISP, we adopt the following merit
+function with weighted 1 penalty to evaluate the quality of a
+point x:
+i[ci(x)],
+where i > 0 is the penalty parameter for each constraint i.
+The notation [ci]max{0, ci} is used to properly penalize
+inequality constraint violations.
+Example 2 (Merit Function for the Toy Problem). Continuing
+Example 1, we plot the merit function for the toy MPCC prob-
+lem (1) with different penalty parameters in Fig. 3. Evidently,
+the stationary points of the merit function align with the global
+minimum of Example 1 at the origin.
+Remark 3 (Merit Function). The 1 penalty function is a
+class of nonsmooth penalty functions that has demonstrated
+remarkable success in practical applications. It is exact in the
+sense that, given an appropriate penalty parameter and under
+mild constraint qualifications, local optimizers of the original
+problem are also minimizers of the merit function .
+We need to emphasize that, due to the lack of CQs in the
+MPCC problem, it is not fully clear whether minimization of
+the merit function (8) has the same type of guarantees as in
+the case where CQs hold. However, the intuition that the merit
+function balances objective reduction and constraint satisfac-
+tion still holds, and according to Example 2, the minimization
+of the merit function leads to the optimal solution, at least
+for the toy problem. We give a sufficient condition of local
+optimality in Proposition 9 and leave a precise investigation
+of the relationship between the merit function and the original
+problem in the case of MPCC for future work.
+A difference of our merit function from the usual 1 penalty
+is that we maintain a separate penalty parameter i for
+each constraint. This individualized penalization strategy often
+leads to superior convergence in practice.
+Convex subproblem. To minimize the merit function (8),
+we adopt a sequential optimization strategy that solves a series
+of subproblems by approximating a local model of the merit
+function in the vicinity of the current iteration. Formally, our
+subproblem seeks to minimize the following quadratic model:
+ici(xk)  ci(xk)pk
+i[ci(xk)  ci(xk)pk],
+where Jk, Jk, and 2
+xxJk represent the objective functions
+tively. The constraints ci are linearized around xk. In the
+subproblem (9), pk is known as the trial step.
+From (9), the readers see that our method diverges from the
+subproblem formulation in the classical SQP methods [23, 20,
+30], in the sense that (9) refrains from computing second-order
+derivatives of the constraints and the Lagrangian. Instead,
+we linearize the constraints while maintaining a quadratic
+model of the objective function only. Our approach aligns
+with the concept of sequential convex programming discussed
+in [14, 13, 43, 39, 38], including the well-known robotics
+package TRAJOPT . TRAJOPT implements sequential
+convex programming for trajectory optimization and convex
+collision detection. However, it lacks user-friendly APIs to
+include contact constraints and does not support weighted
+1 merit functions or second-order corrections, nor does it
+provide convergence analysis. Beyond the SCP foundation, we
+aim for a high-performance implementation featuring carefully
+engineered modules and a generalized interface designed for
+broad contact-rich motion planning applications, while pro-
+viding convergence guarantees in the contact-implicit context
+where CQs assumptions do not hold.
+Leveraging the convexity of the objective function J and
+introducing the penalty term, the subproblem (9) is always
+convex and feasible. This offers several advantages. First, it
+reduces the computational burden associated with calculating
+second-order derivatives of constraints, which is particularly
+beneficial for problems with complex constraints (e.g., in
+robotics). Second, the convexity and guaranteed feasibility of
+the subproblem not only facilitate efficient solution of (9)
+using well-established convex optimization techniques but also
+enhance the robustness of the overall algorithm.
+Remark 4 (Elastic Mode). In conventional sequential op-
+timization methods, such as SQP, constraints are typically
+linearized directly from the original problem. However, when
+applied to MPCC, this approach inevitably leads to infeasible
+subproblems [22, 4]. To address this issue, some numerical
+they add penalty variables to move constraints into the ob-
+jective function upon detecting subproblem infeasibility. Our
+approach aligns with the motivation of the elastic mode in
+the sense that the merit function (8) is elastic from the
+very beginning because the constraints are penalized in the
+objective function. This strategy ensures our subproblems are
+always feasible by design.
+Globalization. The only issue with the subproblem (9) is
+that it may be unbounded from below (i.e., the optimal value
+is ). To avoid this issue, we introduce the trust-region
+approach following . Specifically, we constrain the
+norm of the trial step pk. Formally, the trust-region subproblem
+with norm constraint becomes:
+(vi  wi)
+subject to ci(xk)Tpk  ci(xk)  vi wi, i E
+ci(xk)Tpk  ci(xk) ti, i I
+where (10e) represents the norm constraint with trust-
+region radius k. From (9) to (10), we have also introduced
+slack variables v, w, t to reformulate the nonsmooth 1 objec-
+tive as smooth constraints. Evidently, the subproblem (10) is
+a standard convex QP.
+on how much we trust the local model (quadratic objective
+and linearized constraints) to approximate the merit function.
+The norm only limits the maximum step length in the trial
+occur in line search methods.
+To determine whether a trial step should be accepted and
+whether the trust-region radius should be adjusted, we monitor
+the ratio of actual decrease to predicted decrease:
+1(xk; ) 1(xk  pk; )
+This ratio k serves as a key indicator of the quality of the
+trial step. As k approaches 1, it signifies that the trial step is
+increasingly satisfactory, indicating the local quadratic model
+at this step accurately describes the local behavior of the true
+merit function within the trust region radius. When the actual
+reduction is negative or the reduction ratio is very low, it
+indicates that the local model is highly inaccurate. In such
+continuous shrinking of the trust region and the Maratos effect,
+we introduce a second order correction step. The essence
+of this correction is to replace the linear approximation of
+c(xk  p) in subproblem (10) with a second-order model:
+c(xk  p) c(xk)  c(xk)T p  1
+xxc(xk)p.
+Suppose we have calculated an unsatisfactory trial step pk,
+and the correction step to be determined is not far from pk.
+We approximate the second-order term pT 2
+xxc(xk)p utilizing
+the value c(xk  pk) computed at the trial step:
+xxc(xk)p pT
+xxc(xk)pk
+c(xk  pk) c(xk) c(xk)pk.
+From (13), we use c(xk  p)  c(xk)p  (c(xk  pk)
+c(xk)pk) to replace the first-order approximation in (10b)
+and (10c) to calculate a correction step pk. This approach
+does not require explicit second-order information of the con-
+In practice, this second-order correction has proven highly
+effective in correcting inaccuracies of the linearized model,
+leading to more efficient reductions in the merit function.
+Convergence analysis. We now provide convergence guar-
+antees of CRISP to stationary points of the merit function (8).
+We first recall the definition of the directional derivative.
+Definition 5 (Directional Derivative). The directional deriva-
+tive of a function f: Rn R in the direction p is:
+D(f; p)  lim
+f(x  tp) f(x)
+The stationary point of the nonsmooth merit function is:
+Definition 6 (Stationary Point). A point x is a stationary
+point of the merit function 1(x, ) in (8) if its directional
+derivatives are nonnegative along all directions p, i.e.,
+We then make mild assumptions about the motion planning
+problems under consideration.
+Assumption 7 (Convexity). In problem (7), the objective
+function J(x) is convex and continuous differentiable; ci is
+differentiable and ci is Lipschitz continuous for all i E
+and i I.
+We are ready to present the main result.
+Theorem 8 (Convergence). Under Assumption 7, suppose:
+1) The sequence of convex subproblems (10) converges, i.e.,
+xk xfor some point x
+2) The trust region radius remains bounded above zero, i.e.,
+there exists min > 0 such that k min for all k.
+While the nonsmoothness of the merit function makes it
+challenging to verify whether its stationary points are local
+merit function and the original problem can be established.
+Proposition 9 (Local Optimality). Let xbe a local minimizer
+of the merit function 1(x; ) in (8). If xis feasible for the
+original problem (7), that is,
+ci(x)  0,
+ci(x) 0.
+Then xis also a local minimizer of the original problem (7).
+x< r. Define the set x x< r as Br(x) and let the
+feasible set of the original problem (7) be . Then, we have
+On the other hand, we have 1(x; )  J(x) x . Thus,
+evaluating the objective function of the original problem, we
+J(x) J(x),
+x Br(x) ,
+which is the definition of a local minimizer.
+Combining Theorem 8 and Proposition 9, we conclude that
+if (a) CRISP converges to a stationary point xof the merit
+(c) xis feasible for the original problem (7), then xis also a
+local minimizer of (7). In other words, when CRISP computes
+a stationary point xof the merit function (which often occurs
+and can be certified) that is also locally optimal, the only
+way that xmight fail to be a local minimizer of the original
+problem (7) is that xis infeasible for (7). We note that while
+this statement is theoretically useful, due to the nonsmoothness
+of the merit function, certifying local optimality of xfor the
+merit function is challenging. We leave this for future work.
+Final algorithm. Having introduced the key algorithmic
+components and the convergence analysis, we formally present
+CRISP in Algorithm 1. The algorithm initiates with a com-
+mon penalty variable 0 for all constraints. Guided by the
+checkable convergence conditions outlined in Theorem 8, we
+solve a series of trust-region subproblems (convex QPs) in the
+inner iterations. This process continues until the conditions in
+Theorem 8 are satisfied, indicating convergence to a stationary
+point of the current merit function. In the outer iterations,
+we examine the constraint violation against a threshold c.
+For constraint violations exceeding this threshold, we increase
+their corresponding penalty parameters. The default values of
+all hyperparameters in Algorithm 1 are summarized in Table I.
+III. CRISP: IMPLEMENTATION
+User interface. CRISP follows the general nonlinear pro-
+gramming problem formulation in (7) where the user defines
+the objective function and constraints. Our implementation
+builds upon the fundamental data types in Eigen3 (vectors
+and matrices), wrapped with CPPAD  and CPPAD Code
+Generation (CG) . This architecture allows users to define
+problems in an Eigen-style syntax, specifying objectives and
+constraints (both equality and inequality) while leveraging CP-
+PAD for automatic derivative computation. The solver utilizes
+CPPAD to automatically obtain derivative information, while
+CG is employed to generate and store an auto-diff library.
+This library can be dynamically loaded for efficient evaluation
+of gradients and Hessians at specified points, significantly re-
+ducing computational overhead in subsequent solves. Besides,
+our implementation supports both parameterized and non-
+parameterized function definitions, allowing real-time modi-
+fication of problem parameters (e.g., reference, terminal, or
+initial states) without the need to regenerate the library. It is
+noteworthy to point that
+QP solver. The key subroutine in CRISP is to solve the
+convex trust-region QPs. After careful comparison and ex-
+perimentation with several QP solvers in CRISP, including
+integrate PIQP, an interior-point method-based QP solver with
+embedded sparse matrix operations, which strikes an excellent
+balance of accuracy and real-time performance. To optimize
+the construction of the QP subproblems (10), we perform
+memory-level operations for extracting, copying, and con-
+catenating large-scale sparse matrices, bypassing the Eigen3
+higher-level interfaces. This approach enhances the efficiency
+of sparse matrix operations that are crucial for complex robot
+motion planning problems.
+To enhance usability, we also implement a Python interface
+using Pybind11. This interface allows users to adjust problem
+parameters and solver hyperparameters, solve and re-solve
+providing flexibility for downstream applications.
+Remark 10 (First-order QP Solver). There are growing in-
+terests in robotics to leverage first-order QP solvers (e.g.,
+building upon ADMM  and PDHG ) for large-scale
+motion planning. While first-order QP solvers are typically
+more scalable due to cheap per-iteration cost, recent work
+has shown that insufficient solution quality caused by first-
+order QP solvers may hurt motion planning. For this reason,
+CRISP chose the interior-point solver PIQP to make sure the
+inner QPs are solved to sufficient accuracy. However, we do
+note that CRISP is built in a modular way such that users can
+switch between different QP solvers.
+IV. CRISP: BENCHMARK
+In this section, we present a comprehensive benchmark
+study to evaluate the performance of our proposed solver,
+As illustrated in Fig. 4, we have selected six representative
+contact-rich planning problems, each involving intricate inter-
+actions of normal (support) forces and friction forces. These
+problems showcase the diverse challenges encountered in
+practical applications where contact dynamics play a crucial
+role. All optimization problems are derived using the contact-
+implicit formulation and the detailed derivations are presented
+in Appendix B. The optimization horizon for push T is 50 with
+time discretization dt  0.05 seconds, and all other examples
+are optimized over 200 steps with dt  0.02 seconds. All
+experiments were conducted on a laptop equipped with a 13th
+Gen Intel(R) Core(TM) i9-13950HX processor.
+Fig. 4: Schematic overview of the contact-implicit motion planning tasks considered in the experiments. Each task poses unique
+challenges in contact sequencing, force distribution, and modeling of the multi-modal dynamics.
+A. Benchmark Solvers
+In the first part (IV-C), we compare CRISP against three
+state-of-the-art algorithms. The first is SNOPT , a sparse
+nonlinear optimizer based on the SQP method. The second
+is IPOPT , an interior point optimizer designed for large-
+scale nonlinear programming. Finally, we include PROXNLP
+, a primal-dual augmented Lagrangian algorithm designed
+by roboticists. in subsection IV-D, we present additional
+experiments to further demonstrate CRISPs robustness and
+superior performance across a broader range of contact-rich
+motion planning scenarios. Specifically, (i) For the push T
+ically constrained problem (MIQCP), which we solve using
+Gurobi . (ii) We evaluate the LCP solver LCQpow
+on two examples with linear dynamics and linear complemen-
+tarity constraints. (iii) We validate CRISP in real-world Push
+T with a Franka Panda robot arm.
+B. Benchmark Problems
+For each problem depicted in Fig. 4, we provide a brief
+description of the task along with the initial conditions and ini-
+tial guesses supplied to the solvers. The detailed formulations
+for each example, including objective functions, dynamics,
+contact constraints, and other general constraints, are provided
+in Appendix B. Furthermore, we have open-sourced all these
+problems as examples in CRISP.
+1) Cartpole with soft walls: As shown in Fig. 4(a), this prob-
+lem involves trajectory optimization of a cartpole system
+constrained between two walls, with the objective of
+swinging up the pole to an upright stance. The walls are
+considered soft, providing unidirectional forces analo-
+gous to springs. Depending on the initial conditions, the
+optimal trajectory may require the pole to make or break
+contact with the walls, thereby leveraging contact forces
+to accomplish the task. x1 and  represent the cartpole
+states; u is the horizontal active force applied on the cart,
+while 1 and 2 are the passive contact forces generated
+when the poles end makes contact with a wall. These
+contact forces are proportional to the wall displacement,
+effectively simulating the soft contact forces. Detailed
+contact-implicit formulation can be found Appendix B-A.
+We consider two distinct scenarios in the comparison
+based on the carts initial position: centered between the
+walls and in proximity to one wall. For each scenario, we
+select five different initial conditions, with varying initial
+pole angles and velocities. For each initial condition, we
+provide two types of initial guesses: passive trajectories
+rolled out under zero control input, and these trajectories
+Algorithm 1: CRISP
+1 Initialize k 0,  0, k 0;
+2 while k < kmax do
+Evaluate fk, fk, 2
+Construct and solve subproblem (10) to obtain pk;
+Compute reduction ratio k;
+Second Order Correction;
+if aredk < 0 then
+From (13), calculate Second Order Correction
+Step pk;
+Re-compute reduction ratio k;
+if aredk < 0 then
+Abandon the Step;
+k1 shrinkk;
+Go to Line 28;
+Trust Region Update;
+if k < low then
+k1 shrinkk;
+xk1 xk  pk;
+else if k > high and pk k then
+k1 min{expandk, max};
+xk1 xk  pk;
+xk1 xk  pk;
+Check Convergence of Merit Function;
+if k1 < r or pk< p then
+Merit Function Converged;
+Check Overall Convergence;
+if max constraint violation < c then
+return xxk;
+Optimization Successful;
+for i E with ci(xk)c
+and i I with [ci(xk)]c do
+i min(10i, max);
+if any i > max then
+return Failure;
+Penalty Max Out;
+48 Max Iterations Reached;
+49 return Failure;
+TABLE I: Definition of Hyperparameters in CRISP
+Paramaters
+Descriptions
+max iteration numbers: 1000
+initial trust region radius: 1
+max trust region radius: 10
+initial penalty: 10
+max penalty: 1e6
+reduction ratio lower bound: 0.25
+reduction ratio upper bound: 0.75
+trust region shrink factor: 0.25
+trust region expand factor: 2
+tolerance of constraint violation: 1e6
+tolerance of trial step norm: 1e3
+tolerance of trust region radius: 1e3
+contaminated with random noise.
+2) Push Box: The next benchmark problem is the classic
+push box problem, as illustrated in Fig. 4(b). In this task,
+our objective is to manipulate a planar box with dimen-
+sions 2a2b to a series of specified target configurations
+on a table with friction. It involves multiple contact
+modesfour in this case, corresponding to different faces
+of the box. The solver must reason about both the
+sequence of contact positions and the appropriate contact
+forces to achieve the desired motion. The initial state of
+the system places the box at the origin, aligned with the
+positive x-axis. We provide an all-zero initial guess to
+the solvers, and the objective is to push the box to 18
+different configurations. Each configuration is located 3
+meters from the origin, with the angles distributed evenly
+in a clockwise direction, completing a full 360-degree
+circle. We refer to Appendix B-B for the contact-implicit
+formulation of different contact modes.
+3) Transport: As shown in Fig. 4(c), the goal is to determine
+the active force u applied to the cart, under various initial
+poses and velocities, to transport the payload m1 to a
+specified position without it falling off the cart m2. This
+requires precise indirect manipulation of m1 by control-
+ling the friction force between m1 and m2 through u. We
+use an all-zero initial guess for different initial states. The
+cart is commanded to move from 3 meters to the origin,
+with different start and goal relative positions (leftmost,
+the payload from the leftmost to the rightmost part of the
+cart while reaching the absolute end position). The task
+becomes more challenging with different initial and final
+cart to achieve the objective. Its MPCC formulation is
+provided in Appendix B-C.
+4) Push T: The modeling techniques for the push T problem
+are similar to those used in the push box problem.
+convex shapes of the T and the increase in contact
+modes (1 8 as shown in Fig. 4(d)). This means
+we cannot simply construct complementarity constraints
+related to contact using four hyperplanes as we do with
+the push box problem. We now need to establish com-
+plementarity conditions that involve contact points lying
+on certain line segments and exerting corresponding con-
+tact forces, which requires special modeling techniques.
+Details of the problem formulation is demonstrated in
+Appendix B-D. Together with the slack variables, the total
+state dimension is 29. The experiment setting is the same
+with Push Box.
+5) Hopper: We model the system as a point mass m
+atop a massless leg with original length l0, capable of
+radial contraction and thrust application. As shown in
+Fig. 4(e), the hopper exhibits two distinct phases: the
+Flight Phase, where the leg length remains constant and
+motion approximates free fall, and the Stance Phase,
+which initiates upon ground contact. During flight, we
+directly control the leg angular speed (   u1). The
+stance phase, triggered by py l0 cos  0, involves
+fixed-point rotation around the contact point. As the leg
+contracts (r increases within r0), it can exert a unidirec-
+tional thrust u  u2 along its radial axis. The transition
+back to flight occurs when r  0. The task objective
+is to navigate the hoppers hybrid dynamics without
+pre-specified contact sequences. The hopper is released
+from a certain height at the origin, and must optimize
+its own contact sequence, stance phase contact forces,
+and flight phase angular velocities to jump and stop at
+x  2 m. This involves simultaneously managing multiple
+leg angle during flight, and managing thrust after landing
+to achieve the specified final position. The initial guess is
+a passive free-fall motion. As derived in Appendix B-E,
+we employ a contact-implicit formulation to unify the
+dynamics of both phases within a single framework, with
+carefully crafted complementarity constraints to govern
+the transitions between phases.
+6) Waiter: The waiter problem, see Fig. 4(f), is also studied
+in  where it was modeled with linear complementarity
+constraints and optimized in a model-predictive control
+pipeline. Initially, the plate on the table has only a
+small overhang. The objective is to indirectly control the
+friction force with the plate by applying a normal force
+and a pulling force u to the plate m1 via the pusher m2.
+The goal is to gradually extract the plate until its center of
+mass x1 aligns with the pushers center x2, stopping at the
+tables edge with matching velocities. This task requires
+consideration of the friction between the table and the
+leftmost contact point with the table (see Appendix B-F).
+We provide an all-zero initial guess to test the solvers
+ability to optimize an informed contact trajectory.
+C. Comparisons with Numerical Solvers
+While achieving feasible trajectories is a primary goal for
+local solvers, this alone is insufficient in robotics applica-
+tions. Dynamically feasible trajectories can often be trivially
+obtained (e.g., remaining stationary at the origin) but may
+lack practical value. Therefore, we argue that beyond mere
+informed control sequences for tracking objectives is crucial.
+Performance metrics. We evaluate the solvers perfor-
+mance based on three key metrics. First, we examine the
+solution success rate, which reflects the overall ability of each
+solver to converge to a feasible and informed solution from
+various settings (different initialterminal conditions, different
+initial guesses). Second, we assess the quality of the solution
+through the objective values achieved and the tracking error.
+number of iterations required and the total solving time. These
+metrics serve to answer a fundamental scientific question:
+Can these solvers robustly discover informed contact se-
+quences and contact force profiles from scratch?
+This inquiry is particularly relevant, as precise contact
+patterns are often unknown a priori in real-world applications.
+Quantitative results. For the first four examples, we
+recorded and summarized the numerical performance of the
+benchmark solvers under different initial states and initial
+with constraints violation below 105, translation error norm
+below 0.1, translation velocity error norm below 0.5, angular
+error below 6, and angular velocity error below 0.1 rads
+as deemed successful. The objective function, as previously
+efforts. We analyze the performance of four solvers across the
+first four examples, focusing on median tracking error, average
+iteration count, and computation time. To better illustrate the
+performance and robustness of each solver under different
+initial guesses, we boxplot the distribution of constraint vi-
+plots provide a comprehensive overview of solver behavior
+across all experiments, including both feasible and infeasible
+characteristics.
+Our results demonstrate that CRISP consistently produces
+feasible trajectories with the lowest tracking error and overall
+objective values across all tasks.
+The box plot underscores CRISPs remarkable robustness,
+showing consistently superior performance across varied ini-
+tial states and guesses, with minimal outliers. While IPOPT
+generally performs well among the benchmark solvers, it oc-
+casionally produces feasible but impractical solutions. Weve
+visualized these outlier cases, contrasting CRISP and IPOPT
+trajectories in Fig. 6. SNOPT, despite outperforming IPOPT
+in the transport example, struggles with efficiency due to
+high iteration requirements and exhibits unstable optimization
+quence in the push box scenario. These findings underscore
+the critical importance of solver stability. More visualization
+of the trajectories can be found in Appendix C.
+Qualitative results. For the hopper and waiter examples,
+which involve more challenging contact reasoning, we focus
+our comparison on CRISP and IPOPT. The results are visualized
+in Fig. 7. In the hopper task, the objective is to jump and
+Cartpole with Soft Walls
+Push Box
+Transport
+Tracking
+Violation
+Iterations
+Tracking
+Violation
+Iterations
+Tracking
+Violation
+Iterations
+Tracking
+Violation
+Iterations
+CRISP (ours)
+TABLE II: Comparison of CRISP with benchmark solvers across different tasks.
+(a) Objective Value
+(b) Tracking Error
+(c) Constraints Violation
+Fig. 5: Box plots of benchmark metrics on three tasks: cartpole with soft walls, push box, transport, and push T. The plots
+complement Table II to show the distribution of (a) objective value, (b) tracking error, and (c) constraint violation across
+multiple initial states and initial guesses. PROXNLP was unable to solve the Push T problem within a tractable amount of time
+due to its larger problem size, so its data is not applicable in the figure.
+stop at a 2 m horizontal distance with zero height, while min-
+imizing control effort. The waiter task requires maneuvering
+the plates center of mass to the edge of the table without
+rightward velocity of 2 ms. Both IPOPT and CRISP success-
+fully optimized feasible trajectories, but CRISP significantly
+outperformed IPOPT in terms of solution quality for finding
+informed contact sequences. CRISP achieved remarkably low
+objective values of 5.45 and 8.68 for the hopper and waiter
+values of 137.5 and 1855, failing to reach the desired terminal
+states and incurring substantially larger control efforts, which
+is evidently shown in Fig. 7.
+Videos. On the project website, we provide animations of
+optimized trajectories computed by CRISP.
+D. Additional Experiments
+Additional Baselines on Push T. As an alternative formu-
+each facet with a binary variable indicating the contact mode.
+Using Gurobi to solve this formulation, it failed to find
+solutions for planning horizons beyond 4 steps (within 10
+minutes), making it incomparable with CRISP. The code to
+reproduce these experiments is open-sourced alongside CRISP.
+LCP Solvers. The Transport and Waiter problems, charac-
+terized by linear dynamics and linear complementarity con-
+evaluated LCQpow  on these tasks. For the Transport
+with an average tracking error of 0.4267, and 92.5 optimized
+trajectories are feasible. In comparison, as shown in Table II,
+CRISP significantly outperforms LCQpow with an average
+solve time of 0.77 s, an average tracking error of 1.1  104.
+For the more challenging Waiter problem, LCQPow fails to
+generate any feasible solutions. The code for reproducing these
+results is available in our open-source repository.
+Real-World Push T. To further validate the effectiveness
+of CRISP in delivering high-quality trajectories, we applied
+CRISP to a real robotic arm system for the push T task. In
+our validation experiments, we estimated the position of the T
+block during each perception cycle, using this as the new initial
+state for CRISP to solve them online. The solution from CRISP
+was then applied in an MPC feedback loop. In the physical
+with intervals of 0.05 s. Under this setup, the average solution
+time for CRISP was 80 ms, demonstrating robust and efficient
+performance in pushing the T block to the target position. A
+visualization of the process for different initial conditions is
+provided in Fig. 8.
+V. RELATED WORKS
+Motion planning through contact presents unique challenges
+due to the inherently discontinuous nature of contact inter-
+Fig. 6: Visualization of some outlier cases in IPOPT. IPOPT
+results (left column) versus our approach (right column). The
+color gradient represents the progression of time (from blue
+to yellow). We note that in the transport example (the third
+row), the initial state has the cargo at the rightmost end of
+the cart, with both moving left at 4 ms. The terminal state
+requires the cart at the origin and the cargo at the leftmost
+necessitates initial braking, followed by back-and-forth motion
+near the origin. Actually, this challenging case causes all other
+solvers to fail. While IPOPT produces a feasible but impractical
+solution (remaining stationary at the origin), our approach
+successfully optimizes the complex contact sequences.
+Fig. 7: Comparison of optimized trajectories for the hopper
+and waiter problems. The left and right columns show the
+results from IPOPT and CRISP respectively. In the hopper
+1 s, 2 s, 3 s, and 4 s) illustrating the hoppers trajectories and
+contact force. The yellow color indicates the current position
+of the hopper, while blue represents the past trail.
+actions [58, 34]. The literature on modeling contact can be
+broadly divided into smooth and rigid methods.
+Smooth contact model. The principle of modeling contact
+in a "smooth" manner involves approximating nonsmooth
+contact events into smooth and continuous functions relating
+contact forces to states. This approach often simulates effects
+similar to springs , dampers , or a combination of
+both [44, 45]. By doing so, it allows contact forces to be
+expressed as functions of the robots states and seamlessly
+integrated into the overall dynamic functions, providing well-
+defined gradient information.
+Rigid contact model: hybrid dynamics. Hybrid systems
+offer a robust framework for modeling systems that exhibit
+both continuous and discrete behaviors . These systems
+are characterized by their ability to switch between different
+dynamic regimes, or modes, depending on the contact condi-
+tions. In the locomotion community, the control of switched
+systems often allows for instantaneous changes in velocity
+during contact events [17, 16, 1], while continuous dynamics
+govern the system at other times. This approach requires a
+predefined gait, which specifies a sequence of potential contact
+points [8, 11, 36].
+Rigid contact model: implicit formulations. There are
+two mathematically equivalent approaches to implicitly encode
+the discrete nature of hybrid systems for switching between
+different continuous subsystems. One approach is through
+Mixed Integer Programming (MIP) , which introduces
+binary integer variables to act as switches for encoding
+Fig. 8: Key frames visualization of the real-world Push T experiments from various initial configurations (each row). Videos
+of the results can be found on the project website.
+contact events [12, 2, 3]. This method is straightforward in
+its implementation, yet optimizing these discrete variables is
+challenging for gradient-based NLP solvers and often requires
+specialized solvers, such as Gurobi . Furthermore, the
+number of integer variables can significantly increase with the
+number of contact modes and the planning horizon, leading
+to computational intractability [53, 40]. On the other hand,
+the contact force and condition can be encoded through the
+introduction of complementarity constraints.
+On the other hand, contact forces and conditions can be en-
+coded through the introduction of complementarity constraints.
+it transforms the problem into a continuous NLP problem
+without compromising the discrete characteristics of contact.
+This transformation allows for the use of modern numerical
+optimization tools to solve the problem effectively [33, 60, 5].
+significant difficulties in solving these problems [20, 22, 21].
+CRISP aims to provide an efficient and robust solution by
+addressing the challenges associated with solving nonlinear
+contact problems that include general nonlinear complemen-
+tarity constraints.
+VI. CONCLUSION
+We presented CRISP, a primal-only numerical solver for
+contact-implicit motion planning that is based on sequential
+convex optimization. We started by uncovering the geometric
+insights underpinning the difficulty of solving MPCCs arising
+from contact-implicit planning. That motivated us to design
+a primal-only algorithm where each trust-region subproblem
+is convex and feasible by construction. For the first time, we
+proved sufficient conditions on the algorithms convergence
+to stationary points of the merit function. With a careful
+C implementation, we benchmarked CRISP against state-
+of-the-art solvers on six contact-implicit planning problems,
+demonstrating superior robustness and capability to generate
+entirely new contact sequences from scratch. We believe CRISP
+sets a new standard and our open-source benchmarks offer
+significant value to contact-rich motion planningone of the
+most active and challenging areas in robotics research.
+Limitations and future work. First, while CRISP accepts
+general nonlinear programming problem definitions applicable
+to various optimal control and motion planning problems, it
+requires further development to evolve into a comprehensive
+robotics optimization toolbox comparable to OCS2  and
+CROCODDYL . This development primarily involves
+integration with advanced dynamics libraries such as Pinoc-
+dynamics and obtain their derivative information efficiently.
+its adaptivity for real-time tasks could be further increased.
+The acquisition of gradients and Hessian matrices could be
+speedups if implemented on GPUs . Additionally, while
+our subproblems are already cheap as convex QPs, the overall
+frameworks efficiency is still constrained by the speed of
+the underlying QP solver. As mentioned in Remark 10, we
+plan to test CRISP with scalable first-order QP solvers. On the
+theoretical side, a complete picture of the relationship between
+local solutions of the original problem and stationary points
+of the merit function, as well as how to check if a stationary
+point of the nonsmooth merit function (that CRISP finds) is
+locally optimal, warrants further investigation.
+ACKNOWLEDGMENT
+We thank Michael Posa and Zac Manchester for insightful
+discussions about contact-rich motion planning.
+REFERENCES
+Sequential linear quadratic optimal control for nonlin-
+ear switched systems. IFAC-PapersOnLine, 50(1):1463
+20th IFAC World
+Congress. 11
+Bernardo Aceituno-Cabezas, Hongkai Dai, Jos Cappel-
+mixed-integer convex optimization framework for robust
+multilegged robot locomotion planning over challenging
+terrain. In 2017 IEEERSJ International Conference on
+Intelligent Robots and Systems (IROS), pages 44674472,
+Bernardo Aceituno-Cabezas, Carlos Mastalli, Hongkai
+Simultaneous
+locomotion via mixed-integer convex optimization. IEEE
+Robotics and Automation Letters, 3(3):25312538, 2018.
+Mihai Anitescu. On using the elastic mode in nonlinear
+programming approaches to mathematical programs with
+complementarity constraints. SIAM Journal on Optimiza-
+Alp Aydinoglu and Michael Posa.
+Real-time multi-
+contact model predictive control via admm.
+International Conference on Robotics and Automation
+(ICRA), pages 34143421. IEEE, 2022. 3, 12
+Antoine Bambade, Sarah ElKazdadi, Adrien Taylor, and
+Justin Carpentier. PROX-QP: Yet another quadratic pro-
+gramming solver for robotics and beyond. In Robotics:
+Science and Systems, 2022. 6
+Bradley M. Bell.
+rithmic differentiation (2024).
+CppAD. 6
+Gerardo Bledt, Matthew J. Powell, Benjamin Katz, Jared
+Di Carlo, Patrick M. Wensing, and Sangbae Kim. Mit
+cheetah 3: Design and control of a robust, dynamic
+quadruped robot. In 2018 IEEERSJ International Con-
+ference on Intelligent Robots and Systems (IROS), pages
+R. Blickhan.
+The spring-mass model for running and
+hopping. Journal of Biomechanics, 22(11):12171227,
+Justin Carpentier, Guilhem Saurel, Gabriele Buondonno,
+Joseph Mirabel, Florent Lamiraux, Olivier Stasse, and
+Nicolas Mansard. The Pinocchio C library  a fast
+and flexible implementation of rigid body dynamics
+algorithms and their analytical derivatives.
+International Symposium on System Integrations (SII),
+Xianyi Cheng, Eric Huang, Yifan Hou, and Matthew T.
+Contact mode guided motion planning for
+quasidynamic dexterous manipulation in 3d.
+International Conference on Robotics and Automation
+Robin Deits and Russ Tedrake. Footstep planning on un-
+even terrain with mixed-integer convex optimization. In
+2014 IEEE-RAS International Conference on Humanoid
+Moritz Diehl and Florian Messerer. Local convergence
+of generalized gauss-newton and sequential convex pro-
+gramming. In 2019 IEEE 58th Conference on Decision
+and Control (CDC), pages 39423947, 2019. 4
+Quoc Tran Dinh and Moritz Diehl. Local convergence
+of sequential convex programming for nonconvex op-
+timization.
+In Recent Advances in Optimization and
+its Applications in Engineering, pages 93102. Berlin,
+Francisco Facchinei, Houyuan Jiang, and Liqun Qi. A
+smoothing method for mathematical programs with equi-
+librium constraints. Mathematical programming, 85(1):
+Farbod Farshidian, Edo Jelavic, Asutosh Satapathy,
+Markus Giftthaler, and Jonas Buchli. Real-time motion
+planning of legged robots: A model predictive control
+approach. In 2017 IEEE-RAS 17th International Confer-
+ence on Humanoid Robotics (Humanoids), pages 577
+Farbod Farshidian et al. OCS2: An open source library
+for optimal control of switched systems.
+[Online].
+H.J. Ferreau, C. Kirches, A. Potschka, H.G. Bock, and
+M. Diehl. qpOASES: A parametric active-set algorithm
+for quadratic programming. Mathematical Programming
+R. Fletcher. Penalty Functions, pages 87114. Berlin,
+Roger Fletcher. Practical methods of optimization. Hobo-
+Roger Fletcher and Sven Leyffer. Solving mathematical
+programs with complementarity constraints as nonlinear
+programs.
+Optimization Methods and Software, 19(1):
+Roger Fletcher, Sven Leyffer, Danny Ralph, and Stefan
+Scholtes. Local convergence of sqp methods for math-
+ematical programs with equilibrium constraints. SIAM
+Journal on Optimization, 17(1):259286, 2006. 3, 5, 12
+Philip E. Gill and Elizabeth Wong. Sequential quadratic
+programming methods.
+In Mixed Integer Nonlinear
+Philip E. Gill, Walter Murray, and Michael A. Saunders.
+optimization. SIAM Journal on Optimization, 12(4):979
+Rafal Goebel, Ricardo G. Sanfelice, and Andrew R.
+Teel. Hybrid dynamical systems. IEEE Control Systems
+Bernhard Paus Graesdal, Shao Yuan Chew Chia, Tobia
+Towards tight convex re-
+laxations for contact-rich manipulation, 2024.
+Gurobi Optimization, LLC. Gurobi Optimizer Reference
+J. Hall, A. Nurkanovic, F. Messerer, and M. Diehl.
+programs. Math. Prog. Comput., 2024. 3, 7, 10
+Wilson Jallet, Antoine Bambade, Nicolas Mansard, and
+Justin Carpentier.
+Constrained differential dynamic
+proach. In 2022 IEEERSJ International Conference on
+Intelligent Robots and Systems (IROS), pages 13371
+Armand Jordana, Sbastien Kleff, Avadesh Meduri,
+Righetti.
+Stagewise implementations of sequential
+quadratic programming for model-predictive control.
+Shucheng Kang, Xiaoyang Xu, Jay Sarva, Ling Liang,
+and Heng Yang. Fast and certifiable trajectory optimiza-
+tion. arXiv preprint arXiv:2406.05846, 2024. 12
+Charles Khazoom, Seungwoo Hong, Matthew Chignoli,
+Elijah Stanger-Jones, and Sangbae Kim. Tailoring so-
+lution accuracy for fast whole-body model predictive
+control of legged robots. IEEE Robotics and Automation
+Simon Le Cleach, Taylor A Howell, Shuo Yang, Chi-
+Yen Lee, John Zhang, Arun Bishop, Mac Schwager,
+and Zachary Manchester.
+Fast contact-implicit model
+predictive control. IEEE Transactions on Robotics, 2024.
+Quentin Le Lidec, Wilson Jallet, Louis Montaut, Ivan
+models in robotics: A comparative analysis.
+Transactions on Robotics, 40:37163733, 2024.
+Joao Rui Leal.
+generation for automatic differentiation using oper-
+ator overloading (2024).
+CppADCodeGen. 6
+Gabriel A. D. Lopes, Bart Kersbergen, Ton J. J. van den
+and control of legged locomotion via switching max-plus
+models. IEEE Transactions on Robotics, 30(3):652665,
+Haihao Lu and Jinwen Yang. A practical and optimal
+first-order method for large-scale convex quadratic pro-
+gramming. arXiv preprint arXiv:2311.07710, 2023. 6
+Yuanqi Mao, Michael Szmuk, and Behet Akmese.
+Successive convexification of non-convex optimal control
+problems and its convergence properties. In 2016 IEEE
+55th Conference on Decision and Control (CDC), pages
+Yuanqi Mao, Michael Szmuk, Xiangru Xu, and Behet
+Aikmese. Successive convexification: A superlinearly
+convergent algorithm for non-convex optimal control
+problems. arXiv preprint arXiv:1804.06539, 2018. 4
+Tobia Marcucci and Russ Tedrake. Warm start of mixed-
+integer programs for model predictive control of hybrid
+systems. IEEE Transactions on Automatic Control, 66
+D.W. Marhefka and D.E. Orin.
+A compliant contact
+model with nonlinear damping for simulation of robotic
+systems.
+IEEE Transactions on Systems, Man, and
+Cybernetics - Part A: Systems and Humans, 29(6):566
+Carlos Mastalli, Rohan Budhiraja, Wolfgang Merkt,
+Guilhem Saurel, Bilal Hammoud, Maximilien Naveau,
+Justin Carpentier, Ludovic Righetti, Sethu Vijayakumar,
+and Nicolas Mansard.
+Versatile Framework for Multi-Contact Optimal Control.
+In IEEE International Conference on Robotics and Au-
+tomation (ICRA), 2020. 12
+Florian Messerer and Moritz Diehl.
+Determining the
+exact local convergence rate of sequential convex pro-
+gramming. In 2020 European Control Conference (ECC),
+Michael Neunert, Farbod Farshidian, Alexander W. Win-
+contacts and automatic gait discovery for quadrupeds.
+IEEE Robotics and Automation Letters, 2(3):15021509,
+Michael Neunert, Markus Stuble, Markus Giftthaler,
+Carmine D. Bellicoso, Jan Carius, Christian Gehring,
+Marco Hutter, and Jonas Buchli.
+Whole-body non-
+linear model predictive control through contacts for
+quadrupeds. IEEE Robotics and Automation Letters, 3
+Jorge Nocedal and Stephen J Wright. Numerical opti-
+mization. New York, NY, USA: Springer, 2006. 2, 4,
+Michael Posa, Cecilia Cantu, and Russ Tedrake.
+direct method for trajectory optimization of rigid bodies
+through contact. The International Journal of Robotics
+Holger Scheel and Stefan Scholtes. Mathematical pro-
+grams with complementarity constraints: Stationarity,
+Stefan Scholtes.
+Convergence properties of a regular-
+ization scheme for mathematical programs with comple-
+mentarity constraints. SIAM Journal on Optimization, 11
+Stefan Scholtes and Michael Sthr. How stringent is the
+linear independence assumption for mathematical pro-
+grams with complementarity constraints? Mathematics
+of Operations Research, 26(4):851863, 2001. 2
+John Schulman, Jonathan Ho, Alex X Lee, Ibrahim
+locally optimal, collision-free trajectories with sequential
+convex optimization. In Robotics: science and systems,
+volume 9, pages 110. Berlin, Germany, 2013. 4
+Colin N. Jones.
+quadratic programming solver. In 2023 62nd IEEE Con-
+ference on Decision and Control (CDC), pages 1088
+Yuki Shirai, Devesh K. Jha, Arvind U. Raghunathan, and
+Diego Romeres.
+Chance-constrained optimization for
+contact-rich systems using mixed integer programming.
+Nonlinear Analysis: Hybrid Systems, 52:101466, 2024.
+B. Stellato, G. Banjac, P. Goulart, A. Bemporad, and
+S. Boyd. OSQP: an operator splitting solver for quadratic
+programs. Mathematical Programming Computation, 12
+Bartolomeo Stellato, Goran Banjac, Paul Goulart, Al-
+berto Bemporad, and Stephen Boyd. OSQP: An operator
+splitting solver for quadratic programs.
+Mathematical
+Programming Computation, 12(4):637672, 2020. 6
+Juan Pablo Vielma. Mixed integer linear programming
+formulation techniques. SIAM Review, 57(1):357, 2015.
+Andreas Wchter and Lorenz T Biegler. On the imple-
+mentation of an interior-point filter line-search algorithm
+for large-scale nonlinear programming.
+Mathematical
+Patrick M. Wensing, Michael Posa, Yue Hu, Adrien
+Optimization-based control for dynamic legged robots.
+IEEE Transactions on Robotics, 40:4363, 2024. 11
+Wikipedia contributors. Semi-implicit euler method
+wikipedia.orgwikiSemi-implicitEulermethod.
+line; accessed 24-May-2023]. 18
+William Yang and Michael Posa.
+Dynamic on-palm
+manipulation via controlled sliding.
+arXiv preprint
+Jane J. Ye and Jinchuan Zhou.
+First-order optimality
+conditions for mathematical programs with second-order
+cone complementarity constraints.
+SIAM Journal on
+K. Yunt and C. Glocker.
+Trajectory optimization of
+mechanical hybrid systems using sumt.
+In 9th IEEE
+International Workshop on Advanced Motion Control,
+APPENDIX A
+PROOF OF THEOREM 8
+pk< min for all k > K, indicating that the trust-region constraint becomes inactive in the subproblem. In this proof, we
+consider only equality constraints, and the proof technique for inequality constraints is similar and will be addressed at the
+end. In this case, the merit function (8) becomes:
+where x Rn, E denotes the equality constraints set and E mE. First, we rewrite the trust-region subproblem (9) to directly
+optimize over xk1 instead of pk:
+xk1  arg min
+{q,k(x)  J(x)
+ici(xk)  ci(xk)(x xk)}.
+For the ith constraint ci E, we define wk,i R as:
+Since the l1 norm  is piecewise smooth, we separate the scalar wk,i into three smooth sets:
+Extending to the vector of all equality constraints wk
+kK to 3mE
+smooth sets without overlapping.
+Since the number of such sets is finite, there must exist a subsequence {wnk}
+k1 that belongs to one of these sets, denoting
+as S. Without loss of generality, we assume that in this set, the first m1 components of wnk are positive, the m1  1 to
+m1  m2 components are negative, and the remaining components are zero.
+For any p Rn, we define the directional derivatives1:
+D(1(x; ); p) lim
+D(q,nk(xnk1); p) lim
+Since xnk1 is the global minimizer of the convex function q,nk(x), we have D(q,nk(xnk1); p) 0. On the other hand,
+D(q,nk(xnk1); p)  lim
+J(xnk1  tp)  P
+iE iwnk,i  tci(xnk)pJ(xnk1) P
+iE iwnk,i
+J(xnk1)p  lim
+iE iwnk,i  tci(xnk)pP
+iE iwnk,i
+J(xnk1)p
+ici(xnk)p
+ici(xnk)p
+ici(xnk)p.
+Using the fact that:
+Since J(x) is continuous differentiable and ci is Lipschitz, as k :
+J(xnk1) J(x),
+ci(xnk) ci(x).
+D(q,nk(xnk1); p)
+i(ci(x)p)0. (31)
+1We use for simplicity, but this is equivalent to because one can easily choose p as p if t < 0.
+The last inequality comes from the fact that if all the elements in a scaler sequence are nonnegative, then the limitation of
+the sequence is nonnegative.
+Now we turn to calculate D(1(x; ); p). One should be careful: since S is not closed, even the first m1 components of
+wnk are always positive, the corresponding components in the converged point w
+will possibly
+converge to 0. Similar things happen to the negative part. However, the m1  m2  1 mE components of wwill always be
+0. To fix this, we assume that, for the 1 m1 components of w, 1 m1, are positive, while m1,  1 m1s components
+of wbecome zero. Similarly, m1  1 m1  m2,are negative, while m1  m2, 1 m1  m2s components of w
+become zero. Thus,
+D(1(x; ); p)  lim
+J(x tp)  P
+iE ici(x tp)J(x) P
+iE ici(x)
+ici(x)p.
+ici(x)p.
+For inequality constraints we define wk,i as the same. We still separate R into
+and similarly, we have
+Other parts of the proof are the same. Consequently D(1(x; ); p) 0
+APPENDIX B
+CONTACT-IMPLICIT FORMULATIONS
+In this section, we provide detailed contact-implicit optimization problem formulations for the five tasks, including
+tracking objectives, dynamics, contact constraints, and other constraints. We believe this presentation is not only valuable for
+understanding the principles of contact-implicit modeling, but also represents a necessary step for the model-based community.
+Interested readers are encouraged to refer to these formulations to test these same problems using their own algorithms. All
+problem formulations are open-sourced alongside CRISP.
+A. Cartpole with Softwalls
+Dynamics constraints. Denote the full states of the system as:
+and we use subscript i to denote the corresponding variable at time stamp i. The dynamics can be written as:
+(mc  mp)x  mp cos  (u 1  2)  0,
+mp (2 1 mpx) cos  mpg sin   0.
+to note that the contact forces 1 and 2 are incorporated into the dynamics equations despite their discrete nature. These
+forces are automatically triggered and controlled by the complementarity constraints introduced below, which exemplifies the
+principle and power of contact-implicit formulation. We utilize the Semi-Implicit Euler method  to discretize the dynamics
+with dt. At time stamp i:
+xi1 xi xi1dt  0,
+i1 i i1dt  0,
+xi1 xi xidt  0,
+i1 i idt  0.
+In the above dynamics constraints, x and  can be simply derived from (39)-(40).
+Contact constraints. The complementary constraints from the contact are:
+d1 x sin
+d2  x  sin
+This complementarity constraint is constructed using the relationship between the poles position and the wall, along with the
+contact force. Its underlying meaning is that the wall can only provide unidirectional force. When there is no contact,  is
+zero. Upon contact, the force becomes proportional to the compression distance with coefficients k.
+Initial Constraints. The optimization problem is also subject to equality constraints that specify the initial state.
+x0  xinitial
+0  initial
+x0  xinitial
+0  initial
+Cost. For the objective function, we opt to minimize both the control effort and the terminal tracking error, each expressed
+in quadratic form. It is worth noting that intermediate tracking loss is not incorporated into our formulation. This decision
+stems from the general absence of trivial reference trajectories in contact-involved trajectory optimization tasks. Our goal is
+to generate a feasible trajectory from scratch that drives the robot as close as possible to the desired terminal state.
+where Q R44 and R R33 are weighting matrices for the state and control variables. All the default values of the
+parameters are provided in the example problems of CRISP.
+B. Push Box
+We use px, py, and  to represent the position and orientation of the box in world frame {w}, while the contact position
+(cx, cy) and contact force  at each facet is defined in the body frame {b}. We assume that at any given moment, there is
+only one point of contact between the pusher and the box with only the corresponding normal force applied, and the entire
+process is quasi-static. The positive direction of the applied forces is defined with respect to the body frame {b} of the robot.
+Dynamics constraints. In this work, following , we adapt the commonly used ellipsoidal approximation of the limit
+surface to model the interaction between the contact force applied by the pusher and the resulting spatial slider velocity. The
+model captures the principle of the motion of the box while keeping its simplicity. Denote the full states of the system as:
+v  [px, py, ,
+mg . [(2,x  4,x) cos  (1,y  3,y) sin ] ,
+crmg . [cy(2,x  4,x)  cx(1,y  3,y)] ,
+where c [0, 1] is the integration constant of the box, and r is the characteristic distance, typically chosen as the max distance
+between a contact point and origin of frame {b}. Discretize the continuous dynamics with the explicit Euler method, we get:
+k1  k  kdt.
+Contact constraints.
+only pointed inward the box, utilizing the contact-implicit formulation:
+mentarity constraints. These constraints ensure that at any given time, only one force can be active. This is formulated as
+Initial Constraints. We add equality constraints to enforce the initial state of the box with (px,0, py,0, 0). Note that the
+initial condition is set to zero in this task.
+Cost. Similar to the setting of cartpole with walls, we adopt a quadratic objective function to penalize the total four contact
+forces  and the distance to the desired terminal condition vN.
+2(vN vN)T
+(vN vN),
+C. Transport
+Dynamics constraints: Denote all states as
+f is the friction between the two blocks with friction coefficients 1; p and q are two slack variables for modeling the direction
+of the f, which is decided by the relative movements between the two blocks. The positive directions of f and x are both
+horizontally to the right. The dynamics for this problem are straghtforward:
+m1x1  f,
+m2x2  u f.
+To avoid cargo m1 from falling off the truck m2, we need:
+l0 x1 x2 l0.
+Contact constraints. The control of the magnitude and direction of friction requires careful handling. f is not an active
+force; it needs to be indirectly controlled through the manipulation of u. This indirect control determines the frictions direction,
+x2 x1  p q,
+This establishes the relationship between relative velocity and friction force while encoding the transition between static and
+kinetic friction in a clean way.
+Initial constraints. We add equality constraints to enforce the initial pose and velocity of the cart and the payload.
+Cost. We adopt a quadratic objective function to penalize the active force u and the terminal pos and velocity tracking error.
+D. Push T
+Contact-Implicit Formulation: Denote the contact point in body frame (located at the COM of T block) as (cx, cy), we
+have 8 different contact mode that exhibit their specific complementarity constraints.
+2l cx 2l, dcl cy (4 dc)l,
+2  0 cx 2lcy (4 dc)lcy (3 dc)ll  0,
+3  0 cx 2lcx 0.5lcy (3 dc)l1.5l  0,
+4  0 cx 0.5lcy (3 dc)lcy  dcl3l  0,
+5  0 cy  dclcx  0.5lcx 0.5ll  0,
+6  0 cx  0.5lcy (3 dc)lcy  dcl3l  0,
+7  0 cx  2lcx  0.5lcy (3 dc)l1.5l  0,
+8  0 cx  2lcy (4 dc)lcy (3 dc)ll  0.
+Designate the positive direction of contact forces as rightward for the x axis and upward for the y axis. And introduce the
+following slack variables v and w complementing each other to smooth the absolute operation  as we did in the transport
+v1 w1  cx 2l,
+v2 w2  cy (4 dc)l,
+v3 w3  cy (3 dc)l,
+v4 w4  cx 0.5l,
+v5 w5  cy  dcl,
+v6 w6  cx  0.5l,
+v7 w7  cx  2l,
+which can be equivalently written as:
+v1  w1  cx 2l,
+v2  w2  cy (4 dc)l,
+v3  w3  cy (3 dc)l,
+v4  w4  cx 0.5l,
+v5  w5  cy  dcl,
+v7  w7  cx  2l,
+Then we have the complementarity constraints:
+complementarity constraints. These constraints ensure that at any given time, only one force can be active:
+With the complementarity constraints derived above, we can write the unified dynamics regardless of the contact point.
+where c [0, 1] is the integration constant of the box, and r is the characteristic distance, typically chosen as the max contact
+distance.
+E. Hopper
+The hopper exhibits two-phase dynamics, which we will unify through the complementarity constraints to decide whether
+it is in the fly or stance.
+Dynamics constraints. We define the full states of the hopping robot as:
+v  [px, py, qx, qy, , r, px, py,
+(px, py) and (qx, qy) are the positions of the head and tail of the hopper respectively. r is the leg compression distance. u1
+and u2 are the controls for leg angular velocity and thrust, each active only in one phase. Then, the hoppers dynamics can be
+written as:
+Flight Phase:
+qx  px  l0 sin ,
+qy  py l0 cos ,
+Stance Phase:
+In the stance phase, (qx, qy) is fixed at the contact point, and we can get the following dynamics equations:
+mpx  u2 sin   0,
+mpy u2 cos   mg  0,
+(l0 r) cos  py  qy  0,
+(l0 r) sin  qx  px  0.
+(l0 r)2 (px qx)2 (py qy)2  0,
+Since during the flight phase, r remains 0, while u2 can only be greater than 0 during the stance phase. We can observe
+that (120a)-(120d) are actually the same as (121a)-(121d), except that they involve these phase-specific variables. To unify
+the dynamics into a single optimization problem, we construct the following complementarity constraints:
+0 r qy 0,
+0 u2 qy 0,
+These constraints ensure that the leg maintains its original length during the flight phase while allowing contraction (r 0)
+when in contact with the ground. These conditions are complementary, enabling us to control the switching of dynamics
+between phases. Specifically, we transform the dynamics of different phases to:
+mpx  u2 sin   0,
+mpy u2 cos   mg  0,
+(l0 r) cos  py  qy  0,
+(l0 r) sin  qx  px  0,
+r. qx  0,
+r. qy  0,
+(l0 r)2 (px qx)2 (py qy)2
+These unified dynamics, together with the complementary constraints (123a)-(123c), provide a way to write the hopper problem
+into one optimization problem in the contact-implicit format. Discretize the dynamics, we get:
+m px,k1 px,k
+m py,k1 py,k
+(l0 rk) cos k py,k  qy,k  0,
+(l0 rk) sin k qx,k  px,k  0,
+rk.qx,k1 qx,k
+rk.qy,k1 qy,k
+(l0 rk)2 (px,k qx,k)2 (py,k qy,k)2
+Contact constraints. We introduce additional constraints to ensure physical consistency and feasibility:
+The leg contraction r within a feasible range. The constant r0 represents the maximum allowable contraction and is chosen
+such that r0 < l0, where l0 is the original leg length.
+These additional constraints, in conjunction with the complementarity constraint, provide a comprehensive formulation that
+captures the essential physical characteristics of the hopping robot while maintaining the unified representation of both flight
+and stance phases.
+Initial constraints. The hopper is released from 1.5 m height with zero initial speed and the leg vertical.
+Cost. The cost is a quadratic loss to force the robot to jump to and stop at 2 m with zero height while penalizing the control
+effort of the angular velocity u1 and thrust u2.
+F. Waiter
+Dynamics constraints. Denote the full states in the waiter problem:
+In this scenario, (x1, x2) and ( x1, x2) represent the position and velocity of the plate and pusher, respectively. The variables
+as N, and the horizontal thrust, u. Additionally, there is indirect control over the frictional forces between the plate and table,
+the following equations:
+m2x2  u fp,
+m1x1  fp ft,
+N  N  m1g,
+N(x2 x1  l0) m1gl0,
+plate. Finally, (140f) restricts the pushers position to remain clear of the table while staying on the overhanging part of the
+Contact constraints. The following complementarity constraints control the magnitude and direction of the friction ft and
+x1  z w,
+x2 x1  p q,
+These equations ensure the friction cone constraints, which automatically manage the magnitude, nature (static or kinetic), and
+direction of the frictions.
+Initial constraints. In the waiter problem, the initial state is defined with the pusher positioned next to the table, and the
+14-meter-long plate has a 1-meter overhang.
+Cost. The objective is to achieve a terminal position and velocity of the plate and pusher, such that the plate is pulled out
+until its COM aligns with the pusher next to the table, while also minimizing control efforts.
+APPENDIX C
+VISUALIZATION OF NUMERICAL RESULTS
+Fig. 9: Visualization of more trajectories solved by CRISP in cartpole with soft walls (row 1-2), push box (row 3-4), payload
+transport (row 5-6), push T (row 7-8) under different initial conditions.

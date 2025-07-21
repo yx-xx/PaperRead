@@ -1,0 +1,1000 @@
+=== PDF文件: Demonstrating a Control Framework for Physical Human-Robot Interaction Toward Industrial Application.pdf ===
+=== 时间: 2025-07-21 13:49:10.369936 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Demonstrating a Control Framework
+for Physical Human-Robot Interaction Toward
+Industrial Applications
+Bastien Muraccioli, Mathieu Celerier, Mehdi Benallegue, and Gentiane Venture
+National Institute of Advanced Industrial Science and Technology (AIST), CNRS-AIST Joint Robotics Laboratory (JRL),
+Department of Mechanical Engineering, The University of Tokyo, Tokyo 113-8654, Japan
+B.Muraccioli and M.Celerier share the first authorship.
+AbstractPhysical Human-Robot Interaction (pHRI) is critical
+for implementing Industry 5.0, which focuses on human-centric
+approaches. However, few studies explore the practical alignment
+of pHRI to industrial-grade performance. This paper introduces
+a versatile control framework designed to bridge this gap
+by incorporating the torque-based control modes: compliance
+and dynamic scenarios. Thanks to our second-order Quadratic
+Programming (QP) formulation, strict kinematic and collision
+constraints are integrated into the system as safety features, and
+a weighted hierarchy guarantees singularity-robust task tracking
+performance. The framework is implemented on a Kinova Gen3
+collaborative robot (cobot) equipped with a Bota forcetorque
+sensor. A DualShock 4 game controller is attached to the robots
+end-effector to demonstrate the frameworks capabilities. This
+setup enables seamless dynamic switching between the modes,
+and real-time adjustments of parameters, such as transitioning
+between position and torque control or selecting a more robust
+custom-developed low-level torque controller over the default
+one. Built on the open-source robotic control software mcrtc,
+our framework ensures reproducibility for both research and
+industrial deployment, this framework demonstrates a step to-
+ward industrial-grade performance and repeatability, showcasing
+its potential as a robust pHRI control system for industrial
+environments.
+I. INTRODUCTION
+The emergence of Industry 5.0 emphasizes close physical
+collaboration between humans and robots , necessitating
+robot control policies that can concurrently guarantee safety to
+protect workers operating alongside robotic systems  and
+capable of generating precise and repeatable motions to align
+with industry requirements. While significant research has fa-
+cilitated the integration of robots into industrial environments,
+achieving safe and reliable pHRI remains challenging .
+Torque control used in pHRI has proven efficient in ad-
+dressing safety challenges by enabling compliant behaviors
+and allowing workers to physically interact with the robot
+and guide it during operation . However, this compliance
+makes the robot more sensitive to environmental factors, which
+makes the robots motions less consistent and the tasks less
+repeatable. By contrast, high-gain position control, widely
+Null-Space Compliance
+Full Body Compliance
+Dual Compliance
+Stationary
+The different compliant control modes for physical human-robot
+interaction (pHRI) demonstrated in this paper.Top left: Null-space compliance,
+where the main task (e.g., the pose of the end-effector) is stiff, and compliance
+is restricted to the null-space of the task. Top right: Full-body compliance,
+where both the main task and the null-space comply. Bottom: Dual compli-
+the relevant part of the body involved in the kinematic task, and remaining
+stationary otherwise, while the robot remains compliant in the null-space.
+used in industry, has long fulfilled the need for reliability and
+precision but it makes the robot stiff and unable to adapt to
+external forces, posing a potential risk of injury if a worker
+interferes with the robots trajectory. In this work, we use
+the terms stiffness and compliance in the same broader sense
+response to external forces, encompassing both impedance-
+based control and effective inertia. These terms are used
+to qualitatively describe how the robot physically reacts to
+external forces. A stiff system resists such forces, resulting in
+strong opposing reactions and minimal movement. In contrast,
+a compliant system is more yielding, allowing greater motion
+in response to the same disturbance.
+For pHRI to be successfully integrated into industrial envi-
+to be addressed: human safety, productivity, and trust-in-
+automation. Human safety requires robust control mechanisms
+that prevent collisions and mitigate risks in human-robot
+torque limitations. Productivity depends on designing systems
+that maintain high precision and efficiency without sacrificing
+flexibility in adapting to human intervention. Lastly, trust-in-
+automation demands robots that behave in predictable and
+task-specific ways that align with the human operators expec-
+The pHRI framework presented in this demonstration ad-
+dresses these challenges by incorporating safety features com-
+parable to the reliability and robustness of traditional industrial
+robotic systems. While trust-in-automation is crucial for the
+broader adoption of pHRI, this framework focuses primarily
+on the control architecture rather than task planning and
+Human behavior modeling, which are beyond the scope of
+this paper. Nevertheless, the compliance and safety features
+presented here may contribute to fostering trust by enabling re-
+liable interactions . Additionally, the emphasis is placed on
+achieving industrial-grade performance by presenting several
+torque-based compliance control modes specifically designed
+for pHRI in industrial applications.
+Our framework implements null-space compliance with
+high-accuracy task tracking, which ensures that the robots
+posture remains flexible while maintaining stiffness and pre-
+cision at the main task (e.g. end-effector pose), and an implicit
+compliance control mode, which can be configured for both
+static and dynamic scenarios. In the dynamic mode, compli-
+ance is maintained while the robot is in motion. Furthermore,
+we introduce a new implementation of the dual compliance
+complex collaborative tasks and kinesthetic teaching.
+contribution
+industrial-grade pHRI framework that implements several
+compliant control modes, based on a second-order Quadratic
+Programming (QP)  formulation to have strict kinematic
+and self-collision constraints while ensuring singularity-robust
+task tracking through a weighted hierarchy. In addition, we
+introduce a novel low-level torque controller for the Kinova
+Gen3 collaborative robot (cobot), which achieves precision
+similar to position control while maintaining compliance.
+Section II discusses the related works and positions the
+framework in the existing literature. Section III provides a
+high-level overview of the proposed framework, while Sec-
+tion IV describes the hardware setup. Section V details the
+design of our new low-level control. Section VI outlines the
+implementation of the framework, including the compliance
+modes and a mcrtc introduction, followed by Section VII,
+which validates the system through experiments. Section VIII
+discusses limitations, and Section IX suggests future research
+directions and concludes with a summary of the contributions.
+This paper is complemented by a website-1 showcasing videos
+of the framework and includes a link to the GitHub repository
+of the source code.
+II. RELATED WORKS
+Several pHRI frameworks have been introduced in recent
+detection and reaction mechanisms to prevent injuries caused
+by robots in industrial settings . Over time, more advanced
+approaches have emerged, integrating risk metrics into robotic
+control systems to account for injury risks during human-robot
+interactions . Additionally, innovations such as precise
+but heavy compliance achieved through admittance control on
+industrial robots  and the use of soft skins with embedded
+force sensors  have made robots more adaptable to close-
+contact interactions.
+these systems has often fallen short of industry requirements.
+Industry-grade performance typically refers to compliance
+with established performance and safety standards, such as
+ISO 9283 , which defines key criteria like pose and path
+trial robots, and ISOTS 15066 , which outlines safety
+thresholds for collaborative robotics. Furthermore, recent work
+such as  proposes a classification framework for robots
+based on fitness metrics (e.g., precision, force capabilities)
+to evaluate their suitability for specific processes through
+decomposition into sub-processes or tasks, each of which
+depends on a subset of identified fitness metrics.
+This highlights the need to shift the approach toward
+performance-oriented solutions. Instead of viewing safety as a
+limiting factor, the framework presented in this paper positions
+safety as a constraint within performance optimization, as
+suggested in , ensuring both high safety standards and
+enhanced performance in an industrial pHRI context. By
+demonstrating in Section VII that our torque control strategy
+achieves motion-tracking precision on par with the Kinova
+Gen3s default position controller, we consider this work a
+step toward industrial application.
+III. FEATURES OVERVIEW
+Our framework can seamlessly switch between position con-
+trol to illustrate traditional industrial setup and torque control,
+essential for pHRI . In both control modes, the robot can
+operate in either a static manner, where it maintains a fixed
+generates a sinusoidal trajectory. While effective for precision
+respond to external forces. This rigidity poses significant safety
+risks in collaborative environments. Our control framework
+overcomes this limitation by offering different compliant
+behaviors while incorporating safety constraints that enable
+safe operation in close proximity to humans in industrial
+Overview of the proposed control framework. The light-gray block represents the tasks and constraints in the QP. The light-purple block denotes the
+low-level torque control, ensuring desired joint acceleration and torque tracking by controlling motor currents. The light-green block corresponds to the robot
+position control.
+A. Control Modes
+As illustrated in Fig.1, the framework incorporates three
+distinct compliant control modes, each tailored for specific
+collaborative scenarios:
+1) Null-Space Compliance In this mode, compliance is
+limited to the null-space of the robot. The null-space
+refers to the set of joint configurations or motions
+that do not affect the main task (e.g., end-effector
+position and orientation in Cartesian space). By making
+the null-space compliant, the robot can dynamically
+adapt its posture to avoid obstacles or adjust to human
+intervention without disturbing the main task. This
+capability is instrumental in cooperative manipulation
+maintaining task accuracy.
+2) Full-Body Compliance This mode extends compliance
+to the entire robot, including the main task. Unlike
+null-space compliance, where only the null-space can
+robot responds to external forces. This mode is suitable
+for scenarios where human operators need the ability to
+physically interrupt or modify a task, either intentionally
+or unintentionally, without compromising safety. The
+distinction between null-space compliance and full-
+body compliance provides flexibility in tailoring the
+robots behavior to the specific requirements of the task.
+3) Dual Compliance The third mode, introduced in ,
+combines the benefits of both null-space and full-body
+compliance. In dual compliance mode, the body of the
+main task remains easy to move by the user when
+touched. However, if the user interacts with the robot
+on another body, only the posture will adapt, leaving
+the main task tracking unaffected. This decoupling of
+null-space and main task compliance makes the dual
+compliance mode particularly convenient for interactive
+robot positioning such as kinesthetic teaching. By main-
+taining a clear distinction between the robots posture
+(null-space) and the task being performed (end-effector),
+this mode simplifies adjustments to the complete robots
+configuration.
+B. Safety constraints
+The proposed framework incorporates safety constraints
+within the second-order QP formulation, ensuring compliance
+with human-robot collaboration standards. This QP formula-
+tion optimally computes joint accelerations, which are then
+used in the torque control process. The primary safety objec-
+tives include enforcing torque limits to adhere to industrial
+safety regulations and maintaining joint velocity and position
+limits to prevent self-collision and excessive movement speeds.
+To manage these constraints, a second-order velocity
+damper is implemented as an extension of the first-order
+approach. This method dynamically adjusts the robots motion
+based on distance constraints, ensuring a smooth transition
+when approaching safety limits. The adaptation to a second-
+order formulation allows tuning of the systems damping
+properties. By ensuring an overdamped response, oscillations
+are prevented, and smooth transitions are maintained.
+the acceleration such that the robot remains within predefined
+velocity boundaries.
+One important property of these safety features is that they
+are stiff, in the sense that they dont only ensure that their
+own dynamics leads to constraint violation, but also negate
+external forces and torque that push toward these constraints.
+The implementation details of the control modes and safety
+features are detailed in Section VI.
+IV. HARDWARE SETUP
+The demonstrated framework can run on various manipula-
+tor robot arms and utilize different ForceTorque sensors. Here,
+we present the hardware setup of the proposed demonstration.
+We implemented our framework on a Kinova Gen3, a 7 De-
+grees of Freedom (DoF) redundant collaborative manipulator
+robot arm equipped with joint torque sensors. Kinovas Kortex
+Application Programming Interface (API) allows joint-level
+at 1 kHz in what Kinova refers to as low-level servoing.
+We equipped the robots end-effector with a BOTA SensONE
+ForceTorque (FT) sensor, which exhibits very low drift for
+precise and instantaneous measurement of the forces applied at
+the end-effector. The FT sensor communicates via the Ether-
+CAT protocol, and we connected a Next Unit of Computing
+(NUC) as an EtherCAT master; the data from the force sensor
+are then published through ROS (Robot Operating System)
+The NUC and the robot are connected by Ethernet cables
+through a switch to a laptop (control PC) running our
+framework. For intuitive and straightforward interaction with
+the different control modes, we used a DualShock 4 (DS4)
+controller mounted via a custom 3D-printed support and
+connected it via USB to the control PC. The DS4 controller
+serves as an optional user interface, allowing the operator to
+switch between modes in real time. The DualShock 4 is not
+required for the framework to function; it can be extended
+to various end-effector tools, such as industrial grippers,
+not be perfectly modelled, the system still enables precise
+control during the demonstration. This further illustrates the
+robustness of our approach to real-world inconsistencies and
+hardware imperfections.
+Although the presented demonstration can run on any ma-
+nipulator robot arm, this framework strongly relies on torque
+control; therefore, the targeted robot must support joint torque
+control. It is also essential that the torque control provides
+good response and accurate tracking of the input reference
+joint torque. While Kinovas default torque control schemes
+do not offer satisfactory tracking of the reference joint torque,
+our framework can be generalized to other robots that provide
+similar torque control capabilities.
+trol is not optimal, these control mechanisms can be enhanced
+like that presented in the next section of this paper, thereby
+enabling the use of the demonstrated framework. To address
+this limitation, our first contribution is a novel, robust low-level
+torque controller that leverages the robots current control to
+achieve significantly improved tracking performance, thereby
+ensuring accurate and reliable torque control under various
+operating conditions.
+V. LOW-LEVEL CONTROL
+Kinova Gen3 offers two low-level torque control modes,
+(High-Velocity). The former introduces negative feedback
+on the joint velocity, resulting in an over-damped robot and a
+loss of compliance when reaching higher velocities, while the
+latter presents poor torque tracking. Kinovas High-Velocity
+torque control is defined as the torque error filter by a 3rd
+order z-transfer function fed to the current control. We assume
+this transfer function was built by Kinova to serve a purpose
+builds around this transfer function to improve torque tracking.
+Fig.2 shows the block diagram of the proposed low-level
+torque control which revolves around 5 components, joint
+torque-to-current conversion, the inverse dynamics, a friction
+compensation model, the rotor inertia, and as a feedback
+This control can be divided into two parts, the feedforward
+inertia compensation and friction compensation, and the
+feedback
+processes
+and sends it to the Kinovas transfer function and the
+leaky Integrator. Then, the joint torque computed by both
+components is converted into motor current using the torque-
+to-current conversion factor,
+KT Gr , where KT is the motor
+torque constant and Gr is the gear ratio.
+Conventional acceleration-based torque control primarily
+relies on inverse dynamics. However, since our implementation
+builds upon current control, we also account for rotor inertia
+to produce appropriate torques. The effect of rotor inertia is
+especially important in computing the desired torque for small
+joints usually at the end of the kinematics chain, as rotor inertia
+represents a very important part of the whole inertia to be
+To improve the torque tracking, we added a friction model
+that precompensates friction between the motor and torque
+c sign( q)  v q
+if  q qth
+s sign(qd)
+if  q < qth and  qd qth
+if  q < qth and  qd < qth
+When the velocity falls below a specific threshold, the joint
+is considered to be in a quasi-static state, implying that the
+direction of friction depends solely on the desired acceleration.
+Under such conditions, if the desired acceleration provided
+by the high-level controller exceeds a second threshold,
+the friction is compensated in the same direction as that
+acceleration. Since this acceleration explicitly incorporates
+external forces, the method enables the robot to precompensate
+for static friction, even when it is being manipulated by a
+human. This approach is particularly interesting compared to
+traditional compliance schemes. In conventional compliance
+arises between the current and target positions. The target is
+then adjusted based on the force measurement, causing the
+commanded acceleration to oppose the applied force due to
+the induced position error.
+ing errors in the identified torques or unmodelled friction, this
+alone is insufficient. To further improve the torque tracking,
+we add a feedback loop on joint torque measurement.
+The first part of the feedback loop makes use of the
+same function used in Kinovas default High-Velocity torque
+control. We believe that this transfer function serves a purpose
+that hasnt been disclosed by Kinova, and therefore chose
+to include it in the feedback loop. This transfer function
+is relatively poorly documented, however, some information
+provided by Kinova can be found. We know that the transfer
+functions used by Kinova for their low level are expressed in
+the Z-domain, and have a general form of 5 poles and 5 zeros:
+The actual coefficients az,i and bz,i of the transfer function
+we used, were obtained through Kinovas Kortex API for
+which az{3,4,5}  0 and bz{3,4,5}  0 which results in a
+3rd order filter with a quasi-static gain of the following form:
+We implemented this transfer function to filter torque error
+with the hypothesis that it was built to account for the joint
+torque sensors response.
+Despite closing the loop on torque sensor measurements
+using this transfer function, it remains insufficient in situations
+that require precise tracking of the commanded torque to
+achieve precise kinematic control of the robot. To that extent,
+we add a leaky integrator of the following form:
+Hleak(s)
+The leaky integrator takes the torque error as input with ,
+the time constant and KI, the gain, this is then summed with
+the transfer function. This leaky integrators parameters are
+set such that the integration is relatively slow to help with the
+final convergence of the system, such as in situations where
+friction prevents precise positioning.
+VI. FRAMEWORK IMPLEMENTATION
+A. Compliance Tasks
+In our work, compliance tasks are formulated to allow for
+controlled compliance at both the end-effector level and within
+the null-space of the robots motion. This is achieved through a
+quadratic programming (QP) formulation that explicitly incor-
+porates compliance into the optimization problem. By doing
+specific tasks based on their requirements.
+To enable compliance, as described in , we modify the
+conventional QP formulation by introducing a compliance
+parameter k for each task. This parameter, which lies in the
+range [0, 1], governs the degree of compliance for a given task.
+The result of the QP corresponds to the desired acceleration
+qd. The modified QP is expressed as:
+k kJqe2  w0qr q0qe2)
+where Jk is the Jacobian matrix of the k-th task; qe
+M1 e represents the estimated effect of external forces on
+joint accelerations; qr is the decision variable minimized in the
+QP; qrepresents the posture tasks reference in accelerations,
+given by the controller; The pair er
+k are the optimization
+variable and the reference of the k-th task given by the
+controller; wk and w0 are respectively the weights of the k-
+th task and the posture task; k is the compliance parameter
+for the k-th task; The term  e corresponds to the estimated
+external torques.
+The optimization framework allows for explicit compliance
+tuning by adjusting k for each task. For example, setting k
+0 results in a stiff behavior for the operational space tasks,
+while k  1 makes them fully compliant. Similarly, the null-
+space compliance can be controlled by setting the parameter
+0 for the null-space task, which is treated as an additional
+optimization objective with the Jacobian set to identity.
+This approach ensures that external forces are effectively
+incorporated into the control framework. Tasks can exhibit
+compliance in the presence of external disturbances while
+retaining their primary objectives. For instance, when k  0
+allowing for disturbance rejection in the operational space.
+operational tasks, enabling impedance-like behavior.
+By leveraging this formulation, we provide a flexible
+method for balancing stiffness and compliance across multiple
+tasks. This flexibility is particularly advantageous in scenarios
+requiring adaptive behavior, such as human-robot interaction
+or environments with uncertain dynamics. The theoretical
+framework also ensures that safety constraints, represented by
+Acqr bc are respected throughout the optimization process.
+Concerning dual compliance, its introduction in , defined
+it as a combination of null-space compliance with full-body
+compliance achieved through admittance control. When the
+measured force at the end-effector remains below a predefined
+is maintained stationary and the null-space is still compliant.
+Once the measured force exceeds the threshold, full-body
+compliance control gets activated, allowing the end-effectors
+position to be freely modified. Upon release, the new position
+becomes the updated reference, and the system reverts to null-
+space compliance only.
+In our implementation of the dual compliance, instead of
+relying on an admittance task as in , we utilize our QP-
+based compliant end-effector task with zero stiffness and rel-
+atively low damping for stability. This setting allows the end-
+effector to move with minimal force (determined relative to
+the damping parameter) compared to conventional admittance
+control. This approach exploits direct compliance, which is
+intrinsic to the torque control. The new implementation of
+dual compliance benefits from a more lightweight feel at the
+torque control.
+The force threshold in our framework is measured using
+the Bota FT sensor mounted at the end-effector. To handle
+transitions between null-space compliance and full-body com-
+two distinct thresholds. When the measured force exceeds the
+high threshold, the system enters the dual compliance mode,
+allowing the end-effector to move under applied force. Once
+the measured force drops below the low threshold, the system
+reverts to null-space compliance only. This hysteresis-based
+approach ensures smooth transitions and avoids unnecessary
+mode switching caused by minor force fluctuations near the
+threshold.
+B. Safety Features
+The proposed framework includes safety constraints using
+our QP formulation. These safety constraints serve two critical
+tablished safety standards for human-robot collaboration ;
+joint position limits.
+To address these constraints, we implement a second-order
+velocity damper, an extension of the first-order method intro-
+duced by Faverjon and Tournassoud  which is defined as:
+ed    (e ds)
+(di ds),
+where ed represents the velocity limit, e is the current distance,
+ds is the safety distance (the minimum allowable distance), di
+is the influence distance (the threshold where the constraint is
+added to the QP), and  is a positive coefficient controlling
+the convergence speed.
+Since our QP formulation computes the joint accelerations
+decision variable qr. Therefore, we implemented the second-
+order velocity damper constraint. This constraint limits the
+acceleration to a value ep which is expressed in terms of the
+error between the current velocity e and the desired velocity
+ed from (5), with a damping gain , as follows:
+ep  (e ed)
+This formulation was already presented in  and was
+tuned to guarantee immediate velocity convergence by setting
+where T is the control sampling time. This setting
+is acceptable for position control, which usually has an ideal
+open-loop joint acceleration integration. On the other hand,
+closed-loop inverse dynamics control requires to be robust to
+amplify high-frequency noises.
+To determine  in a better way, The position constraint
+has been rewritten in the form of a second-order system by
+combining (5) and (6). We tune the gains of of this second
+order system such that the amortization margin M is greater
+than 1, which ensures the system is overdamped in order to
+robustly guarantee smoothness and prevent oscillations.
+(di ds),
+In a comparable way, we can also enforce the robots
+velocity limits elim by bounding the acceleration with a limit
+ev. The expression is simpler than for the velocity damper
+since we replace the reference ed in (6) with elim, giving
+ev    (e elim),
+At last, both constraints are applied to the QP in the form
+of bounding values of the acceleration command qd:
+qd min(ep, ev)
+in the case of an upper limit and
+qd max(ep, ev)
+in the case of a lower limit.
+One important property of the safety constraint is that it
+is stiff, in the sense that since the predicted acceleration qd
+considers the effect of the external force, it would incorporate
+its consequences on the alignment with the safety constraints.
+would be negated as soon as it is detected unless the robot
+reaches its torque limits.
+In addition, we implement (self-)collision avoidance by
+continuously monitoring the minimum distance between pairs
+of robot bodies and generating damping behaviors as this
+distance approaches a predefined safety threshold. This is
+based on the velocity damper implementation of  and ,
+where the variable e describes the distance between the closest
+points on each body pair. Further details of these safety
+guarantees are presented in
+C. The control framework mcrtc
+open-source
+software
+framework
+designed
+simulation
+deployment of model-based control strategies for robots. It
+features a Second-Order QP solver, which enforces strict
+constraints
+enabling
+prioritization
+weighted hierarchy. This ensures robust task tracking, even
+in singularity-prone scenarios, making it an ideal foundation
+for implementing compliant control strategies in pHRI.
+mcrtc provides a wide array of pre-defined tasks,
+including end-effector positioning, posture control, visual
+tasks can be executed in open-loop control or, as in our
+sensor feedback. mcrtcs flexibility allows us to integrate
+the compliance algorithms described in this paper, into both
+posture and end-effector tasks. Moreover, the same controller
+can be deployed across different robots and simulation
+environments without rewriting the controller. New platforms
+can be integrated using their Unified Robot Description
+Format (URDF), enabling rapid development and testing
+without requiring significant modifications to the controller.
+Since mcrtc is designed to be robot-agnostic, the proposed
+framework can be easily adapted to a wide range of robotic
+platforms with kinematic redundancy, such as 6- or 7-DoF
+arms. These features could help the industry to efficiently
+adapt our framework to their needs, test it, and validate it on
+their robots and hardware in the factory setting. For our pHRI
+3 at 1kHz, ROS was used for communication and interface,
+while MuJoCo served as a simulation environment during the
+initial development phase.
+Machine (FSM)  controllable via a DualShock 4 game con-
+pliance modes (null-space, full-body, dual compliance), low-
+level control modes (position control, Kinovas default torque
+(static or dynamic). We designed an FSM to demonstrate the
+capabilities of our framework and its contributions. However,
+mcrtcs FSM is versatile enough to be applied in diverse in-
+dustrial applications, such as assembly, inspection, or material
+mcrtc also provides extensive monitoring capabilities,
+including live plotting and an advanced logging system. These
+features enable continuous monitoring of robotic metrics,
+which is particularly valuable for industrial applications, where
+reliable performance tracking is critical.
+VII. EVALUATION
+A. Friction parameters identification
+We identified the friction model parameters from experi-
+mental data of torque error between motor torque obtained
+from motor current, joint torque, and joint velocity mea-
+surements. These experimental data were executed while the
+robot was positioned a zero-torque stance, extending the robot
+vertically such that no joints get affected by the gravity. We
+applied constant current on each continuous joint one by
+one and repeated for multiple current values to cover the
+whole range of joint velocities. Fig.3 shows two examples of
+Friction identification data for Kinova Gen3. In shaded grey the
+actual data, in green the Coulomb friction part, in yellow the viscous friction
+part and we added a potential estimation of the static friction.
+friction plots of the torque error plotted against the velocity
+based on the obtained experimental data on which we overlaid
+the estimated model of Coulomb and viscous friction. We
+also identified the static friction, however, we considered the
+relative difference between the static and the Coulomb friction
+to be small enough to model them with the same value.
+From these experimental data, we identified the two following
+models for the first 4 joints and the last 3 joints referred to by
+Kinova as large and small actuators respectively:
+for large actuators
+for small actuators
+B. Torque tracking
+We compared the proposed torque control with Kinovas
+high-velocity torque control in a static and dynamic scenario.
+The static scenario consists of partially extending the robot
+horizontally in position control and then switching to our
+torque control. We attached a weight at the end-effector such
+that the joint friction has a small impact on the torque error
+compliant such that the weight measured by the FT sensor is
+compensated. The dynamic scenario consists of a 6D-Cartesian
+task moved in a 2-plane doing back-and-forth sinusoidal
+motion. Fig.4 shows the torque error measurement in both
+Kinovas high-velocity torque control, to improve reading of
+the differences in error magnitude the torque error axis is
+presented in a logarithmic scale.
+Torque Error [Nm]
+Static Scenario
+Our torque control
+Kinova's high-vel. torque control
+Time [s]
+Torque Error [Nm]
+Dynamic Scenario
+Our torque control
+Kinova's high-vel. torque control
+Torque Error vs. Time
+Comparison of the norm of the joint torque tracking error for a static
+scenario (top) and a dynamic scenario (bottom). Both subplots compare our
+torque controller (blue) and Kinovas high-velocity torque controller (orange).
+The y-axis is presented in a logarithmic scale to highlight differences in the
+error magnitude.
+C. Comparison with position control
+When considering pHRI, we need a robot that becomes
+compliant and deviates from its targettrajectory under external
+forces. However, in some scenarios, its desirable to keep the
+main task stiff, which can be a 6D pose tracking or to constrain
+it only in a specific way (e.g. along a path, on a given Cartesian
+plane). This critical part of the task needs then to be stiff, while
+it is still desirable that the remaining degrees of freedom are
+compliant. The performance of the controller is then measured
+by the quality of the tracking of that critical task.
+The following results compare our torque control as an
+example of a robust low-level implementation design, with
+position control, which remains the standard approach in
+manufacturing industries.
+1) Stiffness in static configurations: We first compare po-
+sition control and torque control in a static scenario. We
+extended the robots arm horizontally, and we required the
+robot to keep the 6D pose of its end-effector constant. The two
+controllers were the manufacturers high-gain position control
+and our torque control with stiff end-effector pose task and
+null-space compliance. To test the capacity of both targets
+to track the task precisely, we introduced disturbances by
+attaching a 1.25kg weight at the end-effector of the robot and
+Position control
+Torque control
+End-effector position error along Z axis for every weight drops
+Time (s)
+Position error (mm)
+Position error over drop segments for torque and position control
+strategies. The top subplot represents the position error during torque control,
+while the bottom subplot represents the position error during position control.
+Each line corresponds to an individual drop segment. The position error is
+measured in millimeters (mm) and is plotted as a function of time, with each
+segment synchronized from the FT sensors force measurement. The data
+illustrate the differences in error behavior between the two control strategies,
+highlighting the capability of torque control to perform at least as well as
+position control.
+letting it drop vertically by 25 cm. To analyze the performance
+of both control modes, we observed the error between the
+target position and the real position of the 6D-Cartesian task
+along the axis impacted by the drop. We repeated 30 weight
+drops for each control mode and computed for each drop
+segment the peak error, the time taken for the error to stabilize,
+and the residualstatic error.
+The statistical analysis of the torque and position metrics
+revealed significant differences across all three comparisons
+(Table I). For the peak values, the mean torque peak was 3.216
+(std  0.594), while the mean position peak was 5.632 (std
+1.820). The Shapiro-Wilk test indicated that the torque peak
+data was normally distributed (p  0.772), whereas the posi-
+tion peak data was not (p 0.001). Given the non-normality
+of the position peak data, the Mann-Whitney U test, a non-
+parametric test, was employed. This test showed a statistically
+significant difference between the two peaks (p < 1.028e06),
+with a large effect size (Rank-biserial correlation  0.736),
+suggesting that position peaks are substantially higher than
+torque peaks.
+In terms of stabilization times, the mean torque stabiliza-
+tion time was 0.512 seconds (std  0.226), and the mean
+position stabilization time was 0.842 seconds (std  0.220).
+Both datasets were found to be non-normally distributed
+(p < 0.001), justifying the use of the Mann-Whitney U
+test. This test indicated a statistically significant difference
+(p  9.513e04), with a moderate effect size (Rank-biserial
+correlation  0.498), implying that position stabilization times
+are longer than torque stabilization times.
+For the residual values, the mean torque residual was 0.102
+(std  0.061), and the mean position residual was 0.353 (std
+0.025). The torque residual data was normally distributed
+(p  0.070), while the position residual data was not (p
+1.078e03). Due to the non-normality of the position residual
+Mean (Torque)
+Std (Torque)
+Mean (Position)
+Std (Position)
+Effect Size
+Stabilization Time
+Residual error
+STATISTICAL ANALYSIS RESULTS FOR STATIC TORQUE VS. POSITION METRICS
+a statistically significant difference (p < 0.001), with a very
+large effect size (Rank-biserial correlation  1.000), indicating
+that position residuals are much higher than torque residuals.
+tween the torque and position metrics, with varying degrees of
+practical significance. The findings suggest that metrics during
+torque control consistently show lower values compared to
+their position counterparts, which shows the applicability of
+torque control, even in industry application that requires high
+precisionstiffness.
+D. Dynamic trajectory tracking
+We compared position control and torque control in a
+dynamic scenario to account for industrial applications where
+a reference trajectory could be produced by optimization or
+provided by a planner. We extended the robot arm horizontally
+and then tracked a 6D-Cartesian trajectory doing back-and-
+forth sinusoidal motion on the vertical axis and a lower fre-
+quency triangular reference on the horizontal axis. To analyze
+the performance of both control modes, we observed the error
+between the reference and real position along the moving
+axes and did the same for the reference and real velocity
+by repeating several back-and-forth motions. The results, dis-
+played in Fig.6 show that our torque control has comparable
+tracking precision as position control, while having its null-
+space compliant. Unsurprisingly, compared to Kinovas torque
+E. Dual compliance
+In this section, we present the results on the dual compliance
+strategy. This choice is motivated by its inherent advantages
+in tasks requiring intuitive and adaptive human-robot interac-
+guidance. By allowing the robot to dynamically adjust its
+of forces, enhancing the robots responsiveness to user intent.
+The following results demonstrate how this approach features
+low forces for interaction, robot motion, and mode switching
+dependent on the interaction point. Fig.7 shows the result of
+an experiment using dual compliance for moving the end-
+effector of the robot from different positionsorientations and
+modifying the null-space configuration in between. The mode-
+switching can be observed in Fig.7.e), when the end-effector
+wrench norm becomes greater than the higher (dashed blue)
+by the gray area. When the wrench norm falls below the lowest
+(dashed orange) threshold, the system switches back to a stiff
+position and orientation for the end-effector, maintaining only
+null-space compliance.
+VIII. LIMITATIONS
+While the proposed framework demonstrates significant ad-
+vancements in pHRI toward industry, some limitations remain.
+One notable challenge is the difficulty in identifying precise
+friction parameters for the Kinova Gen3 robot. Although the
+friction model is not yet perfect, our robust dynamic model
+identification and closed-loop control strategiesenhanced by
+the torque sensors from the actuators and the FT sensor feed-
+backmitigate these imperfections, enabling industry-ready
+torque control. Nevertheless, further refinement of friction
+modeling could enhance performance.
+Another limitation arises from the lack of transparency in
+the low-level control architecture of the Kinova Gen3, as the
+manufacturer provides limited documentation or insight into
+its internal workings. This constraint necessitated substantial
+reverse engineering to achieve the results presented in this
+paper. While these efforts have proven fruitful, they highlight
+the challenges of developing advanced control strategies on
+proprietary platforms with limited access to critical system
+details. A key lesson from this work is the critical importance
+of incorporating rotor inertiaand, more generally, accurate
+inertia parametersinto inverse dynamics-based torque con-
+trol. As discussed in Section V, since the QP computes a
+desired acceleration and the corresponding desired torque is
+obtained from an inverse dynamics model, explicitly inte-
+grating rotor inertia into the low-level control significantly
+improves torque tracking performance when controlling mo-
+tor torque or current. This underscores the reliance of the
+proposed approach on precise dynamic model identification,
+including rotor inertias, friction coefficients, and massinertia
+properties.
+One possible way to alleviate this dependency is through
+adaptive control strategies, which aim to estimate and adjust
+dynamic parameters online. However, applying such tech-
+niques in the context of pHRI remains challenging. During
+physical interaction, it becomes difficult to distinguish whether
+deviations in the robots behavior stem from external forces
+applied by a human or from inaccuracies in the dynamic
+model. This ambiguity complicates the parameter identifica-
+tion process and may lead to incorrect adaptations. Therefore,
+further research is needed to develop adaptive control methods
+that are robust to physical contact.
+pHRI but does not yet integrate human-centric evaluation
+Position
+Dynamic reference motion tracking comparison of Position control, Kinova's and Our torque control
+Time [s]
+Time [s]
+Time [s]
+Time [s]
+Error [mm]
+Error [mm]
+Error [ms]
+Error [ms]
+Error [mm]
+Error [mm]
+Error [ms]
+Error [ms]
+Position Error Y
+Position Error Z
+Velocity Error Y
+Velocity Error Z
+Position Error Y
+Position Error Z
+Velocity Error Y
+Velocity Error Z
+Comparison of dynamic tracking errors between our torque control and position control (top row) and between our torque control and using kinovas
+torque tracking loop (bottom row). The errors are in terms of position and velocity in both y axis (the horizontal axis) with discontinuous reference velocities
+and z axis (the vertical axis) with a higher frequency sine function reference.
+metrics such as user experience, cognitive load, or long-
+term usability. While the framework improves safety and
+workers or in real-world collaborative settings. Future studies
+should incorporate human-in-the-loop evaluations, similar to
+those in , to assess how effectively workers can interact
+with and control the robot in practical tasks.
+Another core pillar of Industry 5.0 is environmental sus-
+tainability. While this work primarily focuses on enhancing
+safety and productivity, future research should address the
+environmental impact of pHRI systems. Exploring energy-
+efficient algorithms, sustainable hardware design, and eco-
+friendly manufacturing processes is crucial for aligning pHRI
+frameworks with sustainability goals. The methodologies pre-
+sented in  provide a valuable foundation for integrating
+environmental considerations into the design and deployment
+of robotic systems.
+IX. DISCUSSION AND CONCLUSION
+This paper presented a novel open-source pHRI control
+the key challenges of safety, compliance, and performance.
+The contributions of this paper include a new low-level torque
+control for the Kinova Gen3 robot, incorporating friction
+trol precision similar or superior to position control. This
+advancement positions our framework as leap toward industrial
+critical.
+ance and does not require admittance control. Our framework
+also leverages the mcrtc framework for modularity, scala-
+broad industrial applicability.
+Industry 5.0 emphasizes the integration of human-centric
+values such as personalization, human well-being, and en-
+vironmental sustainability into industrial processes . Our
+proposed framework aligns with these principles by addressing
+key aspects of physical human-robot interaction (pHRI): ensur-
+ing human safety through strict safety constraints, enhancing
+productivity through industrial-grade performance, and foster-
+ing trust in automation through the compliance capabilities of
+our system. These contributions are critical for the broader
+adoption of pHRI in industrial settings . Further works
+relying on this framework are planned for user-studies on
+personalization and evaluation of pHRI control laws.
+In conclusion, these contributions not only advance the
+state of torque-based control but also demonstrate its via-
+bility for widespread adoption in industrial settings. Future
+efforts should focus on further refining the framework to align
+with human-centered design for Industry 5.0. Other aspects
+involving environmental sustainability and societal impact
+should also be thoroughly investigated. By addressing these
+generation of industrial collaborative robotics. These areas
+represent promising directions for ensuring that pHRI systems
+meet the broader goals of Industry 5.0.
+EE Force Norm
+Joint Torques Norm
+EE Lin. Vel. Norm
+Joint Vel. Norm
+EE Wrench Norm
+Dual-Comp. Thresh. (8)
+Null-Space Comp. Thresh. (4)
+Contact Interval
+Demonstration of Forces Applied on the Robot and Robot Motion During Dual Compliance
+Time (s)
+EE Force (N)
+Joint Torques (Nm)
+EE Lin. Velocity (ms)
+Joint Velocity (rads)
+EE Wrench
+(a) End-effector Force Norm
+(b) Joint Torques Norm
+(c) End-effector Linear Velocity Norm
+(d) Joint Velocity Norm
+(e) End-effector Wrench Norm
+Time-series analysis of robot dynamics during dual compliance operation. (a) Norm of End-Effector (EE) Force, representing the magnitude of
+forces applied in Newton (N). (b) Norm of Joint Torques, indicating the cumulative torque exerted at each of the seven robot joints in Nm. (c) Norm of
+EE Linear Velocity, illustrating the speed of the end-effectors linear motion in meters per second (ms). (d) Norm of Joint Space Velocity, showing the rate
+of movement within the robots joint space in radians per second (rads). (e) Norm of EE Wrench, encompassing both force and torque magnitudes applied
+to the end-effector. Shaded regions denote dual compliance interval, identified when the EE Wrench Norm exceeds the initiation threshold of 8 and retracts
+below the removal threshold of 4. The plots highlight the interplay between the applied forces, joint torques, dual compliance mode switching, and resulting
+motions during dual compliance control.
+ACKNOWLEDGMENTS
+This research includes results obtained from the project
+Programs for Bridging the Gap between RD and the
+Ideal Society (Society 5.0) and Generating Economic and
+Social Value (BRIDGE)Practical Global Research in the AI
+Robotics Services, implemented by the Cabinet Office,
+Government of Japan.
+REFERENCES
+Mehdi Benallegue, Rafael Cisneros, Abdelaziz Benal-
+with torque-control for robots with high reduction gears
+and no joint-torque feedback.
+In 2021 IEEERSJ In-
+ternational Conference on Intelligent Robots and Sys-
+tems (IROS), pages 62626269, 2021.
+Anastasia Bolotnikova, Pierre Gergondet, Arnaud Tan-
+Task-space control interface for softbank humanoid
+robots and its human-robot interaction applications. In
+2021 IEEESICE International Symposium on System
+Integration (SII), pages 560565, 2021.
+Amberlynn Bonello, Paul Refalo, and Emmanuel Fran-
+calanza. The impacts of industrial safety on environmen-
+tal sustainability in human-robot-collaboration within in-
+dustry 5.0. Procedia CIRP, 122:282287, 2024. ISSN
+041. URL
+piiS2212827124000544. 31st CIRP Conference on Life
+Cycle Engineering.
+Mathieu Celerier, Bastien Muraccioli, Mehdi Benallegue,
+Yue Hu, Rafael Cisneros Limon, Hiroshi Kaminaga, and
+Gentiane Venture.
+Explicit compliance and safety on
+torque controlled robots for physical interaction. URL
+Rafael Cisneros, Mehdi Benallegue, Abdelaziz Benal-
+Fumio Kanehiro. Robust humanoid control using a qp
+solver with integral gains.
+In IEEERSJ IROS. IEEE,
+Enrique Coronado, Takuya Kiyokawa, Gustavo A. Garcia
+and Natsuki Yamanobe. Evaluating quality in human-
+robot interaction: A systematic search and classifica-
+tion of performance and human-centered factors, mea-
+sures and metrics towards an industry 5.0.
+of Manufacturing Systems, 63:392410, 2022.
+007. URL
+Mohammad Farajtabar and Marie Charbonneau.
+path towards contact-based physical humanrobot inter-
+action. Robotics and Autonomous Systems, 182:104829,
+robot.2024.104829. URL
+sciencearticlepiiS0921889024002136.
+B. Faverjon and P. Tournassoud. A local based approach
+for path planning of manipulators with a high number
+of degrees of freedom.
+In Proceedings. 1987 IEEE
+International Conference on Robotics and Automation,
+volume 4, pages 11521159, 1987. doi: 10.1109ROBOT.
+International Organization for Standardization.
+standard
+Manipulating
+industrial
+robotsperformance criteria and related test methods,
+International Organization for Standardization.
+standard no. 15066:2016).
+Robots and robotic de-
+vicescollaborative robots, 2016.
+Sami Haddadin and Elizabeth Croft. Physical Human
+Robot Interaction, pages 18351874.
+Springer Inter-
+national Publishing, Cham, 2016.
+Alessandro
+De Luca, and Gerd Hirzinger. Collision detection and
+interaction. In 2008 IEEERSJ International Conference
+on Intelligent Robots and Systems, pages 33563363,
+Fumio Kanehiro, Mitsuharu Morisawa, Wael Suleiman,
+Kenji Kaneko, and Eiichi Yoshida. Integrating geomet-
+ric constraints into reactive leg motion generation.
+2010 IEEERSJ International Conference on Intelligent
+Robots and Systems, pages 40694076, 2010.
+Robin Jeanne Kirschner, Kubra Karacan, Alessandro
+Categorizing robots by
+performance fitness into the tree of robots.
+Machine Intelligence, 2025.
+Publisher Copyright:
+The Author(s) 2025.
+Shitij Kumar, Celal Savur, and Ferat Sahin. Survey of
+humanrobot collaboration in industrial settings: Aware-
+Weidong Li, Yudie Hu, Yong Zhou, and D. Pham.
+Safe humanrobot collaboration for industrial settings:
+a survey. Journal of Intelligent Manufacturing, 35, 06
+Eleonora Mariotti, Emanuele Magrini, and Alessan-
+dro De Luca.
+Admittance control for human-robot
+interaction using an industrial robot equipped with a ft
+In 2019 International Conference on Robotics
+and Automation (ICRA), pages 61306136, 2019. doi:
+Saeid Nahavandi. Industry 5.0a human-centric solu-
+Sotirios Panagou, W. Patrick Neumann, and Fabio Frug-
+giero and. A scoping review of human robot interaction
+research towards industry 5.0 human-centric workplaces.
+International Journal of Production Research, 62(3):
+Rohan P. Singh, Pierre Gergondet, and Fumio Kanehiro.
+trollers in mujoco.
+In 2023 IEEESICE International
+Symposium on System Integration (SII), pages 15, 2023.
+Joris Vaillant, Abderrahmane Kheddar, Herve Audren,
+Francois Keith, Stanislas Brossette, Kenji Kaneko, Mit-
+suharu Morisawa, Eiichi Yoshida, and Fumio Kanehiro.
+Vertical ladder climbing by the hrp-2 humanoid robot. In
+2014 IEEE-RAS International Conference on Humanoid
+Joris Vaillant, Abderrahmane Kheddar, Herve Audren,
+Francois Keith, Stanislas Brossette, Adrien Escande,
+Karim Bouyarmane, Kenji Kaneko, Mitsuharu Morisawa,
+Pierre Gergondet, et al.
+Multi-contact vertical ladder
+climbing with an hrp-2 humanoid. Autonomous Robots,
+Valeria Villani, Fabio Pini, Francesco Leali, and Cris-
+tian Secchi.
+Survey on humanrobot collaboration in
+industrial settings: Safety, intuitive interfaces and appli-
+cations. Mechatronics, 55:248266, 2018. ISSN 0957-
+articlepiiS0957415818300321.
+Youcan Yan, Ahmed Zermane, Jia Pan, and Abderrah-
+mane Kheddar. A soft skin with self-decoupled three-
+axis force-sensing taxels. Nature Machine Intelligence,
+pages 112, 2024.

@@ -1,0 +1,1401 @@
+=== PDF文件: ASAP Aligning Simulation and Real-World Physics for Learning Agile Humanoid Whole-Body Skills.pdf ===
+=== 时间: 2025-07-21 14:23:20.619530 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：for Learning Agile Humanoid Whole-Body Skills
+Tairan He1,2
+Jiawei Gao1
+Wenli Xiao1,2
+Yuanhang Zhang1
+Zi Wang1
+Jiashun Wang1
+Zhengyi Luo1,2
+Guanqi He1
+Nikhil Sobanbabu1
+Chaoyi Pan1
+Zeji Yi1
+Guannan Qu1
+Kris Kitani1
+Jessica Hodgins1
+Linxi Jim Fan2
+Yuke Zhu2
+Changliu Liu1
+Guanya Shi1
+1Carnegie Mellon University
+Equal Contributions
+The humanoid robot (Unitree G1) demonstrates diverse agile whole-body skills, showcasing the control policies agility: (a) Cristiano Ronaldos
+signature celebration involving a jump with a 180-degree mid-air rotation; (b) LeBron Jamess Silencer celebration involving single-leg balancing; and (c)
+Kobe Bryants famous fadeaway jump shot involving single-leg jumping and landing; (d) 1.5m-forward jumping; (e) Leg stretching; (f) 1.3m-side jumping.
+Abstract Humanoid robots hold the potential for unparal-
+leled versatility for performing human-like, whole-body skills.
+remains a significant challenge due to the dynamics mismatch
+between simulation and the real world. Existing approaches,
+such as system identification (SysID) and domain randomization
+(DR) methods, often rely on labor-intensive parameter tuning
+or result in overly conservative policies that sacrifice agility.
+In this paper, we present ASAP (Aligning Simulation and Real
+Physics), a two-stage framework designed to tackle the dynamics
+mismatch and enable agile humanoid whole-body skills. In the
+first stage, we pre-train motion tracking policies in simulation
+using retargeted human motion data. In the second stage, we
+deploy the policies in the real world and collect real-world data
+Imitation Goal
+Real Trajectories
+Human Videos Dataset
+Simulator
+Delta Action
+Estimation
+Simulator
+Delta Action
+Simulator
+Aligned Simulation Physics
+(a) Motion Tracking Pre-training and Real Trajectory Collection
+(b) Delta Action Model Training
+(c) Policy Fine-tuning
+(d) Real World Deployment
+Real-World
+Simulator
+Retargeting
+Overview of ASAP. (a) Motion Tracking Pre-training and Real Trajectory Collection: With the humanoid motions retargeted from human videos,
+we pre-train multiple motion tracking policies to roll out real-world trajectories. (b) Delta Action Model Training: Based on the real-world rollout data,
+we train the delta action model by minimizing the discrepancy between simulation state st and real-world state sr
+t . (c) Policy Fine-tuning: We freeze the
+delta action model, incorporate it into the simulator to align the real-world physics and then fine-tune the pre-trained motion tracking policy. (d) Real-World
+to train a delta (residual) action model that compensates for the
+dynamics mismatch. Then ASAP fine-tunes pre-trained policies
+with the delta action model integrated into the simulator to align
+effectively with real-world dynamics. We evaluate ASAP across
+three transfer scenariosIsaacGym to IsaacSim, IsaacGym to
+robot. Our approach significantly improves agility and whole-
+body coordination across various dynamic motions, reducing
+tracking error compared to SysID, DR, and delta dynamics
+learning baselines. ASAP enables highly agile motions that were
+previously difficult to achieve, demonstrating the potential of
+delta action learning in bridging simulation and real-world
+dynamics. These results suggest a promising sim-to-real direction
+for developing more expressive and agile humanoids.
+I. INTRODUCTION
+For decades, we have envisioned humanoid robots achieving
+or even surpassing human-level agility. However, most prior
+work [46, 74, 47, 73, 107, 19, 95, 50] has primarily focused
+on locomotion, treating the legs as a means of mobility.
+Recent studies [10, 25, 24, 26, 32] have introduced whole-
+body expressiveness in humanoid robots, but these efforts have
+primarily focused on upper-body motions and have yet to
+achieve the agility seen in human movement. Achieving agile,
+whole-body skills in humanoid robots remains a fundamental
+challenge due to not only hardware limits but also the mis-
+match between simulated dynamics and real-world physics.
+Three main approaches have emerged to bridge the dynam-
+ics mismatch: System Identification (SysID) methods, domain
+randomization (DR), and learned dynamics methods. SysID
+methods directly estimate critical physical parameters, such as
+motor response characteristics, the mass of each robot link, and
+terrain properties [102, 19]. However, these methods require a
+pre-defined parameter space , which may not fully capture
+the sim-to-real gap, especially when real-world dynamics fall
+outside the modeled distribution. SysID also often relies on
+ground truth torque measurements , which are unavailable
+on many widely used hardware platforms, limiting its practi-
+cal applicability. DR methods, in contrast, first train control
+policies in simulation before deploying them on real-world
+hardwares [85, 79, 59]. To mitigate the dynamics mismatch
+between simulation and real-world physics, DR methods rely
+on randomizing simulation parameters [87, 68]; but this can
+lead to overly conservative policies , ultimately hindering
+the development of highly agile skills. Another approach to
+bridge dynamics mismatch is learning a dynamics model of
+real-world physics using real-world data. While this approach
+has demonstrated success in low-dimensional systems such
+as drones  and ground vehicles , its effectiveness for
+humanoid robots remains unexplored.
+To this end, we propose ASAP, a two-stage framework that
+aligns the dynamics mismatch between simulation and real-
+world physics, enabling agile humanoid whole-body skills.
+ASAP involves a pre-training stage where we train base
+policies in simulation and a post-training stage that finetunes
+the policy by aligning simulation and real-world dynamics. In
+the pre-training stage, we train a motion tracking policy in
+simulation using human motion videos as data sources. These
+motions are first retargeted to humanoid robots , and a
+phase-conditioned motion tracking policy  is trained to
+follow the retargeted movements. However, directly deploying
+this policy on real hardware results in degraded performance
+due to the dynamics mismatch. To address this, the post-
+training stage collects real-world rollout data, including pro-
+prioceptive states and positions recorded by the motion capture
+(b) SMPL Motion
+from TRAM
+(c) SMPL Motion
+(d) G1 Motion
+from Retargeting
+(a) Human Motion
+From Video
+(e) G1 Motion
+Retargeting Human Video Motions to Robot Motions: (a) Human motions are captured from video. (b) Using TRAM , 3D human motion is
+reconstructed in the SMPL parameter format. (c) A reinforcement learning (RL) policy is trained in simulation to track the SMPL motion. (d) The learned
+SMPL motion is retargeted to the Unitree G1 humanoid robot in simulation. (e) The trained RL policy is deployed on the real robot, executing the final
+motion in the physical world. This pipeline ensures the retargeted motions remain physically feasible and suitable for real-world deployment.
+system. The collected data are then replayed in simulation,
+where the dynamics mismatch manifests as tracking errors.
+We then train a delta action model that learns to compensate
+for these discrepancies by minimizing the difference between
+real-world and simulated states. This model effectively serves
+as a residual correction term for the dynamics gap. Finally, we
+fine-tune the pre-trained policy using the delta action model,
+allowing it to adapt effectively to real-world physics.
+We validate ASAP on diverse agile motions and successfully
+achieve whole-body agility on the Unitree G1 humanoid
+robot . Our approach significantly reduces motion tracking
+error compared to prior SysID, DR, and delta dynamics
+learning baselines in both sim-to-sim (IsaacGym to IsaacSim,
+IsaacGym to Genesis) and sim-to-real (IsaacGym to Real)
+transfer scenarios. Our contributions are summarized below.
+1) We introduce ASAP, a framework that bridges the sim-
+to-real gap by leveraging a delta action model trained
+via reinforcement learning (RL) with real-world data.
+2) We successfully deploy RL-based whole-body control
+policies in the real world, achieving previously difficult-
+to-achieve humanoid motions.
+3) Extensive experiments in both simulation and real-world
+settings demonstrate that ASAP effectively reduces dy-
+namics mismatch, enabling highly agile motions on
+robots and significantly reducing motion tracking errors.
+4) To facilitate smooth transfer between simulators, we
+develop and open-source a multi-simulator training and
+evaluation codebase for help accelerate further research.
+II. PRE-TRAINING: LEARNING AGILE HUMANOID SKILLS
+A. Data Generation: Retargeting Human Video Data
+To track expressive and agile motions, we collect a video
+dataset of human movements and retarget it to robot motions,
+creating imitation goals for motion-tracking policies, as shown
+in Figure 3 and Figure 2 (a).
+a) Transforming Human Video to SMPL Motions: We
+begin by recording videos (see Figure 3 (a) and Figure 12)
+of humans performing expressive and agile motions. Using
+estimates the global trajectory of the human motions in SMPL
+parameter format , which includes global root translation,
+Figure 3 (b). The resulting motions are denoted as DSMPL.
+b) Simulation-based Data Cleaning: Since the recon-
+struction process can introduce noise and errors , some
+estimated motions may not be physically feasible, making
+them unsuitable for motion tracking in the real world. To
+address this, we employ a sim-to-data cleaning procedure.
+tion tracker, to imitate the SMPL motions from TRAM in
+IsaacGym simulator . The motions (Figure 3 (c)) that
+pass this simulation-based validation are saved as the cleaned
+dataset DCleaned
+c) Retargeting SMPL Motions to Robot Motions: With
+the cleaned dataset DCleaned
+in SMPL format, we retarget the
+motions into robot motions following the shape-and-motion
+two-stage retargeting process . Since the SMPL parameters
+estimated by TRAM represent various human body shapes,
+we first optimize the shape parameter  to approximate
+a humanoid shape. By selecting 12 body links with cor-
+respondences between humans and humanoids, we perform
+gradient descent on  to minimize joint distances in the rest
+pose. Using the optimized shape  along with the original
+translation p and pose , we apply gradient descent to further
+minimize the distances of the body links. This process ensures
+accurate motion retargeting and produces the cleaned robot
+trajectory dataset DCleaned
+B. Phase-based Motion Tracking Policy Training
+We formulate the motion-tracking problem as a goal-
+conditioned reinforcement learning (RL) task, where the policy
+is trained to track the retargeted robot movement trajectories
+in the dataset DCleaned
+Robot . Inspired by
+, the state st in-
+cludes the robots proprioception sp
+t and a time phase variable
+[0, 1], where   0 represents the start of a motion and
+1 represents the end. This time phase variable alone
+is proven to be sufficient to serve as the goal state sg
+single-motion tracking . The proprioception sp
+t is defined
+, with 5-step
+history of joint position qt R23, joint velocity qt R23, root
+angular velocity root
+and last action at1 R23. Using the agents proprioception
+t and the goal state sg
+t ), which is used for policy optimization. The specific
+reward terms can be found in Table I. The action at R23
+corresponds to the target joint positions and is passed to a
+PD controller that actuates the robots degrees of freedom. To
+optimize the policy, we use the proximal policy optimization
+(PPO) , aiming to maximize the cumulative discounted
+reward E
+. We identify several design choices
+that are crucial for achieving stable policy training:
+a) Asymmetric Actor-Critic Training: Real-world hu-
+manoid control is inherently a partially observable Markov
+decision process (POMDP), where certain task-relevant prop-
+erties that are readily available in simulation become un-
+observable in real-world scenarios. However, these missing
+properties can significantly facilitate policy training in simu-
+lation. To bridge this gap, we employ an asymmetric actor-
+critic framework, where the critic network has access to
+privileged information such as the global positions of the
+reference motion and the root linear velocity, while the actor
+network relies solely on proprioceptive inputs and a time-phase
+variable. This design not only enhances phase-based motion
+tracking during training but also enables a simple, phase-
+driven motion goal for sim-to-real transfer. Crucially, because
+the actor does not depend on position-based motion targets,
+our approach eliminates the need for odometry during real-
+world deploymentovercoming a well-documented challenge
+in prior work on humanoid robots [25, 24].
+b) Termination Curriculum of Tracking Tolerance:
+Training a policy to track agile motions in simulation is chal-
+to learn effectively. For instance, when imitating a jumping
+remain on the ground to avoid landing penalties. To mitigate
+this issue, we introduce a termination curriculum that progres-
+sively refines the motion error tolerance throughout training,
+guiding the policy toward improved tracking performance.
+meaning the episode terminates if the robot deviates from
+the reference motion by this margin. As training progresses,
+we gradually tighten this threshold to 0.3m, incrementally
+increasing the tracking demand on the policy. This curriculum
+allows the policy to first develop basic balancing skills before
+progressively enforcing stricter motion tracking, ultimately
+enabling successful execution of high-dynamic behaviors.
+c) Reference State Initialization: Task initialization plays
+a crucial role in RL training. We find that naively initializing
+episodes at the start of the reference motion leads to policy
+failure. For example, in Cristiano Ronaldos jumping training,
+starting the episode from the beginning forces the policy to
+learn sequentially. However, a successful backflip requires
+mastering the landing firstif the policy cannot land correctly,
+it will struggle to complete the full motion from takeoff.
+To address this, we adopt the Reference State Initialization
+(RSI) framework . Specifically, we randomly sample time-
+phase variables between 0 and 1, which effectively randomizes
+the starting point of the reference motion for the policy
+to track. We then initialize the robots state based on the
+corresponding reference motion at that phase, including root
+position and orientation, root linear and angular velocities
+and joint positions and velocities. This initialization strategy
+significantly improves motion tracking training, particularly
+for agile whole-body motions, by allowing the policy to
+learn different motion phases in parallel rather than being
+constrained to a strictly sequential learning process.
+d) Reward Terms: We define the reward function rt with
+the sum of three terms: 1) penalty, 2) regularization, and 3)
+task rewards. A detailed summary of these components is
+provided in Table I.
+REWARD TERMS FOR PRETRAINING
+DoF position limits
+DoF velocity limits
+Torque limits
+Termination
+Regularization
+Action rate
+Feet orientation
+Feet heading
+Slippage
+Task Reward
+Body position
+VR 3-point
+Body position (feet)
+Body rotation
+Body angular velocity
+Body velocity
+DoF position
+DoF velocity
+e) Domain Randomizations: To improve the robustness
+of the pre-trained policy in Figure 2 (a), we utilized basic
+domain randomization techniques listed in Table VI.
+III. POST-TRAINING: TRAINING DELTA ACTION MODEL
+AND FINE-TUNING MOTION TRACKING POLICY
+The policy trained in the first stage can track the reference
+motion in the real-world but does not achieve high motion
+quality. Thus, during the second stage, as shown in
+ure 2 (b) and (c), we leverage real-world data rolled out by the
+pre-trained policy to train a delta action model, followed by
+policy refinement through dynamics compensation using this
+learned delta action model.
+A. Data Collection
+We deploy the pretrained policy in the real world to per-
+form whole-body motion tracking tasks (as depicted in Fig-
+ure 9) and record the resulting trajectories, denoted as Dr
+T }, as illustrated in Figure 2 (a). At each
+timestep t, we use a motion capture device and onboard
+sensors to record the state: st  [pbase
+, qt, qt],
+where pbase
+R3 represents the robot base 3D position,
+R3 is base linear velocity, base
+R4 is the robot
+base orientation represented as a quaternion, base
+R3 is the
+base angular velocity, qt R23 is the vector of joint positions,
+and qt R23 represents joint velocities.
+B. Training Delta Action Model
+Due to the sim-to-real gap, when we replay the real-world
+trajectories in simulation, the resulting simulated trajectory
+will likely deviate significantly from real-world recorded tra-
+jectories. This discrepancy is a valuable learning signal for
+learning the mismatch between simulation and real-world
+Simulator
+Simulator
+Simulator
+Simulator
+(a) Vanilla
+(b) SysID
+(c) Delta Dynamics
+(d) Delta Action (ASAP)
+Baselines of ASAP. (a) Model-free RL training. (b) System ID from real to sim using real-world data. (c) Learning delta dynamics model using
+real-world data. (d) Our proposed method, learning delta action model using real-world data.
+physics. We leverage an RL-based deltaresidual action model
+to compensate for the sim-to-real physics gap.
+As illustrated in Figure 2 (b), the delta action model is
+defined as at
+(st, at), where the policy
+to output corrective actions based on the current state st and
+the action at. These corrective actions (at) are added to the
+real-world recorded actions (ar
+t) to account for discrepancies
+between simulation and real-world dynamics.
+The RL environment incorporates this delta action model
+by modifying the simulator dynamics as follows: st1
+f sim(st, ar
+t  at) where f sim represents the simulators dy-
+t is the reference action recorded from real-world
+action model.
+TABLE II
+REWARD TERMS FOR DELTA ACTION LEARNING
+DoF position limits
+10.0 DoF velocity limits
+Torque limits
+Termination
+Regularization
+Action rate
+Action norm
+Task Reward
+Body position
+VR 3-point
+Body position (feet)
+Body rotation
+Body angular velocity
+Body velocity
+DoF position
+DoF velocity
+During each RL step:
+1) The robot is initialized at the real-world state sr
+2) A reward signal is computed to minimize the discrep-
+ancy between the simulated state st1 and the recorded
+real-world state sr
+tude regularization term exp(at) 1), as specified
+in Table II. The workflow is illustrated in Figure 2 (b).
+3) PPO is used to train the delta action policy
+, learning
+corrected at to match simulation and the real world.
+By learning the delta action model, the simulator can accu-
+rately reproduce real-world failures. For example, consider a
+scenario where the simulated robot can jump because its motor
+strength is overestimated, but the real-world robot cannot jump
+due to weaker motors. The delta action model
+will learn
+to reduce the intensity of lower-body actions, simulating the
+motor limitations of the real-world robot. This allows the
+simulator to replicate the real-world dynamics and enables the
+policy to be fine-tuned to handle these limitations effectively.
+C. Fine-tuning Motion Tracking Policy under New Dynamics
+With the learned delta action model (st, at), we can
+reconstruct the simulation environment with
+st1  f ASAP(st, at)  f sim(st, at  (st, at)),
+As shown in Figure 2 (c), we keep the model parameters
+reward summarized in Table I.
+D. Policy Deployment
+model in the real world as shown in Figure 2 (d). The
+fine-tuned policy shows enhanced real-world motion tracking
+performance compared to the pre-trained policy. Quantitative
+improvements will be discussed in Section IV.
+IV. PERFORMANCE EVALUATION OF ASAP
+In this section, we present extensive experimental results
+on three policy transfers: IsaacGym  to IsaacSim ,
+IsaacGym to Genesis , and IsaacGym to real-world Unitree
+G1 humanoid robot. Our experiments aim to address the
+following key questions:
+compensate for the dynamics mismatch?
+Delta Dynamics methods?
+Experiments Setup. To address these questions, we eval-
+uate ASAP on motion tracking tasks in both simulation
+(Section IV-A and Section IV-B) and real-world settings
+(Section IV-C).
+In the simulation, we use the retargeted motion dataset
+from the videos we shoot, denoted as DCleaned
+tains diverse human motion sequences. We select 43 motions
+categorized into three difficulty levels: easy, medium, and
+hard (as partially visualized in Figure 6), based on mo-
+tion complexity and the required agility. ASAP is evaluated
+through simulation-to-simulation transfer by training policies
+in IsaacGym and using two other simulators, IsaacSim and
+allows for a systematic evaluation of ASAPs generalization
+and transferability. The success of the transfer is assessed by
+metrics described in subsequent sections.
+For real-world evaluation, we deploy ASAP on Unitree
+G1 robot with fixed wrists to track motion sequences that
+has obvious sim-to-real gap. These sequences are chosen to
+(Open-loop action only)
+(Open-loop action
+Delta action)
+(Open-loop action
+SysID sim params)
+Delta Dynamics
+(Open-loop action
+Delta state)
+MPJPE (mm)
+Timestep
+Replaying IsaacSim State-Action trajecories in IsaacGym. The upper four panels visualize the Unitree G1 humanoid executing a soccer-shooting
+motion under four distinct open-loop actions. Corresponding metric curves (bottom) quantify tracking performance. Importantly, our delta action model (ASAP)
+is trained across multiple motions and is not overfitted to this specific example.
+capture a broad range of motor capabilities and demonstrate
+the sim-to-real capability for agile whole-body control.
+Baselines. We have the following baselines:
+within IsaacGym. It assumes perfect alignment between the
+training and testing environments, serving as an upper bound
+for performance in simulation.
+Vanilla (Figure 4 a): The RL policy is trained in Isaac-
+Gym and evaluated in IsaacSim, Genesis, or the real world.
+SysID (Figure 4 b): We identify the following representa-
+tive parameters in our simulated model that best align the ones
+in the real world: base center of mass (CoM) shift (cx, cy, cz),
+base link mass offset ratio km and low-level PD gain ratios
+d) where i  1, 2, ..., 23. Specifically, we search the
+best parameters among certain discrete ranges by replaying
+the recorded trajectories in real with different simulation
+parameters summarized in Table VII. We then finetune the pre-
+trained policy in IsaacGym with the best SysID parameters.
+DeltaDynamics (Figure 4 c): We train a residual dy-
+namics model f
+(st, at) to capture the discrepancy between
+simulated and real-world physics. The detailed implementation
+is introduced in Section VIII-C
+Metrics. We report success rate, deeming imitation un-
+successful when, at any point during imitation, the average
+difference in body distance is on average further than 0.5m.
+We evaluate policys ability to imitate the reference motion
+by comparing the tracking error of the global body position
+Eg-mpjpe (mm), the root-relative mean per-joint (MPJPE) Empjpe
+TABLE III
+OPEN-LOOP PERFORMANCE COMPARISON ACROSS SIMULATORS AND
+MOTION LENGTHS.
+Simulator  Length
+IsaacSim
+Length Method
+Eg-mpjpe Empjpe Eacc Evel Eg-mpjpe Empjpe Eacc Evel
+OpenLoop
+DeltaDynamics
+OpenLoop
+DeltaDynamics
+OpenLoop
+DeltaDynamics
+(mm), acceleration error Eacc (mmframe2), and root velocity
+Evel (mmframe). The mean values of the metrics are computed
+across all motion sequences used.
+A. Comparison of Dynamics Matching Capability
+To address Q1 (Can ASAP outperform other baseline meth-
+ods to compensate for the dynamics mismatch?), we establish
+sim-to-sim transfer benchmarks to assess the effectiveness of
+different methods in bridging the dynamics gap. IsaacGym
+serves as the training environment, while IsaacSim and Gen-
+esis function as testing environments. The primary objective
+is to evaluate the generalization capability of each approach
+when exposed to new dynamics conditions. Open-loop evalua-
+tion measures how accurately a method can reproduce testing-
+TABLE IV
+CLOSED-LOOP MOTION IMITATION EVALUATION ACROSS DIFFERENT SIMULATORS. ALL VARIANTS ARE TRAINED WITH IDENTICAL REWARDS.
+Test Environment
+IsaacSim
+Eg-mpjpe
+Eg-mpjpe Empjpe
+Oracle (IsaacGym IsaacGym) 1000.000 97.50.605
+Vanilla (IsaacGym TestEnv)
+DeltaDynamics
+Oracle (IsaacGym IsaacGym) 1000.000
+Vanilla (IsaacGym TestEnv)
+Medium SysID
+DeltaDynamics
+Oracle (IsaacGym IsaacGym) 1000.000
+Vanilla (IsaacGym TestEnv)
+DeltaDynamics
+Visual comparisons of motion imitation results across different difficulty levels (Easy, Medium, Hard) for various tasks including Jump Forward,
+Side Jump, Single Foot Balance, Squat, Step Backward, Step Forward, and Walk.
+environment trajectories in the training environment. This is
+achieved by rolling out the same trajectory executed in the
+testing environment and assessing tracking discrepancies using
+key metrics such as MPJPE. An ideal method should minimize
+the discrepancies between training and testing trajectories
+when replaying testing-environment actions, thereby demon-
+strating an improved capacity for compensating dynamics
+mismatch. Quantitative results in Table III demonstrate that
+ASAP consistently outperforms the OpenLoop baseline across
+all replayed motion lengths, achieving lower Eg-mpjpe and
+Empjpe values, which indicate improved alignment with testing-
+env trajectories. While SysID helps address short-horizon
+dynamics gaps, it struggles with long-horizon scenarios due to
+cumulative error buildup. DeltaDynamics improves upon both
+SysID and OpenLoop for long horizons but suffers from over-
+as shown in Figure 5. ASAP, however, demonstrates superior
+generalization by learning residual policies that effectively
+bridge the dynamics gap. Comparable trends are observed in
+the Genesis simulator, where ASAP achieves notable improve-
+ments across all metrics relative to the baseline. These results
+emphasize the efficacy of learning delta action model to reduce
+the physics gap and improve open-loop replay performance.
+B. Comparison of Policy Fine-Tuning Performance
+To address Q2 (Can ASAP finetune policy to outperform
+SysID and Delta Dynamics methods?), we evaluate the effec-
+tiveness of different methods in fine-tuning RL policies for
+improved testing-environment performance. We fine-tune RL
+policies in modified training environments and subsequently
+deploy them in the testing environments, quantifying motion-
+tracking errors in testing environments. As shown in Table IV,
+ASAP consistently outperforms baselines such as Vanilla,
+For the Easy level, our method achieves the lowest Eg-mpjpe and
+Empjpe in IsaacSim (Eg-mpjpe  106 and Empjpe  44.3) and
+Genesis (Eg-mpjpe  125 and Empjpe  73.5), with minimal ac-
+celeration (Eacc) and velocity (Evel) errors. In more challenging
+significantly reducing motion-tracking errors. For instance,
+in Genesis, it achieves Eg-mpjpe  129 and Empjpe  77.0,
+outperforming SysID and DeltaDynamics by substantial mar-
+gins. Additionally, our method consistently maintains a 100
+success rate across both simulators, unlike DeltaDynamics,
+which experiences lower success rates in harder environments.
+To further illustrate the advantages of ASAP, we provide
+per-step visualizations in Figure 7, comparing ASAP with
+Tracking Error
+MPJPE (mm)
+Timestep
+Delta Action
+Finetuning
+Delta Action
+Finetuning
+Timestep
+Delta Action
+Finetuning
+Delta Action
+Finetuning
+Tracking Error
+MPJPE (mm)
+Timestep
+(a) IsaacGym -> IsaacSim
+(b) IsaacGym -> Genesis
+Visualization of G1 motion tracking before and after ASAP fine-tuning in IsaacGym, IsaacSim and Genesis. Top: LeBron James Silencer motion
+tracking policy fine-tuning for IsaacGym to IsaacSim. Bottom: single foot balance motion tracking policy fine-tuning for IsaacGym to Genesis.
+RL policies deployed without fine-tuning. These visualizations
+demonstrate that ASAP successfully adapts to new dynamics
+and maintains stable tracking performance, whereas baseline
+methods accumulate errors over time, leading to degraded
+tracking capability. These results highlight the robustness and
+adaptability of our approach in addressing the sim-to-real gap
+while preventing overfitting and exploitation. The findings
+validate that ASAP is an effective paradigm for improving
+closed-loop performance and ensuring reliable deployment in
+complex real-world scenarios.
+C. Real-World Evaluations
+To answer Q3 (Does ASAP work for sim-to-real transfer?).
+We validate ASAP on real-world Unitree G1 robot.
+Real-World Data. In the real-world experiments, we pri-
+oritize both motion safety and representativeness by selecting
+five motion-tracking tasks, including (i) kick, (ii) jump for-
+and (v) single foot jump. However, collecting over 400 real-
+world motion clips the minimum required to train the full
+23-DoF delta action model in simulation, as discussed in-
+Section III-Bposes significant challenges. Our experiments
+involve highly dynamic motions that cause rapid overheating
+of joint motors, leading to hardware failures (two Unitree G1
+robots broke during data collection). Given these constraints,
+we adopt a more sample-efficient approach by focusing exclu-
+sively on learning a 4-DoF ankle delta action model rather than
+the full-body 23-DoF model. This decision is motivated by
+two key factors: (1) the limited availability of real-world data
+makes training the full 23-DoF delta action model infeasible,
+and (2) the Unitree G1 robot  features a mechanical
+linkage design in the ankle, which introduces a significant
+sim-to-real gap that is difficult to bridge with conventional
+modeling techniques . Under this setting, the original 23
+DoF delta action model reduces to 4 DoF delta action model,
+which needs much less data to be trainable. In practice, we
+collect 100 motion clips, which prove sufficient to train an
+effective 4-DoF delta action model for real-world scenarios.
+We execute the tracking policy 30 times for each task. In
+addition to these motion-tracking tasks, we also collect 10
+minutes of locomotion data. The locomotion policy will be
+addressed in the next section, which is also utilized to bridge
+different tracking policies.
+Policy Transition. In the real world, we cannot easily reset
+Delta Action
+Finetuning
+Delta Action
+Finetuning
+In-distribution Motion Finetuning
+Out-of-distribution Motion Finetuning
+Visualization of LeBron James Silencer motion on the G1 robot before (upper figure enclosed in blue) and after (bottom figure enclosed in red)
+ASAP policy finetuning. The left half shows the policy finetuning for the in-distribution motions while the right half shows the out-of-distribution ones. After
+ASAP finetuning, the robot behaves more smoothly and reduces jerky lower-body motions.
+We deploy the pretrained policy of a forward jump motion tracking
+the robot as in simulators, and therefore we train a robust
+locomotion policy for the policy transition between different
+motion-tracking tasks. Our locomotion command contains
+(v, , ), where v and  indicate the linear and angular
+velocities while  indicates the command to walk or stand
+still. After each motion-tracking task is done, our locomotion
+policy will take over to keep the robot balance until the next
+motion-tracking task begins. In this way, the robot is able to
+execute multiple tasks without manually resetting.
+Real-World Results. The sim-to-real gap is more pro-
+nounced than simulator-to-simulator discrepancies due to fac-
+tors such as noisy sensor input, inaccuracies in robot modeling,
+and actuator differences. To evaluate the effectiveness of
+ASAP in addressing these gaps, we compare the closed-
+loop performance of ASAP with the Vanilla baseline on two
+representative motion tracking tasks (kicking and Silencer)
+in which observe obvious sim-to-real gaps. To show the
+REAL-WORLD CLOSED-LOOP PERFORMANCE COMPARING WITH AND
+WITHOUT ASAP FINETUNING ON ONE IN-DISTRIBUTION MOTION AND
+ONE OUT-OF-DISTRIBUTION MOTION.
+Real-World-Kick
+Real-World-LeBron (OOD)
+Method Eg-mpjpe Empjpe Eacc Evel Eg-mpjpe Empjpe Eacc Evel
+generalizability of the learned delta action model for out-of-
+distribution motions, we also fine-tune the policy for LeBron
+James Silencer motion as shown in Figure 1 and Figure 8.
+The experiment data is summarized in Table V. It shows that
+ASAP outperforms the baseline on both in-distribution and
+out-of-distribution humanoid motion tracking tasks, achieving
+a considerable reduction of the tracking errors across all
+key metrics (Eg-mpjpe, Empjpe, Eacc and Evel). These findings
+highlight the effectiveness of ASAP in improving sim-to-real
+transfer for agile humanoid motion tracking.
+V. EXTENSIVE STUDIES AND ANALYSES
+In this section, we aim to thoroughly analyze ASAP by
+addressing three central research questions:
+A. Key Factors in Training Delta Action Models
+To Answer Q4 (How to best train the delta action model
+of ASAP). we conduct a systematic study on key factors influ-
+encing the performance of the delta action model. Specifically,
+we investigate the impact of dataset size, training horizon,
+and action norm weight, evaluating their effects on both open-
+loop and closed-loop performance. Our analysis uncovers the
+Fig. 10.
+Analysis of dataset size, training horizon, and action norm on the performance of . (a) Dataset Size: Mean Per Joint Position Error (MPJPE)
+is evaluated for both in-distribution (green) and out-of-distribution (blue) scenarios. Increasing dataset size leads to enhanced generalization, evidenced by
+decreasing errors in out-of-distribution evaluations. Closed-loop MPJPE (red bars) also shows improvement with larger datasets. (b) Training Horizon: Open-
+loop MPJPE (heatmap) improves across evaluation points as training horizons increase, achieving the lowest error at 1.5s. However, closed-loop MPJPE (red
+bars) shows a sweet spot at a training horizon of 1.0s, beyond which no further improvements are observed. The red dashed line represents the pretrained
+baseline without fine-tuning. (c) Action Norm: The action norm weight significantly influences performance. Both open-loop and closed-loop MPJPE
+decrease as the weight increases up to 0.1, achieving the lowest error. However, further increases in the action norm weight result in degradation of open-loop
+essential principles for effectively training a high-performing
+delta action model.
+a) Dataset Size: We analyze the impact of dataset size
+on the training and generalization of . Simulation data is
+collected in Isaac Sim, and is trained in Isaac Gym. Open-
+loop performance is assessed on both in-distribution (training)
+and out-of-distribution (unseen) trajectories, while closed-loop
+performance is evaluated using the fine-tuned policy in Isaac
+Sim. As shown in Figure 10 (a), increasing the dataset size
+improves s generalization, evidenced by reduced errors in
+out-of-distribution evaluations. However, the improvement in
+closed-loop performance saturates, with a marginal decrease
+of only 0.65 when scaling from 4300 to 43000 samples,
+suggesting limited additional benefit from larger datasets.
+b) Training Horizon: The rollout horizon plays a crucial
+role in learning . As shown in Figure 10 (b), longer
+training horizons generally improve open-loop performance,
+with a horizon of 1.5s achieving the lowest errors across
+evaluation points at 0.25s, 0.5s, and 1.0s. However, this trend
+does not consistently extend to closed-loop performance. The
+best closed-loop results are observed at a training horizon of
+1.0s, indicating that excessively long horizons do not provide
+additional benefits for fine-tuned policy.
+c) Action Norm Weight: Training incorporates an
+action norm reward to balance dynamics alignment and min-
+imal correction. As illustrated in Figure 10 (c), both open-
+loop and closed-loop errors decrease as the action norm
+weight increases, reaching the lowest error at a weight of 0.1.
+open-loop errors to rise, likely due to the minimal action
+norm reward dominates in the delta action RL training. This
+highlights the importance of carefully tuning the action norm
+weight to achieve optimal performance.
+B. Different Usage of Delta Action Model
+To answer Q5 (How to best use the delta action model of
+ASAP?), we compare multiple strategies: fixed-point iteration,
+gradient-based optimization, and reinforcement learning (RL).
+Given a learned delta policy such that:
+f sim(s, a  (s, a)) f real(s, a),
+and a nominal policy (s) that performs well in simulation,
+the goal is to fine-tune (s) for real-world deployment.
+A simple approach is one-step dynamics matching, which
+leads to the relationship:
+We consider two RL-free methods: fixed-point iteration and
+gradient-based optimization. Fixed-point iteration refines (s)
+function to achieve a better estimate. These methods are
+compared against RL fine-tuning, which adapts (s) using
+reinforcement learning in simulation. The detailed derivation
+of these two baselines is summarized in Section VIII-D.
+Our experiments in Figure 11 show that RL fine-tuning
+achieves the lowest tracking error during deployment, out-
+performing training-free methods. Both RL-free approaches
+are myopic and suffer from out-of-distribution issues, limit-
+ing their real-world applicability (more discussions in Sec-
+tion VIII-D).
+Fig. 11.
+MPJPE comparison over timesteps for fine-tuning methods using
+delta actionmodel. RL Fine-Tuning achieves the lowest error, while Fixed-
+Point Iteration and Gradient Search perform worse than the baseline (Before
+DeltaA) showing the highest error.
+C. Does ASAP Fine-Tuning Outperform Random Action Noise
+Fine-Tuning?
+To answer Q6 (How does ASAP work?), we validate ASAP
+finetuning is better than injecting random-action-noise-based
+finetuning. And we visualize the average magnitude of the
+delta action model for each joint.
+Random torque noise  is a widely used domain random-
+ization technique for legged robots. To determine whether
+delta action facilitates fine-tuning of pre-trained policies to-
+ward real-world dynamics rather than merely enhancing ro-
+bustness through random action noise, we analyze its impact.
+noise during policy fine-tuning in Isaac Gym by modifying
+the environment dynamics as st1  f sim(st, ata), where
+a U[0, 1], and deploy it in Genesis. We conduct an ablation
+study to examine the influence of the noise magnitude, ,
+varying from 0.025 to 0.4. As shown in Figure 12, within
+the constrained range of  [0.025, 0.2], policies fine-tuned
+with action noise outperform those without fine-tuning in
+terms of global tracking error (MPJPE). However, the per-
+formance of the action noise approach (MPJPE of 150) does
+not match the precision achieved by ASAP (MPJPE of 126).
+from IsaacSim data in Figure 13, which reveals non-uniform
+discrepancies across joints. For example, in the G1 humanoid
+robot under our experimental setup, lower-body motors exhibit
+a larger dynamics gap compared to upper-body joints. Within
+the lower-body, the ankle and knee joints show the most
+pronounced discrepancies. Additionally, asymmetries between
+the left and right body motors further highlight the complexity.
+Such structured discrepancies cannot be effectively captured
+by merely adding uniform action noise. These findings, along
+with the results in Figure 5, demonstrate that delta action
+Fig. 12.
+MPJPE vs. Noise Level for policies fine-tuned with random action
+noise. Policies with noise levels  [0.025, 0.2] show improved performance
+compared to no fine-tuning. Delta action achieves better tracking precision
+(126 MPJPE) compared to the best action noise (173 MPJPE).
+Fig. 13.
+Visualization of IsaacGym-to-IsaacSim output magnitude. We
+compute the average absolute value of each joint over the 4300-episode
+dataset. Larger red dots indicate higher values. The results suggest that lower-
+body motors exhibit a larger discrepancy compared to upper-body joints, with
+the most significant gap observed in the ankle pitch joint of the G1 humanoid.
+not only enhances policy robustness but also enables effec-
+tive adaptation to real-world dynamics, outperforming naive
+randomization strategies.
+VI. RELATED WORKS
+A. Learning-based Methods for Humanoid Control
+In recent years, learning-based methods have made signif-
+icant progress in whole-body control for humanoid robots.
+Primarily leveraging reinforcement learning algorithms
+within physics simulators [58, 63, 88], humanoid robots have
+learned a wide range of skills, including robust locomo-
+parkour [50, 107]. More advanced capabilities, such as danc-
+ing [105, 32, 10], loco-manipulation [25, 53, 15, 24], and even
+the humanoid character animation community has achieved
+highly expressive and agile whole-body motions in physics-
+based simulations [71, 86, 55], including cartwheels ,
+smooth object interactions [86, 17, 22]. However, transferring
+these highly dynamic and agile skills to real-world humanoid
+robots remains challenging due to the dynamics mismatch
+between simulation and real-world physics. To address this
+this dynamics mismatch, enabling humanoid robots to perform
+expressive and agile whole-body skills in the real world.
+B. Offline and Online System Identification for Robotics
+The dynamics mismatch between simulators and real-world
+physics can be attributed to two primary factors: inaccuracies
+in the robot model descriptions and the presence of complex
+real-world dynamics that are difficult for physics-based simu-
+lators to capture. Traditional approaches address these issues
+using system identification (SysID) methods [39, 5], which
+calibrate the robot model or simulator based on real-world
+performance. These methods can be broadly categorized into
+offline SysID and online SysID, depending on whether system
+identification occurs at test time. Offline SysID methods typi-
+cally collect real-world data and adjust simulation parameters
+to train policies in more accurate dynamics. The calibration
+process may focus on modeling actuator dynamics [85, 29,
+99], refining robot dynamics models [36, 2, 18, 21, 30], explic-
+itly identifying critical simulation parameters [102, 9, 13, 96],
+learning a distribution over simulation parameters [75, 27, 4],
+or optimizing system parameters to maximize policy perfor-
+mance [64, 76]. Online SysID methods, in contrast, aim to
+learn a representation of the robots state or environment
+tions. These representations can be learned using optimization-
+based approaches [101, 103, 43, 70], regression-based meth-
+reconstruction techniques [65, 51, 54, 94, 83], direct reward
+errors for online adaptation [66, 57, 28, 16]. Our framework
+takes a different approach from traditional SysID methods
+by learning a residual action model that directly compensates
+for dynamics mismatch through corrective actions, rather than
+explicitly estimating system parameters.
+C. Residual Learning for Robotics
+Learning a residual component alongside learned or pre-
+defined base models has been widely used in robotics. Prior
+work has explored residual policy models that refine the
+actions of an initial controller [84, 34, 8, 1, 12, 20, 3, 33, 42].
+Other approaches leverage residual components to correct
+inaccuracies in dynamics models [66, 35, 38, 82, 23] or to
+model residual trajectories resulting from residual actions
+for achieving precise and agile motions. RGAT  uses
+a residual action model with a learned forward dynamics
+to refine the simulator. Our framework builds on this idea
+by using RL-based residual actions to align the dynamics
+mismatch between simulation and real-world physics, enabling
+agile whole-body humanoid skills.
+VII. CONCLUSION
+We present ASAP, a two-stage framework that bridges the
+sim-to-real gap for agile humanoid control. By learning a
+universal delta action model to capture dynamics mismatch,
+ASAP enables policies trained in simulation to adapt seam-
+lessly to real-world physics. Extensive experiments demon-
+strate significant reductions in motion tracking errors (up to
+52.7 in sim-to-real tasks) and successful deployment of
+diverse agile skillsincluding agile jumps and kickson the
+Unitree G1 humanoid. Our work advances the frontier of sim-
+to-real transfer for agile whole-body control, paving the way
+for versatile humanoid robots in real-world applications.
+VIII. LIMITATIONS
+While ASAP demonstrates promising results in bridging the
+sim-to-real gap for agile humanoid control, our framework has
+several real-world limitations that highlights critical challenges
+in scaling agile humanoid control to real-world:
+Hardware Constraints: Agile whole-body motions exert
+significant stress on robots, leading to motor overheating
+and hardware failure during data collection. Two Unitree
+G1 robots were broken to some extent during our exper-
+iments. This bottleneck limits the scale and diversity of
+real-world motion sequences that can be safely collected.
+Dependence on Motion Capture Systems: Our pipeline
+requires MoCap setup to record real-world trajectories.
+This introduces practical deployment barriers in unstruc-
+tured environments where MoCap setups are unavailable.
+Data-Hungry Delta Action Training: While reducing
+the delta action model to 4 DoF ankle joints improved
+sample efficiency, training the full 23 DoF model remains
+impractical for real-world deployment due to the large
+demand of required motion clips (e.g., > 400 episodes in
+simulation for the 23 DoF delta action training).
+Future directions could focus on developing damage-aware
+policy to mitigate hardware risks, leveraging MoCap-free
+alignment to eliminate the reliance on MoCap, and explor-
+ing adaptation techniques for delta action models to achieve
+sample-efficient few-shot alignment.
+ACKNOWLEDGMENTS
+We thank Zhenjia Xu, Yizhou Zhao, Yu Fang for help
+with hardware. We thank Pulkit Goyal, Hawkeye King, Peter
+Varvak and Haoru Xue for help with motion capture setup.
+We thank Ziyan Xiong, Yilin Qiao and Xian Zhou for support
+on Genesis integration. We thank Rui Chen, Yifan Sun, Kai
+hardware. We thank Xuxin Cheng, Chong Zhang and Toru Lin
+for always being there to help with any problem. We thank
+Unitree Robotics for help with G1 support.
+REFERENCES
+Minttu Alakuijala, Gabriel Dulac-Arnold, Julien Mairal,
+Jean Ponce, and Cordelia Schmid. Residual reinforce-
+ment learning from demonstrations.
+arXiv preprint
+Chae H An, Christopher G Atkeson, and John M Holler-
+bach. Estimation of inertial parameters of rigid body
+links of manipulators. In 1985 24th IEEE Conference
+on Decision and Control, pages 990995. IEEE, 1985.
+Lars Ankile, Anthony Simeonov, Idan Shenfeld, Mar-
+cel Torne, and Pulkit Agrawal.
+From imitation to
+refinementresidual rl for precise assembly.
+preprint arXiv:2407.16677, 2024.
+Rika Antonova, Jingyun Yang, Priya Sundaresan, Dieter
+A bayesian
+treatment of real-to-sim for deformable object manip-
+ulation. IEEE Robotics and Automation Letters, 7(3):
+Karl Johan Astrom and Peter Eykhoff. System identi-
+ficationa survey. Automatica, 7(2):123162, 1971.
+Genesis Authors. Genesis: A universal and generative
+physics engine for robotics and beyond, December
+2024. URL
+Genesis.
+Luigi Campanaro, Siddhant Gangapurwala, Wolfgang
+robust locomotion policies with minimal dynamics ran-
+domization. In 6th Annual Learning for Dynamics
+Control Conference, pages 578590. PMLR, 2024.
+Joao Carvalho, Dorothea Koert, Marek Daniv, and
+Jan Peters. Residual robot learning for object-centric
+probabilistic movement primitives.
+arXiv preprint
+Yevgen Chebotar, Ankur Handa, Viktor Makoviychuk,
+Miles Macklin, Jan Issac, Nathan Ratliff, and Dieter
+Fox. Closing the sim-to-real loop: Adapting simulation
+randomization with real world experience.
+International Conference on Robotics and Automation
+(ICRA), pages 89738979. IEEE, 2019.
+Xuxin Cheng, Yandong Ji, Junming Chen, Ruihan Yang,
+Ge Yang, and Xiaolong Wang.
+Expressive whole-
+body control for humanoid robots.
+arXiv preprint
+Cheng Chi, Benjamin Burchfiel, Eric Cousineau, Siyuan
+goal-conditioned dynamic manipulation of deformable
+objects. The International Journal of Robotics Research,
+Todor Davchev, Kevin Sebastian Luck, Michael Burke,
+Franziska Meier, Stefan Schaal, and Subramanian Ra-
+mamoorthy.
+Residual learning from demonstration:
+Adapting dmps for contact-rich manipulation.
+Robotics and Automation Letters, 7(2):44884495,
+Yuqing Du, Olivia Watkins, Trevor Darrell, Pieter
+Auto-tuned sim-to-real
+transfer.
+In 2021 IEEE International Conference on
+Robotics and Automation (ICRA), pages 12901296.
+Zipeng Fu, Xuxin Cheng, and Deepak Pathak. Deep
+whole-body control: learning a unified policy for ma-
+nipulation and locomotion.
+In Conference on Robot
+Zipeng Fu, Qingqing Zhao, Qi Wu, Gordon Wet-
+owing and imitation from humans.
+arXiv preprint
+Feng Gao, Chao Yu, Yu Wang, and Yi Wu.
+ral internal model control: Learning a robust control
+policy via predictive error feedback.
+arXiv preprint
+Jiawei Gao, Ziqin Wang, Zeqi Xiao, Jingbo Wang, Tai
+Jiangmiao Pang. Coohoi: Learning cooperative human-
+object interaction with manipulated object dynamics.
+arXiv preprint arXiv:2406.14558, 2024.
+Maxime Gautier, Pierre-Olivier Vandanjon, and Alexan-
+dre Janot.
+Dynamic identification of a 6 dof robot
+without joint position data. In 2011 IEEE International
+Conference on Robotics and Automation, pages 234
+Xinyang Gu, Yen-Jen Wang, Xiang Zhu, Chengming
+vancing humanoid locomotion: Mastering challenging
+terrains with denoising world model learning.
+preprint arXiv:2408.14472, 2024.
+Siddhant Haldar, Jyothish Pari, Anant Rai, and Ler-
+rel Pinto.
+Teach a robot to fish: Versatile imitation
+from one minute of demonstrations.
+arXiv preprint
+Yong Han, Jianhua Wu, Chao Liu, and Zhenhua Xiong.
+An iterative approach for accurate dynamic model iden-
+tification of industrial robots.
+IEEE Transactions on
+Michael Black, Sanja Fidler, and Xue Bin Peng. Syn-
+thesizing physical character-scene interactions. In ACM
+SIGGRAPH 2023 Conference Proceedings, pages 19,
+Guanqi He, Yogita Choudhary, and Guanya Shi. Self-
+supervised meta-learning for all-layer dnn-based adap-
+tive control with stability guarantees.
+arXiv preprint
+Tairan He, Zhengyi Luo, Xialin He, Wenli Xiao, Chong
+Guanya Shi. Omnih2o: Universal and dexterous human-
+to-humanoid whole-body teleoperation and learning.
+arXiv preprint arXiv:2406.08858, 2024.
+Tairan He, Zhengyi Luo, Wenli Xiao, Chong Zhang,
+Kris Kitani, Changliu Liu, and Guanya Shi.
+ing human-to-humanoid real-time whole-body teleop-
+eration. arXiv preprint arXiv:2403.04436, 2024.
+Tairan He, Wenli Xiao, Toru Lin, Zhengyi Luo, Zhenjia
+whole-body controller for humanoid robots.
+preprint arXiv:2410.21229, 2024.
+Eric Heiden, Christopher E Denniston, David Millard,
+Fabio Ramos, and Gaurav S Sukhatme. Probabilistic
+inference of simulation parameters via parallel differ-
+entiable simulation. In 2022 International Conference
+on Robotics and Automation (ICRA), pages 36383645.
+Kevin Huang, Rwik Rana, Alexander Spitzer, Guanya
+tory tracking for quadrotor control.
+arXiv preprint
+Jemin Hwangbo, Joonho Lee, Alexey Dosovitskiy,
+Dario Bellicoso, Vassilios Tsounis, Vladlen Koltun, and
+Marco Hutter. Learning agile and dynamic motor skills
+for legged robots. Science Robotics, 4(26):eaau5872,
+Alexandre Janot, Pierre-Olivier Vandanjon, and Maxime
+Gautier. A generic instrumental variable approach for
+industrial robot identification.
+IEEE Transactions on
+Control Systems Technology, 22(1):132145, 2013.
+Gwanghyeon Ji, Juhyeok Mun, Hyeongjun Kim, and
+Jemin Hwangbo. Concurrent training of a control policy
+and a state estimator for dynamic and robust legged
+locomotion. IEEE Robotics and Automation Letters, 7
+Mazeyu Ji, Xuanbin Peng, Fangchen Liu, Jialong Li,
+Ge Yang, Xuxin Cheng, and Xiaolong Wang. Exbody2:
+Advanced expressive humanoid whole-body control.
+arXiv preprint arXiv:2412.13196, 2024.
+Yunfan Jiang, Chen Wang, Ruohan Zhang, Jiajun Wu,
+and Li Fei-Fei.
+by learning from online correction.
+arXiv preprint
+Tobias Johannink, Shikhar Bahl, Ashvin Nair, Jianlan
+reinforcement learning for robot control.
+international conference on robotics and automation
+(ICRA), pages 60236029. IEEE, 2019.
+Haresh Karnan, Siddharth Desai, Josiah P Hanna, Gar-
+rett Warnell, and Peter Stone.
+Reinforced grounded
+action transformation for sim-to-real transfer.
+2020 IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 43974402. IEEE,
+Pradeep K Khosla and Takeo Kanade.
+Parameter
+identification of robot dynamics. In 1985 24th IEEE
+conference on decision and control, pages 17541760.
+Donghyun Kim, Steven Jens Jorgensen, Jaemin Lee,
+Junhyeok Ahn, Jianwen Luo, and Luis Sentis.
+namic locomotion for passive-ankle biped robots and
+humanoids using whole-body locomotion control. Int. J.
+8014. URL
+Alina Kloss, Stefan Schaal, and Jeannette Bohg. Com-
+bining learned and analytical models for predicting
+action effects from sensory data.
+The International
+Journal of Robotics Research, 41(8):778797, 2022.
+F Kozin and HG Natke.
+System identification tech-
+niques. Structural safety, 3(3-4):269316, 1986.
+Ashish Kumar, Zipeng Fu, Deepak Pathak, and Jitendra
+Malik. Rma: Rapid motor adaptation for legged robots.
+arXiv preprint arXiv:2107.04034, 2021.
+Ashish Kumar, Zhongyu Li, Jun Zeng, Deepak Pathak,
+Koushil Sreenath, and Jitendra Malik. Adapting rapid
+motor adaptation for bipedal robots. In 2022 IEEERSJ
+International Conference on Intelligent Robots and
+Systems (IROS), pages 11611168. IEEE, 2022.
+Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen,
+Learning
+quadrupedal
+locomotion
+challenging
+terrain.
+Science robotics, 5(47):eabc5986, 2020.
+Kuang-Huei Lee, Ofir Nachum, Tingnan Zhang, Sergio
+ating evolution-learned visual-locomotion with predic-
+tive information representations.
+In 2022 IEEERSJ
+International Conference on Intelligent Robots and
+Systems (IROS), pages 14471454. IEEE, 2022.
+Tianyu Li, Hartmut Geyer, Christopher G Atkeson, and
+Akshara Rai.
+Using deep reinforcement learning to
+learn high-level policies on the atrias biped. In 2019
+International Conference on Robotics and Automation
+(ICRA), pages 263269. IEEE, 2019.
+Zhongyu Li, Xuxin Cheng, Xue Bin Peng, Pieter
+Sreenath. Reinforcement learning for robust parameter-
+ized locomotion control of bipedal robots. In 2021 IEEE
+International Conference on Robotics and Automation
+(ICRA), pages 28112817. IEEE, 2021.
+Zhongyu Li, Xue Bin Peng, Pieter Abbeel, Sergey
+versatile bipedal jumping control through reinforcement
+learning. arXiv preprint arXiv:2302.09450, 2023.
+Zhongyu Li, Xue Bin Peng, Pieter Abbeel, Sergey
+forcement learning for versatile, dynamic, and robust
+bipedal locomotion control. The International Journal
+of Robotics Research, page 02783649241285161, 2024.
+Qiayuan Liao, Bike Zhang, Xuanyu Huang, Xiaoyu
+trol. arXiv preprint arXiv:2407.21781, 2024.
+Lennart Ljung. System identification. In Signal analysis
+and prediction, pages 163173. Springer.
+Junfeng Long, Junli Ren, Moji Shi, Zirui Wang, Tao
+Learning
+humanoid locomotion with perceptive internal model.
+arXiv preprint arXiv:2411.14386, 2024.
+Junfeng Long, Zirui Wang, Quanyi Li, Liu Cao, Jiawei
+Hybrid internal model:
+Learning agile legged locomotion with simulated robot
+response. In The Twelfth International Conference on
+Learning Representations, 2024.
+Matthew Loper, Naureen Mahmood, Javier Romero,
+Gerard Pons-Moll, and Michael J Black.
+skinned multi-person linear model. In Seminal Graphics
+Chenhao Lu, Xuxin Cheng, Jialong Li, Shiqi Yang,
+Mazeyu Ji, Chengjing Yuan, Ge Yang, Sha Yi, and
+Xiaolong Wang. Mobile-television: Predictive motion
+priors for humanoid whole-body control. arXiv preprint
+Shixin Luo, Songbo Li, Ruiqi Yu, Zhicheng Wang, Jun
+learning framework for legged robots. IEEE Robotics
+and Automation Letters, 2024.
+Zhengyi Luo, Jinkun Cao, Kris Kitani, Weipeng Xu,
+Perpetual humanoid control for real-time sim-
+ulated avatars.
+In Proceedings of the IEEECVF
+International Conference on Computer Vision, pages
+Zhengyi Luo, Jiashun Wang, Kangni Liu, Haotian
+environments
+physically
+simulated
+manoids. arXiv preprint arXiv:2407.00187, 2024.
+Shangke Lyu, Xin Lang, Han Zhao, Hongyin Zhang,
+Pengxiang Ding, and Donglin Wang. Rl2ac: Reinforce-
+ment learning-based rapid online adaptive control for
+legged robot robust locomotion. In Proceedings of the
+Viktor Makoviychuk, Lukasz Wawrzyniak, Yunrong
+et al. Isaac gym: High performance gpu based physics
+simulation for robot learning. In Thirty-fifth Conference
+on Neural Information Processing Systems Datasets and
+Benchmarks Track (Round 2), 2021.
+Gabriel B Margolis, Ge Yang, Kartik Paigwar, Tao
+forcement learning. arXiv preprint arXiv:2205.02824,
+Gabriel B Margolis, Xiang Fu, Yandong Ji, and
+Pulkit Agrawal.
+Learning to see physical properties
+with active sensing motor policies.
+arXiv preprint
+Gabriel B Margolis, Ge Yang, Kartik Paigwar, Tao
+Rapid locomotion via
+reinforcement learning.
+The International Journal of
+Robotics Research, 43(4):572587, 2024.
+Takahiro Miki, Joonho Lee, Jemin Hwangbo, Lorenz
+ing robust perceptive locomotion for quadrupedal robots
+in the wild. Science robotics, 7(62):eabk2822, 2022.
+Mayank Mittal, Calvin Yu, Qinxi Yu, Jingzhou Liu,
+Nikita Rudin, David Hoeller, Jia Lin Yuan, Ritvik
+and Animesh Garg.
+framework for interactive robot learning environments.
+IEEE Robotics and Automation Letters, 8(6):3740
+Fabio Muratore, Christian Eilers, Michael Gienger, and
+Jan Peters. Data-efficient domain randomization with
+bayesian optimization. IEEE Robotics and Automation
+I Made Aswin Nahrendra, Byeongho Yu, and Hyun
+Myung. Dreamwaq: Learning robust quadrupedal lo-
+comotion with implicit terrain imagination via deep
+reinforcement learning.
+In 2023 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Michael OConnell, Guanya Shi, Xichen Shi, Kamyar
+Soon-Jo Chung. Neural-fly enables rapid learning for
+agile flight in strong winds. Science Robotics, 7(66):
+Xue Bin Peng, Pieter Abbeel, Sergey Levine, and
+Michiel Van de Panne.
+deep reinforcement learning of physics-based character
+skills. ACM Transactions On Graphics (TOG), 37(4):
+Wojciech
+Sim-to-real transfer
+of robotic control with dynamics randomization.
+2018 IEEE international conference on robotics and
+automation (ICRA), pages 38033810. IEEE, 2018.
+Xue Bin Peng, Angjoo Kanazawa, Jitendra Malik, Pieter
+ing of physical skills from videos. ACM Transactions
+On Graphics (TOG), 37(6):114, 2018.
+Xue Bin Peng, Erwin Coumans, Tingnan Zhang, Tsang-
+Wei Lee, Jie Tan, and Sergey Levine. Learning agile
+robotic locomotion skills by imitating animals. arXiv
+preprint arXiv:2004.00784, 2020.
+Xue Bin Peng, Yunrong Guo, Lina Halper, Sergey
+adversarial skill embeddings for physically simulated
+characters. ACM Transactions On Graphics (TOG), 41
+Haozhi Qi, Ashish Kumar, Roberto Calandra, Yi Ma,
+and Jitendra Malik. In-hand object rotation via rapid
+motor adaptation. In Conference on Robot Learning,
+pages 17221732. PMLR, 2023.
+I Radosavovic, B Zhang, B Shi, J Rajasegaran, S Ka-
+locomotion as next token prediction. arxiv. 2024. arXiv
+preprint arXiv:2402.19469, 2024.
+Ilija Radosavovic, Tete Xiao, Bike Zhang, Trevor Dar-
+world humanoid locomotion with reinforcement learn-
+ing. Science Robotics, 9(89):eadi9579, 2024.
+Fabio Ramos, Rafael Carvalhaes Possas, and Dieter
+probabilistic inference for robotics simulators.
+preprint arXiv:1906.01728, 2019.
+Allen Z Ren, Hongkai Dai, Benjamin Burchfiel, and
+Anirudha Majumdar.
+tion adaptation for sim-to-real transfer. arXiv preprint
+Unitree Robotics. Unitree g1 humanoid agent ai avatar,
+2024. URL
+Unitree Robotics. Unitree h1 the worlds first full-size
+motor drive humanoid robot flips on ground, 2024. URL
+Nikita Rudin, David Hoeller, Philipp Reist, and Marco
+Hutter. Learning to walk in minutes using massively
+parallel deep reinforcement learning. In Conference on
+Robot Learning, pages 91100. PMLR, 2022.
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+tion algorithms. arXiv preprint arXiv:1707.06347, 2017.
+Guanya Shi, Xichen Shi, Michael OConnell, Rose
+Stable drone landing control using learned dynam-
+ics. In 2019 international conference on robotics and
+automation (icra), pages 97849790. IEEE, 2019.
+Guanya Shi, Wolfgang Honig, Xichen Shi, Yisong Yue,
+and Soon-Jo Chung. Neural-swarm2: Planning and con-
+trol of heterogeneous multirotor swarms using learned
+interactions.
+IEEE Transactions on Robotics, 38(2):
+Aditya Shirwatkar, Naman Saxena, Kishore Chandra,
+and Shishir Kolathaya.
+infinite horizon planning framework for quadrupedal
+robot locomotion.
+arXiv preprint arXiv:2409.09441,
+Tom Silver, Kelsey Allen, Josh Tenenbaum, and Leslie
+Kaelbling.
+Residual policy learning.
+arXiv preprint
+Jie Tan, Tingnan Zhang, Erwin Coumans, Atil Iscen,
+Yunfei Bai, Danijar Hafner, Steven Bohez, and Vincent
+Vanhoucke. Sim-to-real: Learning agile locomotion for
+quadruped robots.
+arXiv preprint arXiv:1804.10332,
+Chen Tessler, Yunrong Guo, Ofir Nabati, Gal Chechik,
+and Xue Bin Peng.
+based character control through masked motion inpaint-
+ing. ACM Transactions on Graphics (TOG), 43(6):121,
+Josh Tobin, Rachel Fong, Alex Ray, Jonas Schneider,
+Wojciech Zaremba, and Pieter Abbeel. Domain random-
+ization for transferring deep neural networks from simu-
+lation to the real world. In 2017 IEEERSJ international
+conference on intelligent robots and systems (IROS),
+pages 2330. IEEE, 2017.
+Emanuel Todorov, Tom Erez, and Yuval Tassa.
+2012 IEEERSJ International Conference on Intelligent
+Robots and Systems, pages 50265033. IEEE, 2012.
+Hongxi Wang, Haoxiang Luo, Wei Zhang, and Hua
+learning for legged locomotion.
+IEEE Robotics and
+Automation Letters, 2024.
+Jiashun Wang, Jessica Hodgins, and Jungdam Won.
+Strategy and skill learning for physics-based table tennis
+animation.
+In ACM SIGGRAPH 2024 Conference
+Yinhuai Wang, Jing Lin, Ailing Zeng, Zhengyi Luo,
+Jian Zhang, and Lei Zhang.
+imitation of dynamic human-object interaction. arXiv
+preprint arXiv:2312.04393, 2023.
+Yinhuai Wang, Qihan Zhao, Runyi Yu, Ailing Zeng,
+Jing Lin, Zhengyi Luo, Hok Wai Tsui, Jiwen Yu, Xiu
+basketball skills from demonstrations.
+arXiv preprint
+Yufu Wang, Ziyun Wang, Lingjie Liu, and Kostas Dani-
+ilidis. Tram: Global trajectory and motion of 3d humans
+from in-the-wild videos. In European Conference on
+Computer Vision, pages 467487. Springer, 2025.
+Zhicheng Wang, Wandi Wei, Ruiqi Yu, Jun Wu, and
+Qiuguo Zhu. Toward understanding key estimation in
+learning robust humanoid locomotion. arXiv preprint
+Lior Wolf.
+Ai for humanoid robotics - a lecture by
+mentee robotics ceo, prof. lior wolf. YouTube video,
+2025. URL
+4YwUtoo. Accessed: 2025-01-31.
+Peilin Wu, Weiji Xie, Jiahang Cao, Hang Lai, and
+Weinan Zhang. Loopsr: Looping sim-and-real for life-
+long policy adaptation of legged robots. arXiv preprint
+Wenli Xiao, Haoru Xue, Tony Tao, Dvij Kalaria, John M
+universal dynamics model for agile and adaptive mobil-
+ity. arXiv preprint arXiv:2409.15783, 2024.
+Zhaoming Xie, Patrick Clary, Jeremy Dao, Pedro
+locomotion skills for cassie: Iterative design and sim-to-
+real. In Conference on Robot Learning, pages 317329.
+Yuxiang Yang, Guanya Shi, Changyi Lin, Xiangyun
+continuous jumping in discontinuous terrains.
+preprint arXiv:2409.10923, 2024.
+Wenhao Yu, Jie Tan, C Karen Liu, and Greg Turk.
+Preparing for the unknown: Learning a universal pol-
+icy with online system identification.
+arXiv preprint
+Wenhao Yu, C Karen Liu, and Greg Turk.
+transfer with strategy optimization.
+arXiv preprint
+Wenhao Yu, Visak CV Kumar, Greg Turk, and C Karen
+Liu. Sim-to-real transfer for biped locomotion. In 2019
+ieeersj international conference on intelligent robots
+and systems (iros), pages 35033510. IEEE, 2019.
+Wenhao Yu, Jie Tan, Yunfei Bai, Erwin Coumans, and
+Sehoon Ha. Learning fast adaptation with meta strategy
+optimization. IEEE Robotics and Automation Letters,
+YE YUAN and Viktor Makoviychuk. Learning phys-
+ically simulated tennis skills from broadcast videos.
+Chong Zhang, Wenli Xiao, Tairan He, and Guanya Shi.
+sequential contacts. arXiv preprint arXiv:2406.06005,
+Qiang Zhang, Peter Cui, David Yan, Jingkai Sun, Yiqun
+locomotion with human reference. In 2024 IEEERSJ
+International Conference on Intelligent Robots and
+Systems (IROS), pages 1122511231. IEEE, 2024.
+Humanoid
+learning.
+preprint
+APPENDIX
+A. Domain Randomization in Pre-Training
+To improve the robustness and generalization of the pre-
+trained policy in Figure 2 (a), we utilized the domain random-
+ization technics listed in Table VI.
+TABLE VI
+DOMAIN RANDOMIZATIONS
+Dynamics Randomization
+Friction
+U(0.925, 1.05) default
+Control delay
+External Perturbation
+Push robot
+interval  10s, vxy  0.5 ms
+B. SysID Parameters
+We identify the following representative robot parameters in
+our simulated model that best align the ones in the real world:
+base center of mass (CoM) shift (cx, cy, cz), base link mass
+offset ratio km and low-level PD gain ratios (ki
+d) where
+i  1, 2, ..., 23, as shown in Table VII. .
+TABLE VII
+SYSID PARAMETERS
+Parameter
+Parameter
+C. Implementation of Delta Dynamics Learning
+Using the collected real-world trajectory, we replay the
+action sequence {areal
+T } in simulation and record
+the resulting trajectory {ssim
+T }. The neural dynamics
+is trained to predict the difference:
+In practice, we compute the mean squared error (MSE) loss
+in an autoregressive setting, where the model predicts forward
+for K steps and uses gradient descent to minimize the loss.
+To balance learning efficiency and stability over long horizons,
+we implement a schedule that gradually increases K during
+training. Formally, the optimization objective is:
+tK f sim. . . f sim
+(st, at)  f
+(st, at), . . . , atK
+After training, we freeze the residual dynamics model f
+and integrate it into the simulator. During each simulation step,
+the robots state is updated by incorporating the delta predicted
+by the dynamics model. In this augmented simulation envi-
+to the corrected dynamics, ensuring improved alignment with
+real-world behavior.
+D. Derivation of Training-free Methods of Using Delta Action
+To formalize the problem, we start by assuming one-step
+consistency between real and simulated dynamics:
+f real(s, (s))  f sim(s, (s)  (s, (s))).
+Under this assumption, one-step matching leads to the condi-
+To solve Equation (2), we consider:
+1) Fixed-Point Iteration: We initialize y0  (s) and
+iteratively update:
+yk1  (s) (s, yk),
+where yk converges to a solution after K iterations.
+2) Gradient-Based Optimization: Define the loss func-
+A gradient descent method minimizes this loss to solve
+These methods approximate (s), but suffer from OOD
+issues when trained on limited trajectories. RL fine-tuning, in
+resulting in superior performance.
+Problem of One-Step Matching. Note that Equation (2) is
+derived from the one-step matching assumption (i.e., (s)
+(s, (s))  (s)). For multi-step matching, one has to
+differentiate through f sim, which is, in general, intractable.
+timization assume one-step matching. This also explains the
+advantages of RL-based fine-tuning: it effectively performs a
+gradient-free multi-step matching procedure.

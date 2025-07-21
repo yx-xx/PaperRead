@@ -1,0 +1,1106 @@
+=== PDF文件: A Biconvex Method for Minimum-Time Motion Planning Through Sequences of Convex Sets.pdf ===
+=== 时间: 2025-07-21 14:23:01.913728 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：A Biconvex Method for Minimum-Time Motion
+Planning Through Sequences of Convex Sets
+Tobia Marcucci, Mathew Halm, William Yang, Dongchan Lee, and Andrew D. Marchese
+Amazon Robotics
+{tobmar,mshalm,yangwilm,ldc,andymar}amazon.com
+AbstractWe consider the problem of designing a smooth
+trajectory that traverses a sequence of convex sets in minimum
+This problem is naturally formulated as a nonconvex program.
+To solve it, we propose a biconvex method that quickly produces
+an initial trajectory and iteratively renes it by solving two
+convex subproblems in alternation. This method is guaranteed to
+does not require the selection of any line-search or trust-region
+parameter. Exhaustive experiments show that our method nds
+high-quality trajectories in a fraction of the time of state-of-the-
+art solvers for nonconvex optimization. In addition, it achieves
+runtimes comparable to industry-standard waypoint-based mo-
+tion planners, while consistently designing lower-duration trajec-
+tories than existing optimization-based planners.
+I. INTRODUCTION
+Selecting the most effective motion-planning algorithm for
+a robotic system often requires balancing three competing
+quality. Consider Sparrow, the robot arm in Fig. 1 that sorts
+individual products into bins before they get packaged in
+the Amazon warehouses. The algorithms that move Sparrow
+must be extremely reliable, as these robots handle millions of
+diverse products every day, and each failure requires expensive
+interventions. They must be efcient, since every millisecond
+spent planning is taken away from other crucial computations,
+and limits the robot reactivity to sensor observations. Finally,
+they should generate trajectories that push the robot to its
+physical limits, so that the work-cell throughput is maximized
+and the hardware is fully utilized. Unfortunately, general-
+purpose methods for motion planning do not excel in all of
+these areas at once.
+Sampling-based methods like PRM , RRT , and
+their asymptotically optimal versions  can be fast enough
+for real-time applications. They are highly parallelizable
+and can run on a GPU [2, 31]. They are also reliable in low-
+dimensional spaces, where dense sampling is computationally
+feasible. However, they become signicantly less effective as
+the space dimension grows. Additionally, although their kino-
+dynamic variants support differential constraints [20, 16, 22],
+sampling-based methods remain considerably less practical
+for designing smooth continuous trajectories than producing
+polygonal paths.
+Trajectory-optimization methods based on nonconvex pro-
+gramming [1, 33] scale well to high-dimensional spaces
+and explicitly factor in the robot kinematics and dynamics.
+Sparrow robot sorting products into bins in the Amazon warehouses.
+Over the years, these techniques have become signicantly
+faster [39, 13] and, with the advent of specialized GPU
+motion planning. Despite these advances, the main limitation
+of trajectory optimization remains its reliance on local solvers,
+which require extensive parameter tuning, handcrafted warm
+to nd a solution. While various strategies have been proposed
+to address these issues [37, 15, 49, 14], trajectory optimization
+remains often too brittle for industrial deployment.
+bine sampling-based and trajectory-optimization methods has
+stemmed from . First, the collision-free space is decom-
+posed into safe convex sets. This decomposition can be com-
+puted using region-ination algorithms [7, 6, 45, 42, 47, 46]
+and tailored sampling strategies . For UAVs, also safe
+ight corridors are widely used [4, 24, 47]. Then, the contin-
+uous trajectory is optimized in conjunction with the discrete
+sequence of sets to be traversed. The work in  has shown
+continuous problem is solvable through a single convex pro-
+(GCS) [29, 26]. The extensions of GCS in [30, 5] have enabled
+the solution of larger problems in a fraction of the time. The
+motion planner in  tackles a similar problem, but rst
+selects a discrete sequence of safe sets using a heuristic, and
+later optimizes a continuous trajectory within these xed sets.
+This split sacrices optimality but preserves completeness, and
+enables support for a broader range of costs and constraints.
+This paper focuses on a problem similar to the one in
+the second phase of : we seek a trajectory that traverses
+a sequence of convex sets in minimum time, and satises
+convex velocity and acceleration constraints. This is a purely
+continuous problem, but is nonconvex due to the joint opti-
+mization of the trajectory shape and timing. Our contribution
+is a biconvex method, which we call Sequence of Convex
+Sets (SCS), that solves this problem effectively. SCS starts
+by quickly producing a feasible trajectory. Then, it alternates
+between two convex subproblems. The rst is obtained from
+the original nonconvex problem by xing the points where the
+trajectory transitions from one safe set to the next. The second
+is derived similarly, by xing the transition velocities.
+As most multi-convex methods , SCS is heuristic: it
+typically nds high-quality trajectories quickly, but might not
+converge to the problem optimum, or within a given distance
+of it. On the other hand, SCS is complete (i.e., guaranteed to
+nd a feasible solution). Its main algorithmic advantage is that
+the two convex subproblems are conservative approximations
+of the original nonconvex problem. This allows us to take
+whole steps in the direction their optima without using a line
+search or a trust region, as done in  and other trajectory-
+optimization methods [33, 14]. This makes the convergence of
+SCS fast and monotone, and eliminates any parameter tuning.
+feasible trajectory even if stopped early).
+We show that SCS consistently nds high-quality trajec-
+tories in a fraction of the time of the state-of-the-art solvers
+SNOPT  and IPOPT . We also demonstrate SCS on the
+task of transferring packages between bins using two Sparrow
+robots. In this task, SCS designs lower-cost trajectories than
+the trust-region method from , and achieves runtimes
+comparable to waypoint-based methods that are commonly
+used in industry.
+A. Outline
+This paper is organized as follows. In II, we state our
+motion-planning problem and, in III, we give a high-level
+overview of SCS. The details on the two convex subproblems
+and the initialization step are illustrated in IV, V, and VI.
+Up to this point, we work only with innite-dimensional
+trajectories. In VII, we show how our method can be ef-
+ciently implemented on a computer by using piecewise Bezier
+curves as a nite-dimensional trajectory parameterization. The
+strengths and limitations of SCS are discussed in VIII and
+IX. In X, we demonstrate the effectiveness of SCS through
+a variety of numerical experiments.
+B. Notation and convexity background
+In this paper, the variable i is always understood to be a
+positive integer. Thus, when saying for all i I we mean
+for all i {1, . . . , I}. Conversely, the variable k is always
+We use calligraphic letters to represent sets, and bold letters
+for vectors, vector-valued functions, and matrices. We use the
+Example of the motion-planning problem. The safe convex sets to be
+traversed are Q1, . . . , Q4. The trajectory q : [0, T] R2 is shown in blue.
+The initial and terminal points are qinit and qterm. The times t0, . . . , t4
+determine the trajectory piece assigned to each safe set.
+notation S  {x : x S} to denote the product of a
+scalar  R and a set S Rn. We will use multiple times
+the fact that if a set S is convex then also the set {(x, ) :
+0 x S} is convex [3, 2.3.3]. The latter set is easily
+computed in practice: for instance, if S is a polytope of the
+form {x : Ax b}, then the condition x S is equivalent
+to Ax b. A similar formula can be used for any set S
+described in standard conic form [29, Ex. 4.3].
+II. PROBLEM STATEMENT
+We seek a trajectory that traverses a sequence of convex sets
+in minimum time, subject to boundary conditions and convex
+velocity and acceleration constraints. Fig. 2 shows a simple
+instance of this problem, and illustrates our notation.
+The sequence of safe convex sets is denoted as
+where I is the number of sets and n is the space dimension.
+Each set is assumed to be closed and intersect with the next:
+Qi Qi1  ,
+The trajectory is represented by the function q : [0, T] Rn,
+with time duration T > 0. The initial q(0) and terminal point
+q(T) are xed to qinit Q1 and qterm QI, respectively.
+The safe sets must be traversed in the given order, and no set
+can be skipped. We denote with t1 . . . tI1 the transition
+times at which the trajectory moves from one set to the next.
+For simplicity of notation, we also let t0  0 and tI  T. We
+then require that the trajectory q(t) lie in the set Qi for all
+t [ti1, ti] and i I.
+The trajectory velocity and the acceleration are denoted
+as q(t) and q(t), respectively. The rst is assumed to be
+(i.e., q is continuously differentiable). The initial q(0) and
+terminal
+q(T) velocities are xed to zero. The trajectory
+derivatives must satisfy the constraints
+at all times t [0, T]. The sets V and A are closed and convex,
+and contain the origin in their interior:
+0 int(V),
+0 int(A).
+Among the trajectories that verify the constraints above, we
+seek one of minimum time duration T. This leads us to the
+following optimization problem:
+minimize
+subject to
+q(0)  qinit,
+q(T)  qterm,
+q(t) Qi,
+t [ti1, ti], i I,
+t0  0, tI  T.
+The variables are the trajectory q, the duration T, and the times
+The problem data are the endpoints qinit and qterm, the
+safe sets Q1, . . . , QI, and the constraint sets V and A. The
+differentiability constraint on the function q is implicit here.
+A. Feasibility
+With the next proposition, we establish the feasibility of
+problem (1). As in [28, II-C], we do so by constructing a
+polygonal (i.e., piecewise linear) trajectory that satises all
+the problem constraints. A similar construction will be used
+to initialize our method.
+Proposition 1. If the problem data satisfy the assumptions
+listed above, then problem (1) is feasible.
+transition points q(ti) QiQi1 for i I1. For i I, the
+trajectory piece within the set Qi connects q(ti1) and q(ti)
+through a straight line. Thus, the overall trajectory stays within
+the union of the safe sets and traverses them in the desired
+order. We let the times t0, . . . , tI be well spaced, so that the
+velocity q and the acceleration q can be small enough to lie in
+the constraint sets V and A at all times (recall that these sets
+contain the origin in their interior). Finally, we require that
+the velocity be zero at each time t0, . . . , tI. This makes the
+velocity continuous, even though the trajectory is polygonal.
+The resulting trajectory is feasible for problem (1).
+B. Positive traversal times
+According to constraint (1h), the traversal time Ti  ti
+ti1 of a safe set Qi can be zero. This can be optimal if, e.g.,
+a safe set is lower dimensional or our trajectory touches it
+only at an extreme point. However, our biconvex method will
+assume that the traversal times Ti are strictly positive, for all
+i I. The following is a simple sufcient condition on the
+problem data that ensures this. It forces our trajectory to cover
+a nonzero distance within each safe set.
+Assumption 1. The boundary points and the safe sets are such
+that qinit Q2, qterm QI1, and
+Qi Qi1 Qi2  ,
+We will let this assumption hold throughout the paper,
+so that zero traversal times will always be infeasible in our
+optimization problems. Alternatively, our algorithm can be
+easily modied to incorporate a small lower bound on the
+traversal times. For most practical problems, this modication
+has a negligible effect on the optimal trajectories.
+III. BICONVEX METHOD
+We give a high-level overview of our biconvex method here,
+deferring the details to later sections.
+The observation at the core of SCS is that problem (1)
+reduces to a convex program if we x either the transition
+points or the transition velocities:
+(More precisely, this is true modulo a small conservative ap-
+proximation of the acceleration constraint (1g), which relies on
+an estimate of the traversal times.) In these convex programs,
+the transition points or velocities are xed, but the rest of the
+trajectory is optimized.
+This observation motivates the method illustrated in Fig. 3
+for solving problem (1):
+Initialization (1st panel). We compute a polygonal tra-
+jectory that connects the initial qinit and terminal point
+through a small number of convex programs.
+Fixed transition points (2nd panel). We x the transition
+points q(t1), . . . , q(tI1) of the polygonal trajectory, and
+use its traversal times T1, . . . , TI to approximate the ac-
+celeration constraints. This leads to a convex subproblem
+that improves the polygonal trajectory.
+Fixed transition velocities (3rd panel). We x the transi-
+tion velocities q(t1), . . . , q(tI1) of the improved trajec-
+the acceleration constraints. This leads to another convex
+subproblem that further improves our solution.
+Iterations (4th panel). We keep rening our trajectory by
+solving the two convex subproblems in alternation.
+Termination (5th panel). We terminate when the relative
+objective decrease of an iteration is smaller than a xed
+tolerance  (0, 1]. The objective decrease is measured
+between any two consecutive subproblems of the same
+kind (xed transition points or velocities).
+The following sections detail our algorithm. We rst illus-
+trate the subproblem with xed transition velocities, then the
+one with xed transition points, and lastly the initialization
+step. This order simplies the exposition, although it is the
+opposite order of how these steps appear in our algorithm.
+IV. SUBPROBLEM WITH FIXED TRANSITION VELOCITIES
+This section illustrates the convex subproblem with xed
+transition velocities q(t1), . . . , q(tI1). First, we formulate
+problem (1) as a more tractable nonconvex program. Then,
+we convexify this program by xing the transition velocities
+and approximating the acceleration constraint (1g).
+Initialization
+Fixed transition points
+Fixed transition velocities
+Fixed transition points
+Termination
+Steps of SCS during the solution of the problem in Fig. 2. In the
+initialization (1st panel), we quickly compute a feasible polygonal trajectory.
+and one with xed transition velocities (2nd to 4th panels). We terminate when
+the cost decrease of an iteration is small enough (5th panel). The trajectory
+computed at each iteration (solid blue) is overlaid on the trajectory from the
+previous iteration (dashed red).
+A. Change of variables
+We parameterize the trajectory within each safe set Qi using
+a function qi : [0, 1] Rn and a scalar Ti > 0. These decide
+the trajectory shape and traversal time, respectively. We also
+dene the function hi(t)  (tti1)Ti that maps the interval
+of time [ti1, ti] assigned to the set Qi to the unit interval
+[0, 1]. This allows us to reconstruct our trajectory as
+q(t)  qi(hi(t)),
+for all t [ti1, ti] and i I. By differentiating the last
+velocity and acceleration:
+q(t)  qi(hi(t))
+q(t)  qi(hi(t))
+which hold for all t [ti1, ti] and i I.
+B. Nonconvex formulation
+We express problem (1) in terms of the new variables. The
+objective function (1a) simply becomes
+The boundary conditions in (1b) to (1d) become
+q1(0)  qinit,
+qI(1)  qterm,
+where in the last constraint we canceled the traversal times T1
+and TI since the right-hand side is zero. The next conditions
+ensure that the trajectory and its derivative are continuous:
+The constraints in (1e), (1f), and (1g) become
+qi(s) Qi,
+qi(s) TiV,
+qi(s) T 2
+where we multiplied both sides of the velocity and the
+acceleration constraints by Ti and T 2
+constraint (1h) results in
+where zero traversal times are excluded because of Assump-
+minimize
+subject to
+with variables qi and Ti for i I. The objective and most
+of the constraints of this problem are linear. The position
+constraint (5a) is convex. As mentioned in I-B, also the
+velocity constraint (5b) is convex. On the other hand, the
+velocity continuity (4b) and the acceleration constraint (5c)
+are nonconvex. Therefore, the overall problem is nonconvex.
+C. Convex restriction
+The next step is to construct a convex restriction (informally,
+a convex inner approximation [9, 2.1]) of the nonconvex
+constraints of problem (7). To do so, we assume that the
+transition velocities have xed value,
+q(ti)  vi,
+and that we are given nominal values Ti > 0 for the traversal
+times Ti, for all i I.
+With the transition velocities xed, the velocity-continuity
+constraints (4b) become linear:
+qi(1)  viTi, qi1(0)  viTi1,
+To approximate the acceleration constraint (5c), we underesti-
+mate the convex function T 2
+i with its linearization around the
+nominal value Ti:
+i Ti(2Ti Ti).
+We then replace (5c) with
+qi(s) Ti(2Ti Ti)A,
+These constraints are convex (see again the discussion in I-B).
+the assumption that the constraint set A contains the origin.
+Collecting all the pieces, we have the following convex
+restriction of problem (7):
+minimize
+subject to
+(3) to (5) except (4b) and (5c),
+Constraint (6) is omitted here since it is implied by (10b).
+feasible
+trajectory
+transition
+velocities
+yields another feasible trajectory with lower or equal cost.
+V. SUBPROBLEM WITH FIXED TRANSITION POINTS
+We now illustrate the convex subproblem with xed tran-
+sition points q(t1), . . . , q(tI1). In the previous section, we
+parameterized the trajectory at the position level using the
+functions qi for i I. The velocity and acceleration were
+qiTi and qiT 2
+tion constraints convex, and gave us some nonconvex velocity
+and acceleration constraints. Here, we parameterize the trajec-
+tory at the velocity level using the functions ri  qiTi.
+We recover the position as Tiri and the acceleration as riTi.
+traversal times. This yields a problem equivalent to (7) where
+all the velocity constraints are convex, and the nonconvexities
+are only at the position and acceleration levels:
+minimize
+subject to
+r1(0)  S1qinit,
+rI(1)  SIqterm,
+ri(s) SiQi,
+ri(s) V,
+ri(s) (1Si)A,
+Observe that the objective of this problem is still convex, even
+though we work with the traversal-time reciprocals. The only
+nonconvex constraints are the position continuity (12e) and the
+acceleration constraint (12i), which have the same structure as
+the constraints (4b) and (5c), respectively.
+We proceed as in the previous section to construct a convex
+restriction of problem (12). This time we assume that the
+transition points are xed:
+q(ti)  pi,
+This makes the position continuity (12e) linear:
+ri(1)  piSi, ri1(0)  piSi1,
+To approximate the acceleration constraint (12i), we assume
+again that we are given nominal values Ti > 0 of the traversal
+times. We underestimate the convex function 1Si with its
+linearization around the nominal point:
+Ti(2 TiSi).
+This gives us the following convex restriction of the acceler-
+ation constraint:
+ri(s) Ti(2 TiSi)A,
+minimize
+subject to
+(12b) to (12j) except (12e) and (12i),
+This convex subproblem allows us to improve a given feasible
+trajectory with transition points p1, . . . , pI1 and traversal
+times T1, . . . , TI.
+VI. INITIALIZATION WITH POLYGONAL TRAJECTORY
+In the initialization of SCS we quickly identify a low-
+cost feasible trajectory for problem (1). As in the proof of
+Proposition 1, a natural candidate for this role is a polygonal
+trajectory that comes to a full stop at each kink.
+The shape of our polygonal trajectory is computed through
+the following convex program:
+minimize
+subject to
+p0  qinit,
+pI  qterm,
+pi Qi Qi1,
+Here the decision variables are the points p0, . . . , pI that the
+trajectory interpolates through straight lines (black dots in
+the rst panel of Fig. 3). The objective minimizes the total
+Euclidean length of the trajectory.
+the points pi that do not lie on the line connecting pi1 to
+pi1. (This condition can be efciently checked using the
+triangle inequality.) For ease of notation, we also include p0
+and pI in the list of vertices. As an example, in the top panel
+of Fig. 3, the only point that is not a vertex is p1 (the second).
+The initialization is completed by connecting each pair
+of consecutive vertices through a minimum-time trajectory
+vertex-to-vertex problems could be solved in closed form when
+working with innite-dimensional trajectories, in practice, we
+use a nite-dimensional trajectory parameterization, and it is
+convenient to formulate them as convex programs. To this
+are consecutive points pi1 and pi. (If not, we can proceed
+as follows and, afterwards, split the designed trajectory into
+pieces.) The vertex-to-vertex problem can be formulated as a
+convex program similar to the nonconvex problem (12):
+minimize
+subject to
+ri(0)  Sipi1,
+ri(1)  Sipi,
+ri(s) V,
+ri(s) TiA,
+Ti 1Si, Si > 0.
+The variables are the traversal time Ti, its reciprocal Si, and
+the function ri : [0, 1] Rn (which represents qiTi). The
+last constraint relaxes the nonconvex equality Ti  1Si to a
+convex inequality. However, this relaxation is lossless: in fact,
+given any feasible solution Ti, Si, and ri, the solution Ti  Ti,
+Si  1 Ti, and ri  ri( Ti Si) is also feasible, has equal cost,
+and satises Ti  1Si. In practice, we solve problem (17) as a
+one-dimensional problem, leveraging the fact that its optimal
+trajectories are straight lines. This accelerates our algorithm
+when working in high-dimensional spaces.
+A two-dimensional Bezier curve with control points 0, . . . , 4. The
+area shaded in yellow is the convex hull of the control points.
+VII. NUMERICAL IMPLEMENTATION
+The numerical implementation of our method requires a
+nite-dimensional trajectory parameterization. In some special
+the innite-dimensional optimum of problem (1). However, in
+approximation error is unavoidable.
+Bezier curves have been widely used in motion planning,
+and enjoy several properties that make them particularly well
+suited for our problems. In this section, we rst collect some
+basic denitions and properties of Bezier curves, follow-
+ing [28, V-A]. Then we show how the innite-dimensional
+problems in the previous sections can be translated into
+efcient nite-dimensional programs.
+A. Bezier curves
+Bezier curves are constructed using Bernstein polynomials.
+The Bernstein polynomials of degree K are dened over the
+interval [0, 1] R as follows:
+sk(1 s)Kk,
+(Recall that in this paper k is nonnegative and k K is
+shorthand for k {0, . . . , K}.) The Bernstein polynomials
+are nonnegative and, by the binomial theorem, sum up to
+one. Therefore, the scalars 0(s), . . . , K(s) represent the
+coefcients of a convex combination for all s [0, 1]. We
+use these coefcients to combine a given set of control points
+The function  : [0, 1] Rn is a (vector-valued) polynomial
+of degree K. Fig. 4 shows a Bezier curve of degree K  4
+in n  2 dimensions.
+The following are a few selected properties of Bezier curves.
+We refer to  for a more comprehensive list.
+Property 1 (Derivative). The derivative  of the Bezier curve
+is a Bezier curve of degree K 1. Its control points are
+computed via the linear difference equation
+k  K(k1 k),
+Property 2 (Endpoint). The Bezier curve  starts at its rst
+control point and ends at its last control point:
+Property 3 (Convex hull). The Bezier curve  is contained
+in the convex hull of its control points at all times:
+This convex hull is shaded in yellow in Fig. 4.
+B. Finite-dimensional trajectory parameterization
+When solving the programs (11), (15) and (17) numerically,
+we restrict our trajectory segments (qi or ri) to Bezier
+curves of degree K, and enforce all the necessary constraints
+leveraging the properties above. Property 1 tells us that the
+trajectory velocity and acceleration are also piecewise Bezier
+erty 2, we can then easily enforce any boundary or continuity
+condition by constraining the rst and last control points of our
+Bezier curves. The containment of a trajectory segment (or its
+derivatives) in a convex set can be enforced using Property 3:
+if all the control points of a Bezier curve lie in a convex
+we might also have to split a trajectory segment, obtained by
+solving problem (17), into multiple pieces. This is easily done
+by using De Casteljaus algorithm [10, 2.4].
+For completeness, in A, we report the nite-dimensional
+versions of the convex programs (11), (15), and (17). We
+also report the nite-dimensional version of the nonconvex
+program (7), which will serve as a baseline in the experiments
+VIII. STRENGTHS
+This section illustrates the main strengths of SCS.
+A. Convergence and completeness
+Under our assumptions on the problem data, SCS is guaran-
+teed to converge monotonically. In fact, the initialization step
+must succeed, since problems (16) and (17) are feasible and
+admit an optimal solution. Then, the convex subproblems (11)
+and (15) are guaranteed to produce trajectories that are not
+worse than the ones they are initialized with. This makes our
+algorithm complete (guaranteed to nd a solution) and anytime
+(returns a feasible solution even if stopped early).
+These results extend to the nite-dimensional implemen-
+tation of SCS from VII, provided that our Bezier curves
+have degree K 3. This minimum degree is sufcient for
+our trajectory segments to represent straight lines with zero
+endpoint velocity, and ensures the success of the initialization
+step. After that, the biconvex alternation can only improve our
+nite-dimensional trajectory. Notably, our piecewise Bezier
+trajectories satisfy the constraints of problem (1) at all contin-
+uous times, rather than at a nite set of times, as is common
+for sampling-based and trajectory-optimization methods.
+B. Optimality
+SCS is heuristic: it is not guaranteed to nd an optimal
+solution (global or local), or to converge within a xed distance
+from one. However, it typically nds high-quality trajectories
+in a fraction of the time of state-of-the-art solvers (see the
+experiments in X-B). The trajectory parameterization using
+Bezier curves can also affect the optimality of our trajectories.
+In this direction, we remark that a Bezier curve is as expres-
+sive as any polynomial of equal degree [10, 1.3]. Another
+source of suboptimality are the conservative convex constraints
+obtained using Property 3. However, these constraints get
+arbitrarily accurate as the degree K increases. Potentially,
+we could also use exact containment conditions like sums of
+squares [32, 8], but this would make our programs much more
+expensive to solve.
+C. Computational efciency
+The runtime of an iteration of SCS is polynomial in all
+the relevant problem data, and linear in the number I of
+safe sets and the degree K of the Bezier curves. In fact,
+the subproblems (11) and (15) have banded structure, and are
+solvable in a time that is linear in I and K (see, e.g., ).
+Problems (16) and (17) are also banded, and solvable in a time
+that is linear in I and K, respectively. In addition, the latter
+problem is solved at most I times.
+The overall time complexity of SCS is harder to quantify.
+necessary for convergence is often insensitive to I and K (see
+the experiments in X-B). This leads to overall runtimes that
+are often linear in I and K.
+D. Limited parameter tuning
+SCS does not require the tuning of any step-size or trust-
+region parameter. The only numerical values set by the user
+are the degree K of the Bezier curves and the convergence
+tolerance . The rst should be at least three to ensure
+quality. For the second, we have found that   0.01 is
+sufciently small for most problems.
+E. Advantages over existing methods
+As discussed in I, SCS addresses a problem similar to the
+one in [28, V]. Compared to that approach, SCS applies to
+a narrower set of motion-planning problems, but converges
+much faster (see experiments in X-C). This is because its
+subproblems are convex restrictions of the original nonconvex
+their optima.
+The GCS motion planner from  requires a convex
+trajectory parameterization within each safe set. However, as
+also seen in this paper, this is very challenging when we
+optimize both the trajectory shape and timing, and imposes
+strict limitations on the types of costs and constraints that GCS
+can handle. For instance, the method in  can only enforce
+coarse approximations of the acceleration constraints (1g).
+The recent work  proposes a semidenite relaxation for
+these time-scaling problems, broadening the list of costs and
+constraints that GCS can accommodate but sacricing the
+algorithm completeness. Overall, GCS and SCS can be viewed
+as complementary methods, and can be combined in hybrid
+approaches where GCS provides an approximate solution to
+the high-level discrete-continuous problem and SCS renes
+the trajectory within a xed sequence of safe sets.
+Optimization problems similar to the one considered in this
+paper are also faced by UAV motion planners based on safe
+ight corridors [4, 24, 47]. However, these planners typically
+bypass the problem nonconvexity by xing the corridor traver-
+sal times using heuristics, while here we optimize these times
+explicitly.
+The main advantage of SCS over general-purpose methods
+for trajectory optimization is its reliability and completeness.
+complex planning problems within a few milliseconds (see
+X-C). In contrast, trajectory-optimization methods require
+a GPU to achieve comparable runtimes . Finally, most
+common trajectory-optimization methods do not take full
+advantage of the structure of minimum-time problems.
+The minimum-distance problem (16), solved to initial-
+ize SCS, is similar to the problem addressed by common
+sampling-based methods. This step is straightforward for us
+since we assume that the free space is represented as a
+sequence of convex sets. Contrarily, sampling-based methods
+rely solely on a collision checker, which makes nding a
+minimum-distance curve signicantly more challenging. The
+work  explores a combined approach, where a sampling-
+based method is used to nd a polygonal curve that is later
+inated into a sequence of safe sets for SCS to plan through.
+time-optimal control and trajectory-tracking problems have
+been proposed over the years (see, e.g., [40, 23, 21, 25]). How-
+designing trajectories through sequences of convex sets.
+IX. LIMITATIONS
+Our method has a few worth-noting limitations. First of
+similar approach can be applied to problems with xed nal
+time and cost function that penalizes the magnitude of the
+trajectory velocity and acceleration.
+SCS requires that the robot free space is described as a
+sequence of convex sets. This description can be challeng-
+ing to compute for high-dimensional problems and cluttered
+environments. However, as mentioned in I, many practical
+methods for decomposing complex spaces into convex sets
+are now available, and also GPU-based algorithms have been
+recently developed .
+The trajectories generated by SCS may have acceleration
+ware. A simple workaround is to add a smoothing step.
+well as any higher-order derivative) is continuous by setting
+it to zero at the transition times. This is easily seen to be
+a linear constraint. A similar limitation is that SCS can only
+handle constraints on the velocity and acceleration but not, for
+We have seen that SCS cannot handle problems where an
+optimal traversal time Ti is zero (in which case the corre-
+sponding variable Si in the subproblem with xed transition
+points (15) is innity). Although Assumption 1 is sufcient to
+rule out this scenario, some practically relevant problems do
+not meet this assumption. In these cases, we can enforce an
+articial lower bound on the time spent in each safe set.
+X. NUMERICAL EXPERIMENTS
+We demonstrate SCS on three numerical experiments. First,
+we conclude the simple running example in Fig. 2 and 3
+by reporting its solution statistics. Second, we analyze the
+performance of SCS as a function of multiple problem data,
+and we compare it with state-of-the-art solvers for nonconvex
+optimization. Finally, we demonstrate SCS on a minimum-
+time package-transfer problem with two Sparrow robots, and
+we benchmark it against other motion-planning methods.
+The Python implementation of SCS used in the experiments
+below is available at
+github.comTobiaMarcucciscsplanning.
+It is based on Drake , and uses the open-source solver
+Clarabel  for the convex programs. All the experiments
+are run on a laptop with Apple M2 Pro processor and 16 GB of
+RAM. The solvers SNOPT  and IPOPT  are also called
+through Drakes Python interface (and are warm started with
+the same polygonal trajectory as SCS).
+A. Running example
+We provide here the details of the running example illus-
+trated in Fig. 2. The initial and terminal points are qinit
+(0, 0) and qterm  (10, 1.5), respectively. The geometry of
+the safe sets can be deduced from the gure. The constraint
+sets V and A are circles centered at the origin of radius 10
+and 1, respectively. The trajectory in Fig. 2 has time duration
+T  7.45, and is designed by SCS with degree K  5 and
+termination tolerance   0.01.
+The curves in Fig. 3 represent the actual iterations of SCS.
+The initial polygonal trajectory has time duration T  12.49
+(1st panel). This value decreases to 8.82 in the rst subproblem
+with xed transition points (2nd panel), then to 8.06 and 7.51
+in the subsequent subproblems (3rd and 4th panels). SCS
+converges after solving only ve subproblems.
+As a baseline for SCS, we solve the nite-dimensional
+version of the nonconvex program (7) with SNOPT and
+IPOPT. This problem is stated in A, see (20), and uses the
+same trajectory parameterization as SCS. Both solvers yield
+the trajectory duration T  7.40, which is only 0.7 shorter
+than ours. Our simple Python implementation of SCS takes
+10 ms to converge, while SNOPT takes 21 ms and IPOPT
+needs 261 ms. Note, however, that these solvers use smaller
+termination tolerances than SCS. Increasing the optimality
+tolerances of the nonconvex solvers does not reduce their
+Benchmark problem with I  5 safe sets in n  2 dimensions, with
+m  4 facets each. The optimal trajectory is shown in blue.
+runtimes signicantly. Conversely, if we decrease the SCS
+tolerance to, e.g.,   104, the objective gap between SCS
+and the nonconvex solvers decreases to 0.1, but the runtime
+of SCS increases to 50 ms. This is typical for multi-convex
+slow if we seek very accurate solutions .
+B. Runtime analysis and comparison with nonconvex solvers
+We analyze the runtimes of SCS, SNOPT, and IPOPT as
+functions of several problem parameters: the number I of
+safe sets, the number m of facets of each safe set, the space
+dimension n, and the trajectory degree K. We show that,
+across a wide range of problem instances, SCS nds low-cost
+trajectories more quickly and reliably than the two state-of-
+the-art solvers.
+We construct an instance of problem (1) where each safe set
+Qi represents one link of an n-dimensional staircase. The safe
+sets are polytopes that approximate ellipsoids with increasing
+accuracy as their number m of facets grows. Fig. 5 shows
+an instance of this problem with the corresponding optimal
+trajectory. In this instance, we have I  5 safe sets in n  2
+sets). More details on the construction of these problems are
+reported in B.
+We consider a rst batch of instances where we let the
+number I of safe sets grow from 3 to 3000, while we x the
+space dimension to n  3, the number of facets to m  6, and
+the trajectory degree to K  3. The top panel of Fig. 6 shows
+the runtimes of SCS, SNOPT, and IPOPT. The two nonconvex
+solvers return trajectories with equal cost, when SNOPT does
+not fail or reach our time limit of 1 h (missing markers in the
+gure). SCS designs trajectories that have slightly higher cost
+(1.2 in the worst case). SCS is faster in almost all instances:
+SNOPT and IPOPT have comparable runtimes only on the
+smallest and largest problems, respectively. The runtimes of
+SCS increase a little more than linearly: as the number of safe
+sets grows by a factor of 1000, its runtimes increase by 3060.
+The number of subproblems necessary for SCS to converge
+with tolerance   0.01 ranges between 5 and 8.
+The second panel in Fig. 6 shows the effects of increasing
+the number m of facets of the safe sets from 3 to 3000, while
+Safe sets I
+Solution time (s)
+Facets of safe sets m
+Solution time (s)
+Space dimension n
+Solution time (s)
+Trajectory degree K
+Solution time (s)
+Comparison of SCS with the solvers SNOPT and IPOPT. The
+runtimes of the three methods are analyzed as functions of multiple problem
+data. Missing markers correspond to solver failures. The runtimes of SCS
+grow almost linearly in each experiment (note that the horizontal axis has
+logarithmic scale in the rst two panels and linear scale in the last two).
+keeping I  20, n  2, and K  5. In this case, SCS and
+the nonconvex solvers nd identical trajectories (despite the
+larger termination tolerance of SCS). SCS solves each problem
+much faster than SNOPT and IPOPT, and its runtimes increase
+sublinearly with m (as the number of facets grows by 1000, the
+Sparrow robots that move packages between bins in minimum time.
+runtime grows by 210). The number of subproblems necessary
+for SCS to converge is equal to 5 for every value of m.
+In the third panel of Fig. 6, we let the space dimension
+n grow from 2 to 20, while we set I  20, m  2n, and
+K  3. The nonconvex solvers nd again identical trajectories,
+and SCS has a maximum cost gap of 3.2. SCS is again the
+with n (the space dimension grows by 10 and the runtimes
+by 17.6). The number of SCS subproblems ranges between 5
+In the fourth panel of Fig. 6, we let I  20, m  6, n  3,
+and increase the degree K from 3 to 30. All the methods return
+similar trajectories: the maximum cost difference between SCS
+and the nonconvex solvers is 0.4. SCS is the fastest and its
+runtimes grow linearly with K (the degree increases by 10
+and the runtimes by 9.9). IPOPT performs better than SNOPT,
+which also fails in one instance. SCS always converges after
+5 subproblems.
+C. Minimum-time package transfer with two Sparrow robots
+We use SCS to plan the motion of two Sparrow robots
+that transfer packages between bins in simulation. We also
+benchmark SCS against the trust-region method proposed
+in [28, V], as well as a simple waypoint-based motion planner
+representative of those commonly used in industry.
+The package-transfer task is illustrated in Fig. 7. The two
+robots face each other, and between them is a table with two
+bins. One bin contains ten packages and the other is empty.
+The goal is to move all the packages in the rst bin to the
+second as quickly as possible. The nal package positions in
+the second bin must mirror the initial positions in the rst
+bin. Packages are represented as axis-aligned boxes (these can
+be the packages themselves, or bounding boxes of products
+with more complex shape). The bins have side 0.6 and height
+0.3, and the distance between their centers is 1. The package
+sides are drawn uniformly at random between 0.1 and 0.25.
+Also the initial package positions are drawn uniformly at
+random within the corresponding bin, and sampled packages
+are rejected when they collide with existing packages.
+Two-dimensional illustration of the three-dimensional safe sets Qi
+used for the package-transfer task. The top panel shows the sets for picking
+the rightmost package. The bottom panel shows the sets for its placement.
+The latter are shrunk to avoid the collision of the transported package.
+We solve the task using a state machine. At each iteration,
+if a robot has completed its previous pick or place motion, we
+plan its next motion neglecting the presence of the other robot.
+If this results in a collision, we let the robot idle until the next
+iteration. If the state machine stalls (neither arm can execute
+its motion without colliding with the other), we retract one arm
+and allow the other to move. Each time a robot plans a picking
+Trajectories are planned directly in the three-dimensional task
+inverse kinematics. We let the sets V and A, that constrain
+the gripper velocity and acceleration, be spheres of radius 10
+centered at the origin. (In practice, these sets can be shaped
+to prevent package delamination, and ensure that the robots
+can track the designed task-space trajectories.) We use Bezier
+curves of degree K  5 and set the termination tolerance to
+For each pick and place motion, the three-dimensional
+task space is decomposed into ve box-shaped safe sets Qi,
+illustrated in two dimensions in Fig. 8. The rst and fth sets
+allow the gripper to reach the trajectory endpoints, without
+colliding with the packages in the bins. The second and fourth
+sets cover the space above the packages in the two bins. The
+third is a transfer region that connects the spaces above the
+bins. As shown in the bottom panel of Fig. 8, these sets
+are shrunk during a place motion to avoid collisions of the
+transported package (packages are always picked above their
+centers).
+We consider 50 randomly generated package-transfer prob-
+lems. As the low-level motion planner for the state machine
+just described, we compare SCS against the following alter-
+The trust-region method from [28, V], modied as
+described in C to deal with minimum-time problems.
+A simple waypoint-based motion planner, which lifts
+a package vertically, moves it horizontally above the
+PACKAGE-TRANSFER BENCHMARK
+Task-completion time (s)
+Motion-planning time (ms)
+Trust region
+Waypoint
+desired destination, and places it down. Where each
+trajectory segment is executed in minimum time.
+The three methods use the same constraints and trajectory pa-
+rameterization. The rst two share also the same initialization
+strategy and termination tolerance. Tab. I shows the statistics
+for the task-completion time and the runtime of each motion
+planner. SCS generates the best trajectories: in fact, the average
+completion time for the overall package-transfer task is about
+10 s for SCS, 13 s for the trust-region method, and 15 s for
+the waypoint-based planner. In other words, SCS allows us to
+transfer 28 and 50 more packages per unit of time than the
+trust-region and the waypoint-based planners, respectively. The
+runtimes of SCS are approximately ve times longer than those
+of the waypoint-based planner, but they remain very low for
+practical use. The trust region method is roughly three times
+slower than SCS. The videos of ve of these package-transfer
+tasks are provided as Supplementary Material.
+We conclude by emphasizing that the trust-region and
+the waypoint-based planners are natural baselines for the
+task considered in this section. The rst provides the same
+completeness guarantees as SCS, designs smooth trajectories,
+and has relatively low runtimes. The second is widespread
+in warehouse automation thanks to its good performance and
+high reliability. In our experience, off-the-shelf nonconvex
+trajectory optimization faces signicant challenges with this
+package-transfer task: it struggles with the many collision ge-
+ometries in Fig. 7, relies on handcrafted warm starts, can take
+seconds to converge (unless we use accelerated hardware ),
+and can also fail to converge. Sampling-based planners can
+be more reliable, but generate polygonal curves that require
+additional smoothing. They excel in tasks where nding a
+collision-free trajectory is the main challenge, and trajectory
+cost is secondary. However, our package-transfer task presents
+the opposite challenge.
+REFERENCES
+John T Betts. Practical methods for optimal control and
+estimation using nonlinear programming. SIAM, 2010.
+Joshua Bialkowski, Sertac Karaman, and Emilio Frazzoli.
+Massively parallelizing the RRT and the RRT.
+IEEERSJ International Conference on Intelligent Robots
+and Systems, pages 35133518. IEEE, 2011.
+Stephen Boyd and Lieven Vandenberghe. Convex opti-
+mization. Cambridge University Press, 2004.
+Jing Chen, Tianbo Liu, and Shaojie Shen. Online gener-
+ation of collision-free trajectories for quadrotor ight in
+unknown cluttered environments. In IEEE International
+Conference on Robotics and Automation, pages 1476
+Shao Yuan Chew Chia, Rebecca H Jiang, Bernhard Paus
+convex sets. arXiv preprint arXiv:2407.08848, 2024.
+Hongkai Dai, Alexandre Amice, Peter Werner, Annan
+Certied polyhedral de-
+compositions of collision-free conguration space. The
+International Journal of Robotics Research, 43(9):1322
+Robin Deits and Russ Tedrake. Computing large con-
+vex regions of obstacle-free space through semidenite
+programming. In Algorithmic Foundations of Robotics
+Workshop on the Algorithmic Foundations of Robotics,
+pages 109124. Springer, 2015.
+Robin Deits and Russ Tedrake. Efcient mixed-integer
+planning for UAVs in cluttered environments. In IEEE
+International Conference on Robotics and Automation,
+pages 4249. IEEE, 2015.
+Steven Diamond, Reza Takapoui, and Stephen Boyd.
+A general system for heuristic minimization of convex
+functions over non-convex sets. Optimization Methods
+and Software, 33(1):165193, 2018.
+Rida Farouki and V Rajan. Algorithms for polynomials
+in Bernstein form. Computer Aided Geometric Design,
+Philip E Gill, Walter Murray, and Michael A Saunders.
+optimization. SIAM Review, 47(1):99131, 2005.
+Paul J Goulart and Yuwen Chen. Clarabel: An interior-
+point solver for conic programs with quadratic objectives.
+arXiv preprint arXiv:2405.12762, 2024.
+Taylor A Howell, Brian E Jackson, and Zachary Manch-
+ester. ALTRO: A fast solver for constrained trajectory
+optimization. In IEEERSJ International Conference on
+Intelligent Robots and Systems (IROS), pages 76747679.
+Jeffrey Ichnowski, Michael Danielczuk, Jingyi Xu,
+Vishal Satish, and Ken Goldberg.
+optimized motion planning for bin picking.
+International Conference on Robotics and Automation,
+pages 52705277. IEEE, 2020.
+Evangelos
+Stochastic trajectory optimization for motion planning.
+In IEEE International Conference on Robotics and
+Sertac Karaman and Emilio Frazzoli.
+Optimal kino-
+dynamic motion planning using incremental sampling-
+based methods. In 49th IEEE Conference on Decision
+and Control, pages 76817687. IEEE, 2010.
+Sertac Karaman and Emilio Frazzoli. Sampling-based al-
+gorithms for optimal motion planning. The International
+Journal of Robotics Research, 30(7):846894, 2011.
+Lydia Kavraki, Petr Svestka, J-C Latombe, and Mark
+Overmars. Probabilistic roadmaps for path planning in
+high-dimensional conguration spaces. IEEE Transac-
+tions on Robotics and Automation, 12(4):566580, 1996.
+Steven LaValle. Rapidly-exploring random trees: A new
+tool for path planning.
+TR 98-11, Computer Science
+Steven M LaValle and James J Kuffner Jr. Randomized
+kinodynamic planning.
+The International Journal of
+Robotics Research, 20(5):378400, 2001.
+Mirko Leomanni, Gabriele Costante, and Francesco Fer-
+Time-optimal control of a multidimensional in-
+tegrator chain with applications. IEEE Control Systems
+Yanbo Li, Zakary Littleeld, and Kostas E Bekris.
+Asymptotically optimal sampling-based kinodynamic
+planning.
+The International Journal of Robotics Re-
+Thomas Lipp and Stephen Boyd. Minimum-time speed
+optimisation over a xed path. International Journal of
+Sikang Liu, Michael Watterson, Kartik Mohta, Ke Sun,
+Subhrajit Bhattacharya, Camillo J Taylor, and Vijay
+Planning dynamically feasible trajectories for
+quadrotors using safe ight corridors in 3-D complex
+environments. IEEE Robotics and Automation Letters, 2
+Danylo Malyuta, Taylor P Reynolds, Michael Szmuk,
+Thomas Lew, Riccardo Bonalli, Marco Pavone, and
+Behcet Ackmese.
+Convex optimization for trajectory
+trajectories reliably and efciently. IEEE Control Systems
+Tobia Marcucci. Graphs of Convex Sets with Applications
+to Optimal Control and Motion Planning. PhD thesis,
+Massachusetts Institute of Technology, 2024.
+Tobia Marcucci, Mark Petersen, David von Wrangel, and
+Russ Tedrake. Motion planning around obstacles with
+convex optimization. Science robotics, 8(84):eadf7843,
+Tobia Marcucci, Parth Nobel, Russ Tedrake, and Stephen
+Boyd. Fast path planning through large collections of safe
+boxes. IEEE Transactions on Robotics, 40:37953811,
+Tobia Marcucci, Jack Umenberger, Pablo Parrilo, and
+Russ Tedrake. Shortest paths in graphs of convex sets.
+SIAM Journal on Optimization, 34(1):507532, 2024.
+Savva Morozov, Tobia Marcucci, Alexandre Amice,
+Bernhard Paus Graesdal, Rohan Bosworth, Pablo A
+Multi-query shortest-path
+problem in graphs of convex sets.
+arXiv preprint
+Jia Pan and Dinesh Manocha. GPU-based parallel colli-
+sion detection for fast motion planning. The International
+Journal of Robotics Research, 31(2):187200, 2012.
+Pablo A Parrilo. Semidenite programming relaxations
+for semialgebraic problems. Mathematical programming,
+John Schulman, Yan Duan, Jonathan Ho, Alex Lee,
+Ibrahim Awwal, Henry Bradlow, Jia Pan, Sachin Patil,
+Ken Goldberg, and Pieter Abbeel.
+Motion planning
+with sequential convex optimization and convex colli-
+sion checking.
+The International Journal of Robotics
+Xinyue Shen, Steven Diamond, Madeleine Udell, Yuan-
+tao Gu, and Stephen Boyd.
+Disciplined multi-convex
+programming.
+In 29th Chinese Control and Decision
+Balakumar Sundaralingam, Siva Kumar Sastry Hari,
+Adam Fishman, Caelan Garrett, Karl Van Wyk, Valts
+collision-free robot motion generation. In IEEE Inter-
+national Conference on Robotics and Automation, pages
+Russ Tedrake and the Drake Development Team. Drake:
+Model-based design and verication for robotics, 2019.
+Russ Tedrake, Ian Manchester, Mark Tobenkin, and John
+Roberts.
+sums-of-squares verication. The International Journal
+of Robotics Research, 29(8):10381052, 2010.
+Wil Thomason, Zachary Kingston, and Lydia E Kavraki.
+Motions in microseconds via vectorized sampling-based
+planning. In IEEE International Conference on Robotics
+and Automation, pages 87498756. IEEE, 2024.
+Toussaint.
+markov constrained motion problems.
+arXiv preprint
+Diederik Verscheure, Bram Demeulenaere, Jan Swevers,
+Joris De Schutter, and Moritz Diehl. Time-optimal path
+tracking for robots: A convex optimization approach.
+IEEE Transactions on Automatic Control, 54(10):2318
+Andreas Wachter and Lorenz T Biegler. On the imple-
+mentation of an interior-point lter line-search algorithm
+for large-scale nonlinear programming.
+Mathematical
+Qianhao Wang, Zhepei Wang, Mingyang Wang, Jialin
+Chao Xu, and Fei Gao.
+Fast iterative region ination
+for computing large 2-D3-D convex regions of obstacle-
+free space. arXiv preprint arXiv:2403.02977, 2024.
+Yang Wang and Stephen Boyd. Fast model predictive
+control using online optimization. IEEE Transactions on
+Control Systems Technology, 18(2):267278, 2009.
+Peter Werner, Alexandre Amice, Tobia Marcucci, Daniela
+ration spaces with few convex sets using clique covers
+of visibility graphs. In IEEE International Conference
+on Robotics and Automation, pages 1035910365. IEEE,
+Peter Werner, Thomas Cohn, Rebecca H Jiang, Tim
+Rus. Faster algorithms for growing collision-free convex
+polytopes in robot conguration space. arXiv preprint
+Peter Werner, Richard Cheng, Tom Stewart,
+convex set computation on GPUs for online motion
+planning. arXiv preprint arXiv:2504.10783, 2025.
+Yuwei Wu, Igor Spasojevic, Pratik Chaudhari, and Vijay
+Optimal convex cover as collision-free space
+approximation for trajectory generation. arXiv preprint
+Lujie Yang, Tobia Marcucci, Pablo A Parrilo, and Russ
+Tedrake. A new semidenite relaxation for linear and
+piecewise-afne optimal control with time scaling. arXiv
+preprint arXiv:2504.13170, 2025.
+Matt Zucker, Nathan Ratliff, Anca D Dragan, Mihail Piv-
+J Andrew Bagnell, and Siddhartha S Srinivasa. CHOMP:
+Covariant hamiltonian optimization for motion planning.
+The International Journal of Robotics Research, 32(9-
+APPENDIX A
+FINITE-DIMENSIONAL PROGRAMS
+We illustrate the nite-dimensional versions of the programs
+presented in this paper. Here, candidate trajectories are param-
+eterized using Bezier curves as shown in VII.
+We start from the nonconvex program (7). The constraints of
+its nite-dimensional counterpart are as follows (the objective
+is unchanged):
+k K, i I,
+k K 2, i I,
+k K 1, i I,
+For all i I, the variables here are the traversal times Ti and
+the control points qi,k for k K, qi,k for k K 1, and
+The nite-dimensional version of the subproblem with
+xed transition velocities (11) differs from the nonconvex
+program (20) in just two ways. First, the acceleration con-
+straint (20f) and the traversal-time lower bound (20g) are
+replaced with the convex conditions
+k K 2, i I,
+The nite-dimensional version of the subproblem with xed
+transition points (15) has similar constraints:
+k K, i I,
+k K 1, i I,
+k K 2, i I,
+0 < Si 2 Ti,
+k K 1, i I,
+k K 2, i I.
+For i I, here the decision variables are the traversal times
+Ti and the control points ri,k for k K, ri,k for k K 1,
+and ri,k for k K 2.
+The initialization phase requires solving problem (17) re-
+peatedly. Using the Bezier parameterization, the constraints of
+this problem become
+Ti 1Si, Si > 0,
+with variables Ti, Si, ri,k for k K, ri,k for k K 1,
+and ri,k for k K 2.
+APPENDIX B
+PARAMETRIC PROBLEM FOR RUNTIME ANALYSIS
+We detail the construction of the problem in X-B, which
+is parametric in the number I of safe sets, the number m of
+facets of each safe set, and the space dimension n.
+We let x0  0 Rn. Then, for all i I, we dene the
+xi  xi1  ej,
+where ej is the jth element of the standard basis, and j is the
+reminder of in. In other words, the point xi is obtained by
+shifting xi1 along the jth dimension by one. The sequence
+of points x0, . . . , xI is then an n-dimensional staircase with
+I links.
+For i I, we let Ei Rn be an ellipsoid centered around
+the line segment that connects xi1 and xi. The main axis
+of Ei is aligned with the vector xi xi1 and has length
+Qi is a conservative polytopic approximation with m facets
+of the corresponding ellipsoid Ei. In n  2 dimensions, this
+construction over-approximates the unit circle with a regular
+the same afne transformation that maps the unit circle to
+the ellipse Ei. We let the initial point be qinit  x0 and the
+terminal point be qterm  xI. The constraint sets V and A are
+spheres centered at the origin of radius 10 and 1, respectively.
+APPENDIX C
+TRUST-REGION METHOD FOR MINIMUM-TIME PROBLEMS
+We briey describe how the trust-region method from [28,
+V] can be adapted for minimum-time problems.
+We start from problem (7), whose only nonconvex con-
+straints are the velocity continuity (4b) and the accelera-
+tion constraint (5c). As in the problem with xed transition
+points (15), we introduce the variables
+ri  qiTi,
+Recall that the derivatives ri of these functions correspond to
+qiTi. Using these additional variables, the velocity continu-
+ity (4b) becomes a linear constraint
+while the acceleration constraint (5c) becomes a convex con-
+straint of the kind discussed in I-B:
+ri(s) TiA,
+This yields a program whose nonconvexity is due exclusively
+to the equality constraint (21).
+Following [28,  V-C], we solve the nonconvex program
+by alternating between two convex programs: a tangent and
+projection program. In the tangent program, we linearize
+constraint (21) around the current solution, and try to improve
+the trajectory shape and timing jointly. The linearization error
+is controlled by a trust-region constraint whose size and shape
+are dened as in [28,  V-C]. Because of the linearization error,
+the solution of the tangent program might not be feasible for
+the original nonconvex program. Therefore, in the projection
+convex program, hoping to obtain a feasible solution with cost
+lower than the current one. The numerical solution of these
+innite-dimensional convex subproblems follows the steps in

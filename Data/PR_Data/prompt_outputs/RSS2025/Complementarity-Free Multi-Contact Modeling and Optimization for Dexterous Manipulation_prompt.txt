@@ -1,0 +1,1360 @@
+=== PDF文件: Complementarity-Free Multi-Contact Modeling and Optimization for Dexterous Manipulation.pdf ===
+=== 时间: 2025-07-21 14:26:13.281536 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Complementarity-Free Multi-Contact Modeling and
+Optimization for Dexterous Manipulation
+Wanxin Jin
+Arizona State University
+Fig. 1: We propose a complementarity-free multi-contact model that achieves state-of-the-art performance in planning and control across
+various challenging dexterous manipulation tasks, including fingertip in-air manipulation (cols. 1-2), TriFinger in-hand manipulation (cols. 3-5),
+and Allegro hand on-palm reorientation (cols. 6-8), all with diverse objects (first row). The second and third rows show the initial and final
+scenes of selected tasks, with the target object pose shown in transparency. Object diameters range from 50 [mm] to 150 [mm]. Video link.
+AbstractA significant barrier preventing model-based methods
+from achieving real-time and versatile dexterous robotic manip-
+ulation is the inherent complexity of multi-contact dynamics.
+Traditionally formulated as complementarity models, multi-
+contact dynamics introduces non-smoothness and combinatorial
+In this paper, we circumvent these challenges by introducing
+a lightweight yet capable multi-contact model. Our new model,
+derived from the duality of optimization-based contact models,
+dispenses with the complementarity constructs entirely, providing
+computational advantages such as closed-form time stepping,
+models effectiveness and efficiency for planning and control in
+a range of challenging dexterous manipulation tasks, including
+fingertip 3D in-air manipulation, TriFinger in-hand manipulation,
+and Allegro hand on-palm reorientation, all performed with
+diverse objects. Our method consistently achieves state-of-the-
+art results: (I) a 96.5 average success rate across all objects
+and tasks, (II) high manipulation accuracy with an average
+reorientation error of 11and position error of 7.8mm, and (III)
+contact-implicit model predictive control running at 50-100 Hz
+for all objects and tasks. These results are achieved with minimal
+hyperparameter tuning.
+I. INTRODUCTION
+Achieving real-time and versatile dexterity in robotic manip-
+and breaking contacts with various objects and physical
+have been delivered by reinforcement learning [5, 45, 2, 13],
+albeit at the expense of extensive environment data, lengthy
+training process, and limited object generalizability. In contrast,
+progress in model-based planning and control methods been
+relatively slow, with existing methods typically limited to
+simple contact-less manipulation settings. A primary challenge
+for model-based methods is the non-smooth and hybrid nature
+of contact-rich dynamics  smooth motions are frequently
+interrupted by discrete contact events (i.e., making or breaking
+contacts) [41, 26]. This introduces computational challenges
+in both learning of contact dynamics  and combinatorics
+optimization of contact modes [14, 41]. Recent work has made
+some headway, including new algorithms for learning hybrid
+dynamics [42, 28], differentiable contact modeling [22, 53, 65],
+multi-contact predictive control [8, 64, 29, 30], and contact-
+rich planning [14, 41]. Despite these efforts, the computational
+challenges induced by non-smooth contact dynamics remain a
+significant barrier for model-based methods to achieve the real-
+time versatility needed for complex dexterous manipulation
+involving diverse object geometries and robot morphologies.
+This paper seeks to advance the state-of-the-art in model-
+based dexterous manipulation by addressing a critical question:
+Can we circumvent the computational challenges induced by the
+non-smooth multi-contact dynamics in the early stage of contact
+modeling? Unlike existing efforts [8, 64, 29, 30, 14, 41], we do
+NOT pursue abstract learning architectures [37, 26], propose
+artificial smoothing strategies for existing contact dynamics [22,
+the hybrid decision space. Instead, our contribution is a new
+multi-contact model that overcomes the non-smooth and hybrid
+computational complexities via a physics modeling perspective,
+enabling significant speed and performance improvement in
+model-based dexterous manipulation.
+mulations [15, 59, 57, 31, 55, 22] for modeling rigid-body
+constructs in the dual space of the optimization-based contact
+models [6, 59] into explicit forms. This results in a new
+complementarity-free multi-contact model that has several com-
+putational advantages. (I) Closed-form and differentiable time-
+function of the current state and input, thus avoiding solving
+complementarity problems , optimization , or residual
+equations  for contact constraint resolution. (II) Automatic
+satisfaction with Coulombs friction law in a single term: the
+new model resolves the normal and frictional contact forces
+using a single term that automatically respects the Coulomb
+friction cone. This is unlike the contact models [19, 33, 56, 12]
+that handle normal and frictional components independently,
+leading to additional hyperparameters. (III) Fewer hyperpa-
+easy to tune, and it also supports model auto-tuning using any
+learning framework.
+The goal of the new contact model is not to compete with
+existing high-fidelity physics simulators [15, 59, 57, 31, 55, 22],
+but rather to offer a lightweight, smooth, yet capable surrogate
+that addresses the inherent computational challenges associated
+with existing complementarity-based models, particularly when
+used for contact-rich optimization and control. We integrate
+this model into model predictive control (MPC) framework
+for contact-implicit online planning and control. With minimal
+hyperparameter tuning, we achieve state-of-the-art performance
+across challenging dexterous manipulation tasks, including 3D
+in-air fingertip manipulation, TriFinger in-hand manipulation,
+and Allegro hand on-palm reorientation, all with diverse objects,
+as shown in Fig. 1. Our method sets a new benchmark for
+model-based contact-rich dexterous manipulation:
+Highly versatile dexterity: 96.5 average success rate across
+all objects and environments.
+High-accuracy dexterity: average object reorientation error
+of 11and position error of 7.8mm.
+Real-time dexterity: contact-implicit MPC running at 50-100
+Hz for all objects and robots.
+II. RELATED WORKS
+A. Rigid Body Multi-contact Models
+1) Nonconvex Complementarity Contact Models: Rigid body
+contact dynamics is traditionally formulated using comple-
+mentarity models [51, 49, 52]: it enforces no interpenetration
+and no contact force at a distance. The Coulomb friction
+can also be expressed as complementarity constraints via the
+maximum dissipation principle , leading to a nonlinear
+complementarity problem (NCP). Since the NCPs cannot be
+interpreted as the KKT conditions of a convex program, they
+are challenging to solve. To simplify computation, Coulomb
+friction cones are often approximated by polyhedral cones
+[52, 59], converting the NCP into a linear complementarity
+problem (LCP) , for which mature solvers exist .
+2) Cone Complementarity Contact Models: In , Anitescu
+proposed relaxing the NCP formulation, by constraining the
+contact velocity within a dual friction cone. Then, the NCP
+becomes cone complementarity problem (CCP), which attains
+computational benefits such as fast convergence and solution
+guarantees [7, 54]. A side effect of CCP is that it allows for
+small normal motion at the contact even when bodies should
+remain in contact. This creates a boundary layer whose size
+is proportional to time step and tangential velocity .
+3) Optimization-based Contact Models: The CCP described
+above corresponds to the KKT optimality conditions of a convex
+optimization problem with second-order cone constraints .
+This allows for the formulation of a primal convex optimization
+(with velocities as decision variables) or a dual optimization
+(with contact forces as decision variables). The primal approach
+has been used in work [41, 39], while the dual formulation is
+used in the MuJoCo simulator , albeit with a regularization
+term for model invertibility. The dual objective function can
+be interpreted as minimizing kinetic energy in contact frames.
+4) Differentiable Contact Models: Several alternative models
+have been proposed to approximate complementarity-based
+models for differentiability.  introduced penalty functions
+to model contact normal and frictional forces.  proposes
+relaxing complementarity constraint, which in optimization-
+based model case, is equivalent to solving an unconstrained
+optimization with constraints penalized via log-barrier functions
+.  proposed implicit complementarity, converting all
+constraints to unconstrained optimization with intermediate
+variables. [62, 33] developed penalty-based contact models.
+A shared feature is that those methods ultimately need to
+solve a residual equation for contact constraint resolution, and
+differentiability is obtained via implicit function theorem .
+5) Why is our model new?: Two features distinguish the
+proposed model from existing ones. First, closed-form contact
+constraint resolution: our model builds on optimization-based
+contact dynamics [6, 39], but instead of solving the primal [6,
+39] or dual programs , we approximate the complementarity
+constraints in the dual space with an explicit form (by contact
+decoupling). This approximation leads to a closed-form contact
+constraint resolution, eliminating the need to solve optimization
+, residual , or complementarity problems  at each
+time stepping.
+while previous work [56, 12, 62, 33] has also explored
+closed-form contact dynamics models, our novelty, however,
+is that our closed-form model is approximated in the dual
+friction cone. This allows for the unified treatment of contact
+normal forces and frictional forces within a single term,
+ensuring automatic sanctification with Coulombs friction law.
+In contrast, existing models [56, 12, 62, 33] treat the contact
+normal and enforce Coulombs friction separately, which
+typically leads to additional hyperparameters and potential
+nonphysical artifacts.
+B. Planning and Control with Contact Dynamics
+Planning and control for multi-contact systems are challeng-
+ing because algorithms must determine when and where to
+make or break contacts, with complexity scaling exponentially
+with potential contact locations and planning horizons. Tradi-
+tional methods [47, 35] predefine contact sequences, which
+could be possible for tasks like legged locomotion . Modern
+approaches focus on contact-implicit planning , solving for
+both contact location and sequencing. Two main strategies are
+proposed. The first is to smooth contact transition boundaries.
+In [30, 43, 41, 36] complementarity constraints are relaxed. The
+other is to maintain the hybrid structures and cast the planning
+as mixed integer program, as done in [8, 9, 41, 1, 64, 24].
+This paper develops the contact-implicit planning and control
+based on the proposed complementarity-free contact model. The
+resulting contact-implicit optimization can be readily solved
+using standard optimization techniques  or MPC tools ,
+requiring no additional smoothing constructs or optimization
+programming effort. With its closed form and smooth nature,
+our model significantly improves the speed of online planning;
+e.g., our contact-implicit MPC controller runs up to 50-100
+Hz in the Allegro Hand dexterous reorientation tasks.
+C. Reinforcement Learning for Dexterous Manipulation
+Reinforcement learning (RL) has shown impressive results
+in dexterous manipulation [5, 45, 2, 13]. For instance, [5, 2]
+employ model-free RL for in-hand object reorientation;
+introduces an adaptive framework for reorienting various
+objects. However, these methods require millions to billions of
+environment samples. Model-based RL [26, 37] offers better
+multimodality [37, 42]. The prior work  shows incorpo-
+rating hybrid constructs into models significantly improves
+of environment samples.
+RL has set the state-of-the-art in challenging dexterous
+manipulation tasks, e.g., TriFinger [26, 2] and Allegro hand
+Our proposed method aims to bridge this gap and even surpass
+state-of-the-art RL in success rate and manipulation accuracy.
+III. PRELIMINARY AND PROBLEM STATEMENT
+We consider a manipulation system, comprised of an actuated
+define the following notations used in the rest of the paper.
+object position
+object velocity
+non-contact force applied to object
+robot position (generalized coordinate)
+robot velocity (generalized coordinate)
+non-contact force to robot
+control input applied to robot
+q(qo, qr)
+system position
+v(vo, vr)
+system velocity
+contact impulseforce (normal, friction)
+contact Jacobian of the robot
+contact Jacobian of the object
+J  [Jo, Jr]
+contact Jacobian of the system
+J[Jn; Jd]
+J reformatted in normal  tangential
+tangential Jacobian for polyhedral cone
+A. Optimization-based Quasi-Dynamic Contact Model
+For simplicity, we model a manipulation system using the
+quasi-dynamic formulation [34, 14, 1, 41], which primarily
+captures the positional displacement of a contact-rich system in
+relation to contact interactions and inputs, while ignoring the
+inertial and Coriolis forces that are less significant under less
+dynamic motion. Quasi-dynamic models benefit from simplicity
+and suffice for a wide variety of manipulation tasks [41, 14, 1].
+It should be noted our following model can be readily extended
+to full dynamic model, which will be shown in Section VI-B.
+orand between object and the environment. The time-stepping
+equation of the quasi-dynamic model is
+M ovo  h o
+hKr(hvr u)  h r
+object with M o Rnono the regularized mass matrix for the
+object ( > 0 is the regularization parameter). The second
+equation is the motion of the robot, where we follow  and
+consider the robot is in impedance control  and thus can
+be viewed as as a "spring" with stiffness Kr Rnrnr; the
+input u Rnr to the robot is the desired joint displacement.
+i ) R3 is the i-th contact impulse, with contact
+normal component n
+i and frictional component d
+impulse and system motion using the cone complementarity
+formulation proposed by Anitescu in [6, 7]. Specifically, the
+cone complementarity constraint at contact i writes
+Ki i Jiv  1
+where i is the normal distance at contact i; Ki is the Coulomb
+frictional cone, defined as Ki
+i R3  in
+i is the dual cone to Ki, and the right side of (2) says that
+at contact i, the relaxed contact velocity has to lie in K
+with i the friction coefficient for contact i.
+conditions for the following primal optimization :
+2h2vTQv hvTb(u)
+subject to
+where Q R(nonr)(nonr) and b(u) Rnonr are
+respectively. (4) is a second-order cone program (SOCP). To
+facilitate solving the SOCP, one can approximate it with
+a quadratic program (QP) by linearizing the second-order
+dual cone constraint using its polyhedral approximation .
+unit directional vectors {di,1, di,2, ..., di,nd} to span the contact
+tangential plane , yielding the linearization of (3):
+j {1...nd}
+vector dj in the tangential plane of contact i. Hence, the
+SOCP in (4) can be simplified as the following QP
+2h2vTQv hvTb(u)
+subject to
+In time-stepping prediction, Jacobians Jn
+i and Jd
+lated from a collision detection routine  at the systems
+current position q. The solution v to (7) will be used to
+integrate from q to the next position q, and we simply write
+it as q  q hv (can involve quaternion integration).
+B. Model Predictive Control
+The generic formulation of model predictive control is
+t0 c (qt, ut)  V (qT )
+subject to
+given q0.
+where model f predicts the next system state. With q0, (8)
+searches for the optimal input sequence (ulb and ulb are control
+bounds), by minimizing the path c() and final cost V ().
+In a manipulation system, the MPC policy is implemented
+in a receding horizon fashion, by repeatedly solving (8) at
+the real system state qreal
+encountered at the policy rollout
+step k and only applying the first optimal input to the real
+system. Specifically, at the encountered system state qreal
+MPC policy sets q0  qreal
+and solves (8). Only the first
+optimal input u
+k ) is applied to the real system, evolving
+the system state to the next qreal
+k1. This implementation creates
+a closed-loop control effect on the real system, i.e., feedback
+from system state qreal
+to control input u
+C. Problem: Contact-implicit MPC for Dexterous Manipulation
+We are interested in real-time, contact-implicit MPC for
+dexterous manipulation. Directly using the QP-based contact
+model (7) in MPC (8) leads to a nested optimization, which
+is difficult to solve due to the non-smooth behavior of the
+contact model (7), i.e., the prediction jumps" at the transitions
+between separate, sliding, and sticking contact modes. The goal
+of the paper is to develop a new surrogate multi-contact model
+f in (8) to overcome the above challenges, enabling real-time
+and high-performance MPC for dexterous manipulation tasks.
+IV. COMPLEMENTARITY-FREE MULTI-CONTACT MODEL
+A. Duality of Optimization-based Contact Model
+We proceed by establishing the dual problem of the QP-based
+contact model (7). First, define the shorthand notations:
+of dimension
+J Rncnd(nonr),  Rncnd, and  Rncnd.
+constraints in (7). From convex optimization , it can be
+shown that the dual problem of (7) is
+T)TQ1(hb
+The optimal primal solution v to (7) and the dual solution
+to (10) has the following relationship
+h2 Q1(hb
+As pointed out in , the dual optimization (10) can be physi-
+cally interpreted as finding the contact impulse  that minimizes
+the kinetic energy in contact frame: 1
+2vT(h2Q)v  1
+It is noted that the dual solution to (10) is not unique because
+the quadratic matrix
+T is not necessarily of full rank.
+In MuJoCo , to guarantee the invertibility of the contact
+small regularization term R to the quadratic matrix, turning
+(10) into a strongly concave program
+JQ1b  )T 1
+where R Rncndncnd is a diagonal regularization matrix
+with positive entries. The following lemma states the optimality
+condition for the regularized dual problem (12).
+Lemma 1. The dual solution to the regularized dual problem
+(12) satisfies the following dual complementarity constraints:
+The proof of Lemma 1 is in Appendix. This lemma indicates
+solving (12) involves managing complementarity constraints.
+B. New Complementarity-Free Multi-Contact Model
+To circumvent the dual complementarity in (13), we propose
+a new contact model based on Lemma 1. Assume, for now,
+the inverse of the first matrix on the right side of (13) can
+be replaced by a positive definite diagonal matrix K(q)
+We will provide the physical justification for this assumption in
+the next subsection. The following lemma states a closed-form
+solution to the dual complementarity (13) with (14).
+Lemma 2. Let a positive definite diagonal matrix K(q) replace
+TR)1 as in (14). The dual complementarity (13)
+then has a closed-form solution:
+The proof of Lemma 2 is given in Appendix. Lemma 2 presents
+an important result: by substituting
+1 with a
+positive diagonal matrix K(q), the complementarity constructs
+in the original dual condition (13) are eliminated. Critically, this
+substitution makes the contact time-stepping prediction (16)
+have closed-form solution and free from complementarity. We
+thus name (16) the complementarity-free multi-contact model.
+Although the above treatment can cause the time-stepping
+prediction v in (16) to differ from the true primal solution of
+the original QP-based contact model (7), it offers significant
+computational benefits, particularly for model-based multi-
+contact optimization, as will be shown later. In fact, K(q)
+has an intuitive physical interpretation, which will be discussed
+in the next subsection.
+While our complementarity-free time stepping (16) approxi-
+mates (7), we do not expect the resolved velocity v to strictly
+satisfy the original dual cone constraints in (7)although it
+can potentially achieve so by appropriately choosing the matrix
+K(q). In fact, relaxing the dual cone constraint in (7) provides
+our model (16) with unique advantages that are not available
+in (7), particularly in mitigating the non-physical artifacts with
+(7) (or general Anitescu models [6, 7]), as we elaborate in the
+next subsection and later experiments in Section VI-B.
+C. Physical Interpretation of the New Model
+We next provide the physical interpretation of the new
+complementarity-free multi-contact model (16) using a 2D
+fingertip manipulation example in Fig. 2. First, recall the
+linearized dual cone constraints (6) in the original QP-based
+contact model (7). Using (9), we can compactly express these
+dual cone constraints as
+In Fig. 2(a), the dual cone constraints are shown in red areas.
+time step h on both sides of (16), leading to
+noncontact
+: contact contact force in contact dual cone
+total force in generalized coordinate
+Equation (18) shows that the proposed model (16) can be
+interpreted as a force-spring system, where hv represents the
+position displacement in the generalized coordinate, and the
+right side accounts for the total force applied to the system.
+The matrix Q, defined in (5), encodes the systems spring
+stiffness in response to the total force. The total force consists
+of two components: (i) the non-contact force b (e.g., gravity
+and actuation forces), shown in green arrows in Fig. 2, and
+(ii) the contact force contact : max
+JQ1b  ), 0
+shown in blue arrows in Fig. 2(c), applied within the contact
+dual cone and then converted to
+Tcontact in the generalized
+coordinate. Without contact forces, the system displacement
+would be Q1b, as shown in Fig. 2(b)-(d) from the dashed
+object positions to the solid object positions.
+By examining the contact force contact in (18) and combining
+the contact dual cone constraint in (17), we have
+contact  K
+penetration depth into the contact dual cone (17)
+due to the displacement Q1b caused by non-contact force b
+proportional to the penetration depth into the contact dual cone,
+Q1b from the non-contact force b. This has been shown in
+black arrows in Fig. 2(c). Notably, the matrix K(q) introduced
+in Lemma 2 represents the stiffness of the contact dual cone.
+This is illustrated in blue in Fig. 2(c).
+As analyzed above, our complementarity-free contact model
+(16) actually leverages the penetrationviolation of the dual cone
+constraints (17) (also see Fig. 2(c-d)) to generate spring-like
+contact force. Thus, (16) has relaxed the dual cone constraints.
+In fact, the dual cone constraints in (7) are more a mathematical
+convenience than physical phenomenon (although [6, 7] provide
+a microscopic physical interpretation). Strictly enforcing the
+dual cone constraints will introduce non-physical artifacts (e.g.,
+boundary layer effect), compared to non-convex complementary
+models (NCPLCP) [51, 49, 52]. By relaxation of dual cone
+will show in the later experiments in Section VI-B.
+D. Property and Differentiability of the New Model
+1) Automatic satisfaction of Coulombs Friction Law: (19)
+and (15) indicate h
+Tcontact
+T. Extending the right
+side based on the definitions (9) leads to
+Tcontact
+Fig. 2: The physical interpretation of the proposed complementarity-free multi-contact model (16) using a 2D fingertip manipulation example.
+(a) The dual cone constraints, depicted by red shaded areas, between the object and the ground and fingertips. (b) The displacement (green)
+caused solely by the non-contact force b applied to the system to move the object from dashed position to solid position. (c) The spring-like
+contact force (blue) resulting from the penetration (black) of the contact dual cone. (d) An extension: a damping effect (purple) is added to
+the contact force term.
+From (20), one can see that at the contact location i, the contact
+impulse hi,contact can be decomposed into
+normal force:
+frictional force:
+By the triangle inequality, in
+model (16) automatically satisfies the Coulomb friction law.
+2) Differentiability: The proposed complementarity-free
+model (16) is not differentiable due to max operation. One thus
+can replace max operation with smooth SoftPlus function
+SoftPlus(x)  ln(1  ex)
+with  controlling its accuracy to max(x, 0). Thus, a differen-
+tiable version of the complementarity-free multi-contact model
+T SoftPlus
+E. Extension to Dynamic Settings
+Since the contact force contact in (18) is a spring-like force,
+a natural extension is to include a damping term to stabilize
+the contact resolution, as shown in Fig. 2(d), i.e.,
+JQ1b ) D(q)
+damping term
+where D(q) is a diagonal damping matrix, and 1
+hQ1b is the
+velocity at the contact frame caused by the non-contact force b.
+model becomes
+contact.
+This extension can be less significant in quasi-dynamic systems,
+because the velocities are small. However, it plays a significant
+role in stabilizing contact resolution in dynamic simulation. In
+Section VI-B, we will demonstrate the behavior of the contact
+simulation of (25) in dynamic scenarios. A comprehensive
+investigation of the full dynamic complementarity-free multi-
+contact model, however, is left for future work.
+V. COMPLEMENTARITY-FREE CONTACT-IMPLICIT MPC
+With the proposed complementarity-free multi-contact model,
+the MPC formulation (8) becomes
+t0 c (qt, ut)  V (qT )
+subject to
+qt1  qt hv
+t is (23) with
+given q0.
+where is the integration of system position with velocity.
+In (26), at each prediction step t, the contact Jacobian
+and collision distance (qt) should ideally be computed for
+the predicted state qt using a collision detection routine .
+the MPC optimization (26) is challenging due to its non-
+differentiability. Fortunately, in a receding horizon framework,
+one can do once collision detection for each encountered real-
+system state q0  qreal
+to obtain
+J(q0) and (q0), which then
+remain fixed inside the MPC prediction. This is equivalent
+to linearizing the contact geometry, which works well for
+short-horizon MPC (i.e., T is small). We summarize the
+complementarity-free contact-implicit MPC in Algorithm 1.
+Algorithm 1: Complementarity-free contact-implicit MPC
+for MPC rollout step k  0, 1, 2, ... do
+Get current system position qreal
+env.getqpos();
+Collision detection to calculate
+k ) and (qreal
+Solve MPC (26) using any nonlinear optimization solver,
+with q0  qreal
+k ) and   (qreal
+Apply the first optimal input: env.step (u
+In our implementation below, we will show that a con-
+stant diagonal matrix K(q) surprisingly suffices for all the
+dexterous manipulation tasks (with different objects) we
+have encountered. A discussion on the setting of K(q) is
+provided later. For the other model parameters, such as
+for the object mass regularization in the quasi-dynamic
+model (1), we follow .   100 in SoftPlus, and
+nd  4 in polyhedral frictional cone. We use the collision
+detection routine in MuJoCo , which implements ,
+and solve the nonlinear MPC optimization using CasADi
+with the IPOPT solver . The following experiment
+results are reproducible using the code at
+video demos are available at
+VI. CONTACT SIMULATION AND COMPARISON
+A. Quasi-Dynamic Setting
+We first test the performance of the complementarity-free
+model in predicting a contact-rich pushing-box scene in quasi-
+dynamic setting, shown in Fig. 3. In this setup, a bar with
+a linear joint (moving left-right), actuated by a low-level
+position controller, pushes varying numbers of cubes on a
+frictional ground. We compare the proposed model (23) with
+QP-based model (7). Since no true quasi-dynamic model exists
+for benchmarking, the comparison is primarily visual, with
+the metric being the timing for time-stepping calculation. The
+model settings are in Table I.
+TABLE I: System and parameter setting
+Parameter
+Proposed model (23)
+QP-based model (7)
+q R7ncube1
+poses of all cubes and pusher bar (robot) x position
+desired bar displacement, sent to low-level controller
+Although in the proposed model (23), K(q) is configuration-
+matrix with identical entries. Our later experiments show that
+this setting is sufficient for decent contact-rich prediction.
+Further discussion on setting K(q) is provided later. The
+QP-based contact model (7) uses OSQP solver  for time-
+stepping. For both models, we initialize the environment with
+the same random q0 and set the same input ut  0.001. The
+prediction horizon is T  1000 steps. The predicted scenes of
+pushing 10 boxes at different time steps are shown in Fig. 3(a).
+To compare the timing of one-step prediction, we varied the
+number of cubes ncube, and the results are given in Fig. 3(b).
+based model yield similar predictions. However, Fig. 3(b) shows
+that the proposed model is 5x faster in one-step prediction. This
+is expected as the proposed model has an explicit time-stepping
+solving a quadratic program at each time step.
+B. Full Dynamic Setting
+tended complementarity-free contact model (25) in full dynamic
+Fig. 3: (a) The predicted scene of pushing 10 boxes at different steps,
+by the proposed model (upper row) and QP-based model (bottom
+row). (b) Timing comparison for one-step prediction. The tests were
+conducted on a machine with an Apple M2 Pro chip.
+classical complementarity-based multi-contact models, a naive
+QP-based model (7) (in the dynamic form), and the MuJoCo
+simulator . We will demonstrate that the proposed model:
+(I) mitigates non-physical artifacts commonly observed in QP
+models (7) and in general Anitescus contact models such as
+the CCP  and Convex  models, due to the relaxation of
+dual cone constraints; and (II) achieves sufficient smoothness
+in contact dynamics due to the spring-damper-based contact
+resolution (25). Evaluation is conducted in three task settings.
+In all dynamic settings below, instead of using the quasi-
+dynamic model (1), we employ the full dynamic model with
+current system position q and velocity v:
+M(q)v M(q)v  h(q, v)
+where M(q) is the configuration-dependent inertia matrix, and
+represents the sum of all non-contact forces, including inertial,
+follows that Q  M(q)h2 and b  M(q)vh(q, v). As
+discussed in Section IV-E, the extended complementarity-free
+contact model (25) further incorporates a damping term with
+a diagonal damping matrix D(q).
+Fig. 4: Left: a sphere is accelerated between two frictional planes
+under an external force (green arrow). Right: the tangential velocity
+of the sphere versus time. NCP [21, 51] and BLCP  contact
+models capture the acceleration, while the velocity plateaus for the
+CCP  and Convex  models due to the "sheath effect" induced by
+the dual cone constraints. The proposed complementarity-free model
+mitigates such issue because it allows for "violation" of the dual cone
+constraints while also introducing significant smoothness.
+1) Setting 1: Sphere Sliding Between two Planes: The task
+parallel planes as depicted Fig. 4. The sphere with radius of
+50 mm and mass 0.2kg begins at rest touching the lower plane.
+The top plane is 102mm above the bottom plane, so initially
+there is a gap of 2mm between the sphere and the top plane.
+The sphere is only given translational degrees of freedom and
+is accelerated with a constant force of 1N in the x-direction
+(shown in green arrow). The time step is 10ms, and the friction
+coefficient is 0.3. In the extended complementarity-free model
+(25), we set K(q)  20I and D(q)  6I. We compare the
+proposed (25) with NCP [21, 51], BLCP , CCP  and
+Convex  contact models. The results are shown in Fig. 4.
+With an external force, the sphere is supposed to accelerate
+with only contact with the lower plane. NCP [21, 51] and BLCP
+capture this. However, CCP  and Convex  models
+lead to the plateaus of velocity, so-called sheath effect". This
+is because dual cone constraints in CCP and Convex models
+create the vertical motion of the sphere, leading to the contact
+force from the top plane (the red arrows in the left of Fig. 4
+show the contact impulses.). If the sphere needs to go faster,
+both planes need to move farther away. In contrast, because our
+proposed model (25) has relaxed the dual cone constraint, our
+model can effectively mitigate such effect: the plateau velocity
+of our model is higher than CCPConvex. Fig. 4 also shows the
+softness of our model. This is expected because our generation
+of the contact force is handled as a spring-damper system (25)
+in the dual cone (Fig. 2(d)), which a smooth mapping (24)
+from system motion.
+Fig. 5: Left: an unactuated box sliding with initial horizontal velocity.
+Middle and right: the horizontal velocity and vertical position
+artifacts due to the enforcement of dual cone constraints, the proposed
+model significantly mitigates these effects by relaxing the dual
+cone constraints. Compared to MuJoCo, our model yields noticeably
+smoother velocity profiles.
+2) Setting 2: Unactuated Cube Sliding with Initial Horizontal
+a frictional ground with an initial horizontal velocity of 2.0
+ms until it comes to rest, as shown in Fig. 5. The friction
+coefficient is set to 0.5, and the simulation time step is 2
+ms. In the extended complementarity-free model (25), we
+use K(q)  I and D(q)  0.3I. The baselines include the
+naive QP-based model (7) (in dynamic form) and the MuJoCo
+simulator . Results are shown in the middle and right panels
+of Fig. 5. The vertical position trajectory (right) shows that the
+QP-based model (7) exhibits vertical motion artifacts due to the
+enforcement of the dual cone constraints, whereas the proposed
+model significantly mitigates these effects by relaxing the dual
+cone constraints. The horizontal velocity trajectory (middle
+plot) further demonstrates that, in comparison to MuJoCo, our
+model yields smoother behavior as a result of the soft handling
+of contact forces (24).
+Fig. 6: Left: cube free falling, rolling, and sliding on ground. Middle
+and right: the horizontal and vertical velocity trajectories, respectively.
+Compared to MuJoCo, our model yields noticeably smoother velocity
+profiles. Increasing the stiffness K leads to increased oscillations in
+the contact resolution.
+3) Setting 3: Cube Free Falling, Rolling, and Sliding on
+pose and velocity of the cube. Specifically, the initial position
+linear velocity [1.0, 0, 0], and the angular velocity [20, 0, 0].
+These initial conditions cause the cube to undergo free fall,
+followed by rolling and sliding on the ground until it comes
+to rest. We evaluate the extended complementarity-free model
+(25) using two different stiffness matrices: K(q)  I and
+K(q)  2I, while keeping all other parameters identical to
+those in Setting 2. The baseline for comparison is the MuJoCo
+simulator. As shown in Fig. 6, the proposed model produces
+behavior similar to MuJoCo, but with noticeably smoother
+velocity profiles. Moreover, increasing the spring stiffness K
+leads to greater oscillations in the contact response, highlighting
+the importance of incorporating a damping term in (25) for
+stable and realistic contact behavior.
+VII. FINGERTIPS IN-AIR MANIPULATION
+With the quasi-dynamic complementarity-free contact model
+(23), we evaluate the complementarity-free MPC (Algorithm
+1) for three-fingertip manipulation tasks, comparing it to the
+MPC of the QP-based contact model (7). Hereafter, we refer
+to the latter as Implicit MPC since the QP-based model (7)
+needs to be converted into its KKT conditions in the MPC (26),
+similar to [43, 23], to order for the MPC optimization to be
+solved with existing tools . All tasks below use MuJoCo as
+simulation environments. The proposed complementarity-free
+model (23) is only used in MPC for control optimization.
+A. Environment and Task Setup
+The three-fingertips manipulation system is shown in Fig. 7.
+MuJoCo  is used for environment simulation. The three
+fingertips (red, green, and blue) are actuated with a low-
+level PD controller (Kp  100 and Kv  2) with gravity
+compensation. We use four different objects: Stanford bunny,
+diameter of those objects ranges from 0.08 [m] to 0.15 [m].
+The initial pose of objects are statically lying on the ground
+with random xy position (xobj
+0 ) and random initial heading
+(yaw) angle obj
+Fig. 7: Three-fingertip manipulation of different objects. Three
+fingertips (red, green, blue) are actuated. The tests include 4 objects:
+(a) Stanford bunny, (b) cube, (c) foam brick, and (d) stick. The
+transparent objects are the target poses. For visualization, we have
+attached a virtual frame to the stick to show its pose. The diameter
+of those objects ranges from 0.05[m] to 0.15[m].
+We will consider three types of manipulation tasks:
+On-ground rotation: The target object pose is on the ground.
+The fingertips only need to move and rotate the object to
+align it with the target.
+On-ground flipping: The target requires flipping the object
+on the ground, with some target poses in non-equilibrium.
+In-air manipulation: The target pose is in the air. The
+fingertips must coordinate to prevent the object from falling
+while moving it to the target.
+B. MPC Setting and Results
+TABLE II: The model setting for all objects and tasks.
+object pose and 3D positions of three fingertips
+desired fingertip displacement, sent to low-level controller
+To show the versatility of the proposed complementarity-
+free MPC, we use the same model parameters and MPC cost
+function for all tasks and objects. The model setting is in Table
+II. The MPC path and final cost functions for all objects and
+tasks are defined as
+c(q, u) : ccontact(q)  0.05cgrasp(q)  50 u2 ,
+pobjptarget
+targetqobj)2 (29)
+objects position and quaternion1. In the path cost c(q, u), we
+define each term below. The contact cost term, defined as
+ccontact(q) :
+pobj pfti2 ,
+1The quaternion costerror is defined as
+targetqobj)2
+, as used in .
+The angle  between two normalized quaternions, q1 and q2, is calculated
+is to encourage the contact between fingertips (position pfti)
+and object (position pobj). The grasp cost term, defined as
+cgrasp(q) :
+obj  pft2
+obj  pft3
+is to encourage three fingertips to form a stable grasp shape.
+obj is the unit directional vector from the object position
+pobj to fingertip position pfti, viewed in object frame Robj:
+pfti pobj.
+This grasp cost is critical for in-air manipulation, where a
+stable grasp is essential to prevent dropping. The weights for
+each term in (29) are chosen based on the physical unit scale
+. The control lower and upper bounds are ulb  0.005
+and uub  0.005, and MPC prediction horizon is T  4. In
+Implicit MPC, we set the complementarity relaxation factor
+to 5  104 for its best performance, while keeping all other
+parameters identical to those in the complementarity-free MPC.
+We deem a manipulation task successful (and terminate the
+MPC rollout) if both of the following conditions are met:
+pobjptarget
+targetqobj)2 0.015,
+consecutively for 20 MPC rollout steps. A manipulation task
+is deemed a failure if the object does not satisfy (33) within
+the maximum MPC rollout length H  2000.
+1) On-ground Rotation: In on-ground rotation, the target
+object position ptarget[xtarget, ytarget, zheight]T is sampled as
+xtarget and ytarget U[0.1, 0.1] [m],
+and zheight is the height of the object lying on ground. The target
+object quaternion is qtargetrpyToQuat(target, target, target),
+with yaw target, pitch target, and roll target sampled as
+target U[, ],
+target  target  0.
+For each object, we conduct 20 trials with different random
+initial and target poses. The results are given in Table III, where
+the manipulation accuracy is evaluated using
+final position error:
+pobjqtarget
+final heading angle error:
+target obj,
+both calculated using the last 20 steps of a MPC rollout. Fig.
+8(a) shows a manipulation example for the Stanford bunny.
+2) On-ground Flipping: Here, the random target object
+position is sampled from (34), and the random target quaternion
+qtargetrpyToQuat(target, target, target) is sampled by
+target U[, ], target U[
+2 ], target U[
+Note that some target poses are in non-equilibrium.
+For each object, we conduct 20 trials with different random
+initial and target poses. The results are in Table IV, where we
+quantify the manipulation accuracy by
+final position error:
+pobjqtarget
+final quaternion error1
+targetqobj)2,
+both calculated using the last 20 steps of a MPC rollout. Fig. 8
+visualizes some random trials of on-ground flip manipulation.
+Fig. 8: On-ground manipulation examples. (a) On-ground rotation of Stanford bunny. (b) On-ground flipping of cube. (c) On-ground flipping
+of foambrick. (d)-(e) On-ground flipping of stick. In all figures, the initial object pose and fingertip positions are shown in transparency, and
+the final object pose and fingertip positions are shown in solid. The target object pose is coated with green. Video link.
+TABLE III: Results for on-ground rotation manipulation
+Final position error (36)
+Final heading angle error (36)
+MPC solving time
+Success rate
+Implicit MPC
+proposed
+Implicit MPC
+proposed
+Implicit MPC
+proposed
+Implicit MPC
+proposed
+Stanford bunny
+Foambrick
+Results for each object are based on 20 random trials, each with random initial and target object poses. A trial is successful if conditions (33)
+are met consecutively for 20 MPC rollout steps. Final errors are computed using the last 20 rollout steps in successful trials.
+TABLE IV: Results for on-ground flip manipulation
+Final position error (38)
+Final quaternion error (38)
+MPC solving time
+Success rate
+Implicit MPC
+proposed
+Implicit MPC
+proposed
+Implicit MPC
+proposed
+Implicit MPC
+proposed
+Foambrick
+Each objects results are based on 20 random trials. For implicit MPC, final position or quaternion errors are computed using all trials
+due to fewer successful trials. For the proposed method, the errors are computed using successful trials.
+3) In-air Manipulation: Here, we consider the target object
+pose in mid-air. Without ground support, the three fingertips
+must prevent the object from falling while moving it to
+a target pose. The in-air target object position ptarget
+[xtarget, ytarget, ztarget]T is sampled as
+ztarget U[0.03, 0.08] [m].
+The in-air target object orientation is
+qtarget  AxisAngleToQuat(ntarget, target),
+with random axis and angle sampled from
+ntarget N([0 1 1]T, 0.1I),
+target U[, ].
+The results of in-air manipulation are listed in Table V. Due
+to the very low success rate of Implicit MPC for this task type,
+its results are not included. Manipulation accuracy is measured
+using the metrics in (38). Fig. 9 shows some random examples
+of in-air manipulation with different objects.
+TABLE V: Results for in-air manipulation
+Final position
+error (38)
+Final quaternion
+error (38)
+MPC solve-
+ing time
+Stanford
+Foambrick
+Each objects results are based on 20 trials, each with a random initial
+and target pose. A trial is considered successful if conditions (33) are met
+consecutively for 20 MPC rollout steps.
+C. Result Analysis
+On results in Tables III-V, we make the following comments.
+(1) The proposed complementarity-free MPC consistently
+outperforms Implicit MPC (i.e., MPC with complementarity
+model) across various manipulation tasks in terms of success
+Fig. 9: In-air manipulation examples. (a) Two random trials of bunny in-air manipulation. (b) Two random trials of cube in-air manipulation. (c)
+Two random trials of foambrick in-air manipulation. In all examples, the initial object pose and fingertip positions are shown in transparency,
+and the final object pose and fingertips positions are in solid. The target object pose is coated in green. See supplementary video. Video link.
+complex tasks like on-ground flipping and in-air manipulation.
+(2) Quantitatively, the proposed complementarity-free MPC
+consistently achieves state-of-the-art results, with 100 success
+in on-ground rotation, over 95 in on-ground flipping, and
+over 90 in in-air manipulation. The average of the final object
+position error is 8.9 [mm] (noting object diameters range from
+50 [mm] to 150 [mm]) and final quaternion error is 0.0035
+(equivalent to 6.844) across all tasks and objects. The MPC
+frequency consistently exceeds 58 Hz for all tasks.
+(3) The above state-of-the-art results are largely due to the
+optimization. In IPOPT solver, the complementarity-free MPC
+optimization usually converges to a solution within around 20
+iterations. In contrast, Implicit MPC optimization struggles and
+takes longer to converge due to the numerous complementarity
+D. How to Set the Model Parameter K?
+Fig. 10: Complementarity-free MPC performance with different
+parameter K values for on-ground rotation tasks. Shaded areas are
+the standard deviation, computed from 10 random trials.
+In the above implementation, model parameters (Table II)
+follow standard setting , except for the new stiffness matrix
+K. We simply set K as an identity matrix for all tasks. Now,
+we examine how different K values affect MPC performance
+using the bunny on-ground rotation tasks. All parameters follow
+Table II, except K, which varies from 103I to 102I. For
+each K, we run 10 trials with different initial and target poses.
+MPC rollout length is 500. Fig. 10 shows the task performance
+versus different K, where the final position and quaternion
+errors (38) are calculated at the last rollout step.
+Fig. 10 shows that good performance is achieved across
+a wide range of K settings, from 0.01I to 10I. Outside
+this range, MPC performance declines. This highlights the
+flexibility in choosing an effective K value. Additionally, since
+the proposed complementarity-free model is fully differentiable,
+more complex K(q) settings can be learned from environment
+VIII. REAL-TIME DEXTEROUS IN-HAND MANIPULATION
+With the quasi-dynamic complementarity-free contact model
+(23), the complementarity-free MPC is evaluated in dexterous
+in-hand manipulation tasks with two environments:
+TriFinger in-hand manipulation. As in Fig. 11(a), the
+three-fingered robotic hand faces down and each finger has
+3 DoFs, actuated with low-level joint PD controllers with
+proportional gain Kp  10 and damping gain Kd  0.05.
+Allegro hand on-palm reorientation. An Fig. 11(b), the
+four-fingered hand faces up and each finger has 4 DoFs. We
+implemented a low-level joint PD controller for each finger
+with control gains: Kp  1 and Kd  0.05.
+All tasks use MuJoCo as simulation environments. The pro-
+posed complementarity-free model (23) is only used in MPC
+for planning optimization.
+Fig. 11: (a) TriFinger in-hand manipulation. (b) 4-Fingered Allegro
+hand on-palm reorientation. Both simulation environments are built
+using MuJoCo .
+In each environment, we focus on dexterous manipulation
+of 17 objects with diverse geometries, shown in Fig. 1. The
+object meshes are from the ContactDB dataset , with some
+proportional scaling to fit the workspace of the two hands.
+Object diameters range from 50 mm to 150 mm. In both
+TABLE VI: The model settings for two dexterous manipulation environments
+TriFinger in-hand manipulation
+Allegro hand on-palm reorientation
+q R79 including objects 6D pose and TriFingers 9 joints
+q R716 including objects 6D pose and all fingers 16 joints
+u R9: desired finger joint displacement, sent to low-level control
+u R16: desired finger joint displacement, sent to low-level control
+diag(50, 50, 50, 0.1, 0.1, 0.1) for all objects
+0.5I for all objects (chosen based on the results in Fig. 10)
+Fig. 12: Results of the TriFinger in-hand manipulation for various objects. For each object on the x-axis, the upper panel shows the success
+rate across 20 trials based on criterion (49). The middle and bottom panels show violin plots of the final position and quaternion errors in
+successful trials, with errors in failed trials indicated by gray dots. All errors are calculated according to (38). Video link.
+initial poses to randomly given target poses. To show the
+versatility of our complementarity-free MPC, we use the same
+object-related parameters in our model across environments
+and objects, despite varying physical properties. The model
+settings are listed in Table VI.
+A. TriFinger In-hand Manipulation
+1) Task Setup: The TriFinger in-hand manipulation task
+involves moving various objects (the first row of Fig. 1) from
+a random on-ground initial pose (pobj
+0 ) to a given random
+on-ground target pose (ptarget, qtarget). The initial object position
+with zheight being the height of an object when it rests on ground.
+The initial object quaternion is qobj
+0 rpyToQuat(obj
+with its heading (yaw) obj
+sampled from
+2 ] [rad].
+The target position ptarget[xtarget, ytarget, zheight] is sampled as
+and the target object heading (yaw) is sampled from
+target U[
+2 ] [rad].
+The above target range is set based on the reachable workspace
+of the TriFinger hand, consistent with .
+Fig. 13: An example of the TriFinger in-hand manipulation of an airplane object. The first five panels are screenshots of a MPC rollout at
+different steps, with the target shown in transparency. The final panel draws the position and quaternion errors (38) along the rollout steps.
+In the complementarity-free MPC, the path and final cost
+functions are defined as
+c(q, u):ccontact(q)  0.05cgrasp(q)  10 u2 ,
+pobjptarget
+targetqobj)2
+respectively. Here, the contact cost term ccontact is defined as the
+sum of squared distance between object and fingertip positions:
+ccontact(q) :
+pobj FK(qfingeri)
+with FK(qfingeri) the forward kinematics of finger i; other cost
+terms follow (29). The MPC control bounds are ulb  0.01
+and uub  0.01. MPC prediction horizon is T  4.
+2) Results: For each object, we run the MPC policy for 20
+trials. In each trial, we randomize the initial object and target
+poses according to (42)-(45). The MPC rollout length is set to
+H  500. The rollout early terminates if both of the following
+conditions
+pobjptarget
+targetqobj)2 0.04,
+are met consecutively for 20 rollout steps. We define
+if (48) is met consecutively for 20
+rollout steps within H  500,
+otherwise.
+Fig. 12 presents the TriFinger in-hand manipulation results,
+with the x-axis representing each object. The upper panel shows
+the success rate across 20 trials, while the middle and bottom
+panels respectively show violin plots of the final position and
+quaternion errors in successful trials, calculated according to
+(38). Errors in the failed trials are also shown in gray dots".
+The key performance metrics across all objects and all trials
+are summarized in Table VII.
+Fig. 14: An example of failed trial in manipulating camera.
+TABLE VII: Summary of the TriFinger in-hand manipula-
+tion results across all objects and trials
+Overall success rate
+Overall final position error a(38)
+Overall final quaternion error (38)
+Overall final angle errorb
+Average MPC solving time per rollout step
+a Note that object diameters range from 50 [mm] to 150 [mm].
+b The angle error is calculated by  arccos(2(qT
+targetqobj)21).
+3) Analysis: Fig. 12 and Table VII demonstrate that the
+proposed complementarity-free MPC consistently achieves high
+success rates and accuracy in TriFinger in-hand manipulation
+across diverse objects, with MPC running at around 80 Hz.
+These results represent state-of-the-art performance compared
+to the previous work . Fig. 13 illustrates a MPC rollout
+example for in-hand manipulation of an airplane object.
+Despite the high overall success rate, failures occur for few
+90). In Fig. 14, we show a failed trial. We observed that the
+primary cause of the manipulation failure was the self-collision
+of the three fingers. Since self-collision is not included as a
+motion constraint in our MPC optimization, it can occur when
+object pose approaches the edge of valid workspace.
+B. Allegro Hand On-palm Reorientation
+1) Task Setup: The Allegro hand on-palm reorientation tasks
+involve reorienting various objects (Fig. 1) from a random initial
+pose (pobj
+0 ) to a randomly given target pose (ptarget, qtarget).
+The initial pose of an object rests on the hand palm, with the
+position pobj
+sampled from the palm center perturbed by a
+zero-mean Gaussian noise with standard deviation 0.005I [m].
+The initial object orientation is qobj
+0 rpyToQuat(obj
+with its heading (yaw) angle obj
+sampled from
+2 ] [rad].
+To prevent the object from falling, we set the target object
+position at the center of the palm. The target orientation is
+qtargetrpyToQuat(target, 0, 0), with the heading (yaw) angle
+target sampled via
+target obj
+That is, the target orientation a rotation of the initial orientation
+by 2 or 2 uniformly. We choose this large discrete
+Fig. 15: Results of the Allegro hand on-palm reorientation of diverse objects. For each object (in x-axis), the upper panel shows the success
+rate across 20 random trials based on the criterion (55). The bottom panel shows the violin plots of quaternion errors (log-scale) in all
+successful trials. Here, errors in failed trials are shown as gray dots". The quaternion error is defined in (38). Video link.
+Fig. 16: An example of the Allegro hand reorientation of a stick object. The first six images display the screenshots of a MPC rollout at
+different steps, with the target orientation shown in transparency. The last column shows the quaternion error (38) along rollout steps.
+target orientations instead of a continuous range to make the
+reorientation tasks more challenging for the Allegro hand.
+The complementarity-free model setting is in Table VI. In
+c(q, u):ccontact(q)  0.1 u2
+pobjptarget
+targetqobj)2, (52)
+respectively. Here, ccontact is defined as the sum of the squared
+distance between object position and all fingertips:
+ccontact(q) :
+pobj FK(qfingeri)
+with FK(qfingeri) the forward kinematics of finger i. Compared
+to (46), we remove the grasp cost term in c(q, u) because we
+found including it is unnecessary for the Allegro hand tasks
+here. We also decrease the weight for the position cost in V (q)
+to prioritize the re-orientation accuracy instead of position.
+The control bounds for the Allegro hand are ulb 0.2 and
+uub0.2. MPC prediction horizon is T4.
+2) Results: For each object (Fig. 1), we run the MPC policy
+for 20 trials, each with random initial and target poses. The
+MPC rollout length is set to H  500, and the rollout is
+terminated early if the following condition,
+targetqobj)2 0.04,
+is met consecutively for 20 rollout steps. We define
+succeeds
+if (54) is met for consecutive 20
+rollout steps within H  500,
+otherwise.
+Fig. 15 presents the Allegro hand on-palm reorientation
+results for different objects. For each object (x-axis), the upper
+panel shows the success rate across 20 random trials, while the
+bottom panel show the violin plots of final quaternion errors
+in successful trials. Errors in failed trials are shown as gray
+dots". The final quaternion error is calculated using (38). Table
+VIII summarizes the overall performance.
+3) Analysis: Fig. 15 and Table VIII demonstrate the state-of-
+the-art performance of the proposed complementarity-free MPC
+for Allegro hand on-palm reorientation. The overall success
+rate is 97.64  5.18, with an average reorientation error of
+11.50 4.61, and MPC runs at over 50 Hz. Fig. 16 shows
+a MPC rollout example for stick reorientation.
+TABLE VIII: Summary of the Allegro hand on-palm
+reorientation results over all objects and all trials
+Overall success rate
+Overall final quaternion error
+Overall final angle errora
+Average MPC solving time per rollout step
+a Angle error is calculated by  arccos(2(qT
+targetqobj)21).
+Fig. 17: An failure case for stick reorientation.
+Fig. 15 shows lower success rates for the airplane (90) and
+stick (80). The primary reason for these failures is the large
+object geometry relative to the Allegro palm, causing those
+objects to become out of reach or stuck between the fingers
+during reorientation. Fig. 17 gives a failure case.
+IX. LIMITATIONS AND FUTURE WORK
+In our experiments, we found the contact-implicit MPC
+is limited to handle dexterous manipulation that requires
+contact reasoning over global geometry. In Algorithm 1, our
+contact-implicit MPC optimization relies on a fixed and locally
+linearized geometry (Jacobian). This means the MPC optimizes
+contact plans using local linearized geometry. Thus, it may
+struggle with tasks requiring global contact optimization. For
+rical objects into slots requires global contact reasoning.
+To address this limitation, one potential direction is to
+integrate a collision detection pipeline directly into the MPC
+optimization. However, this approach can pose computa-
+tional challenges, as collision detection itself can be a non-
+differentiable optimization problem. Our recent work ,
+which introduces an end-to-end smooth contact model encom-
+passing both collision detection and time stepping, may offer a
+promising solution. Another direction involves incorporating a
+high-level geometric planner to guide the contact-implicit MPC.
+Among these directions, the proposed complementarity-free
+multi-contact model remains a strong candidate for efficient
+and scalable local contact reasoning. We plan to explore these
+research directions in future work.
+X. CONCLUSION
+We propose a complementarity-free multi-contact model for
+planning and control in dexterous manipulation. By reformu-
+lating complementarity constructs into closed forms within
+the duality of optimization-based contact formulations, our
+model offers significant computational benefits in contact-rich
+modeling and optimization: time-stepping explicitness, auto-
+matic sanctification with Coulomb friction law, differentiability,
+and fewer hyperparameters. The effectiveness of the proposed
+complementarity-free model and its MPC have been thoroughly
+evaluated in a range of challenging dexterous manipulation
+in-hand manipulation, and Allegro hand on-palm reorientation,
+all involving diverse objects. The results show that our method
+consistently achieves state-of-the-art results for highly versatile,
+APPENDIX
+A. Proof of Lemma 1
+The KKT optimality condition of the optimization (12) writes
+with  the vector of the Lagrangian multipliers for the
+constraints in (12). Writing  in terms of  from the first
+equation and substituting it the second equation leads to (1),
+which completes the proof.
+B. Proof of Lemma 2
+With a positive definite diagonal matrix K(q) replacing
+TR)1 in (13), the approximation dual solution
+to (13) can be obtained based on the following identity
+which leads to (15). With the approximation dual solution (15),
+the approximation primal solution v in (16) can be obtained
+by substituting  to (11). This completes the proof.
+REFERENCES
+Bernardo Aceituno-Cabezas and Alberto Rodriguez. A
+global quasi-dynamic model for contact-trajectory op-
+timization in manipulation. In Robotics: Science and
+Systems Foundation, 2020.
+Arthur Allshire, Mayank MittaI, Varun Lodaya, Vik-
+tor Makoviychuk, Denys Makoviichuk, Felix Widmaier,
+Manuel Wthrich, Stefan Bauer, Ankur Handa, and
+Animesh Garg. Transferring dexterous manipulation from
+gpu simulation to a remote real-world trifinger. In 2022
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), pages 1180211809. IEEE, 2022.
+Joel A E Andersson, Joris Gillis, Greg Horn, James B
+CasADi  A software
+framework for nonlinear optimization and optimal control.
+Mathematical Programming Computation, 11(1):136,
+Joel AE Andersson, Joris Gillis, Greg Horn, James B
+work for nonlinear optimization and optimal control.
+Mathematical Programming Computation, 11:136, 2019.
+Arthur Petron, Matthias Plappert, Glenn Powell, Alex
+International Journal of Robotics Research, 39(1):320,
+Mihai Anitescu.
+Optimization-based simulation of
+nonsmooth rigid multibody dynamics.
+Mathematical
+Mihai Anitescu and Alessandro Tasora. An iterative ap-
+proach for cone complementarity problems for nonsmooth
+dynamics. Computational Optimization and Applications,
+Alp Aydinoglu and Michael Posa. Real-time multi-contact
+model predictive control via admm. In 2022 International
+Conference on Robotics and Automation (ICRA), pages
+Alp Aydinoglu, Adam Wei, Wei-Cheng Huang, and
+Michael Posa. Consensus complementarity control for
+multi-contact mpc.
+arXiv preprint arXiv:2304.11259,
+Stephen Boyd and Lieven Vandenberghe. Convex opti-
+mization. Cambridge university press, 2004.
+Samarth Brahmbhatt, Cusuh Ham, Charles C Kemp, and
+James Hays. Contactdb: Analyzing and predicting grasp
+contact via thermal imaging.
+In Proceedings of the
+IEEECVF conference on computer vision and pattern
+Iordanis Chatzinikolaidis, Yangwei You, and Zhibin
+Contact-implicit trajectory optimization using an
+analytically solvable contact model for locomotion on
+variable ground. IEEE Robotics and Automation Letters,
+Tao Chen, Jie Xu, and Pulkit Agrawal. A system for
+general in-hand object re-orientation. In Conference on
+Robot Learning, pages 297307. PMLR, 2022.
+Xianyi Cheng, Eric Huang, Yifan Hou, and Matthew T
+Contact mode guided motion planning for
+quasidynamic dexterous manipulation in 3d. In 2022
+International Conference on Robotics and Automation
+(ICRA), pages 27302736. IEEE, 2022.
+Erwin Coumans and Yunfei Bai.
+module for physics simulation for games, robotics and
+machine learning.  20162023.
+Steven P Dirkse and Michael C Ferris.
+The path
+complementarity problems. Optimization methods and
+Kenny Erleben. Velocity-based shock propagation for
+multibody dynamics animation. ACM Transactions on
+Graphics (TOG), 26(2):12es, 2007.
+Daniel Fiser. libccd, 2018.
+Moritz Geilinger, David Hahn, Jonas Zehnder, Moritz
+systems with frictional contact. ACM Transactions on
+Graphics (TOG), 39(6):115, 2020.
+Neville Hogan.
+Impedance control: An approach to
+manipulation. In 1984 American control conference, pages
+Peter C Horak and Jeff C Trinkle. On the similarities and
+differences among contact models in robot simulation.
+IEEE Robotics and Automation Letters, 4(2):493499,
+Taylor A Howell, Simon Le Cleach, Jan Brdigam, J Zico
+differentiable physics engine for robotics. arXiv preprint
+Taylor A Howell, Simon Le Cleach, Sumeet Singh,
+Pete Florence, Zachary Manchester, and Vikas Sindhwani.
+Trajectory optimization with optimization-based dynamics.
+IEEE Robotics and Automation Letters, 7(3):67506757,
+Wei-Cheng Huang, Alp Aydinoglu, Wanxin Jin, and
+Michael Posa. Adaptive contact-implicit model predictive
+control with online residual learning.
+In 2024 IEEE
+International Conference on Robotics and Automation
+(ICRA), pages 58225828. IEEE, 2024.
+Du Q Huynh. Metrics for 3d rotations: Comparison and
+analysis. Journal of Mathematical Imaging and Vision,
+Wanxin Jin and Michael Posa. Task-driven hybrid model
+reduction for dexterous manipulation. IEEE Transactions
+on Robotics, 2024.
+Wanxin Jin, Shaoshuai Mou, and George J Pappas. Safe
+pontryagin differentiable programming.
+Advances in
+Neural Information Processing Systems, 34:1603416050,
+Wanxin Jin, Alp Aydinoglu, Mathew Halm, and Michael
+Learning linear complementarity systems.
+Learning for Dynamics and Control Conference, pages
+Vince Kurtz, Alejandro Castro, Aykut zgn nol, and
+Hai Lin. Inverse dynamics trajectory optimization for
+contact-implicit model predictive control. arXiv preprint
+Simon Le Cleach, Taylor A Howell, Shuo Yang, Chi-
+Yen Lee, John Zhang, Arun Bishop, Mac Schwager,
+and Zachary Manchester. Fast contact-implicit model
+predictive control. IEEE Transactions on Robotics, 2024.
+Jeongseok Lee, Michael X. Grey, Sehoon Ha, Tobias
+Mike Stilman, and C Karen Liu. Dart: Dynamic animation
+and robotics toolkit. The Journal of Open Source Software,
+Weiwei Li and Emanuel Todorov. Iterative linear quadratic
+regulator design for nonlinear biological movement sys-
+tems. In First International Conference on Informatics
+in Control, Automation and Robotics, volume 2, pages
+222229. SciTePress, 2004.
+Xueyi Liu, Kangbo Lyu, Jieqiong Zhang, Tao Du, and
+Li Yi. Quasisim: Parameterized quasi-physical simulators
+for dexterous manipulations transfer.
+arXiv preprint
+Matthew T Mason. Mechanics of robotic manipulation.
+MIT press, 2001.
+Carlos Mastalli, Rohan Budhiraja, Wolfgang Merkt, Guil-
+hem Saurel, Bilal Hammoud, Maximilien Naveau, Justin
+Nicolas Mansard. Crocoddyl: An efficient and versatile
+framework for multi-contact optimal control. In IEEE
+International Conference on Robotics and Automation,
+pages 25362542. IEEE, 2020.
+Igor Mordatch, Emanuel Todorov, and Zoran Popovic.
+Discovery of complex behaviors through contact-invariant
+optimization. ACM Transactions on Graphics (ToG), 31
+Anusha Nagabandi, Kurt Konolige, Sergey Levine, and
+Vikash Kumar.
+Deep dynamics models for learning
+dexterous manipulation. In Conference on Robot Learning,
+pages 11011112. PMLR, 2020.
+Jia Pan, Sachin Chitta, and Dinesh Manocha. Fcl: A
+general purpose library for collision and proximity queries.
+In 2012 IEEE International Conference on Robotics and
+Tao Pang and Russ Tedrake. A convex quasistatic time-
+stepping scheme for rigid multibody systems with contact
+and friction.
+In 2021 IEEE International Conference
+on Robotics and Automation (ICRA), pages 66146620.
+Tao Pang, H. J. Terry Suh, Lujie Yang, and Russ
+Tedrake.
+Planning for contact-rich manipulation via
+local smoothing of quasi-dynamic contact models. IEEE
+Transactions on Robotics, 39(6):46914711, 2023. doi:
+Tao Pang, HJ Terry Suh, Lujie Yang, and Russ Tedrake.
+Global planning for contact-rich manipulation via local
+smoothing of quasi-dynamic contact models.
+Transactions on Robotics, 2023.
+Samuel Pfrommer, Mathew Halm, and Michael Posa.
+with smooth, implicit representations. In Conference on
+Robot Learning, pages 22792291. PMLR, 2021.
+Michael Posa, Cecilia Cantu, and Russ Tedrake. A direct
+method for trajectory optimization of rigid bodies through
+contact. The International Journal of Robotics Research,
+Haozhi Qi, Ashish Kumar, Roberto Calandra, Yi Ma, and
+Jitendra Malik. In-hand object rotation via rapid motor
+adaptation.
+In Conference on Robot Learning, pages
+Aravind Rajeswaran, Vikash Kumar, Abhishek Gupta,
+Giulia Vezzani, John Schulman, Emanuel Todorov, and
+Sergey Levine. Learning complex dexterous manipulation
+with deep reinforcement learning and demonstrations.
+arXiv preprint arXiv:1709.10087, 2017.
+Walter Rudin et al. Principles of mathematical analysis,
+volume 3. McGraw-hill New York, 1964.
+Jean-Pierre Sleiman, Farbod Farshidian, Maria Vittoria
+whole-body dynamic locomotion and manipulation. IEEE
+Robotics and Automation Letters, 6(3):46884695, 2021.
+Bartolomeo Stellato, Goran Banjac, Paul Goulart, Alberto
+splitting solver for quadratic programs. Mathematical
+Programming Computation, 12(4):637672, 2020.
+David Stewart and Jeffrey C Trinkle.
+An implicit
+time-stepping scheme for rigid body dynamics with
+coulomb friction. In Proceedings 2000 ICRA. Millen-
+nium Conference. IEEE International Conference on
+Robotics and Automation. Symposia Proceedings (Cat.
+No. 00CH37065), volume 1, pages 162169. IEEE, 2000.
+David E Stewart. Convergence of a time-stepping scheme
+for rigid-body dynamics and resolution of painlevs
+problem. Archive for Rational Mechanics and Analysis,
+David E Stewart. Rigid-body dynamics with friction and
+impact. SIAM review, 42(1):339, 2000.
+David E Stewart and Jeffrey C Trinkle. An implicit time-
+stepping scheme for rigid body dynamics with inelastic
+collisions and coulomb friction. International Journal for
+Numerical Methods in Engineering, 39(15):26732691,
+Hyung Ju Terry Suh, Tao Pang, and Russ Tedrake. Bun-
+dled gradients through contact via randomized smoothing.
+IEEE Robotics and Automation Letters, 7(2):40004007,
+Alessandro Tasora and Mihai Anitescu. A matrix-free
+cone complementarity approach for solving large-scale,
+Applied Mechanics and Engineering, 200(5-8):439453,
+Alessandro Tasora, Radu Serban, Hammad Mazhar, Ar-
+man Pazouki, Daniel Melanz, Jonathan Fleischmann,
+Michael Taylor, Hiroyuki Sugiyama, and Dan Negrut.
+In High Performance Computing in Science and Engi-
+Papers 2, pages 1949. Springer, 2016.
+Yuval Tassa, Tom Erez, and Emanuel Todorov. Synthesis
+and stabilization of complex behaviors through online
+trajectory optimization. In 2012 IEEERSJ International
+Conference on Intelligent Robots and Systems, pages 4906
+Russ Tedrake and the Drake Development Team. Drake:
+Model-based design and verification for robotics, 2019.
+Emanuel Todorov. Implicit nonlinear complementarity:
+A new approach to contact dynamics. In 2010 IEEE
+international conference on robotics and automation,
+pages 23222329. IEEE, 2010.
+Emanuel Todorov, Tom Erez, and Yuval Tassa.
+2012 IEEERSJ International Conference on Intelligent
+Robots and Systems, pages 50265033. IEEE, 2012. doi:
+Andreas Wchter and Lorenz T Biegler. On the imple-
+mentation of an interior-point filter line-search algorithm
+for large-scale nonlinear programming. Mathematical
+Alexander W Winkler, C Dario Bellicoso, Marco Hutter,
+and Jonas Buchli.
+Gait and trajectory optimization
+for legged systems through phase-based end-effector
+parameterization. IEEE Robotics and Automation Letters,
+Katsu Yamane and Yoshihiko Nakamura. Stable penalty-
+based model of frictional contacts.
+In Proceedings
+2006 IEEE International Conference on Robotics and
+Wen Yang and Wanxin Jin. Contactsdf: Signed distance
+functions as multi-contact models for dexterous manip-
+ulation. IEEE Robotics and Automation Letters, 10(5),
+William Yang and Michael Posa.
+Dynamic on-palm
+manipulation via controlled sliding.
+arXiv preprint
+Shenao Zhang, Wanxin Jin, and Zhaoran Wang. Adaptive
+barrier smoothing for first-order policy gradient with con-
+tact dynamics. In International Conference on Machine

@@ -1,0 +1,1404 @@
+=== PDF文件: Uncertainty-Aware Trajectory Prediction via Rule-Regularized Heteroscedastic Deep Classification.pdf ===
+=== 时间: 2025-07-21 14:27:44.543338 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Uncertainty-Aware Trajectory Prediction via
+Rule-Regularized Heteroscedastic Deep
+Classication
+Kumar Manas1, Christian Schlauch2,3, Adrian Paschke1,4,Christian Wirth2 and Nadja Klein3
+AbstractDeep learning-based trajectory prediction models
+have demonstrated promising capabilities in capturing complex
+interactions. However, their out-of-distribution generalization
+remains a signicant challenge, particularly due to unbalanced
+data and a lack of enough data and diversity to ensure robustness
+and calibration. To address this, we propose SHIFT (Spectral
+Heteroscedastic Informed Forecasting for Trajectories), a novel
+framework that uniquely combines well-calibrated uncertainty
+modeling with informative priors derived through automated rule
+extraction. SHIFT reformulates trajectory prediction as a clas-
+sication task and employs heteroscedastic spectral-normalized
+Gaussian processes to effectively disentangle epistemic and
+aleatoric uncertainties. We learn informative priors from training
+driving rules, such as stop rules and drivability constraints,
+using a retrieval-augmented generation framework powered by
+a large language model. Extensive evaluations over the nuScenes
+displacement metrics. In particular, our model excels in complex
+higher. Project page:
+I. INTRODUCTION
+Trajectory prediction represents a fundamental challenge
+in autonomous driving and robotics, serving as a critical
+bridge between perception and planning systems [37, 22].
+As illustrated in Fig. 1, autonomous vehicles must simultane-
+ously reason about multiple possible future trajectories while
+accounting for road conditions, trafc rules, and multi-agent
+interactions. This complex decision-making process becomes
+particularly challenging in urban environments, where the in-
+teractions between vehicles, pedestrians, and infrastructure are
+fast-changing [25, 5]. Deep learning approaches for trajectory
+prediction have demonstrated remarkable potential in tackling
+these challenges . Nevertheless, the safety-critical nature
+of autonomous driving introduces requirements that current
+state-of-the-art deep learning-based trajectory predictors strug-
+gle to address comprehensively.
+given the high cost of data collection and long-tail distribution
+of unique scenarios in urban environments. For example, most
+observed scenarios involve relatively simple behaviors, such
+1Department of Mathematics and Computer Science, Freie Universitat
+2Continental Automotive Technologies GmbH, AI Lab Berlin.
+3Karlsruhe Institute of Technology, Scientic Computing Center, Methods
+for Big Data. 4Fraunhofer Institute for Open Communication Systems, Berlin,
+Germany. Contact: kumar.manasfu-berlin.de.
+as following a straight road, while rare safety-critical events,
+like near-accidents, are particularly challenging to capture
+due to their low frequency. Data efciency of deep learning-
+based trajectory predictors has only recently gained attention
+in scientic investigations [16, 56].
+perception systems, and geographic locations. Social norms
+and trafc rules provide valuable context for predicting com-
+pliant agent behavior . However, informed or knowledge-
+guided deep learning-based trajectory predictors have predom-
+inantly focused on physical constraints [12, 1, 27, 55], leaving
+broader contextual prior knowledge underexplored .
+uncertainty that must be carefully quantied. Epistemic uncer-
+tainty arises from model limitations and incomplete training
+of agent behavior and environmental dynamics . Although
+most trajectory prediction models address the predictive multi-
+modality resulting from these uncertainties (e.g., by framing it
+as a classication problem), many fail to provide sufciently
+calibrated uncertainty estimates, leading to mode-collapse is-
+To address these requirements, we propose SHIFT (Spectral
+Heteroscedastic Informed Forecasting for Trajectories) to syn-
+ergize uncertainty quantication with rules as soft constraints
+in a scalable framework as visualized in Fig. 2:
+1) We extend the Heteroscedastic Spectral-normalized
+Gaussian Processes (HetSNGP) by Fortuin et al.
+to the trajectory prediction using the CoverNet baseline
+architecture . CoverNet frames the prediction as
+a classication problem. HetSNGPs enable simultane-
+ous estimation of epistemic and aleatoric uncertainties
+through a distance-aware neural GP layer combined with
+input-dependent noise modeling, improving calibration
+and requiring minimal architectural change and compu-
+tational overhead.
+2) We model epistemic uncertainty while accounting for
+the inherent stochasticity of agent interactions through
+aleatoric uncertainty, enabling a sequential learning pro-
+cess for informative prior weight distributions. In stage
+capturing structured prior knowledge. These learned
+trafc rule priors are then imposed as regularization
+during stage 2, guiding model training on real-world
+observations. This approach soft-constrains trajectory
+Traffic Rule-Based Prior Trajectory
+Posterior Trajectory
+Ego Uncertainty Zone
+V1 Predicted Trajectory
+V2 Predicted Trajectory
+Fig. 1: Visualization of SHIFTs trajectory prediction framework. Rule-based priors (blue dashed) generate trajectories without
+interaction modeling, while interaction-aware HetSNGP posteriors (pink solid) produce uncertainty-calibrated ego paths.
+Surrounding vehicles predictions (V1: green dashed, V2: purple dashed) with uncertainty regions (light greenpurple shading)
+reveal multi-agent dynamics. Denser pink stripes (not size-based) highlight where vehicle interactions amplify prediction
+predictions to align with trafc rules while preserving
+the exibility to adapt to high-uncertainty and uncom-
+mon driving scenarios.
+3) We employ a large language model (LLM) pipeline
+to semi-automatically generate synthetic training labels
+from natural language descriptions. This approach al-
+lows us to more easily scale the integration of multiple
+trafc rules, either as (a) a single unied prior learned
+from a single knowledge task or (b) a chained prior
+sequentially learned from multiple knowledge tasks in
+our rst training stage.
+SHIFT increases data efciency and robustness by integrat-
+ing sets of rules into the training process. Through extensive
+experiments on the nuScenes dataset , we demonstrate
+robust performance gains across varying training-set sizes
+(100 vs. reduced data) and challenging geographical splits
+(cross-location tests). Our results show particular strength
+in out-of-distribution scenarios, where the combination of
+uncertainty awareness and rule-based soft constraints provides
+more reliable predictions than conventional training methods.
+II. RELATED WORK
+Trajectory Prediction Models: Existing models can be dif-
+ferentiated based on whether they predict the future behavior
+of all agents simultaneously (joint trajectory prediction) or a
+single agent at a time (marginal trajectory prediction), with
+most work focusing on the simpler latter problem [22, 54].
+Deep learning approaches have achieved state-of-the-art per-
+formance in in-distribution evaluation settings, surpassing tra-
+ditional methods such as kinematic models , Kalman lters
+and Bayesian Networks  . Building on the work of Hage-
+dorn et al. , deep learning-based trajectory predictors can
+be categorized based on their input representation, model back-
+include birds-eye-view (BEV) image rasterizations , sparse
+vector encodings , graphs , and parametric curves .
+Model backbone encompass convolutional neural networks
+(CNN) , recurrent neural networks , graph neural
+networks  and more recently transformers [50, 57, 36].
+Trajectory decoding method include regression , anchor
+trajectory classication , trajectory renement  or end-
+point completion . Our chosen baseline, CoverNet ,
+utilizes a CNN backbone with BEV input rasterization and
+frames the prediction problem as anchor trajectory classica-
+tion. This makes it particularly suitable for our modications.
+Informed Trajectory Prediction: Informed, or knowledge
+or rule-guided learning integrates explicit prior knowledge
+into the training process or architecture of deep learning
+models . Most existing methods integrate physical knowl-
+edge to eliminate physically implausible outcomes, thereby
+simplifying the solution space [39, 12, 1, 27, 55]. In con-
+as they can be violated in uncertain or atypical scenarios.
+Their integration often relies on transfer learning  or multi-
+task learning methods . A related probabilistic approach
+learns informative priors sequentially from synthetic training
+setup offers exibility, allowing sequences to be extended
+while minimizing catastrophic forgetting [14, 51]. However,
+unlike our method, it does not incorporate trafc rules and
+local rule constraints. Additionally, a signicant challenge
+remains in translating natural language descriptions of rules
+into synthetic training labels. Recent efforts used retrieval
+augmented generation (RAG)  and large language models
+Trajectory Features
+Scene Context
+Epistemic Uncertainty
+Aleatoric Uncertainty
+Ground Truth Labels
+Observed Trajectory
+Input Processing
+Historical Trajectories
+HD Map Features
+Stage 2: Multiclass classification
+Spectral Normalization Refinement
+Heteroscedastic GP Layer Refinement
+Epistemic Uncertainty
+Aleatoric Uncertainty
+Categorical Cross-entropy Loss
+Predicted Trajectory
+Epistemic Uncertainty
+Aleatoric Uncertainty
+Stage 1: Multilabel Classification
+Spectral Normalized Layers
+Heteroscedastic GP Layer
+Epistemic Uncertainty
+Aleatoric Uncertainty
+Binary Cross-entropy Loss
+Regularization
+Regularization
+Traffic Rule Labels
+LLM-Generated
+Fig. 2: Concept of the SHIFT framework for uncertainty-aware trajectory prediction. Our model is based on the CoverNet
+output layer is replaced by a heteroscedastic Gaussian process. Given the processed input, comprising trajectory histories and
+map features, the model is trained in a multilabel classication on trafc rule labels generated from an LLM-based rule-ltering
+approach (stage 1). The obtained informative prior is used to regularize the multi-class classication training on ground truth
+labels from the observed data (stage 2). The model outputs consist of the predicted trajectories and disentangled epistemic and
+aleatoric uncertainty estimates. Best viewed in color.
+(LLMs) to convert language descriptions into formal logic
+rules [21, 33, 34]. We employ these logic rules to lter input-
+dependent synthetic training labels from predened anchor
+trajectories.
+Uncertainty Quantication: Mode-collapse arises when tra-
+jectory prediction models fail to adequately capture the full
+diversity of possible futures . This issue is commonly
+addressed through design choices in trajectory decoding .
+For instance, in anchor trajectory classication, the softmax-
+normalized logits represent distributional information and
+identify the most likely top-k anchors . However, deter-
+ministic deep learning models often exhibit overcondence,
+which hinders their ability to accurately reect the true vari-
+ance and multiple modes of the underlying distribution. Their
+calibration can be substantially improved using principled
+uncertainty estimation techniques, such as those provided by
+approximate Bayesian deep learning . Commonly used
+sampling-based methods, including Deep Ensembles ,
+Monte Carlo (MC) Dropout , Stochastic Weight Averaging
+Gaussian (SWAG) , Laplace  or variational approx-
+require multiple forward passes during prediction. Itkina and
+Kochenderfer  demonstrated the signicance of estimating
+epistemic uncertainty in trajectory prediction through eviden-
+tial deep learning, utilizing a classication-based prediction
+framework similar to ours. In contrast, Spectral-normalized
+Gaussian Processes (SNGPs) , belonging to the family of
+deterministic uncertainty estimators [9, 40], provide especially
+compute-efcient last-layer approximation. The Heteroscedas-
+tic Spectral-normalized Gaussian Process (HetSNGP)
+leverages the heteroscedastic method for classication prob-
+lems  to further improve calibration by disentangling the
+uncertainty into distance-aware epistemic and input-dependent
+aleatoric components . Thus, unlike homoscedastic mod-
+factors such as the complexity of the driving scenario at hand,
+instead of assuming a constant aleatoric uncertainty across all
+input conditions. This, in turn, can benet the calibration of
+the epistemic uncertainty , which we employ for our rule-
+informed learning approach.
+III. METHODOLOGY
+We focus our discussion on the marginal trajectory predic-
+tion. Here, we aim to predict the future possible trajectories
+of a single agent at a time over some horizon, given the road
+surrounding agents over some history, as well as the state of
+any trafc guidance systems. Our goal is to inform the model
+using trafc rules as explicit prior knowledge about the ex-
+pected behavior of the agent. We propose SHIFT to approach
+rule informed marginal trajectory prediction in a scalable
+CoverNet as our baseline model for trajectory classication,
+(B.) HetSNGP as uncertainty-aware extension to CoverNet,
+that disentangles epistemic and aleatoric uncertainties, (C.) a
+regularization method which enables the integration of priors
+into our HetSNGP-CoverNet model, (D.) a sequential task
+setup to learn these priors from synthetic training labels,
+and (E.) an automated rule-ltering approach to encode these
+synthetic training labels from natural language descriptions.
+We describe these building blocks and (F.) our rule selection
+A. Trajectory Classication with CoverNet
+We adopt an anchor trajectory classication approach as
+the foundation for our framework. This approach simplies
+the trajectory prediction by generating a input-dependent or
+input-independent set of anchor trajectories that capture all
+plausible future motions [4, 8]. These anchors can be rep-
+resented as classes in the output space Y  {1, 2, . . . , K}.
+The training data {(xi, yi)}N
+i1 consists of samples xi from
+the d-dimensional input space X
+Rd and the training
+labels yi being the classes in Y that most closely reect
+the observed ground truth trajectories as measured by the
+Euclidean distance. The model can then be trained to classify
+the most likely anchor using a categorical cross-entropy loss.
+Anchor trajectory classication offers several advantages.
+By appropriately sizing the anchor set, the prediction problem
+can be simplied, and the softmax-normalized logits provide
+probabilistic interpretations. Appropriately spaced anchors can
+also guard against drastic forms of mode-collapse . How-
+imation error, as the anchors may be arbitrarily distant from
+the actual ground truth trajectory. Consequently, the selection
+of anchor trajectories plays a critical role in the overall model
+performance.
+For our baseline, we build on CoverNet  as it employs
+such an anchor classication framework and has been used
+in related work for informed trajectory prediction [4, 44, 45].
+CoverNet processes birds-eye-view (BEV), agent-centric ras-
+terized input images using a ResNet-50 backbone. This ras-
+terization preserves spatial relationships well. Next, CoverNet
+generates a predened, input-independent anchor trajectory set
+based on all ground truth trajectories in the training data.
+Depending on a single distance parameter these trajectories
+are clustered to an appropriate number of anchors. This set
+of anchors is held xed across all inputs. Note, that CoverNet
+also proposes an input-dependent anchor generation based on
+a dynamical bicycle model which encodes physical knowledge
+as hard constraint. Our proposed methodology is in principle
+agnostic to the kind of anchor sets and can be combined with
+such anchor generation for physical knowledge integration. For
+simplicity we focus on the predened anchor set.
+B. Uncertainty-Aware Trajectory Classication
+CoverNet
+heteroscedastic
+Spectral-
+Normalized Gaussian Process (HetSNGP) . The Spectral-
+Normalized Gaussian Process (SNGP), originally introduced
+by Liu et al. , combines the representative power of deep
+neural networks with uncertainty-aware Gaussian Process
+(GP) models . The architecture consists of a deterministic,
+spectral-normalized feature extractor fNN : X H, and an
+hierarchical GP output layer f L
+Fig. 3: Components of a HetSNGP model include a spectral-
+normalized feature extractor and a heteroscedastic Gaussian
+process as output layer.
+The feature extractor is a neural network parameterized
+through NN that maps the high dimensional input space
+X Rd into a low dimensional hidden space H Rm
+with m d. The spectral-normalization enforces Lipschitz
+the feature extractor  and prevent feature-collapse . It
+is especially efcient to compute for the residual layers of a
+CNN-based backbone , as used in our CoverNet baseline.
+The resulting training data {(hi, yi)}N
+i1 with its embedded
+inputs hi  fNN(xi) is then fed into the GP output layer.
+The GP output layer employs a radial basis function (RBF)
+kernel  and maps from the hidden space H into the output
+space Y. Its hierarchical structure enables to quantify both,
+aleatoric and epistemic uncertainties. The GP latent variable
+g is modeled with a zero-mean multivariate normal distribution
+prior per-class c Y :
+gc N(0, (h, h))
+The posterior covariance matrix (h, h) of gc captures epis-
+temic uncertainty. This uncertainty is class-independent, as the
+GP prior is shared across all classes.
+To model aleatoric uncertainty, the HetSNGP introduces a
+hierarchical latent variable u with the following prior per-
+sample i {1, . . . , N}:
+ui N(gi, (h, h))
+where (h, h) has a low-rank approximation based on a
+factor covariance matrix modeled as linear neural network with
+parameters u  to achieve scalability with the number of
+classes K. The variable u captures input-dependent noise (e.g.,
+sensor noise, agent intent ambiguity) and is processed through
+a heteroscedastic layer to produce aleatoric uncertainty. Unlike
+epistemic uncertainty, aleatoric uncertainty is sample-specic
+and varies across inputs. The hierarchical setup using both
+uncertainties correlates samples and classes in the posterior,
+leading to a better calibration .
+The above formulation is computationally intractable. To
+achieve tractability the kernel is shared between all classes
+and approximated as (h, h)  using m random Fourier
+features (RFF) i
+m cos(Whi  b), where W and b
+are xed randomly sampled weights and biases respectively,
+based on Bochners theorem [42, 29]. This RFF approxima-
+tion reduces the computational complexity for inferring the
+posterior from O(N 3) to O(Nm2) and allows us to write
+the GP as neural network layer with logits gc(hi)  gci
+and prior gc N(0, I). Since the posterior of gc is not of
+closed form, we use a Laplace approximation, which yields a
+Gaussian approximate posterior for the output weights gc,
+p(gc{(xi, yi)}N
+i1) N(gc;
+gc is the maximum a posterior (MAP) estimate and
+precision 1
+gc is given by
+where pi,c is the softmax output p(yi  cu
+class per-sample u
+gc. Overall, the trainable weights
+in our output layer consist of GP  {u, gcc Y}. We
+adopt this output layer for our CoverNet baseline by replacing
+its dense output layer.
+During inference, we approximate the marginal predictive
+distribution p(yh)
+p(yu)p(uh)du of u using Monte
+Carlo (MC) sampling:
+p(y  h)  Ep(GP{(hi,yi)}N
+p(y  h, GP)
+p(y  h, (s)
+where S is the number of MC samples, and (s)
+GP are samples
+drawn from the approximate posterior distribution. Following
+Fortuin et al. (2021), a temperature parameter  is introduced
+to recalibrate uncertainty at test time. The MC sampling is
+computationally efcient, as it involves sampling only from
+the output layer and supports parallelization.
+C. Regularization using Informative Priors
+To enable the integration of trafc rule as informative priors,
+we leverage the regularization method by Schlauch et al.
+. The idea can be seen as an extension of online elastic
+weight consolidation  for GPs with RFF-approximated
+RBF-kernels. Assume we have some informative prior for
+the GP output layer   N(gc; gc, gc) rather than a
+standard Gaussian prior as before. We then regularize the MAP
+estimate
+gc through this prior. This leads to the penalized log-
+likelihood
+log pgc (yihi) GP
+2 (gc gc)1
+gc (gc gc).
+The posterior variance of gc is then given by
+This regularization scheme introduces two new hyperparame-
+ters GP and GP, which we assume are the same for all classes.
+The hyperparameter GP > 0 tempers the overall prior, while
+the hyperparameter 0 < GP < 1 controls the learning decay
+when the model is sequentially trained .
+In addition, assume we have some informative prior for the
+feature extractor   N(NN; NN, I) too. Regularizing the
+feature extractor is then equivalent to L2-regularization for
+the MAP estimates
+log pNN(yihi) NN
+2 (NN NN)2,
+which introduces an additional hyperparameter NN control-
+ling the strength of the parameter binding. Note, that we do
+not specically place an informative prior on the parameters
+u of the GP output layer as this head captures a property that
+is purely related to the data itself.
+D. Learning Informative Trafc Rule Priors
+We encode prior knowledge about trafc rules by incor-
+porating additional tasks with synthetic training labels .
+Given the input samples xi X and the set of anchor
+classes in Y that yield rule-compliant anchor trajectories. In
+this multi-label classication setup, the model is trained to
+predict which anchors satisfy the respective trafc rule using
+a binary cross-entropy loss.
+Combined Rules
+Unified prior
+Chained prior
+Fig. 4: Illustration of the possible task setups in the rst
+training stage. The uninformed prior 0 is either sequentially
+updated using distinct trafc rule labels prl for each rule
+l  1, . . . , R or updated once from a unied trafc rule
+R as chained and unied priors, respectively. Both setups
+can be mixed. The obtained nal prior is used to regularize
+the training on the observed ground truth trajectories in the
+next training stage.
+Using an uncertainty-aware model in SHIFT, we can se-
+quentially train on multiple tasks. Starting with an uninfor-
+mative prior 0, the posterior distribution from a previous
+task serves as informative prior l to regularize the sub-
+sequent task. The probabilistic regularization as described
+in Sec. III-C constitutes a key advantage over conventional
+transfer learning, which does not guard against catastrophic
+forgetting  or overly biasing subsequent training tasks
+. Another important advantage lies in the exible task
+task that encodes prior knowledge about multiple trafc rules
+(right). Alternatively, we can dene multiple tasks that encode
+prior knowledge about one trafc rule prl(yx) each, learning
+a chained prior (left). This sequential task setup allows us to
+re-use priors easily, constituting an advantage over multi-task
+joint learning setups .
+E. Synthetic Training Labels from Trafc Rules
+To scale the integration of trafc rules, we employ a
+semi-automated ltering approach that (a) translates natural
+Template
+Driving Rule as Text
+Representation of Rules
+def pedcross(a, b)
+for a in b:
+if a.crosses(b):
+return False
+Information
+Retrieval
+Vector DB
+(nuScenes API)
+Rule Compliant Trajectory
+Selection
+Fig. 5: High-Level LLM pipeline for synthetic training label
+(2) the LLM generates Python functions of rules and human
+experts review generated functions by running test cases using
+a sample trafc scene, (3) based on rules synthetic labels for
+training are generated.
+language descriptions into executable Python functions using
+a LLM-based human-in-the-loop setup and (b) uses these
+functions to label each trajectory in an anchor set for rule
+compliance within a given scene. The rst step (a) utilizes
+the retrieval-augmented generation (RAG) technique for the
+few-shot prompting of the LLM. We extended methodology
+developed by Manas et al.  using Llama3.31 model for
+this use case. When provided with a natural language rule
+API. The LLM then integrates the relevant API calls to
+generate an executable Python function grounded in dataset
+compliance of the trajectory anchor set for all samples in the
+training dataset. Fig. 5 illustrates this process for synthetic
+label creation.
+This pipeline accelerates rule integration, reducing the need
+for extensive manual coding or rule formalization. Various nat-
+ural language trafc rules can be translated depending on the
+dataset APIs capabilities and the available semantic informa-
+tion (e.g., lane types). However, even with sufcient semantic
+distances based on the velocities of multiple agents over time)
+remains challenging for the LLM. Further details on the LLM
+prompts and limitations are provided in Appendix C.
+F. Rule Selection
+We select two sets of rules to allow comparisons to pre-
+vious work and demonstrate the scalability of SHIFT. These
+sets of rules model both globally-applicable and situational
+behavioral constraints, while avoiding the limitations of our
+LLM-powered rule-ltering approach. By integrating rules
+of varying complexity, we can account for more nuanced
+interactions with the trafc infrastructure.
+Our rst set contains a globally-applicable trafc rule:
+Stay within the road boundaries: This rule enforces the
+fundamental constraint of staying within drivable areas,
+reecting high-level driving behavior.
+Our second set of rules are situational stop-related trafc
+Stopping at red signals: A rule that prohibits crossing
+trafc light zones when the red light is active, ensuring
+compliance with trafc signals.
+Respecting right-of-way: A rule that mandates yielding to
+other participants at yield or stop signs, capturing critical
+right-of-way interactions.
+Prioritizing pedestrian safety: A rule that requires giving
+way to pedestrians at active crossings, emphasizing safety
+in shared spaces.
+IV. EXPERIMENTAL DESIGN
+We evaluate the models performance in various scenarios,
+including standard full dataset training, low data regimes, and
+out-of-distribution generalization across different geographical
+locations within the nuScenes  dataset.
+A. Dataset
+We conduct our experiments on the nuScenes dataset .
+We selected it for geographic diversity (Boston, USA, and Sin-
+gapore), semantic information (including drivable areas, stop
+geographic split enables controlled out-of-distribution (OoD)
+Bostons grid-like roads with right-side driving) are tested
+on another (e.g., Singapores curved intersections and left-
+side driving). This mimics real-world deployment challenges
+where models encounter unseen environmental semantics. For
+our full dataset experiments, we utilize the trainvaltest splits
+following Phan-Minh et al. . In terms of location diversity,
+roughly 39 of the scenes are set in Singapore, while 61
+take place in Boston. Refer to Appendix F for more details
+about the dataset.
+B. Evaluation Metrics
+We evaluate our approach using three categories of met-
+of predictions; (2) Distribution-aware Metrics, quantifying the
+quality of predicted probability distributions; and (3) Rank-
+ing Metrics, assessing the models ability to assign higher
+probabilities to more likely trajectories. minADEk (Minimum
+Average Displacement Error): Measures the average l2 dis-
+tance in meters between the ground truth trajectory and the
+closest predicted trajectory among the top-k predictions. We
+report both minADE1 and minADE5 to evaluate single-mode
+and multi-mode prediction accuracy respectively. minFDE
+(Minimum Final Displacement Error): measures the minimum
+l2 distance between the predicted nal position and the ground
+truth nal position among the top-k predictions. Negative
+Log-Likelihood (NLL): Quanties the quality of the pre-
+dicted probability distribution by measuring the negative log-
+likelihood of the ground truth trajectory under the models
+predictions. A lower NLL indicates better alignment between
+the predicted distribution and observed trajectories. Expected
+Calibration Error (ECE): Measures the alignment between
+predicted probabilities and empirical frequencies . ECE
+TABLE I: Comparison of SHIFT and baselines on Full Dataset of nuScenes. Our approach is compared against other uncertainty-
+aware classication baselines. Bold indicates best, and second best is underlined. Lower is better for metrics.
+CoverNet2
+GVCL-Det
+SNGPU (Without Rules)
+SNGP (With Rules)
+SHIFT (Ours With Chained Prior)
+SHIFT (Ours With Unied Prior)
+computes the weighted average of the absolute difference be-
+tween predicted probabilities and observed frequencies across
+predened probability bins. A lower ECE indicates better
+correspond to observed frequencies. Rank (RNK): Measures
+the rank of the ground truth trajectory among all predicted
+trajectories when sorted by their predicted probabilities .
+This metric also measures the calibration of the anchor classi-
+A lower rank indicates the model assigns higher probabilities
+to trajectories closer to the ground truth.
+C. Baselines and Implementation
+We compare SHIFT against CoverNet-based classication
+baselines from previous work, as these best illustrate the
+impact of the rule integration and last layer modications.
+ual Learning (GVCL-Det)  with CoverNet, an uninformed
+SNGP-CoverNet model (SNGPU) , and a rule-informed
+SNGP-CoverNet model (SNGP with Rules) that integrates
+sets of rules similar to the unied prior setup of SHIFT. The
+SNGP baselines are uncertainty-aware but do not disentangle
+uncertainty components, serving as The SNGP baselines are
+uncertainty-aware but do not disentangle uncertainty compo-
+only uses epistemic uncertainty.
+Regarding the implementation, we use a ResNet50 back-
+bone and a predened anchor set of 415 modes for all
+evaluated models. The input is a rasterized BEV (480x480
+pixel) image and color-coded drivability area, lanes, walkways,
+stop lines and agent trajectories as described by Phan-Minh
+et al. . We encode the agent trajectories with 1-second
+observation window and 6-second prediction horizon. This
+design aligns with evidence that short-term observations domi-
+nate trajectory dynamics, contributing to 80 of the predictive
+impact as noted in Scholler et al. . This mitigate tracking
+error propagation and improve OoD generalization through
+reduced temporal dependencies [35, 3].
+Experiments
+To ensure a reliable comparison with the baselines, each
+experiment is conducted over ve independent runs and we
+report the mean and standard deviation of the results. We
+evaluate SHIFT with a unied prior integrating both sets of
+trafc rules in the following experiments:
+Full Data: We compare SHIFT against all baselines using
+the full nuScenes train-val-test splits to evaluate general
+performance. We also compare against a version with a
+chained prior, integrating all trafc rules sequentially, to
+investigate the exibility of the task setup in our rst
+training stage.
+Reduced Data: We compare SHIFT against the SNGP
+baselines on training data subsets, using 50 and 10 of
+training samples respectively, to assess the data efciency.
+Geographic Generalization: We compare SHIFT with
+a unied prior against the SNGP baselines on location
+shifts to assess OoD generalization. These experiments
+include an in-distribution (ID) trainingtesting in the
+same location as baseline (Boston Boston and
+Singapore Singapore) and an out-of-distribution
+(OoD) trainingtesting across locations ( Boston
+Singapore and Singapore Boston).
+Rule Ablation: We compare SHIFT against variants that
+incorporate only one of the rule sets, as well as a version
+without any rules.
+These experiments test data efciency and robustness to ge-
+ographic distribution shifts and assess uncertainty calibration
+within these contexts. We also report qualitative visualization
+and prediction latency. In Appendix B we highlight results
+related to the impact of the posterior GP.
+V. RESULTS AND DISCUSSIONS
+A. Full Dataset
+Table I presents the performance comparison on the full
+dataset. Among the SHIFT congurations, the version with
+a unied prior achieves the best minFDE1 and RNK scores,
+while the chained prior setup excels in minADE1 and
+minADE5. More importantly, both variants of SHIFT sig-
+nicantly outperform baseline methods across key metrics,
+especially in distribution-aware metrics such as the ECE.
+These results highlight two properties of SHIFT. First, the
+task setup in the rst training stage is exible enough to ac-
+commodate both chained and unied priors without substantial
+performance trade-offs. Second, the improved calibration of
+the heteroscedastic GP layer directly impacts the effectiveness
+of the regularization-based approach.
+2We use the result reported in Schlauch et al. , where they implemented
+CoverNet with 1 s of history observation and 6 s prediction horizon along with
+uncertainty integration.
+TABLE II: Impact of Reduced Training Data on Performance Metrics. Bold values indicate the best results.
+Train Data Used(in )
+SNGPU (Without Rules)
+SNGP (With Rules)
+SHIFT (Ours Unied Prior) 4.280.05 4.600.06
+TABLE III: Comparison of SHIFT for Geographic Generalization. The best results are highlighted in bold. Both in-distribution (ID) and
+out-of-distribution (OoD) performance are evaluated to assess the models ability to generalize to new driving scenarios and to quantify
+performance degradation when encountering unseen environments.
+Region Pair (Trained on Tested on)
+Boston Boston (ID)
+SNGPU (Without Rules)
+SNGP (With Rules)
+SHIFT (Ours With Unied Prior)
+Singapore Singapore (ID)
+SNGPU (Without Rules)
+SNGP (With Rules)
+SHIFT (Ours With Unied Prior)
+Boston Singapore (OoD)
+SNGPU (Without Rules)
+SNGP (With Rules)
+SHIFT (Ours With Unied Prior)
+Singapore Boston (OoD)
+SNGPU (Without Rules)
+SNGP (With Rules)
+SHIFT (Ours With Unied Prior)
+B. Reduced Datasets
+Table II presents the model performance with reduced train-
+ing data (50 and 10 of the original dataset). Even in data-
+scarce environments, SHIFT consistently outperforms baseline
+methods across all metrics, demonstrating its robustness in
+low-data regimes. These results highlight the importance of
+incorporating trafc rules as prior knowledge in autonomous
+generalize effectively.
+C. Geographic Generalization
+Geographic generalization results in Table III further vali-
+date the effectiveness of SHIFT. In in-distribution (ID) sce-
+narios (Boston Boston and Singapore Singapore), our
+model outperforms the baselines, demonstrating improved
+prediction accuracy (minADE1, minADE5 and minFDE1) and
+better-calibrated uncertainty quantication (NLL and RNK).
+In out-of-distribution (OoD) scenarios (Boston Singapore
+and Singapore Boston), SHIFT demonstrates enhanced
+RNK compared to the baselines. The Singapore Boston
+transfer exhibits a more pronounced improvement over the
+data providing a stronger generalization capacity. In contrast,
+the Boston Singapore transfer shows a more modest gain
+over SNGP (with Rules), possibly due to limited exposure
+to Singapore like complex trafc patterns. Nevertheless, the
+results demonstrate that SHIFT mitigates performance degra-
+dation under OoD conditions.
+D. Rule Ablation
+We analyze the role of trafc rules in the SHIFT model
+by isolating two rule setsdrivability rules and stop-related
+rulesas outlined in Sec. III-F. Since stop-related rules (e.g.,
+red light, right-of-way, and pedestrian priority) apply only
+to a subset of test cases, we group them together in this
+ablation study to assess their combined impact. The results,
+shown in Table IV, indicate that stop-related rules play a
+more signicant role in improving top-k displacement metrics,
+achieving the lowest minADE1 (4.10) and minADE5 (2.13).
+improve calibration by lowering NLL from 3.19 (no rules) to
+3.20. This suggests that while drivability constraints may not
+strongly inuence top-k accuracy, they help rene predictive
+uncertainty. Only Drivability Rule refers to global road
+boundary rules, while Without Trafc Rules means neither
+global nor local rules were used.
+achieves the best overall performance, with improvements in
+both accuracy (minADE5: 2.13, minFDE1: 9.23) and calibra-
+tion (NLL: 3.15, RNK: 11.52). This highlights the complemen-
+tary nature of global constraints (drivability) and situational
+constraints (stop-related rules) in learning informative priors
+across all test cases, especially in distribution-aware metrics.
+Comparing SNGP with SHIFT, we observe that even without
+rule priors, our model signicantly outperforms both the rule-
+based and rule-free SNGP baselines.
+E. Qualitative Results
+In Fig. 6 we visually compare predictions of SHIFT and
+SNGP with rules. At intersections, where agent behavior is
+Fig. 6: Qualitative Comparison of Trajectory Predictions. The rst row displays predictions from our best baseline model,
+while the second row presents results from SHIFT. Each column represents a different scene. The target agent, for which
+predictions are made, is highlighted with a black rectangle. The past trajectory (shown only for SHIFT) is also included for
+reference. Best viewed in color.
+TABLE IV: Ablation Study: Trafc Rules Impact on SHIFT.
+Conguration
+SHIFT (Unied Prior)
+SHIFT (Only Stop Rules)
+SHIFT (Only Drivability Rule)
+SHIFT (Without Trafc Rules)
+SNGPU (Without Rules)
+inherently stochastic, SHIFT more accurately predicts the cor-
+rect turn direction. Similarly, in scenarios involving stopping
+areas and multiple nearby vehicles, our models predictions
+align more closely with the ground truth trajectory than those
+of the baseline. Additional visualizations are available in the
+Appendix E. Notably, in overtaking scenarios, both models
+performed comparably.
+F. Runtime Consideration
+Computational efciency is crucial for autonomous driving
+applications. Our benchmarks indicate that SHIFT achieves an
+average prediction latency of 7.4 ms per sample on a single
+NVIDIA RTX A5000, compared to 5.6 ms for CoverNet. This
+demonstrates that SHIFT incurs only a minimal computational
+overhead while enhancing trajectory prediction capabilities.
+VI. CONCLUSION
+We have introduced SHIFT, an uncertainty-aware trajectory
+predictor that integrates prior knowledge of trafc rules into
+deep learning models through a scalable probabilistic for-
+mulation. By explicitly modeling disentangled heteroscedastic
+behavior while reducing overcondence. Our empirical evalu-
+ations on nuScenes demonstrate that SHIFT produces not only
+more accurate predictions but also better-calibrated uncertainty
+unied priors. The demonstrated exibility allows end users
+to incrementally train and adapt the model by integrating new,
+user-dened driving rules as needed. Such adaptability makes
+SHIFT particularly well-suited for safety-critical applications
+in autonomous driving, where agent behaviors are governed by
+complex social norms and trafc regulations. In future work,
+we aim to extend this framework to incorporate interactive
+priors for multi-agent coordination and validate its efcacy
+within closed-loop planning pipelines.
+VII. LIMITATIONS
+SHIFT demonstrates promising results by integrating trafc
+rules into trajectory prediction. However, several open research
+questions remain. First, SHIFT so far been demonstrated only
+in a trajectory classication context, where compliance is
+evaluated based on predened trajectory anchors. Adapting
+it to other trajectory decoding strategies, such as regression,
+remains an interesting topic. Second, SHIFT does not guaran-
+tee that the integrated trafc rules are actually informative of
+the behavior of the agents. Measuring the alignment between
+informative priors and observations could help practitioners in
+selecting suitable task setups. Third, our rule-ltering approach
+for generating synthetic training labels is based on static trafc
+rules. Natural language rules that require temporal evaluations
+are considerably more difcult to formalize using the RAG-
+LLM approach. Fourth, prior knowledge about trafc rules
+must map to observable elements in the model input, such
+as road geometry and trafc signs. Missing relevant inputs
+(e.g., occluded trafc signs, unencoded lane types) prevent the
+model from learning anything informative from the synthetic
+training labels. This also applies, for example, to rasterized
+image inputs, where distinguishing ner details such as solid
+lines vs dashed lines might be challenging due to inherent
+limitations in the pixel resolution. Despite these limitations,
+the modular design of SHIFT reveals an exciting path for
+future prior knowledge integration, as it can be scaled with the
+development of both rule formalization and prediction models.
+Acknowledgment. This work is partially funded by the
+German Federal Ministry for Economic Affairs and Climate
+Action within the project nxtAIM and Continental Automo-
+tive. We also thank Yue Yao for listening to our ideas and
+providing valuable feedback from a prediction perspective.
+REFERENCES
+Mohammadhossein Bahari, Ismail Nejjar, and Alexan-
+dre Alahi.
+Injecting knowledge in data-driven vehicle
+trajectory predictors. Transportation Research Part C:
+Emerging Technologies, 128:103010, 2021.
+Carlos Barajas, Gianoberto Giampieri, Stefano Saba-
+Addressing mode collapse in
+trajectory prediction: A maneuver-oriented metric and
+approach. In 2024 IEEE Intelligent Vehicles Symposium
+(IV), Jeju-Island, Korea, 2024.
+Stefan Becker, Ronny Hug, Wolfgang Hubner, and
+Michael Arens. RED: A Simple but Effective Baseline
+Predictor for the TrajNet Benchmark. In Computer Vision
+ECCV 2018 Workshops, 2018.
+Freddy A Boulton, Elena Corina Grigore, and Eric M
+Motion prediction using trajectory sets and
+self-driving
+knowledge.
+Mohamed-Khalil Bouzidi, Yue Yao, Daniel Goehring,
+and Joerg Reichardt. Learning-aided warmstart of model
+predictive control in uncertain fast-changing trafc. In
+Proceedings of the 2024 IEEE International Conference
+on Robotics and Automation (ICRA), Yokohama, Japan,
+Holger Caesar, Varun Bankiti, Alex H Lang, Sourabh
+Yu Pan, Giancarlo Baldan, and Oscar Beijbom. nuscenes:
+A multimodal dataset for autonomous driving. In Pro-
+ceedings of the 2020 IEEECVF Conference on Computer
+Vision and Pattern Recognition (CVPR), virtual, 2020.
+Sergio Casas, Cole Gulino, Simon Suo, and Raquel
+Urtasun. The importance of prior knowledge in precise
+multimodal prediction.
+In Proceedings of the 2020
+IEEERSJ International Conference on Intelligent Robots
+and Systems (IROS), Las Vegas, NV, USA, 2020.
+Yuning Chai, Benjamin Sapp, Mayank Bansal, and
+Dragomir Anguelov.
+anchor trajectory hypotheses for behavior prediction. In
+Proceedings of the 3rd Annual Conference on Robot
+Learning (CoRL), Osaka, Japan, 2019.
+Bertrand Charpentier, Chenxiang Zhang, and Stephan
+Gunnemann. Training, architecture, and prior for deter-
+ministic uncertainty methods. In ICLR 2023 Workshop on
+Pitfalls of limited data and computation for Trustworthy
+Mark Collier, Basil Mustafa, EKokiopoulou, Rodolphe
+A simple probabilistic
+method for deep classication under input-dependent
+label noise.
+arXiv preprint, arXiv:2003.06778, 2020.
+Mark Collier, Basil Mustafa, EKokiopoulou, Rodolphe
+label noise in large-scale image classication. In 2021
+IEEECVF Conference on Computer Vision and Pattern
+Recognition (CVPR), virtual, 2021.
+Henggang Cui, Thi Nguyen, Fang-Chieh Chou, Tsung-
+Han Lin, Jeff Schneider, David Bradley, and Nemanja
+Djuric. Deep kinematic models for kinematically feasible
+vehicle trajectory predictions.
+In Proceedings of the
+2020 IEEE International Conference on Robotics and
+Automation (ICRA), Paris, France, 2020.
+Erik A. Daxberger, Agustinus Kristiadi, Alexander Im-
+Hennig. Laplace redux - effortless bayesian deep learn-
+In Advances in Neural Information Processing
+Systems 34: Annual Conference on Neural Information
+Processing Systems (NeurIPS), virtual, 2021.
+Matthias De Lange, Rahaf Aljundi, Marc Masana, Sarah
+and Tinne Tuytelaars. A continual learning survey: De-
+fying forgetting in classication tasks. IEEE Transactions
+on Pattern Analysis and Machine Intelligence, 44(7):
+Nachiket Deo and Mohan M. Trivedi. Trajectory fore-
+casts in unknown environments conditioned on grid-
+based plans.
+arXiv preprint, arXiv:2001.00735, 2020.
+Lan Feng, Mohammadhossein Bahari, Kaouther Mes-
+saoud Ben Amor, Eloi Zablocki, Matthieu Cord, and
+Alexandre Alahi.
+scalable vehicle trajectory prediction.
+In Proceedings
+of the 18th European Conference in Computer Vision
+(ECCV), Milan, Italy, 2024.
+Vincent Fortuin, Mark Collier, Florian Wenzel, James
+frosyni Kokiopoulou. Deep classiers with label noise
+modeling and distance awareness. Transactions on Ma-
+chine Learning Research (TMLR), 2022.
+Yarin Gal and Zoubin Ghahramani.
+Dropout as a
+bayesian approximation: Representing model uncertainty
+in deep learning. In Proceedings of the 33nd Interna-
+tional Conference on Machine Learning (ICML), New
+York City, USA, 2016.
+Henry Gouk, Eibe Frank, Bernhard Pfahringer, and
+Michael J. Cree.
+Regularisation of neural networks
+by enforcing lipschitz continuity.
+Machine Learning,
+Junru Gu, Chen Sun, and Hang Zhao. Densetnt: End-to-
+end trajectory prediction from dense goal sets. In Pro-
+ceedings of the 2021 IEEECVF International Confer-
+ence on Computer Vision ICCV, Montreal, QC, Canada,
+Weihang Guo, Zachary K. Kingston, and Lydia E.
+Kavraki.
+llm translation for long-horizon task and motion plan-
+arXiv preprint, abs2410.22225, 2024.
+Steffen Hagedorn, Marcel Hallgarten, M. Stoll, and
+Alexandru Condurache. The integration of prediction and
+planning in deep learning automated driving systems: A
+review. IEEE Transactions on Intelligent Vehicles, pages
+Eyke Hullermeier and Willem Waegeman.
+Aleatoric
+and epistemic uncertainty in machine learning: an in-
+troduction to concepts and methods. Machine Learning,
+Masha Itkina and Mykel Kochenderfer. Interpretable self-
+aware neural networks for robust trajectory prediction. In
+Proceedings of The 6th Conference on Robot Learning,
+Proceedings of Machine Learning Research, 2023.
+Henrik Kretzschmar, Markus Spies, Christoph Sprunk,
+and Wolfram Burgard. Socially compliant mobile robot
+navigation via inverse reinforcement learning. The In-
+ternational Journal of Robotics Research, 35(11):1289
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Sebastian Riedel, and Douwe Kiela. Retrieval-augmented
+generation for knowledge-intensive NLP tasks. In Ad-
+vances in Neural Information Processing Systems 33:
+Annual Conference on Neural Information Processing
+Systems (NeurIPS), virtual, 2020.
+Xiao Li, Guy Rosman, Igor Gilitschenski, Jonathan
+Daniela Rus. Differentiable logic layer for rule guided
+trajectory prediction. In Proceedings of the 2020 Con-
+ference on Robot Learning (CORL), virtual, 2020.
+Ming Liang, Bin Yang, Rui Hu, Yun Chen, Renjie Liao,
+Song Feng, and Raquel Urtasun. Learning lane graph
+representations for motion forecasting. In Proceedings
+of the 16th European Conference in Computer Vision
+(ECCV), Glasgow, UK, 2020.
+Jeremiah Liu, Zi Lin, Shreyas Padhy, Dustin Tran, Tania
+Bedrax Weiss, and Balaji Lakshminarayanan. Simple and
+principled uncertainty estimation with deterministic deep
+learning via distance awareness.
+Advances in Neural
+Information Processing Systems 33: Annual Conference
+on Neural Information Processing Systems (NeurIPS),
+Noel Loo, Siddharth Swaroop, and Richard E Turner.
+Generalized variational continual learning. In Proceed-
+ings of the 9th International Conference on Learning
+Representations (ICLR), virtual, 2021.
+Rui Luo and Zhixin Zhou.
+Trustworthy classication
+through rank-based conformal prediction sets.
+Wesley J. Maddox, Pavel Izmailov, Timur Garipov,
+Dmitry P. Vetrov, and Andrew Gordon Wilson. A simple
+baseline for bayesian uncertainty in deep learning.
+Advances in Neural Information Processing Systems 32:
+Annual Conference on Neural Information Processing
+Systems (NeurIPS), Vancouver, Canada, 2019.
+Kumar Manas, Stefan Zwicklbauer, and Adrian Paschke.
+tation of planning instructions using chain-of-thought
+reasoning. In Proceedings of the 2024 IEEERSJ Inter-
+national Conference on Intelligent Robots and Systems
+(IROS), Abu-Dhabi, UAE, 2024.
+Kumar Manas, Stefan Zwicklbauer, and Adrian Paschke.
+logic formalization of trafc rules. In Proceedings of the
+2024 IEEE Intelligent Vehicles Symposium (IV), 2024.
+Alessio Monti, Angelo Porrello, Simone Calderara,
+Pasquale Coscia, Lamberto Ballan, and Rita Cucchiara.
+How many Observations are Enough? Knowledge Dis-
+tillation for Trajectory Forecasting.
+In Proceedings of
+the 2022 IEEECVF Conference on Computer Vision and
+Pattern Recognition (CVPR), New Orleans, LA, USA,
+Jiquan Ngiam, Vijay Vasudevan, Benjamin Caine, Zheng-
+dong Zhang, Hao-Tien Lewis Chiang, Jeffrey Ling, Re-
+becca Roelofs, Alex Bewley, Chenxi Liu, Ashish Venu-
+Jonathon Shlens. Scene transformer: A unied architec-
+ture for predicting future trajectories of multiple agents.
+In Proceedings of the 10th International Conference on
+Learning Representations (ICLR), virtual, 2022.
+Brian Paden, Michal Cap, Sze Zheng Yong, Dmitry
+A survey of motion
+planning and control techniques for self-driving urban
+vehicles. IEEE Transactions on Intelligent Vehicles, 1
+Mahdi Pakdaman Naeini, Gregory Cooper, and Milos
+Hauskrecht. Obtaining well calibrated probabilities using
+bayesian binning. Proceedings of the AAAI Conference
+on Articial Intelligence, 2015.
+Tung Phan-Minh, Elena Corina Grigore, Freddy A Boul-
+Multimodal behavior prediction using trajectory sets. In
+Proceedings of the 2020 IEEECVF Conference on Com-
+puter Vision and Pattern Recognition (CVPR), virtual,
+Janis Postels, Mattia Segu, Tao Sun, Luca Daniel Sieber,
+Luc Van Gool, Fisher Yu, and Federico Tombari.
+the practicality of deterministic epistemic uncertainty.
+In Proceedings of the 39th International Conference on
+Machine Learning (ICML) 2022, 2022.
+Ahmad Rahimi and Alexandre Alahi.
+A multi-loss
+strategy for vehicle trajectory prediction: Combining off-
+Ali Rahimi and Benjamin Recht. Random features for
+large-scale kernel machines.
+In Advances in Neural
+Information Processing Systems 20: Annual Conference
+on Neural Information Processing Systems (NeurIPS),
+Carl Edward Rasmussen and Christopher KI Williams.
+Gaussian processes for machine learning.
+MIT press
+Christian Schlauch, Christian Wirth, and Nadja Klein.
+Informed priors for knowledge integration in trajectory
+prediction. In Proceedings of the 2023 Joint European
+Conference on Machine Learning and Knowledge Dis-
+covery in Databases (ECML-PKDD), Turin, Italy, 2023.
+Christian Schlauch, Christian Wirth, and Nadja Klein.
+Informed spectral normalized Gaussian processes for tra-
+jectory prediction. In Proceedings of the 27th European
+Conference on Articial Intelligence (ECAI) 2024, San-
+tiago de Compostela, Spain - Including 13th Conference
+on Prestigious Applications of Intelligent Systems (PAIS),
+Jens Schulz, Constantin Hubmann, Julian Lochner, and
+Darius Burschka.
+Multiple model unscented kalman
+ltering in dynamic bayesian networks for intention
+estimation and trajectory prediction. In Proceedings of
+the 21st International Conference on Intelligent Trans-
+portation Systems (ITSC) 2018, Hawaii, USA, 2018.
+Jonathan Schwarz, Wojciech Czarnecki, Jelena Luketina,
+Agnieszka Grabska-Barwinska, Yee Whye Teh, Razvan
+able framework for continual learning. In Proceedings of
+the 35th International Conference on Machine Learning
+(ICML), Stockholm, Sweden, 2018.
+Christoph Scholler, Vincent Aravantinos, Florian Lay,
+and Alois Knoll.
+What the Constant Velocity Model
+Can Teach Us About Pedestrian Motion Prediction. IEEE
+Robotics and Automation Letters, 5(2):16961703, 2020.
+Florian Seligmann, Philipp Becker, Michael Volpp, and
+Gerhard Neumann.
+Beyond deep ensembles: A large-
+scale evaluation of bayesian deep learning under distribu-
+tion shift. In Advances in Neural Information Processing
+Systems 36: Annual Conference on Neural Information
+Processing Systems (NeurIPS), New Orleans, LA, USA,
+Shaoshuai Shi, Li Jiang, Dengxin Dai, and Bernt Schiele.
+Motion transformer with global intention localization
+and local movement renement. In Advances in Neural
+Information Processing Systems 35: Annual Conference
+on Neural Information Processing Systems (NeurIPS),
+New Orleans, LA, USA, 2022.
+Ravid Shwartz-Ziv, Micah Goldblum, Hossein Souri,
+Sanyam Kapoor, Chen Zhu, Yann LeCun, and An-
+drew Gordon Wilson. Pre-train your loss: Easy bayesian
+transfer learning with informative priors. In Advances
+in Neural Information Processing Systems 35: Annual
+Conference on Neural Information Processing Systems
+(NeurIPS), New Orleans, LA, USA, 2022.
+Joost R. van Amersfoort, Lewis Smith, Andrew Jesson,
+Oscar Key, and Yarin Gal. On feature collapse and deep
+kernel learning for single forward pass uncertainty. arXiv
+Laura von Rueden, Sebastian Mayer, Katharina Beckh,
+Bogdan Georgiev, Sven Giesselbach, Raoul Heese, Birgit
+Informed Machine
+Learning  A Taxonomy and Survey of Integrating
+Knowledge into Learning Systems. IEEE Transactions
+on Knowledge and Data Engineering, 35(1):614633,
+Royden Wagner, Omer Sahin Tas, Marlon Steiner, Fabian
+los Fernandez, and Christoph Stiller. Scenemotion: From
+agent-centric embeddings to scene-wide forecasts. arXiv
+Yue Yao, Daniel Goehring, and Joerg Reichardt. An em-
+pirical bayes analysis of object trajectory representation
+models. In Proceedings of the 26th IEEE International
+Conference on Intelligent Transportation Systems (ITSC),
+Yue Yao, Shengchao Yan, Daniel Goehring, Wolfram
+Improving out-of-
+distribution generalization of trajectory prediction for
+autonomous driving via polynomial representations. In
+Proceedings of the 2024 IEEERSJ International Con-
+ference on Intelligent Robots and Systems (IROS), Abu
+Zikang Zhou, Jianping Wang, Yung-Hui Li, and Yu-Kai
+Huang. Query-centric trajectory prediction. In Proceed-
+ings of the 2023 IEEECVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2023.
+APPENDIX A
+COVARIANCE MATRIX (h, h) AND ESTIMATION OF
+COVARIANCE IN SHIFT
+A. Random Fourier Features (RFF) Approximation
+Computing the exact GP covariance matrix K(h, h) scales
+cubically with the number of data points N, making it com-
+putationally infeasible for large datasets. To mitigate this, we
+employ Random Fourier Features (RFF) to approximate the
+kernel function, thereby reducing the computational complex-
+1) RFF for RBF Kernel: The RBF kernel is dened as:
+(hi, hj)  exp
+According to Bochners theorem , any shift-invariant
+kernel can be expressed as the Fourier transform of a non-
+negative measure. For the RBF kernel, the corresponding spec-
+tral distribution is Gaussian. Thus, the RFF approximation uses
+samples from this spectral distribution to construct random
+features.
+2) Construction of RFF: Let W Rdm be a matrix
+whose entries are drawn from N(0, 1
+be a vector of biases uniformly drawn from [0, 2]. The RFF
+approximation maps each input hi to a random feature vector
+(hi) Rm as follows:
+m cos(Whi  b)
+3) Kernel Matrix Approximation: Using RFF, the RBF
+kernel can be approximated by the inner product of the random
+where  RNm is the matrix of random feature mappings
+for all inputs, i.e.,
+Substituting the expression for (hi), we get:
+m cos(WH b1)
+m cos(WH b1)
+where H RmN is the matrix stacking all input embed-
+dings hi as columns, and 1 R1N is a vector of ones.
+B. Covariance Matrix Computation
+The covariance matrix computation involves the following
+1) Random Fourier Feature Mapping:
+For each input embedding hi, compute the random
+feature vector:
+m cos(Whi  b)
+2) Kernel Matrix Approximation:
+Approximate the kernel matrix using the inner product
+3) GP Posterior Covariance Estimation:
+Using the Laplace approximation, estimate the posterior
+covariance matrix:
+APPENDIX B
+ADDITIONAL RESULTS AND DISCUSSION
+In our models posterior estimation, the Gaussian Process
+(GP) posterior temperature hyperparameter regulates the trade-
+off between trafc rule-based priors and observed data. To
+understand its impact on trajectory prediction, we system-
+atically varied the temperature from 5 to 45 and evaluated
+its inuence on key performance metrics, including Negative
+Log-Likelihood (NLL), Average Displacement Error (ADE1,
+ADE5), Final Displacement Error (FDE1), and Expected Cal-
+ibration Error (ECE).
+As illustrated in Fig. 7, our analysis shows that while
+NLL and ADE5 remain relatively stable across temperature
+low baseline ECE values. Notably, temperatures outside the
+range of 1530 degrade the accuracy of ADE1 and ADE5.
+We identify 1530 as the optimal temperature range, striking
+a balance between predictive accuracy and uncertainty cali-
+bration.
+This study highlights the signicant role of the GP pos-
+terior temperature in governing SHIFTs ability to integrate
+prior knowledge with data-driven learning. Practitioners can
+optimize model performance for specic applications when
+tuned alongside other hyperparameters, such as the GP L2
+regularizer. Additionally, the nature of the trafc rules incor-
+porated into the prior plays a crucial role, as different rules
+impact prediction accuracy and calibration in distinct ways.
+APPENDIX C
+LLM ENABLED TRAFFIC RULES TO PYTHON CODE
+GENERATION AND LIMITATIONS
+To streamline the creation of trafc rule validation functions
+for trajectory prediction, we utilized a retrieval-augmented
+Fig. 7: Impact of GP posterior temperature on trajectory
+prediction metrics. The x-axis shows temperature values (5-
+45), with the left y-axis displaying ADE1, ADE5, FDE1, and
+NLL metrics, and the right y-axis showing ECE. Each metric
+is uniquely color-coded for visual distinction.
+generation (RAG)  approach with a large language model
+(LLM) and prompting as described in Manas et al. [34, 33].
+contextual knowledge source. The map API provided ac-
+cess to high-denition (HD) maps, including information on
+pedestrian crossings, road boundaries, and trafc signs, which
+served as the basis for generating Python functions tailored to
+specic trafc rules. By incorporating this map-based context
+into the LLM prompts, the model generated executable Python
+code to enforce various constraints in the prior model labeling
+process.
+For instance, when prompted to create a function for
+trafc rule The vehicle trajectory should not
+cross pedestrian crossings in the presence
+of pedestrians the LLM generated the Python function
+as shown in Listing 1, which can be directly used in our prior
+model code base.
+Our detailed Prompt le and setup for this is provided in
+attached code for SHIFT, which includes prompt template and
+single shot example for this specic task.
+from shapely.geometry import LineString
+def istrajectorycrossingpedestriancrossings(
+Check if the trajectory crosses any active
+pedestrian crossings.
+:param trajectory: List of points representing
+the trajectory in local coordinates.
+sdknuscenesmap expansion
+:param translation: Translation vector to
+convert local coordinates to global coordinates.
+:param rotation: Rotation angle to convert local
+coordinates to global coordinates.
+:param mapname: Name of the map being used (e.g
+., boston-seaport).
+:param nuscmap: NuScenesMap instance for
+accessing map data.
+:return: True if the trajectory crosses any
+active pedestrian crossings, False otherwise.
+Convert trajectory to global coordinates
+trajectoryglobal
+convertlocalcoordstoglobal(
+trajectoryline  LineString(trajectoryglobal)
+Retrieve pedestrian crossings for the map
+if mapname not in nuscmap.pedcrossing:
+pedcrossingrecords  nuscmap.pedcrossing
+pedcrossingpolygons  [
+nuscmap.explorer.extractpolygon(record
+[polygontoken])
+for record in pedcrossingrecords
+pedcrossingpolygons  nuscmap.
+pedcrossing[mapname]
+if activecrossings:
+pedcrossingpolygons  [
+nuscmap.explorer.extractpolygon(record
+[polygontoken])
+for record in pedcrossingrecords
+if record[token] in activecrossings
+Check for intersection with each pedestrian
+crossing
+for crossingpolygon in pedcrossingpolygons:
+if trajectoryline.crosses(crossingpolygon)
+return True
+The trajectory crosses an
+active pedestrian crossing
+return False
+No crossing
+Listing 1: LLM generated Function to check if trajectory
+crosses active pedestrian crossings
+This function integrates HD map data to determine whether
+a trajectory crosses active pedestrian crossings, showcasing
+the capability of the RAG-based LLM to generate high-
+rules dened in Sec. III-F were generated using this approach.
+While the RAG-based LLM provides substantial benets in
+automating code generation, challenges such as hallucinations
+and incorrect or incomplete context remain prevalent in the
+process. RAG mitigates these issues to some extent by ground-
+ing the generated functions in real-world map sensor data
+provided by the nuScenes API, enhancing the accuracy and
+alignment of the outputs with the specied trafc rules. This
+allowed us to efciently create prior model labels adhering to
+a wide range of trafc rules, including both global constraints
+(e.g., road boundaries) and local constraints (e.g., pedestrian
+priority).
+Limitations and Mitigation of LLM-based generation.
+we operate as a human-in-the-loop workow, requiring manual
+verication and renement of the LLM-generated outputs.
+Limitations in the dataset also pose constraints. For instance,
+the dataset does not include information on emergency ve-
+such scenarios. Furthermore, failures occasionally arise due
+to the nuanced interpretation of natural language prompts.
+For example, the generated code used shapely.crosses() or
+shapely.touches() instead of shapely.intersects() based on
+the wording of the prompt, which can impact the accuracy of
+rule-compliant trajectory labels in the prior model. While these
+issues are not highly detrimental in our soft-prior setup, they
+underscore the need for careful review to ensure consistency
+and reliability in the generated outputs. Future work can
+explore solutions incorporating user-dened constraints and
+keyword selection or leveraging ne-tuned LLMs with low-
+rank adaptation. A human-in-the-loop system would signif-
+icantly streamline the process, making it faster and more
+efcient by enabling users to verify rules rather than manually
+creating rule functions from scratch. This approach reduces the
+complexity of integrating map APIs and codebases for function
+APPENDIX D
+IMPLEMENTATION DETAILS
+This section provides key implementation details of our
+model. For complete congurations and code, refer to our
+repository.
+1. Uncertainty Estimation
+To balance epistemic and aleatoric uncertainty, we assign
+weighting factors of wsngp  0.1 and whet  0.2. The
+Gaussian Process (GP) kernel is approximated using 1,024
+inducing points in Random Fourier Features (RFF), ensuring
+computational efciency. Spectral normalization with a bound
+of 2.65 is applied to stabilize training and prevent gradient-
+related issues.
+Temperature Parameters
+We introduce temperature parameters to control the inu-
+ence of prior knowledge and regularization:
+Temperature for GP posterior: 35, regulating inuence of
+trafc rule prior in the GP layer.
+Temperature for feature extractor: 2.8, determining the
+effective dataset size for L2 regularization.
+These parameters ensure a balanced integration of prior knowl-
+edge and empirical observations.
+2. Learning Rate Schedule
+The learning rate is adjusted based on the training data
+100 training data: 0.02.
+50 training data: 0.0005.
+10 training data: 0.0001.
+Predicted Trajectory
+Ground Truth Trajectory
+other Agent
+stop line
+Main Vehicle
+SHIFT (Unified Prior)
+SHIFT (Unified Prior)
+Baseline (SNGP with Rules)
+Baseline (SNGP with Rules)
+Fig. 8: SHIFT demonstrates better prediction accuracy, closely
+following the ground truth trajectory in intersection crossing
+and lane-changing scenarios. In contrast, the baseline model
+predicts a trajectory with higher speed while crossing the
+intersection and exhibits lane-change behavior that is closer
+to another agent, making it potentially unsafe.
+A higher learning rate is used for larger datasets to accelerate
+prevent overtting.
+3. Regularization and Early Stopping
+To improve generalization, we apply:
+Early stopping with a patience of 15 epochs.
+L2 regularization with a weight of 0.625 on the extractor
+4. Parameter Search and Hyperparameter Tuning
+We utilize Bayesian optimization with Ray Tune4 to sys-
+tematically search for optimal hyperparameters, including the
+learning rate, spectral norm bound, and feature extractor
+temperature.
+APPENDIX E
+ADDITIONAL QUALITATIVE RESULTS
+In this section, we present additional qualitative results,
+highlighting not only the performance of SHIFT but also
+scenarios where both SNGP (with Rules) and SHIFT perform
+comparably well, even in complex situations, as well as
+instances where both methods encounter similar challenges.
+SHIFT (Unified Prior)
+Baseline (SNGP with Rules)
+SHIFT (Unified Prior)
+Baseline (SNGP with Rules)
+a) Both models predicted they should wait for another vehicle to cross before turning left at
+the 3-way intersection. However, the ground truth trajectory did not wait.
+B) Both models benefited from the right-of-way rule, predicting longer and closer
+trajectories to the ground truth.
+Predicted Trajectory
+Ground Truth Trajectory
+other Agent
+stop line
+Main Vehicle
+Fig. 9: Both the baseline and SHIFT models perform similarly
+in these scenarios. In the top image, both models struggle with
+the decision to either wait for the approaching agentwho
+has priorityor proceed through the intersection, leading to
+slightly faster intersection crossing. In the bottom image,
+both models benet from right-of-way rules, predicting longer
+trajectories that are closer to the ground truth.
+Cases Where SHIFT Outperforms the Baseline. Figure
+8 illustrates a scenario where SHIFT demonstrates superior
+prediction performance. In both intersection crossing and lane-
+changing scenarios, SHIFT closely follows the ground truth
+a trajectory with higher speed while crossing the intersection.
+prediction is closer to another agent, which could lead to
+a potentially unsafe interaction. These results suggest that
+SHIFT better captures motion dynamics and interactions with
+surrounding agents, resulting in more reliable predictions.
+Cases Where Both Models Perform Similarly. Figure 9
+presents scenarios where both SHIFT and the baseline perform
+on par. In the top image, both models exhibit similar behavior
+when predicting a left turn at a three-way intersection. While
+the ground truth trajectory does not wait, both models opt to
+wait for another agent with priority before proceeding. This in-
+dicates that both models incorporate trafc rules effectively but
+may be overly cautious in certain cases. In the bottom image,
+both models benet from right-of-way rules, predicting longer
+and more accurate trajectories that closely match the ground
+truth. These results highlight that in structured environments
+with clear right-of-way constraints, both models can generate
+reasonable predictions.
+the strengths of SHIFT in improving trajectory prediction
+while also acknowledging cases where both models exhibit
+similar behavior and challenges.
+APPENDIX F
+DATASET STATISTICS AND DETAILS
+The nuScenes dataset is a large-scale autonomous driving
+dataset designed for tasks such as 3D object detection, track-
+sensor data, making it suitable for trajectory prediction tasks.
+Below are the key statistics and details relevant to trajectory
+1. General Dataset Overview
+Total Scenes: 1,000 scenes (each 20 seconds long).
+Total Frames: 40,000 keyframes (annotated at 2 Hz).
+Sensor Data: Consists of camera, RADAR and LiDAR
+sensors.
+Geographic Diversity: Collected in Boston and Singa-
+The dataset is divided into training, validation, and test
+Total Data:
+Boston Subset:
+Singapore Subset:
+sample))
+The dataset is geographically diverse, with Boston repre-
+senting North American driving conditions and Singapore
+representing Asian driving conditions. This diversity ensures
+that models trained on nuScenes generalize well to different
+regions.
+Annotations for Trajectory Prediction
+Annotated Objects: 1.4 million 3D bounding boxes
+across 23 object classes.
+Relevant Classes for Trajectory Prediction:
+Vehicles (car, truck, bus, trailer, etc.).
+Vulnerable road users such as pedestrians.
+Trajectory Annotations:
+Each object has a 3D bounding box annotated at 2
+Historical trajectories are available for each object
+(up to 2 seconds of past data).
+Future trajectories can be extrapolated for prediction
+Trajectory Prediction-Specic Statistics.
+Trajectory Length: Future trajectory up to 6 seconds (12
+frames at 2 Hz) for evaluation.
+Interaction Scenarios:
+trajectory prediction.
+Challenges
+Trajectory
+presents challenges such as complex multi-agent interactions
+(e.g., vehicles and pedestrians), diverse driving scenarios
+(urban, highway, residential), and partial observations due
+to occlusions and limited sensor range, making trajectory
+prediction inherently difcult.

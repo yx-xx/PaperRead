@@ -1,0 +1,1159 @@
+=== PDF文件: Bilevel Learning for Bilevel Planning.pdf ===
+=== 时间: 2025-07-21 14:27:39.408005 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Bilevel Learning for Bilevel Planning
+Bowen Li, Tom Silver, Sebastian Scherer, and Alexander Gray
+Carnegie Mellon University, Centaur AI Institute, Princeton University
+P1():True
+Generalized Solution
+P2(,):False
+P2(,):False
+Test Time: Unseen State
+1.MoveTo
+4.WalkOn
+7.MoveTo
+Bilevel Learning
+Training Time: Drop Target (high) into Container (low)
+Invented Neural Predicates
+P2(?r,?p)
+1.MoveTo
+Ground Neural Predicates
+Bilevel Planning
+4.MoveTo
+Container
+One Platform
+Two Platforms
+Container
+7.WalkOn
+P3(?r,?t)
+Bilevel Planner
+Drop Target (high) into Container (high)
+Goal Achieved!
+Fig. 1: (Top) Our bilevel learning framework invents neural predicates from training demonstrations (with one platform), which enable the
+learning of a hybrid bilevel planner. (Bottom) The invented predicates realize zero-shot compositional generalization over objects (with two
+platforms), where a longer solution with different action compositions is generated. Continuous action parameters are omitted for simplicity.
+AbstractA robot that learns from demonstrations should
+not just imitate what it seesit should understand the high-
+level concepts that are being demonstrated and generalize them
+to new tasks. Bilevel planning is a hierarchical model-based
+approach where predicates (relational state abstractions) can
+be leveraged to achieve compositional generalization. However,
+previous bilevel planning approaches depend on predicates that are
+either hand-engineered or restricted to very simple forms, limiting
+their scalability to sophisticated, high-dimensional state spaces.
+To address this limitation, we present IVNTR, the first bilevel
+planning approach capable of learning neural predicates directly
+from demonstrations. Our key innovation is a neuro-symbolic
+bilevel learning framework that mirrors the structure of bilevel
+planning. In IVNTR, symbolic learning of the predicate effects
+and neural learning of the predicate classifiers alternate, with
+each providing guidance for the other. We evaluate IVNTR in six
+diverse robot planning domains, demonstrating its effectiveness
+in abstracting various continuous and high-dimensional states.
+While most existing approaches struggle to generalize (with < 35
+success rate), our IVNTR achieves an average success rate of
+77 on unseen tasks. Additionally, we showcase IVNTR on a
+mobile manipulator, where it learns to perform real-world mobile
+manipulation tasks and generalizes to unseen test scenarios that
+feature new objects, new states, and longer task horizons. Our
+findings underscore the promise of learning and planning with
+abstractions as a path towards high-level generalization. Project
+Work was partly done during internship at Centaur AI Institute. Corre-
+spondence to {bowenli2,basti}andrew.cmu.edu.
+I. INTRODUCTION
+Imitation learning has made significant recent strides [15],
+but generalization remains an open challenge, especially when
+new tasks require recomposing high-level concepts that are
+only implicit in the training data [6, 7]. In Figure 1, a robot
+has seen demonstrations of stepping onto a platform to grasp
+an object, and other demonstrations of dropping the object into
+a container. Now, faced with a new task where the container
+is also elevated, the robot should first move the two platforms
+finally step onto the other to drop the object. Note that the
+platform arrangements must be completed before grasping the
+This kind of learning and reasoning requires compositional
+generalization (new objects); sequential generalization (new
+and longer action sequences); and long-horizon planning with
+continuous state and action spaces with sparse feedback (goals).
+In sum, the robot should not just imitate demonstrations, but
+also understand and leverage the high-level concepts within
+the low-level states that are being demonstrated.
+One promising direction to address these challenges is to
+learn and plan with abstractions [814]. In this work, we con-
+tinue a line of recent inquiry on learning abstractions for bilevel
+planning [1521]. In bilevel planning, continuous low-level
+states are mapped into a symbolic relational state space defined
+by predicates such as Viewable(?robot,?target) or
+On(?robot,?platform). Planning proceeds jointly in the
+symbolic high-level space and the continuous low-level space.
+The key idea is that this hybrid planning can be more efficient
+and effective than reasoning solely in the low-level space.
+The performance of bilevel planning depends substantially
+on the predicates used to define the abstract state space .
+To avoid the need for a human engineer to manually define
+predicates for every new domain, recent work has considered
+learning predicates from data [17, 2125]. Broadly, three
+approaches have emerged. The most direct one relies on
+human feedback (labels or guidance) during the predicate
+learning process [2426], which is labor-intensive and does
+not guarantee useful abstractions for planning . The second
+approach invents predicates with surrogate objectives that
+are easy to optimize, e.g., reconstruction loss [2729] or
+bisimulation [12, 30]. While these methods simplify learning,
+they complicate planning due to the mismatch between the
+surrogate objectives and the actual planning goals . The
+third approach directly invents predicates for efficient planning,
+making planning easy but learning hard, as objectives like
+total-planning-time and expected-planning-success are difficult
+to optimize . To address this, previous works have used
+program synthesis with classical grammars  and foundation
+model-based techniques [21, 31]. However, in both cases, the
+predicates are invented from programmatic and pre-defined
+Our main contribution is bIleVel learNing from TRansitions
+(IVNTR), the first approach capable of learning neural pred-
+icates that are optimized for efficient and effective bilevel
+planning. Since directly incorporating the planning objective
+into network training is challenging, our IVNTR instead
+constructs a candidate neural predicate pool, which is later
+subselected . The key insight behind our approach is to
+center learning around the effects of predicates, which provide
+two major benefits: (1) they enable the derivation of supervision
+labels for transition pairs, yielding a well-structured learning
+objective for training the neural network; and (2) the inherent
+sparsity of predicate effects, combined with neural learning
+To this end, IVNTR presents a novel bilevel learning framework,
+inspired by the structure of bilevel planning itself. Similar to
+the alternation between high-level symbolic search and low-
+level neural sampling in bilevel planning, IVNTR interleaves
+symbolic effect learning and neural classifier learning in an
+iterative process. In each iteration, the symbolic learning
+proposes a candidate predicate effect across different actions,
+which provides labels for neural learning on transition pairs.
+Once the neural classifier converges, its validation loss guides
+the symbolic learning to propose the next candidate that could
+minimize the loss in the new iteration. This iterative bilevel
+learning ultimately yields a compact set of neural predicates,
+which are then selected to optimize the planning objective .
+The final set of invented predicates seamlessly integrates into
+operator and sampler learning frameworks [17, 32], ultimately
+forming a fully functional bilevel planner.
+To evaluate the effectiveness of IVNTR, we conduct exten-
+sive experiments across six diverse robot planning domains.
+These domains feature a wide range of low-level state represen-
+clouds. Furthermore, as shown in Figure 1, by leveraging rela-
+tional predicates and AI planning, IVNTR zero-shot generalizes
+to tasks with unseen entity compositions. Finally, we deploy
+IVNTR on a quadruped mobile manipulator (Boston Dynamics
+Spot) for two long-horizon mobile manipulation tasks. The
+learned predicates successfully abstract complex continuous
+states into representations compatible with the AI planner, while
+also providing actionable guidance for the samplers. We believe
+IVNTR represents a pivotal step towards learning high-level
+abstractions from sophisticated low-level states.
+II. PROBLEM FORMULATION
+We propose a method that uses an offline demonstration
+dataset to learn planning abstractions that generalize to test
+tasks with unseen objects and action compositions. In this
+the notation system introduced in previous work ; see
+Appendix A for a complete notation glossary.
+Planning problems are defined within a certain planning
+we can sample a planning task T T  O, x0, g.
+is a finite set of object types  . For example, the
+Climb-Transport domain depicted in Figure 2 has three object
+associated with a set of features that characterize the state
+of an object of that type.1 For example, robot has features
+others. A specific task T is characterized by objects O
+{o1, o2,    , oN}, each associated with one type in . Objects
+are fixed within tasks but vary between tasks. The state of a
+task x X is defined by an assignment of feature values to
+all objects in the task. For simplicity of exposition, we assume
+that a state with N objects can be represented as a matrix
+x RNK for some domain-specific constant K; however,
+we show in experiments that our approach can be applied to
+more sophisticated object-centric state representations as well.
+The action space for a domain is characterized by a set of M
+parametrized controllers C  {C1, C2,    , CM}, each of which
+has an object type signature (1, 2,    , v) and a continuous
+parameter space . For example, in Figure 2, MoveToReach
+has type signature (robot, platform), and continuous param-
+eters  SE(2) defining an offset 2D pose for the robot
+relative to the platform. A ground action is a controller with
+fully specified parameters, e.g., MoveToReach(r1, p1, ) for
+a certain  . We use underline notation to represent
+is controller with object parameter placeholders, which are
+typically prefixed with ?, e.g., MoveToReach(?r, ?p, ). States
+and actions are related through a known transition function
+f(x, C) 7x, which the robot can use to plan.
+1Unlike previous work , we do not assume that features are scalars;
+high-dimensional images and point clouds are also allowed.
+A predicate  is defined by an object type signature
+(1, 2, . . . , u) and a classifier  : X  O {True, False},
+where (x, (o1, . . . , ou)) evaluates the truth value of a ground
+predicate based on the continuous features of the input
+objects. For example, the predicate In has type signature
+(target, target) and a classifier that uses the poses and shapes
+of two targets to determine whether one is in the other. A
+ground predicate  has fully specified objects. For simplicity,
+we denote (x)  (x, (o1, . . . , ou)) . A lifted predicate
+has placeholders for objects, e.g., In(?t, ?t).
+Following previous work , we assume that a small set
+of goal predicates G is known and used to characterize task
+goals. In particular, a goal g is defined by a set of ground
+predicates that must evaluate to True in a state for the goal
+to be satisfied. For example, the goal in Figure 2 has only
+one ground predicate, In(t1, t2). In this work, we make an
+additional assumption that any relevant static predicates sta
+are known. A predicate is static if its evaluation never changes
+within a task (see Appendix E for examples). Conversely, a
+predicate is dynamic if its evaluation could change within a
+task; examples are provided later in Definition 1.
+A solution to a task is a plan   [C1, C2,    , CH], that is, a
+sequence of H ground actions such that successive application
+of the transition model xi  f (xi1, Ci) on each Ci ,
+starting from x0, results in a final state xH where g holds.
+For instance, the plan depicted in Figure 1 bottom right finally
+leads to the state where In(t1, t2) holds. In sum, to generate
+the plan  for a task, in each state, the robot needs to predict:
+(1) the action class C C, (2) the objects as the discrete
+During training, the robot has access to an offline demonstra-
+tion dataset D  {(Ti, i)}B
+solution pairs sampled from the task distribution T train. Note
+that since the transition function f is known and deterministic,
+we can also recover the intermediate states from x0. During
+test time, the robot is required to solve held-out tasks sampled
+from a different test distribution T test. In practice, for the sake
+of evaluating generalization, test tasks typically contain new
+and more objects than training tasks. For example, as shown in
+Figure 2, all training tasks only have 1 platform, but during test,
+there are 2 platforms. The difference in object compositions
+could result in different lengths of plans with a different action
+implicit concepts present in the training demonstrations.
+III. BILEVEL PLANNING
+In this work, we propose a method for learning predicates
+that can be used for bilevel planning. We now provide a brief
+review of bilevel planning and refer to other references for a
+more in-depth discussion [1517, 1921, 24, 32, 33].
+Bilevel planning uses relational abstractions to achieve
+sequential and compositional generalization. The two principal
+abstractions are predicates (state abstractions) and operators
+(action abstractions). Bilevel planning also uses relational
+samplers to generate possible ground actions from operators.
+The key idea is that planning jointly in the abstract transition
+?r(robot)
+?p(platform)
+?t(target)
+Generalize
+{In(?t,?t)}
+MoveToReach(?r,?p,SE(2))
+Pick(?r,?p, )
+Drop(?r,?t,?t, ) Gaze(?r,?t,SE(3))
+MoveToPlace(?r,?p,?t,SE(2))
+Grasp(?r,?t, )
+MoveAwayOff(?r,?p,SE(2))
+MoveAwayOn(?r,?p,?t,SE(2))
+WalkOn(?r,?p,?t, )
+MoveToGaze(?r,?t,SE(2))
+{In(t!, t")}
+Fig. 2: The Climb-Transport domain is presented as a running example.
+We have displayed one typical training and one test task on the top.
+The types, actions, and provided predicates are shown at the bottom.
+system and the low-level transition system can be much more
+efficient than planning in the low-level transition space only.
+Definition 1 (Operator). The operator for a parametrized
+controller C is a tuple, OpC  Var, Pre, Eff, Eff, where
+Var is a tuple of object placeholders matching the type signature
+of C, and Pre, Eff, Eff, respectively preconditions,
+add effects, and delete effects, are each a set of lifted predicates
+defined with variables in Var.  is a predicate set.
+For example, the operator for Grasp(?r, ?t) could be:
+Pre  {HandEmpty(?r), HandSees(?r, ?t)},
+Eff  {Holding(?r, ?t)},
+Eff {HandEmpty(?r), HandSees(?r, ?t)}.
+Given a task T  O, x0, g, bilevel planning (Figure 3b) starts
+by using predicates to generate an abstract state consisting of
+all ground predicates with objects O whose classifiers evaluate
+to True in x0. The initial ground predicates, together with the
+operator set and goal g, can then be input to an AI planner
+to generate a plan skeleton,  with partially grounded actions
+with unspecified continuous parameters, C. To refine the actions
+in this skeleton C  into fully grounded C with the continuous
+Definition 2 (Sampler). The sampler C for a planning operator
+OpC with v object placeholders is a conditional distribution
+C(  x, (o1, . . . , ov)) that proposes continuous action
+parameters for C((o1, . . . , ov), ) given a state x.
+Note that unlike the deterministic operators, samplers are
+usually stochastic and may fail in certain steps. Thus, bilevel
+planning alternates between the AI planner and samplers, using
+the predicate classifiers  as guidance in each step to
+compensate for potential sampling failures.
+P21(?r,?t)
+P22(?r,?t)
+P21(?r,?t)
+P31(?r,?p)
+Predicate
+Final set
+Operator
+Sampler Learning
+Candidates
+Invented P1(?r)
+Invented P2(?r,?t)
+Selection
+Symbolic Effect
+Learning
+(a) Bilevel Learning During Training
+Neural Function
+Learning
+Guidance
+AI Planner
+Ground Predicates
+(b) Bilevel Planning During Test
+Alternate
+Fig. 3: (a) Overview of IVNTR during training. Given transition pairs in the continuous space, IVNTR invents neural predicates with different
+arguments parallelly, resulting in a candidate set. A subset that minimizes the planning objective J() is selected from the candidates, which
+serves as the final dyn. With the complete predicate set, sampler and operator learning can be achieved. (b) Bilevel planning with operators
+and samplers during test. Compositional ground predicates serve as inputs to the AI planner and provide guidance to the samplers.
+Assuming we have a complete predicate set, previous
+work has studied the problem of learning operators  and
+samplers [16, 19] from the demonstration dataset D. Since the
+can be generally applied to held-out test tasks sampled from
+T test. However, with an insufficient predicate setfor example,
+with only G and stabilevel planning can be intractably
+slow . We next introduce the IVNTR framework, which
+closes this gap by automatically inventing dynamic predicates
+for efficient bilevel planning.
+IV. METHODOLOGY
+The problem of inventing dynamic predicates dyn can be de-
+composed into symbolic learninghow many predicates should
+be invented, and with what type signaturesand classifier
+Previous approaches [17, 21] address these problems via a
+define-then-select two-stage pipeline. In the first stage, for
+each predicate candidate  with known variable types, its
+classifer is pre-defined via program synthesis  or pre-
+trained foundation models . These candidates form a large
+predicate pool dyn. In the second stage, to subselect predicates
+from the pool, each candidate predicate set dyn dyn is
+scored with a function J(dyn) that measures both planning
+efficiency and effectiveness. A key limitation of this define-
+then-select pipeline is that the classifiers within dyn are
+restricted to a relatively simple set. Scaling to more general
+highly non-differentiable. To address this, we propose IVNTR,
+a learn-then-select approach that leverages bilevel learning.
+As depicted in Figure 3 (a), given the domain types ,
+IVNTR enumerates all possible typed variable compositions
+(with maximum input arity). Since the input features for the
+predicate classifier depend on its argument types, IVNTR
+invents predicates with different arguments group by group
+parallelly. For the invention of each group, IVNTR draws in-
+spiration from bilevel planning itself, where planning alternates
+between the symbolic level and the low level. Similarly, IVNTR
+interleaves symbolic learning and neural learning, with each
+providing guidance for the other. Specifically, symbolic learning
+proposes effect vectors that represent the add and delete effects
+for candidate predicates across all operators. Neural learning
+uses these effect vectors to provide supervision for classifier
+learning. The validation loss in neural learning feeds back into
+symbolic learning, and the process repeats. In this section, we
+describe these steps in detail via the exemplar predicate group
+A. Effect Vectors as Supervision for Neural Learning
+Suppose we had access to the symbolic components of a
+further that we had knowledge of all appearances of  in
+the effect sets (Eff, Eff) for each operator OpC. We now
+describe how this knowledgewhich we do not actually have,
+but which will be suggested by symbolic learningcan be
+used for supervised learning of the classifier .
+Recall that we have access to demonstrations D, and for each
+demonstrated task T, we can recover the solution trajectory,
+[x0, C0, x1, C1,    , CH1, xH]. If we knew the initial state
+ground predicates  in x0, then we could immediately recover
+all ground predicates for all the states in the trajectories
+by chaining together the operator effects. Then, a simple
+binary classification framework could easily address our neural
+learning problem. However, we do not have access to the
+initial state ground predicateswe only have access to operator
+effectsso we do not have direct knowledge of the abstract
+states in the demonstration. Nonetheless, we can still provide
+supervision for neural learning by leveraging the ground
+predicates that are added, deleted, or stay unchanged in each
+transition pair. We provide this supervision by way of predicate
+effect vectors, including the lifted effect vector for a domain,
+and the ground effect vector for a transition.
+Definition 3 (Lifted Effect Vector). The lifted effect vector for
+Gaze(r,)
+Grasp(r,)
+Neural Learning of P21(?r,?t)
+Effect Vector
+High Val
+Object Centric Feat.
+Current State
+Next State
+Neural Info Flow
+Symbolic Supervision
+Two Transition Pairs
+Lifted Effect
+Fig. 4: Detailed neural learning process for predicate P21(?r, ?t).
+From the demonstration dataset, we display two transition pairs (one
+for each action, in total four states) on the left. The neural network
+takes object centric features as input, predicting ground predicates (in
+total eight values). At the bottom, we display an example lifted effect
+vector for action Grasp, Gaze as
+t  [1, 1]. With the ground
+effect vector, supervisions can be derived on the predicted values.
+Due to the unreasonable effect supervisions, the intermediate state is
+labeled as both True and False, resulting in high validation loss.
+predicate  is   [
+M] {1, 0, 1}M where:
+Eff for Ci
+Efffor Ci
+otherwise.
+For example, in Figure 4, the effect vector [1, 1] specifies
+that predicate   P21(?r, ?t) is the add effect for both
+Gaze(?r, ?t) and Grasp(?r, ?t)2.
+The lifted effect vector is a favorable symbolic representation
+of a lifted predicate, since its shape doesnt depend on task
+object compositions and can thus be learned more efficiently,
+as we will see. However, to train the neural classifier on the
+transition pairs, we will need to derive supervision on ground
+Definition 4 (Ground Effect Vector). Let O be the object set
+in a task T, Ci be a ground action with objects OCi O, then
+the ground effect vector t,Ci  [t1,    , tP ] {1, 0, 1}P
+for predicate  grounded on O is defined as:
+if Op OCi,
+where p denotes the p-th atom with objects Op, among
+the total of P ground predicates. For example, in Figure 4,
+2Each predicate here can appear at most once in the effect sets, but this
+doesnt affect the representation capability of the final predicate set.
+ground effects for P21(r1, t1) will be 1 for both ground
+actions Gaze(r1, t1) and Grasp(r1, t1), while ground effects
+for P21(r1, t2) will be 0, as (r1, t2) (r1, t1).
+non-zero entry of all ground effects from the action class
+Ci equals
+decided by the object set OC and the predicate grounding (see
+Appendix B and Appendix C for more explanations).
+the transition pairs with supervisions from . Specifically,
+consider a transition pair: (x, Ci, x), we first construct the
+ground effect vector t,Ci using
+i . Then, the following
+supervised learning objective can be established for :
+L(x, x, )  Lzero  Lone
+Lzero DivJS
+where v, v [0, 1]P are the predicted ground predicates by
+applying  on all possible object sets from O. DivJS()
+denotes the JensenShannon divergence  and Eq.(3) tries
+to minimize the distance between v and v if the indices with
+zero values in t,C. vp, v
+p denotes p-th ground predicate, where
+Op OCi. BCE(, ) represents the Binary Cross-Entropy,
+which tries to directly supervise v and v if
+i  0. Intuitively,
+Lzero supervises the ground predicates whose values should
+stay unchanged in a transition (but we dont know their values).
+values can be derived based on the effect vectors. Since we
+have  for all lifted actions, the pipeline can be applied to
+all ground transition pairs in D, resulting in the global loss,
+E(x,C,x)DCL(x, x, ),
+where DC denotes the distribution of the grounded transition for
+action C in the dataset D (See Figure 4 for the examples of two
+transitions from different actions). Since L is fully differentiable
+with respect to , given a effector  and the demonstration
+learning frameworks [36, 37] to train a neural classifier
+that minimizes the loss L for any state representation.
+B. Neural Loss as Guidance for Symbolic Learning
+To obtain all the classifiers Var for all the typed predicates
+effect vectors  Var. As defined in Definition 3, the
+lifted effect vectors live in the discrete world with a finite shape,
+which motivates us to establish some discrete optimization
+strategies for it. One insight here is that, despite the large
+with unreasonable ones resulting in high classification error on
+the validation set after the training converges.
+A motivating example is depicted in Figure 4, where the
+proposed effect vector assumes the predicate to be the add
+effects for both Gaze and Grasp. In the demonstration, Grasp
+closely follows Gaze, making the intermediate state shared in
+the two transition pairs but with one being the next state and the
+other being the current state. Then, the intermediate state will
+be labeled as both True and False, which is unreasonable and
+results in high classification error. Thus, our symbolic learning
+aims to efficiently find all reasonable effect vectors,
+Definition 5 (Symbolic Learning Objective). Let the demon-
+strations be split into non-overlapping training and validation
+sets D  Dtrain Dval, the objective of our symbolic learning
+is to find a subset of effect vectors ,Var Var,
+Var  LDval()
+where  is learned from Dtrain with supervision derived from
+using Eq. (5), and LDval denotes the validation loss of
+classifier  calculated from Eq. (5), and  is a given threshold.
+Inspired by the fact that a predicates effects are usually
+sparse among actions, we propose a tree expansion algorithm
+for efficiently learning ,Var. Specifically, as shown in
+Figure 5 (with M  4 actions), the complete effect vector set,
+n Var, n > 0 representing an effect vector. The root 0
+of the tree is an all-zero effect vector, which is not associated
+with any potential dynamic predicate. The nodes in the lth
+level represent a vector with l non-zero entries. For each non-
+leaf node in the lth level, its children in the l  1-th level
+have the same non-zero entries with one more non-zero entry.
+A naive exploration in this tree is to enumerate its nodes and
+train neural classifiers with supervisions from each of them,
+which is extremely time-consuming due to the large space. To
+explore the effect tree more efficiently, IVNTR tries to balance
+the trade-off between exploration and exploitation [38, 39].
+associated with a scalar rn
+,Var if we expand it at the current t-th iteration. In the
+t-th iteration, we start by selecting a parent node Par(
+t ) with
+the highest current Upper Confidence bounds applied to Trees
+(UCT) score . Its child,
+t that has the current highest
+value rt among all the children is proposed for evaluation (index
+is neglected for simplicity). The evaluation process is defined
+as the supervised neural learning process in Section IV-A.
+After the classifier  converges, we collect its action-wise
+validation loss Lt RM by decomposing Eq. (5) for each
+action C C, C  M. The loss information is then used to
+update the values of all the nodes in the tree, which helps us
+select and expand the parent node in the t  1-th iteration. The
+tree expansion terminates if all of the existing nodes are fully
+definition and updating strategy of the node values rn
+the sparsity of predicate effects among actions is indicated by
+the sparsity of non-zero entries in the effect vector, we try to
+Global Value !"
+Evaluate
+Effect Tree !"
+Lifted Effect Vector  !
+Validation
+Function
+Training
+Symbolic Learning
+P2(?r,?t)
+Fig. 5: Detailed symbolic learning process for predicate group
+P2(?r,?t). With the neural validation loss from the previous
+value vector (See Eq. (7)). After the node values in the effect tree are
+children nodes, we evaluate the child with the current highest value,
+via the neural classifer training process described in Figure 4.
+efficiently explore the entries in the effect vectors that should
+not be zero to optimize Eq. (6). To achieve this, we try to
+leverage the guidance from the zero-parts (Eq. (3)) of Lt.
+t in the tth
+iteration with Lt, we use the following equations to update
+and compute rn
+t1 for all the nodes in the tree,
+Rt1  Rt I(
+t  0)  (Rt  Lt)
+t1  Mean
+Rt1 I(n  0)
+where Rt RM, R0  0M is a global value vector that stores
+the information from historical evaluations. I(
+t  0) is a
+binary vector indicating if an entry in the evaluated node
+equals to zero. Here, we only update Rt with the zero-parts
+of the loss information Lt, which then helps update the node
+values. The node values intuitively indicate how likely the loss
+will decrease in its children where there are fewer zeros in
+the effect vectors. From Eq. (7), we see that the higher loss in
+the zero entry indexes of n contributes to its higher value,
+encouraging the evaluation to prioritize its children, which are
+likely to decrease the loss. In Appendix D, we additionally
+introduce some pruning strategy for more efficient expansion.
+the associated neural classifier n as the outcomes from the
+bilevel learning of typed predicates Var. As shown in Figure 3
+(a), there could exist multiple different vector-classifier pairs for
+the same typed predicate Var, which are treated as different
+predicates in the following predicate selection stage.3
+C. Predicate Selection
+With all possible typed predicates, IVNTR is able to
+construct the predicate pool dyn without any classifier pre-
+definition. This strength has made bilevel planning applicable
+3Following previous work , we can also add quantifiers and negations
+as prefix for each of the invented neural predicates.
+Satellites
+Measure-Mul  Climb-Measure
+Calibrator
+Thermal Cam
+Target w Chemical X
+Target w
+Chemical Y
+Gaussian
+Fig. 6: Visualization of the five domains (excluding Climb-Transport) we have studied in this work. These domains feature various state
+representations (including the high-dimensional point clouds in the Engrave domain) where our IVNTR can be generally applied.
+Satellites
+Measure-Mul
+Climb-Measure
+Climb-Transport
+State Space
+SE2 (R35)
+Vec3 (R38)
+SE3 (R75)
+SE3 (R75)
+SE3 (R75)
+PCD (R102436)
+Test Dist
+T train T test
+T train T test
+T train T test
+T train T test
+T train T test
+T train T test
+IVNTR (Ours)
+Transformer
+TABLE I: Empirical success rate comparison on six simulated robot planning domains. Among all the methods, IVNTR suffers the least from
+the generalization challenge due to its relational structure. The scores are obtained from the averaged results over five random seeds.
+to complicated and high-dimensional state spaces. Meanwhile,
+as the predicate classifiers are relational and can be seamlessly
+integrated into an AI planner , our approach can naturally
+achieve compositional generalization.
+ning. Therefore, we next try to select a subset dyn dyn
+that minimizes the score function J(dyn, D) . Specifically,
+with a set of candidate predicates   {G, sta, dyn},
+we start by grounding all the states x in the demonstration
+have the effect vector for each of the predicates in dyn,
+the effect sets (
+dyn) for each operator Op
+can be easily obtained. Then, the precondition set for each
+operator can be calculated using an intersection strategy .
+The learned operator set Op is then applied to the ground
+atom dataset to generate plan skeletons  for each task, which
+are compared with the demonstration plan skeletons  for
+objective calculation . The objective is finally minimized
+by running a hill-climbing search over dyn, resulting in the
+desired predicate set dyn. With the complete set, we are now
+able to learn the planning abstractions (operators and samplers)
+using standard pipelines [20, 21, 32] as shown in Figure 3
+(a). For a more detailed explanation to operator and sampler
+Note that before the predicate selection stage, all of the
+predicates neural classifiers have been pre-trained using our
+IVNTR framework, which has avoided the challenge of using
+the planning objective for learning but still achieved a powerful
+and adaptive model optimized for planning.
+V. EXPERIMENTS
+A. Implementation Details
+System and Hardware:
+All methods are evaluated on a
+single NVIDIA A100 GPU and an AMD EPYC 7543 32-Core
+CPU to ensure fairness. Training is conducted on the same
+hardware as evaluation, with domain-specific details provided
+in Appendix E. Real-robot experiments are performed using
+the Boston Dynamics Spot robot equipped with an arm.
+predicate set, most existing bilevel planning approaches [19,
+in most domains (see Appendix J). Thus, IVNTR is primarily
+compared to relational neural policy learning methods [28,
+trained using standard behavior cloning pipelines and evaluated
+with a shooting strategy; see Appendix F for details.
+We evaluate the methods across six diverse
+robot planning domains with varying state representations,
+as visualized in Figure 6 and summarized in Table I. Below,
+we provide a high-level overview of these domains. For more
+implementation details, please refer to Appendix E:
+Satellites comes from prior work , which involves a
+group of satellites collaborating to capture sensor readings
+from targets. States comprise SE2 poses and object
+attributes. Training scenarios (T train) include 2 satellites
+and 2 targets, while test scenarios (T test) have 3 of each.
+manipulating 3D blocks to form goal towers. Unlike
+vanilla Blocks World, the goals here involve packing
+pairs of blocks into two-level towers. T train includes 45
+Climb-Measure
+Climb-Transport
+SeedTask
+Oracle (Human)
+IVNTR (Learned)
+TABLE II: Success rate comparison of the two planners on the real robot planning tasks sampled from T test. Oracle denotes bilevel
+planners exhaustively engineered by a human expert. IVNTR is learned from the demonstrations collected in the simulated environment. For
+each domain, we have tested six tasks (T0T5) sampled from three random seeds (S0S2). For each planner in each task, we run it at most
+three times and record the averaged task success rate. Our framework has achieved comparable real robot performance with the Oracle.
+Climb-Measure
+T train T test J() (105) T train T test J() (105)
+GT-Vectors
+TABLE III: Comparison between the predicates learned with ground-
+truth (GT)-vectors and using our IVNTR framework. We report the
+task success rate and the final planning objective.
+a Spot robot calibrates a thermal camera by aligning it
+with a calibrator before measuring body temperatures of
+multiple human targets. States include 6D poses of the
+robot and the targets. Training distributions (T train) have
+23 humans, while test distributions (T test) include 4.
+Climb-Measure is similar to Measure-Mul but with added
+at high, initially unreachable locations. The Spot robot
+must arrange platforms and climb onto them to reach
+targets. Training (T train) includes 01 platforms, while
+testing (T test) requires planning with 2 platforms.
+requires the Spot robot to arrange platforms to grasp
+a high-placed target, then transport it into a container.
+Training setups (T train) feature 01 platforms, while
+testing (T test) involves 2 platforms.
+Engrave features high-dimensional state spaces repre-
+sented as object-centric point clouds. Similar to Blocks,
+the goal is to pack blocks. However, blocks start with
+one irregular Gaussian surface that must be engraved and
+rotated to create a matching fit. Training distributions
+(T train) include 34 blocks, while testing (T test) has 56.
+Experiment Setup: For each domain, we manually designed
+an oracle bilevel planner (Oracle) to collect training demonstra-
+tions. We report averaged results over five random seeds for all
+six domains. For each seed in Satellites, Blocks, Measure-
+For Climb-Measure and Climb-Transport, 2000 demonstrations
+were collected per seed. During test, each seed in each domain
+includes 50 in-domain tasks (T T train) and 50 generalization
+Satellites
+Measure-Mul
+Sampling with
+TABLE IV: Comparison between sampling with and without the
+invented predicate classifiers. Without using the predicates as step-
+wise success indicator, the performance drops significantly.
+tasks (T T test). We report the success rate within the
+same maximum planning time for all the methods. For real-
+world Climb-Measure and Climb-Transport, a shared map was
+recorded using Spots default graph nav service for simulation
+and localization. Each domain was tested on 3 random seeds,
+each with 6 generalized tasks. For manipulation-based actions,
+we have utilized an off-the-shelf segment anything model
+(SAM) [42, 43] for computing the grasping pixel.
+B. Empirical Results
+Simulated Planning Domains: The empirical comparison
+across the six simulated domains is presented in Table I.
+Alongside the averaged success rates, we report the performance
+drop percentage during generalization. IVNTR consistently
+outperforms all baselines in both T train and T test across all
+domains. For complex state representations such as SE3 and
+PointClouds (PCD), none of the baselines achieve a success
+rate above 5 on generalized tasks, while IVNTR stably solves
+over 50 by virtue of its relational structure. In Appendix L,
+we further demonstrate the potential of IVNTR to abstract
+high-dimensional RGB image states into symbolic predicates.
+Real Robot Planning Tasks: All real robot tasks are sampled
+from T test, making IVNTR the only applicable approach.
+To benchmark performance, a human expert has exhaustively
+engineered oracle planners for the real robot in the two domains.
+Each approach attempts each task up to three times, with the
+average success rate reported in Table II. Despite the simulation-
+to-reality gap, IVNTR successfully generalizes to held-out
+Most real-world deployment failures stem from perception
+and localization errors, with examples shown in Appendix G.
+Iterations
+Efficiency Comparison in the Engrave Domain
+Fig. 7: Comparison between IVNTR with other search strategies in
+the Engrave domain. We report the number of iterations for each of
+the algorithm to find the reasonable effect vectors (different predicate
+could have different maximum search space Mmax). IVNTR has
+demonstrated the highest efficiency in finding the desired vectors.
+C. Ablation Studies
+Comparison to Ground-Truth Effect Vectors: A notable
+strength of IVNTR is its ability to discover non-ground-truth
+(GT) predicates. In Table III, we replaced our tree expansion
+with oracle-derived GT effect vectors, where the performance
+on the Blocks and Climb-Measure domains are reported.
+effectively than GT vectors, resulting in its higher accuracy.
+This outcome highlights the advantage of exploring better
+high-level abstractions beyond human-engineered ones.
+Comparison to Other Search Algorithms: To evaluate the
+efficiency of our neural-informed tree expansion algorithm,
+we compared it with alternative search strategies: a greedy
+approach (Greedy) that flips the zero entry with the highest
+current loss, breadth-first (BFS) and depth-first (DFS) searches.
+For the Engrave domain, Figure 7 shows the number of
+iterations required to find each reasonable effect vector using
+these methods. Compared to uninformed methods, our IVNTR
+framework is at least 2 more efficient. The greedy approach
+exhibits high variance and is generally less reliable. We present
+comparisons in more domains in Appendix M.
+Comparison to Pure High-level Planning:
+As discussed
+in Section III, predicates not only enable compositional
+generalization through planning operators but also serve as
+indicators of sampler failures in low-level states. To assess
+the importance of our invented predicates for reliable low-
+level sampling, we disabled bilevel planning and followed the
+high-level plan greedily, ignoring predicate-based checks for
+sampler success. As shown in Table IV, this approach results
+in performance drops of up to 98.4, underscoring the critical
+role of predicates as indicators of low-level state validity.
+D. Interpreting Invented Predicates
+Predicates play a key role in defining the preconditions and
+effects of operators, specifying the order of ground actions to
+complete a task. In Table V, we display part of the precondition
+and effect sets for high-level actions in the Climb-Transport
+among actions. For example, the Drop action requires P21 and
+of Grasp, enforcing all Pick actions to precede Grasp. These
+relational constraints over objects enable the generation of long-
+horizon plans that generalize to unseen object compositions.
+The complete operators are detailed in Appendix H. We
+also provide visualizations of how predicates act as success
+indicators to filter out sampler failures in Appendix I.
+VI. RELATED WORKS
+A. Learning Abstractions for Planning
+Learning abstractions is essential for reducing the complex-
+ity of long-horizon planning in high-dimensional domains.
+Traditional approaches, such as hierarchical task networks
+(HTN) , heavily rely on hand-designed abstractions. Re-
+cent advances have shifted towards data-driven approaches
+that automatically discover useful abstractions from interac-
+tions [18, 30, 4547] or demonstrations [32, 4850]. However,
+these methods struggle to generalize beyond the training
+environments . Foundation models, such as large language
+models (LLMs) and vision-language models (VLMs), have
+been explored for high-level planning with minimal or no
+demonstrations [21, 25, 5157]. While these models leverage
+commonsense knowledge for efficient plan generation, two
+challenges remain: (1) High-level plans from LLMs [25, 53
+55] are difficult to reliably refine in the low-level space .
+(2) VLM-based methods [13, 21, 52, 57] struggle in domains
+where images cannot fully capture the state space.
+B. Task and Motion Planning
+To address these challenges, task and motion planning
+(TAMP) integrates high-level symbolic planning with low-level
+motion generation. Traditional TAMP methods [33, 58] rely
+on manually designed planners [59, 60]. These frameworks
+inherently support compositional generalization due to their
+relational structure. In addition, the coupling between high-
+level and low-level planning can handle failures at either
+level effectively. However, traditional TAMP requires sub-
+stantial human effort. Recent advances integrate learning into
+TAMP [13, 17, 20, 21, 32, 57, 61], forming bilevel planning
+frameworks. These approaches combine the strengths of TAMP
+with the scalability of machine learning models. However, most
+bilevel planners rely on manually engineered state abstractions
+(predicates), limiting their scalability and flexibility.
+C. Predicate Invention for Planning
+To automate predicate generation for planning, various
+approaches have been proposed [14, 17, 21, 24, 25, 2730].
+The most direct approaches [24, 25] rely on domain knowledge,
+such as human-provided labels  or LLM-based oracles .
+To invent predicates, earlier approaches derive easy step-wise
+Predicates
+In(?t, ?t)
+Pre  Eff
+TABLE V: The preconditions, add effects, and delete effects for each
+of the actions (the variables are neglected for simplicity) with (part
+of) the invented predicates in the Climb-Transport Domain. MA is for
+MoveAway and MT for MoveTo. The invented predicates have specified
+some logical constrains over the order of actions.
+Among these, LatPlan (FOSAE)  learns relational neural
+abstractions for images by reconstructing states and identifying
+action spaces for planning, which is the closest work to IVNTR.
+actions. Recent approaches [17, 21] address this by learning
+abstractions tailored to fast planners . However, these
+methods struggle to learn predicate classifiers due to non-
+differentiable objectives. Consequently, they often rely on pre-
+defined predicate candidates from program synthesis  or
+foundation models , which constrains their applicability
+in more sophisticated and high-dimensional state spaces. Our
+approach is motivated by the bilevel planning framework
+but eliminates the need for pre-defining the candidates. Instead,
+we can learn adaptive neural classifiers for different domains,
+enabling more flexible and scalable learning based planning.
+VII. LIMITATIONS AND FUTURE WORKS
+In this work, we introduced IVNTR, a bilevel learning
+framework that invents neural classifiers as relational planning
+predicates. These predicates enable the learning of relational
+bilevel planners capable of generating long-horizon plans for un-
+seen object compositions. At the neural level, IVNTR leverages
+the high-level effects of predicates across actions to provide
+step-wise supervisions on transition pairs. At the symbolic level,
+IVNTR captures the sparsity of effects through an informed tree
+expansion algorithm. By adopting neural classifiers, IVNTR
+adapts to diverse robot planning domains with continuous
+and high-dimensional state representations. Additionally, we
+deployed IVNTR on a mobile manipulator, demonstrating its
+ability to achieve compositional generalization over objects
+and actions in long-horizon mobile manipulation tasks.
+IVNTR has several limitations that we leave for future
+predicates are still assumed as domain-level prior knowledge.
+(2) Following previous works , we have assumed the
+sparsity of effects; discussions about the general cases can
+be found in Appendix B. (3) Since IVNTR trains different
+neural networks in each iteration, the learning time could
+be prolonged in domains with extreme complexity. Currently,
+we parallelize the invention of different predicate groups on
+multiple GPUs for efficiency (see Appendix E). (4) Neural
+predicates with quantifiers are less reliable due to the prediction
+errors in the classifiers. Future work could explore probabilis-
+tic symbolic planners  or hybrid declarative-imperative
+representations  to plan with an inaccurate model. (5)
+Since the predicates are neural networks, it is hard to interpret
+their physical meanings. It would also be intriguing for future
+approaches to make them directly human readable.
+ACKNOWLEDGMENT
+We acknowledge the support of the Air Force Research Lab-
+oratory (AFRL), DARPA, under agreement number FA8750-23-
+2-1015. We also acknowledge Defence Science and Technology
+Agency (DSTA) under contract DST000EC124000205. This
+work used Bridges-2 at PSC through allocation cis220039p
+from the Advanced Cyberinfrastructure Coordination Ecosys-
+supported by NSF grants 2138259, 2138286, 2138307,
+Qinglin Feng for her valuable time in supporting our real-robot
+experiments and for her intelligence in motivating our Climb-
+Transport domain. The authors would also like to express
+sincere gratitude to Jiayuan Mao (MIT), Nishanth Kumar
+(MIT), Prof. Katia Sycara (CMU), and Prof. Pradeep Ravikumar
+(CMU) for their valuable feedback, discussions, and suggestions
+on the early stages of this work. Finally, the authors wish to
+thank our Spot robot, Spotless, for being reliable throughout
+our real-world experiments.
+REFERENCES
+Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Iretiayo
+Dieter Fox. Mimicgen: A data generation system for
+scalable robot learning using human demonstrations.
+arXiv preprint arXiv:2310.17596, 2023.
+Cheng Chi, Siyuan Feng, Yilun Du, Zhenjia Xu, Eric
+fusion policy: Visuomotor policy learning via action
+diffusion. In Robotics: Science and Systems (RSS), 2023.
+Tony Z Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+Finn. Learning fine-grained bimanual manipulation with
+low-cost hardware. In Robotics: Science and Systems
+Dian Wang, Stephen Hart, David Surovik, Tarik Keleste-
+Equivariant
+diffusion policy. arXiv preprint arXiv:2407.01812, 2024.
+Jingyun Yang, Zi-ang Cao, Congyue Deng, Rika
+Sim (3)-equivariant diffusion policy for generalizable and
+data efficient learning. arXiv preprint arXiv:2407.01479,
+Jiayuan Mao, Tomas Lozano-Perez, Josh Tenenbaum,
+and Leslie Kaelbling. What Planning Problems Can A
+Relational Neural Network Solve? In Proceedings of
+the Advances in Neural Information Processing Systems
+(NeurIPS), volume 36, 2024.
+Bowen Li, Zhaoyu Li, Qiwei Du, Jinqi Luo, Wenshan
+Advancing Neuro-Symbolic AI with Abstract Urban
+Simulation. In Proceedings of the Advances in Neural
+Information Processing Systems (NeurIPS), pages 69840
+Lihong Li, Thomas J Walsh, and Michael L Littman.
+Towards a unified theory of state abstraction for mdps.
+In AIM, 2006.
+David Abel, Dilip Arumugam, Lucas Lehnert, and
+Michael Littman. State abstractions for lifelong reinforce-
+ment learning. In International Conference on Machine
+Learning. PMLR, 2018.
+George Konidaris, Leslie Pack Kaelbling, and Tomas
+Lozano-Perez. From skills to symbols: Learning symbolic
+representations for abstract high-level planning. Journal
+of Artificial Intelligence Research, 16:215289, 2018.
+Lionel Wong, Jiayuan Mao, Pratyusha Sharma, Zachary S
+and Jacob Andreas. Learning Grounded Action Abstrac-
+tions From Language. In Proceedings of the International
+Conference on Learning Representations (ICLR), 2024.
+Aidan Curtis, Tom Silver, Joshua B Tenenbaum, Tomas
+And Action Abstractions For Generalized Task And
+Motion Planning. In Proceedings of The AAAI Conference
+On Artificial Intelligence (AAAI), number 5, pages 5377
+Zhutian Yang, Caelan Garrett, Dieter Fox, Tomas Lozano-
+Task and Motion Planning with Vision Language Models,
+Naman Shah, Jayesh Nagpal, Pulkit Verma, and Siddharth
+Srivastava. From Reals to Logic and Back: Inventing
+Symbolic Vocabularies, Actions and Models for Planning
+from Raw Data. arXiv preprint arXiv:2402.11871, 2024.
+Lozano-Perez.
+Learning Symbolic Operators for Task and Motion
+Planning. In Proceedings of the IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+Tom Silver, Ashay Athalye, Joshua B. Tenenbaum, Tomas
+Learning
+Neuro-Symbolic Skills for Bilevel Planning.
+ceedings of the Conference on Robot Learning (CoRL),
+Tom Silver, Rohan Chitnis, Nishanth Kumar, Willie
+Joshua B Tenenbaum. Predicate Invention for Bilevel
+Planning. In Proceedings of The AAAI Conference on
+Artificial Intelligence (AAAI), volume 37, pages 12120
+Rohan Chitnis, Tom Silver, Joshua B Tenenbaum,
+Leslie Pack Kaelbling, and Tomas Lozano-Perez. GLIB:
+Efficient Exploration for Relational Model-Based Rein-
+forcement Learning via Goal-Literal Babbling. In Pro-
+ceedings of The AAAI Conference on Artificial Intelligence
+(AAAI), volume 35, pages 1178211791, 2021.
+Nishanth Kumar, Tom Silver, Willie McClinton, Linfeng
+Planning To Learn Skill Parameter Policies. In Proceed-
+ings of the Robotics: Science And Systems (RSS), 2024.
+Nishanth Kumar, Willie McClinton, Rohan Chitnis, Tom
+Learning Efficient Abstract Planning Models That Choose
+What to Predict. In Proceedings of the Conference on
+Robot Learning (CoRL), 2023.
+Yichao Liang, Nishanth Kumar, Hao Tang, Adrian Weller,
+Joshua B Tenenbaum, Tom Silver, Joao F Henriques,
+and Kevin Ellis.
+World Models With Neuro-Symbolic Predicates For Robot
+Johannes Kulick, Marc Toussaint, Tobias Lang, and
+Manuel Lopes.
+Active learning for teaching a robot
+grounded relational symbols. In IJCAI, pages 14511457.
+George Konidaris, Leslie Pack Kaelbling, and Tomas
+Lozano-Perez. From skills to symbols: Learning symbolic
+representations for abstract high-level planning. Journal
+of Artificial Intelligence Research (JAIR), 2018.
+Amber Li and Tom Silver. Embodied Active Learning
+of Relational State Abstractions for Bilevel Planning.
+In Proceedings of the Conference on Lifelong Learning
+Agents (CoLLAs), pages 358375, 2023.
+Muzhi Han, Yifeng Zhu, Song-Chun Zhu, Ying Nian Wu,
+and Yuke Zhu. InterPreT: Interactive Predicate Learning
+from Language Feedback for Generalizable Task Planning.
+arXiv preprint arXiv:2405.19758, 2024.
+Toki Migimatsu and Jeannette Bohg. Grounding Predi-
+cates through Actions. In Proceedings of the International
+Conference on Robotics and Automation (ICRA), pages
+Masataro Asai and Alex Fukunaga. Classical Planning in
+Deep Latent Space: Bridging the Subsymbolic-Symbolic
+Boundary. In Proceedings of The AAAI Conference on
+Artificial Intelligence (AAAI), volume 32, 2018.
+Masataro Asai. Unsupervised Grounding of Plannable
+First-Order Logic Representation From Images.
+Proceedings of the International Conference on Automated
+Planning and Scheduling (ICAPS), volume 29, pages 583
+Masataro Asai and Christian Muise. Learning Neural-
+Dymbolic Descriptive Planning Models via Cube-Space
+of the International Joint Conferences on Artificial Intel-
+ligence (IJCAI), pages 26762682, 2021.
+Philippe Hansen-Estruch, Amy Zhang, Ashvin Nair,
+Patrick Yin, and Sergey Levine.
+Bisimulation Makes
+Analogies in Goal-conditioned Reinforcement Learning.
+In Proceedings of the International Conference on Ma-
+chine Learning (ICML), pages 84078426, 2022.
+Ashay Athalye, Nishanth Kumar, Tom Silver, Yichao
+Predicate Invention from Pixels via Pretrained Vision-
+Language Models.
+arXiv preprint arXiv:2501.00296,
+Rohan Chitnis, Tom Silver, Joshua B. Tenenbaum, Tomas
+Learning
+Neuro-Symbolic Relational Transition Models for Bilevel
+Planning. In Proceedings of the IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+Caelan Reed Garrett, Rohan Chitnis, Rachel Holladay,
+Beomjoon Kim, Tom Silver, Leslie Pack Kaelbling,
+and Tomas Lozano-Perez. Integrated Task and Motion
+Planning.
+Annual Review of Control, Robotics, and
+Autonomous Systems, 4(1):265293, 2021.
+Malte Helmert. The Fast Downward Planning System.
+Journal of Artificial Intelligence Research, 26:191246,
+Jianhua Lin. Divergence Measures based on the Shannon
+Entropy.
+IEEE Transactions on Information theory,
+Diederik P. Kingma and Jimmy Ba. Adam: A Method for
+Stochastic Optimization. arXiv preprint arXiv:1412.6980,
+David E Rumelhart, Geoffrey E Hinton, and Ronald J
+Williams. Learning Representations by Back-propagating
+Errors. nature, 323(6088):533536, 1986.
+Remi Coulom. Efficient Selectivity and Backup Operators
+in Monte-Carlo Tree Search.
+In Proceedings of the
+International Conference on Computers and Games
+(ICCG), pages 7283, 2006.
+David Silver, Julian Schrittwieser, Karen Simonyan,
+Ioannis Antonoglou, Aja Huang, Arthur Guez, Thomas
+Mastering the Game of Go without Human Knowledge.
+Peter W Battaglia, Jessica B Hamrick, Victor Bapst,
+Alvaro Sanchez-Gonzalez, Vinicius Zambaldi, Mateusz
+Deep Learning, and Graph Networks.
+arXiv preprint
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+and Illia Polosukhin. Attention is All You Need. In
+Proceedings of the Advances in Neural Information
+Processing Systems (NeurIPS), volume 30, 2017.
+Luca Medeiros.
+Language Segment-Anything.
+github.comluca-medeiroslang-segment-anything, 2024.
+Nikhila Ravi, Valentin Gabeur, Yuan-Ting Hu, Ronghang
+Segment Anything in Images and Videos. arXiv preprint
+Leslie Pack Kaelbling and Tomas Lozano-Perez.
+erarchical Task and Motion Planning in the Now. In
+Proceedings of the International Conference on Robotics
+and Automation (ICRA), pages 14701477. IEEE, 2011.
+Abhishek Gupta, Vikash Kumar, Corey Lynch, Sergey
+ing Long-Horizon Tasks via Imitation and Reinforcement
+Learning. In Proceedings of the Conference on Robot
+Learning (CoRL), pages 10251037, 2020.
+Soroush Nasiriany, Huihan Liu, and Yuke Zhu. Augment-
+ing Reinforcement Learning with Behavior Primitives
+for Diverse Manipulation Tasks. In Proceedings of the
+International Conference on Robotics and Automation
+(ICRA), pages 74777484, 2022.
+Honghua Dong, Jiayuan Mao, Tian Lin, Chong Wang,
+Lihong Li, and Denny Zhou. Neural Logic Machines. In
+Proceedings of the International Conference on Learning
+Representations (ICLR), pages 110, 2019.
+Mohit Sharma, Arjun Sharma, Nicholas Rhinehart, and
+Kris M Kitani. Directed-Info GAIL: Learning Hierar-
+chical Policies from Unsegmented Demonstrations using
+Directed Information. In Proceedings of the International
+Conference on Learning Representations (ICLR), 2018.
+Thomas Kipf, Yujia Li, Hanjun Dai, Vinicius Zambaldi,
+Alvaro Sanchez-Gonzalez, Edward Grefenstette, Pushmeet
+Imitation Learning and Execution. In Proceedings of the
+International Conference on Machine Learning (ICML),
+Jiayuan Mao, Tomas Lozano-Perez, Josh Tenenbaum,
+and Leslie Kaelbling.
+the Advances in Neural Information Processing Systems
+(NeurIPS), volume 35, pages 3697236984, 2022.
+Weiyu Liu, Neil Nie, Ruohan Zhang, Jiayuan Mao, and
+Jiajun Wu. BLADE: Learning Compositional Behaviors
+from Demonstration and Language. In Proceedings of
+the Conference on Robot Learning (CoRL), 2024.
+Xiaolin Fang, Bo-Ruei Huang, Jiayuan Mao, Jasmine
+Leslie Pack Kaelbling. Keypoint Abstraction using Large
+Models for Object-Relative Imitation Learning. arXiv
+preprint arXiv:2410.23254, 2024.
+Tom Silver, Soham Dan, Kavitha Srinivas, Joshua B
+alized Planning in PDDL Domains with Pretrained Large
+Language Models. In Proceedings of the AAAI Conference
+on Artificial Intelligence (AAAI), volume 38, pages 20256
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Chain-of-Thought Prompting Elicits Reasoning in Large
+Language Models. In Proceedings of the Advances in
+Neural Information Processing Systems (NeurIPS), 2022.
+Wenlong Huang, Chen Wang, Ruohan Zhang, Yunzhu
+3D Value Maps for Robotic Manipulation with Language
+In Proceedings of the Conference on Robot
+Learning (CoRL), pages 540562, 2023.
+Yingdong Hu, Fanqi Lin, Tong Zhang, Li Yi, and Yang
+Gao. Look Before You Leap: Unveiling the Power of
+GPT-4v in Robotic Vision-Language Planning.
+preprint arXiv:2311.17842, 2023.
+Nishanth Kumar, Fabio Ramos, Dieter Fox, and Cae-
+lan Reed Garrett. Open-World Task and Motion Planning
+via Vision-Language Model Inferred Constraints. In CoRL
+Workshop on Language and Robot Learning: Language
+as an Interface, 2024.
+Leslie Pack Kaelbling. Pddlstream: Integrating Symbolic
+Planners and Blackbox Samplers via Optimistic Adaptive
+Planning. In Proceedings of the International Confer-
+ence on Automated Planning and Scheduling (ICAPS),
+volume 30, pages 440448, 2020.
+Drew McDermott, Malik Ghallab, Adele E. Howe,
+Craig A. Knoblock, Ashwin Ram, Manuela M. Veloso,
+Daniel S. Weld, and David E. Wilkins.
+PDDL-the
+Planning Domain Definition Language. 1998.
+Sertac Karaman, Matthew R Walter, Alejandro Perez,
+Emilio Frazzoli, and Seth Teller. Anytime Motion Plan-
+ning using the RRT. In Proceedings of the International
+Conference on Robotics and Automation (ICRA), pages
+Nicolas Bougie and Ryutaro Ichise. Skill-based curiosity
+for intrinsically motivated reinforcement learning. Ma-
+chine Learning, 109, 2020.
+Hakan LS Younes and Michael L Littman. PPDDL1. 0:
+An extension to PDDL for expressing planning domains
+with probabilistic effects. Techn. Rep. CMU-CS-04-162,
+Jiayuan Mao, Joshua B Tenenbaum, Tomas Lozano-Perez,
+and Leslie Pack Kaelbling. Hybrid Declarative-Imperative
+Representations for Hybrid Discrete-Continuous Decision-
+Making. In Proceedings of the International Workshop
+on the Algorithmic Foundations of Robotics (WAFR).
+Nikhila Ravi, Jeremy Reizenstein, David Novotny, Taylor
+Gkioxari.
+Accelerating 3D Deep Learning with Py-
+Torch3D. arXiv:2007.08501, 2020.
+Charles R Qi, Hao Su, Kaichun Mo, and Leonidas J
+Guibas. Pointnet: Deep Learning on Point Sets for 3D
+Classification and Segmentation. In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 652660, 2017.
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian
+Sun. Deep Residual Learning for Image Recognition. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition (CVPR), pages 770778,

@@ -1,0 +1,998 @@
+=== PDF文件: Implicit Neural-Representation Learning for Elastic Deformable-Object Manipulations.pdf ===
+=== 时间: 2025-07-21 14:27:16.482143 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Implicit Neural-Representation Learning for
+Elastic Deformable-Object Manipulations
+Minseok Song
+hjmngbkaist.ac.kr
+JeongHo Ha
+hajeongho95kaist.ac.kr
+Bonggyeong Park
+iampbkkaist.ac.kr
+Daehyung Park
+daehyungkaist.ac.kr
+AbstractWe aim to solve the problem of manipulating
+deformable objects, particularly elastic bands, in real-world
+scenarios. However, deformable object manipulation (DOM)
+requires a policy that works on a large state space due to the
+unlimited degree of freedom (DoF) of deformable objects. Further,
+their dense but partial observations (e.g., images or point clouds)
+may increase the sampling complexity and uncertainty in policy
+learning. To figure it out, we propose a novel implicit neural-
+representation (INR) learning for elastic DOMs, called INR-DOM.
+Our method learns consistent state representations associated
+with partially observable elastic objects reconstructing a complete
+and implicit surface represented as a signed distance function.
+through reinforcement learning (RL) that enables RL algorithms
+to effectively learn exploitable representations while efficiently
+obtaining a DOM policy. We perform quantitative and qualitative
+analyses building three simulated environments and real-world
+manipulation studies with a Franka Emika Panda arm. Videos
+are available at
+I. INTRODUCTION
+Deformable object manipulation (DOM), as shown in Fig. 1,
+presents a major challenge in automation and has attracted
+increasing attention in robotics over the past decade .
+Researchers have investigated a variety of DOM tasks, such
+as grasping , folding , wearing , threading ,
+introduce challenges in the domains of perception, modeling,
+(DoF) and nonlinear interaction dynamics of deformable objects
+(DO). Further, dense but partial observationsoften resulting
+from self-occlusionsalso increase sampling complexity and
+uncertainty in policy learning.
+In DOM, data-driven modeling approaches are increasingly
+gaining attention with their extensive representation capabilities
+for downstream tasks. For example, Lippi et al. reduce a
+high-dimensional space of DOs into a low-dimensional state
+graph to facilitate planning . Researchers often model a
+DO as a particle-based interaction graph to describe detailed
+topological structures [17, 21]. Recent studies aim to capture
+comprehensive graph-based models by reconstructing complete
+geometries such as point clouds and meshes from partial
+observations . However, the discrete nature of particle-
+or graph-based models often fails to consistently represent the
+flexible and smooth surfaces of DOs.
+increasing interest with their ability to represent complex, non-
+convex geometries of objects . SDFs not only describe
+Two Wrist
+RGB Cams
+RGB-D Cam
+Rubber band
+Initial State
+Goal State
+Observed
+Point cloud
+Occlusions
+Fig. 1: A capture of deformable object manipulation task
+that requires disentangling elastic bands between two poles.
+The deformable and stretchable nature of bands increases the
+complexity of state representation. Further, the 360twists
+create self-occlusions, significantly reducing the consistency
+of state embeddings. Our INR-DOM effectively captures the
+occlusion-robust implicit representation of the bands and effi-
+ciently generates real-world applicable manipulation policies.
+the surfaces of objects, but also provide spatial information
+at a distance, making them well suited to depict physical
+interactions and facilitating manipulation planning . To
+capture continuous and fine details, researchers parameterize
+SDFs using neural networks (i.e., implicit signed distance
+function) [37, 3]. However, most studies that involve SDFs in
+DOM focus primarily on enhancing encoding for improved
+ploration process of reinforcement learning (RL)-based policy
+learning.
+We propose a novel implicit neural representation (INR)
+learning method for elastic DOM, which we call INR-DOM.
+Our method focuses on learning consistent and occlusion-
+tolerant representations of partially observable DOs and en-
+hances task-relevant representations to optimize their manipu-
+lation policies efficiently. INR-DOM incorporates a two-stage
+learning process with two types of losses: 1) pre-training
+utilizes reconstruction and regularization losses to develop an
+occlusion-robust yet dense representation encoder, suitable for
+stretched or intertwined DOs; 2) fine-tuning employs contrastive
+learning and RL losses to refine representations, boosting
+exploitability and effectiveness in policy learning. The use of
+implicit SDF during pre-training allows for the reconstruction
+of complete and implicit surfaces of highly elastic DOs. The
+integration of contrastive loss during fine-tuning further enables
+the encoder to effectively identify and handle complex, enclosed
+a temporal- and instance-wise key assignment method for
+time-series contrastive learning to better represent correlations
+between similar manipulation sequences.
+We conduct quantitative and qualitative studies in both
+simulated and real-world manipulation environments. By
+constructing a 3D shape-recovery benchmark of nine elastic
+rubber bands, we show INR-DOMs consistent and occlusion-
+robust representation capabilities. Applying them to simu-
+lated environments, we then demonstrate the superior state-
+representation and policy-learning capabilities across three
+simulated environments (i.e., sealing, installation, and disen-
+tanglement tasks). INR-DOM excels in accurately recovering
+complete geometries from partial observations, surpassing state-
+of-the-art baseline methods, particularly in handling stretched
+or intricately enclosed states of rubber bands. Further, the
+fine-tuned representation captures both task-relevant and -
+irrelevant details, facilitating efficient policy convergence in
+RL and leading to significantly higher task success rates up
+to 41 higher than the next-best baseline approach. We also
+demonstrate the real-world applicability of INR-DOM with a
+Franka Emika Panda robot.
+In summary, key contributions of this paper are threefold:
+We introduce an implicit neural-representation learning
+method that provides consistent and occlusion-robust repre-
+sentations from visual observation of deformable objects.
+We develop an effective representation-refining approach
+using a contrastive loss to capture task-relevant state infor-
+mation for RL.
+We demonstrate that INR-DOM significantly improves
+convergence stability in policy learning and success rate
+for DOM tasks, in both simulations and real-world settings.
+II. RELATED WORKS
+We investigate representation models and their learning or
+update methodologies for DOM tasks.
+Representation models: The expressiveness of representations
+stems from the capacity of the underlying models. Most
+model-based approaches represent deformations using discrete
+structures composed of a finite number of elements, such as
+points or lines. Earlier approaches, including the finite element
+method (FEM), approximate complex, irregular geometries
+by partitioning objects into smaller elements that collectively
+represent the overall shape [18, 29]. However, their reliance
+on the mesh structures limits their ability to handle large
+approaches often struggle to capture continuum behaviors such
+as stretching or compression. Recently, studies build interaction
+graphs to leverage structural connectivity through graph-based
+representations [17, 19, 21]. Nonetheless, the inherently discrete
+nature of these models gives challenges representing continuous
+surfaces.
+that directly map raw observations to feature vectorsusing
+2D convolutional encoders for RGB images [43, 34] or Point-
+Net  for 3D point clouds . However, these methods lack
+the dense geometric representations required for downstream
+tasks such as precise tying or untwisting. To address this
+superior capabilities in capturing dense correspondence and
+dynamics in deformable objects. Shen et al. reconstruct high-
+fidelity voxel geometries from simulated RGB-D images ,
+while Wi et al. model the continuous representation of deformed
+geometries based on external forces and their locations .
+Our approach not only provides dense descriptors but also
+distinguishes complex and overlapping shapes in real-world
+scenarios.
+Representation Learning: Early approaches often rely on au-
+toencoders with reconstruction losses to obtain low-dimensional
+features. While this enable training with large unlabeled
+may distract explorations, leading to sample inefficiency in
+RL . To address this issue, researchers introduce end-to-
+end learning approaches that jointly train the encoder and the
+action network . In addition, contrastive learning  have
+emerged as another metric-learning technique for representation
+learning by promoting similarity constraints on the same
+or nearby data while maximizing separation from unrelated
+one . Leveraging this contrastive learning, Srinivas et
+al. improve the sample efficiency in model-free RL
+by integrating the contrastive loss as an auxiliary objective.
+makes it difficult to preserve similarities between temporally
+correlated time-series instances in self-supervised learning .
+In this work, we fine-tune the encoder using a contrastive loss
+and enhance the sample selection strategy by exploiting tem-
+poral structure in experienced trajectories, aiming to improve
+exploration efficiency and promote more generalizable latent
+representations.
+III. METHODOLOGY
+A. Overview
+The objective of INR-DOM is to jointly learn consistent
+state embeddings (s S) from partial observations (o
+O) and an RL policy  for DOM. We formulate the policy
+learning problem as an MDP tuple < S, A, T, R > with state
+space S, action space A, stochastic transition function T, and
+reward function R. The goal of the MDP is to find an optimal
+reward. Fig. 2 shows the overall architecture for the state-
+representation learning (SRL) integrated with policy learning.
+The input observation o is a combination of proprioception
+and exteroception information, including a point cloud p P
+representing DOs, where P denotes the space of observable
+3D point clouds. We derive a coherent, low-dimensional state
+Complete Point Cloud
+Latent Vector
+Partial Point Cloud
+Query Points
+Skeleton Points
+Cross section of
+Isosurfaces
+Apply weights
+Training  Inference
+Training Only
+Frozen Layer
+Stage I: Pre-training
+Stage II: Fine-tuning
+Hypernet
+Environment
+Point Cloud
+Proprioceptive
+Deformable Object
+EMA update
+Key Encoder
+Pre-trained
+Load parameters
+Training
+Positive Key
+Negative
+An overview of INR-DOM framework that aims to train the occlusion-robust state representation encoder ,
+parameterized by , of deformable objects (DOs) as well as the manipulation policy . The training framework consists of two
+point cloud p of a target DO into a latent embedding z and recovers the parameters  of an implicit signed distance field (SDF)
+network . This stage predicts full geometries leveraging two loss functions LSDF, Lskel, along with three regularization loss
+by jointly optimizing reinforcement learning (blue) with the loss LRL and the contrastive learning (red) with the loss LinfoNCE.
+s by embedding the porint cloud p into a latent vector z Z
+through a neural SRL function.
+We design the neural SRL function,  : P Z, as an
+encoder that embeds not only consistent but also task-relevant
+information of DOs from partial observations. To embed state
+representations for DOM policy learning, we introduce a two-
+stage training framework; Stage I) reconstruction-based pre-
+training (see details in Sec. III-B) and Stage II) contrastive-
+based fine-tuning (see details in Sec. III-C). Note that this
+work considers training in a physics simulation and transfers
+the learned SRL function to the real world. The following
+subsections detail the architecture and training procedures.
+B. Reconstruction-based pre-training
+The goal of the pre-training stage is to learn an occlusion-
+tolerant yet dense representation z from a partial point cloud p
+of elastic DOs. A key challenge lies in learning distinguishable
+representations of stretched or intertwined DOs. To address
+training process with the associated loss functions.
+Network architecture. We design a reconstruction-based
+partial-to-complete variational autoencoder (VAE), capable of
+generating the parameters   of an implicit SDF network.
+Our proposed network consists of a PointNet-based encoder
+parameterized by , a hypernetwork decoder , and an implicit
+neural SDF network parameterized by ,
+: X, Z R,
+where Z, , and X are the spaces of state embeddings, implicit
+network parameters, and Cartesian points (R3), respectively.
+The encoder  is a modified PointNet that takes a point
+cloud p of a target DO, observed from a depth image, and
+returns a low-dimensional latent vector z Z. During training,
+we sample z using the reparameterization trick, while during
+The modification is the removal of T-Net in the original
+PointNet to distinguish the translation and rotation of point
+clouds. The vector serves as a global representation of the
+complete geometry, containing its continuous surface and
+kinematic structure information, despite the incomplete and
+occluded nature of the input point cloud. In this work, we use
+Z RNz and Nz  64.
+Unlike conventional VAE, the decoder  is a hypernetwork
+that takes the latent vector z and generates weights  for
+the implicit SDF network . The network is a multi-layer
+perceptron (MLP) with three hidden layers, where each layer
+has 256 units with ReLU activations.
+The implicit SDF network  is a variant of SIREN
+which takes a Cartesian query coordinate x and a current latent
+vector z. The network then returns a corresponding signed
+distance d from the nearest object surface, where the positive
+sign indicates outside of the surface and the negative sign
+indicates inside. The nature of the implicit network allows
+for retrieving continuous and differentiable distances from
+a complete surface. In contrast to the original SIREN, we
+input the point-cloud embedding z, which helps the decoder
+effectively learn the residual part similar to DeepSDF .
+Our network consists of a three-layer MLP with 32 units per
+layer and sinusoidal activations.
+Losses. We introduce an INR learning loss to train the proposed
+network through simulated DOM data and transfer the learned
+model to the real world. Our proposed loss L is a linearly
+weighted combination of shape and structure reconstruction
+losses as well as regularization losses,
+L  LSDF  1Lskel
+reconstruction
+2LKL  3Lweight  4Lcns
+regularization
+where i are non-negative constants (i [1, 4]).
+First of all, the reconstruction-based losses aim to complete
+a given partial point cloud while precisely representing its con-
+tinuous and dense geometry. We introduce two loss functions:
+1) LSDF: An SDF loss to precisely fit the generated SDF with
+a ground-truth complete point-cloud P. Let Q R3 and
+Q denote all sampled query points and their subset on the
+object surface, respectively. Based on the Eq. (6) of ,
+we define the loss function as:
+x(x, z)1 dx
+(x, z)  (1 x(x, z)  n(x)) dx
+exp (  (x, z)) dx,
+where n(x) is the surface normal vector at the query point
+first term in Eq. (3) constrains inconsistent SDF gradients
+since the gradients are mostly one, except on critical points
+such as medial-axis points. The second term penalizes when
+the on-surface points have non-zero distances and also their
+SDF gradient direction is not aligned with the ground-
+truth normal vector. Lastly, the third term regularizes off-
+surface points not to have large values. Note that we obtain
+n(x) by simulation at each time step. We also sample not
+only random points for Q but also near-surface points to
+accurately estimate the distance around the surface.
+2) Lskel: A skeleton loss that is the measure of how far the
+estimated medial-axis point of a DO is off from the ground-
+truth medial axes, where the medial-axis point exhibits
+the same distance to multiple boundaries (i.e., surface) on
+the object . This is crucial to accurately recover the
+geometries of intertwined or occluded regions in a partial
+point cloud. Here, we formulate the loss as follows:
+max((x, z), )1
+ground-truth
+medial-axis
+(x, z) represents the Laplacian of the query point x
+prevent division by zero. Around the medial-axis points,
+(x, z) , as these points correspond to the local
+minima of .
+gence of latent vector space and weights. We introduce three
+loss functions:
+1) LKL: A Kullback-Leiber divergence loss (i.e., a regulariza-
+tion loss) that is a negative divergence DKL((zp)p(z))
+from a prior p(z), parameterized by p0(z)  N(0, 1),
+to the variational approximation (zp) of p(zp). Our
+encoder  estimates the mean  RNz and standard
+deviation  RNz of the posterior distribution (zp).
+2) Lweight: A weight-regularization loss defined as
+where N is the number of weight parameters including
+frequency SDF solution. In this work, we use N  41, 857,
+which includes the parameters of the original SIREN along
+with our modifications.
+3) Lcns: A consistency loss, defined as
+z and z are the embeddings of the partial point cloud p
+and the complete point cloud p, respectively. This loss
+regularizes the embedding of the partial point cloud p to
+be close to that of the complete point cloud p. Therefore,
+INR-DOM enables various views of point clouds to be
+mapped onto the same region in the latent space.
+C. Policy learning with fine-tuning
+The objective of this fine-tuning stage is to learn sample-
+efficient representations while optimizing a DOM policy. To
+address this, we combine RL and contrastive learning, similar to
+. Fig. 2 Stage II shows the overall architecture that updates
+the pre-trained encoder , parameterized by , through RL
+while contrasting experienced sequences in the replay buffer B.
+To better represent correlations between similar sequences, we
+introduce temporal- and instance-wise representation selections
+(i.e., key assignments). In the following, we detail our proposed
+RL-based fine-tuning and contrastive learning methods.
+Reinforcement learning. We apply a deep RL framework to
+DOM as shown in Fig. 2 Stage II. Our framework aims to
+manipulate a DO, observed as a point cloud pt at time step t, to
+a desired point-cloud status pdes using a six degree-of-freedom
+(DoF) robotic arm. We assume an RGB-D camera is available
+as shown in Fig. 2. Below, we describe our MDP details with
+the RL-based loss function LRL to update the encoder :
+consists of the arm and DO state information, where sp
+is a proprioceptive state vector [xee, qee, xee, qee, sgripper] of
+the arm end-effector, sgripper is the arm grippers open and
+close state ({0, 1}).
+) R7, where alin
+R3 and aang
+are the linear and angular velocities of the end effector,
+respectively. agripper
+{0, 1} indicates the grippers open
+and close action.
+combination of sparse and dense rewards. Let CD(, ) be
+a function that returns the Chamfer distance between two
+point clouds. Then,
+R(st, at)   100  1CD(pt,pdes)   CD(pt, pdes), (5)
+where  is a distance threshold for success check and  is a
+constant.
+In this work, we define the loss LRL as a combination of actor,
+Our framework updates the encoder  and its associated
+policy  employing off-policy RL, particularly soft actor-
+critic . At each time step t, we embed a state st into
+a latent state (sp
+embedding as input for the actor network  to determine an
+action at. Simultaneously, we update the critic and encoder
+networks by back-propagating the loss LRL . During this update,
+we store transitions (sp
+buffer for sampling each batch B for the off-policy updates.
+Contrastive learning. To improve sample efficiency in RL, we
+adopt contrastive learning by adding an auxiliary task, inspired
+by CURL . The task is to improve the discrimination
+capability of the query encoder  while learning the DOM
+policy. The discrimination requires comparing query-key pairs
+to ensure that a query input zq is close to a positive keys
+z and far away from negative keys {z(k)}K
+is the number of negative keys. However, conventional key
+generation often does not capture the similarity of keys in
+time series . To address this issue, we introduce a novel
+query-key selection strategy for time series and the update of
+the query encoder leveraging an information noise-contrastive
+estimation (InfoNCE) loss .
+Consider a batch B that contains sequences (i.e., episodes)
+of experience [E(1), ..., E(B)]. Note that, for notational sim-
+sequences [E(1)
+]. We represent the i-th sequence
+T ] R(3Np)T , where Np and
+T denote the number of points and the sequence length,
+respectively. We then represent the sequence embedding as
+p )  [z(i)
+T ] RNzT .
+For the contrastive-loss computation, we generate query-key
+pairs. For the query selection, we randomly sample a point
+cloud p(i)
+to obtain zq  (p(i)
+t ) as a query input from a
+randomly selected episode E(i)
+p . For the positive-key selection,
+we first sample the top-M similar episodes from the buffer B
+with respect to the episode E(i)
+p . In this work, for computational
+start-and-goal embedding distance, dsg(E(i)
+p )  z(i)
+point cloud pt in an episode with the minimum dynamic time-
+warping (DTW) distance from E(i)
+to obtain z  key(pt),
+Fig. 3: Examples of randomly twisted and stretched rubber
+bands in simulation. The red points represent partial point
+where key is the key encoder , initialized with . Note
+that t is a time step matched to the time step t of E(i)
+DTW. For the negative key selections, we randomly sample the
+K number of point clouds from B{E(i)
+p } and embed them
+as {z(k)}K
+k1 using key.
+Given the query-key pairs, we compute the InfoNCE loss
+LinfoNCE to optimize the encoders  and key:
+exp(zq  z)
+exp(zq  z)  PK
+k1 exp(zq  z(k))
+where  is a temperature parameter (R). As MoCO ,
+we update key  mkey  (1 m) using the exponential
+moving average (EMA) method, where m is the momentum
+coefficient ([0, 1)). The encoder is then able to capture subtle
+distinctions between object configurations, which is critical for
+manipulation tasks involving deformable objects. In this work,
+we set   0.1.
+In summary, the fine-tuning stage of INR-DOM, inspired by
+the CURL framework, involves refining the latent space using
+contrastive learning to capture task-relevant features while main-
+taining generalization. This enhanced representation, coupled
+with RL, enables the model to learn effective manipulation
+policies more efficiently.
+IV. EXPERIMENTAL SETUP
+Our experimental evaluation aims to answer two key ques-
+and occlusion-robust state information for DOM? 2) Further,
+does the proposed method improve the effectiveness of DOM
+in the real world? We perform quantitative evaluations through
+simulation and qualitative studies with a real robot.
+A. Quantitative Evaluation through Simulation
+We statistically evaluate the capabilities of occlusion recov-
+ery and task completion in INR-DOM.
+Occlusion recovery: We assess the occlusion-tolerant re-
+construction capability of INR-DOM through IsaacSim, a
+physics simulator from NVIDIA . We build a random
+manipulation dataset for nine types of circular rubber bands.
+Each band has a pair of inside diameter (ID) dID and cross-
+sectional diameter (CSD) dCSD, where {(dID, dCSD)  dID
+{6 cm, 10 cm, 14 cm}, dCSD {1 cm, 2 cm, 3 cm}}. As shown
+in Fig. 3, by randomly twisting and stretching them, we
+Fig. 4: Examples of three deformable-object manipulation
+collect a total of 90, 000 pairs of partial and complete point
+randomization to a maximum of one twist in each direction,
+and a maximum stretch of twice the original length.
+Given the nine classes of dataset, we perform a leave-one-
+out cross-validation that measures how representation models
+reconstruct the full geometry of rubber bands from a partial
+view of point clouds. During the pre-training stage of INR-
+LSDF and Lskel. To define the medial-axis points, we sample
+and track the 128 nodes spaced equally along the band and
+closest to the center of the cross section.
+For comparison, we employ three baseline methods:
+network with folding-based decoding that generates a dense
+and complete point cloud given a partial point cloud as input.
+cloud completion.
+bedding and completion network.
+After reconstructing the full geometry, we compute the earth
+movers distance (EMD) and Chamfer distance (CD) between
+the reconstructed and complete point clouds. To handle SDF,
+we convert it into a mesh-based point cloud using the Marching
+Cubes algorithm .
+Manipulation tasks: We evaluate the effectiveness of fine-
+tuned representations in DOM by building three tasks: sealing,
+we use a simulated parallel-jaw gripper with an RGB-D camera
+to manipulate a rubber band or an O-ring to achieve a desired
+state. We describe the task setup below.
+after grasping a randomly placed band. To enhance sampling
+setting aang
+to zero.
+groove of a cylinder after grasping a randomly placed
+O-ring. The action space is (alin.xz
+, aang.y
+, agripper
+where alin.xz
+and aang.y
+represent a two-dimensional velocity
+perpendicular to the direction of the parallel jaws openclose
+axis and an angular velocity along the same axis, respectively.
+band between two upright poles by grasping and reposi-
+tioning it onto the poles. We initialize a band between two
+poles with up to two random entanglements in either of the
+two directions. The action space is (alin
+, agripper
+where aang.z
+represents an angular velocity constrained along
+the vertical axis.
+For all tasks, we reduce the space of the partial point clouds
+to P R31024, through the iterative farthest point sampling
+of the input point cloud.
+For training, we fine-tune INR-DOM with all types of rubber
+bands from the occlusion recovery study and update its policy
+network using an off-policy RL method, that is, SAC .
+The policy network is a multilayer perceptron with three
+hidden layers consisting of 256, 128, and 64 nodes, respectively,
+each using ReLU activation. For testing, we assess the task
+completion performance of INR-DOM in 100 environments,
+including 30 randomly generated and configured rubber bands.
+The ID and CSD of the bands range from [6 cm, 14 cm] and
+[1 cm, 3 cm], respectively.
+For comparison, we employ six baseline methods:
+DOM methods trained using the latent representations
+introduced in the occlusion-recovery study.
+leverages latent representations and dynamics models learned
+with contrastive estimation for DOM.
+the difference between the current and target point clouds
+of the deformable object.
+action costs based on the difference between the learned
+implicit representations.
+We evaluate our method with these baselines over 100 trials,
+each with a maximum of 200 time steps.
+B. Qualitative Evaluation
+We demonstrate the fine-tuning and testing of our method
+in three real-world DOM environments using a Franka Emika
+Panda arm, as shown in Fig. 1. These environments are similar
+to those used in the quantitative evaluation. Each setup includes
+a rubber band with specific dimensions: 1) dID  10 cm and
+dCSD  0.6 cm for sealing, 2) dID  6 cm and dCSD  1 cm
+for installation, and 3) dID  20 cm and dCSD  1 cm for
+disentanglement. To observe the band, we mount an Orbbec
+Femto Bolt RGB-D camera on the table capturing the point
+cloud pt of the band by segmenting and tracking it with a pre-
+trained segmentation anything model 2 (SAM2) . For more
+effective localization and grasping of the band, we employ
+two RealSense D405 RGB cameras mounted on the wrist,
+extending the latent state s
+t with a concatenated vector of
+RGB features processed by ResNet10 . In this work, we
+acquire the segmented points pt after outlier removal at 10 Hz
+along with two RGB observations captured at 15 Hz.
+Unlike simulation, we design an image-based reward classi-
+fier that assigns a high reward when the current RGB image
+closely matches the final scene from expert demonstrations;
+Point2Vec INR-DOM
+skel INR-DOM
+Chamfer Distance (CD)
+Unseen CD
+Seen EMD
+Unseen EMD
+Earth Mover's Distance (EMD)
+Fig. 5: Comparison of point-cloud reconstruction performance
+for both seen and unseen types of partially observable rubber
+bands. The blue and red bars represent the reconstruction
+errors measured by chamfer distance (CD) and earth movers
+distance (EMD), respectively. Note that INR-DOMskel refers
+to a variant of INR-DOM that was not pre-trained using the
+Lskel loss.
+TABLE I: Comparison of task success rates [] across three
+simulated environments, based on the evaluation of 100 trials
+per environment. The superscripts, -p and -cl, indicate versions
+of the target method that were not trained with pre-training
+and contrastive learning, respectively.
+Installation
+Disentanglement
+PCN  SAC
+PoinTr  SAC
+Point2Vec  SAC
+Point2Vecp  SAC
+CFM  SAC
+DeformerNet
+INR-DOMp
+INR-DOMcl
+collect 20 demonstrations by teleoperating the real robot using
+a 3-dimensional space mouse. We use these demonstrations to
+populate the replay buffer during the fine-tuning stage. Further,
+we adopt a sample-efficient robotic reinforcement learning
+(SERL) framework , which incorporates RL with prior
+data (RLPD) . For RLPD, we construct training batches
+with half of the samples drawn from the demonstrations and the
+other half from the online replay buffer. We use 20 successful
+episodes as demonstrations for the prior data. Note that we
+set the update-to-data (UTD) ratio to 4. This allows leveraging
+human demonstrations to accelerate the learning process and
+minimize the sim-to-real gap in representation.
+The robot operates with a Cartesian impedance controller
+running at 1 kHz while the policy network runs at 10 Hz. We
+perform all training on a Threadripper Pro 5975WX and an
+NVIDIA RTX A6000 GPU.
+Comparison of occlusion-robust reconstruction per-
+formance between INR-DOM and Point2Vec. (Top) Point-
+cloud inputs of partially observable elastic bands. (Middle)
+Point clouds reconstructed by Point2Vec. The larger circles
+highlight magnified views of regions where reconstruction
+Meshes from INR-DOM.
+V. EVALUATION RESULTS
+A. Evaluation through Simulation Studies
+We statistically evaluate the occlusion-robust reconstruction
+capabilities of pre-trained INR-DOM on both seen and unseen
+partially observable bands. INR-DOM shows the lowest re-
+construction errors using CD, even with previously unseen
+outperforms baselines on unseen objects more effectively than
+baselines do on seen objects. Further, INR-DOM achieves
+superior performance without structural prior Lskel, exceeding
+all baselines. In addition, we assess performance using EMD,
+which better accounts for global distribution differences crucial
+for compressed or stretched DOs. The results with EMD align
+with those of CD, confirming that INR-DOM provides robust
+representations for tasks involving partially observable DOs.
+To show the reconstruction quality, we present examples
+from INR-DOM and Point2Vec in Fig. 6. INR-DOM accu-
+rately reconstructs complete geometry from any observation
+training method for DOs.
+INR-DOM in the disentanglement task. Fig. 7 presents t-SNE
+visualizations of latent state vectors from the fine-tuned INR-
+DOM encoder , showing consistent mapping of similar
+configurations to adjacent regions and clear distinction of
+intertwined state directions. For example, in Fig. 7 (a), all
+disentanglement trajectories converge to the center region as
+the task completes, with 180and 180twists placed on
+opposite sides. This structured latent space allows the RL agent
+to recognize subtle yet crucial variations, such as twist counts,
+thereby improving success rates.
+(a) Distribution of 10 trajectory embeddings from the disentanglement
+(b) Distribution of 2  104 embeddings from random manipulation
+dataset used in the pre-training stage
+Fig. 7: t-SNE visualization of latent state vectors z from the
+fine-tuned encoder . We also visualize rubber band meshes
+corresponding to selected points to show how the latent state
+effectively captures the entanglements of the band. The signed
+numbers adjacent to the meshes represent twist angles and
+directions.
+We evaluate the task-relevant representation capabilities of
+INR-DOM through three simulated DOM tasks. Table I shows
+INR-DOM outperforms all other methods, achieving the highest
+task-success rates, an average rate 40.3 higher than ACID, the
+next best approach. INR-DOM exhibits superior performance in
+the challenging disentanglement task, characterized by stretched
+and randomly intertwined states. Notably, INR-DOMcl, fine-
+tuned only via RL, ranks second, demonstrating the efficacy
+of contrastive learning in distinguishing state spaces for DOM.
+In contrast, INR-DOMp, which lacked pre-training, does not
+show performance gains, highlighting that the reconstruction-
+based pre-training is crucial for effective initialization of
+state-representation learning. In contrast, other recent DOM
+frameworks underperform, primarily due to their inability to
+capture local structures and their non-rigid transformations in
+completion approaches, such as PCN, PointTr, and Point2Vec.
+Their embeddings capture overall structure but struggle with
+continuous and fine deformations due to discrete sampling.
+In contrast, our SDF loss with gradient regularization and
+alignment not only allows adaptive resolution but also ensures
+Fig. 8: Comparison of accumulated reward curves during
+training between INR-DOM and baseline models.
+high accuracy in surface completion. Although the latest
+contextual information, our target objects lack explicit con-
+textual patches and instead require accurate positional and
+structural details. Due to its patch normalization, Point2Vec
+loses such information, resulting in collapsed or overlapped
+geometries.
+B. Learning Curve Analysis
+Fig. 8 shows the comparison of the accumulated reward
+curves during training for the disentanglement task between
+INR-DOM with variants and baseline methods. INR-DOM
+shows superior learning efficiency, achieving the highest
+accumulated rewards compared to all baselines. INR-DOMcl
+particularly ranks second in terms of the accumulated rewards
+at the end, though it lags significantly behind INR-DOM.
+This underscores that contrastive learning enhances effective
+exploration in RL by fostering exploratory representations.
+In contrast, INR-DOMp achieves only a 15 success rate
+after 2.5 million training steps, indicating that exploratory
+representations are challenging to enhance over steps without
+a well-structured state space.
+C. Evaluations in Real-World Settings
+DOM across three DOM tasks. Fig. 9 (Top) displays the
+Panda arm with a 3D-printed tip sealing a groove by dragging
+and inserting a randomly placed red rubber band, effectively
+targeting the protruding parts for pressing actions. Fig. 9
+(Middle) shows the robot installing an O-ring onto a cylinders
+for insertion. Fig. 9 (Bottom) illustrates the Panda arm with
+a long parallel-jaw gripper, tip-grasping and disentangling a
+randomly intertwined rubber band between two poles. INR-
+DOM successfully distinguishes the twisted direction as well as
+effectively manipulates the arm, achieving a 90 task-success
+rate in each task over ten trials with various initial conditions.
+This robust performance, coupled with successful learning from
+the fine-tuning of 20 episodes, confirms the applicability of
+INR-DOM to various real-world DOM tasks.
+Fig. 9: Demonstrations of INR-DOMs manipulation capability in the three tasks. (Top) In sealing task, INR-DOM learns
+to drag and insert a rubber band into a groove. (Middle) In installation task, INR-DOM learns to install an O-ring onto a
+cylinders groove. (Bottom) disentanglement task, INR-DOM learns to disentangle the band between two poles by precisely
+identifying the twisted status.
+In addition, we compare INR-DOM with SERL, a repre-
+sentative image-based manipulation method on the real-world
+disentanglement task. To increase task difficulty, we extend
+the pole distance to stretch the bands, resulting in tighter
+intersections. SERL uses an RGB camera, whereas our method
+relies on a depth camera. As shown in Table II, INR-DOM
+successfully distinguishes between 180twist directions,
+while SERL fails due to visual ambiguities at the intersecting
+bands (see Fig. 10).
+TABLE II: Comparison of task success rates [] between an
+SERL image-based method and our method in the disentan-
+glement task over 20 trials.
+Fig. 10: Visual ambiguity in RGB vs. point cloud observations
+for  and  twist configurations.
+VI. CONCLUSION
+We introduced an implicit neural representation learning
+method for elastic deformable object manipulation (INR-
+DOM). INR-DOM models consistent and occlusion-robust
+state representations associated with partially observable elastic
+objects by learning to reconstruct a complete and implicit
+surface represented as a signed distance function. To obtain
+task-relevant state representations and manipulation policy,
+INR-DOM fine-tunes its internal encoder to have exploratory
+representations through RL-based contrastive learning. The
+statistical evaluation shows that our method outperforms state-
+of-the-art baselines in terms of reconstruction error and task
+success rate on novel objects and manipulation settings. We
+successfully demonstrate the proposed INR-DOM transfer into
+real-world DOM tasks.
+VII. LIMITATIONS
+Deformable linear object: Our studies focus on evaluating
+deformable linear objects, such as rubber bands, though the
+usage is not limited to specific shapes. Although skeleton
+loss Lskel may reduce its applicability, 3D skeletonization
+is generalizable to any volumetric object. Extending this
+method to a variety of deformable object types remains a
+goal for future research.
+Segmented observation: The performance of INR-DOM de-
+pends on the accuracy of the point-cloud segmentation model.
+This dependency makes INR-DOM vulnerable to errors in
+the segmentation process, which affects the robustness and
+reliability of the task outcomes. Future improvements should
+involve processing the entire depth image and automatically
+focusing attention on the target deformable object.
+Single task: The fine-tuning process relies on a specific
+manipulation task which may limit the models applicability
+to other scenarios. Moreover, INR-DOMs design focuses
+exclusively on a single deformable object manipulation and
+does not account for scenarios with multiple interacting
+architecture does not inherently restrict itself to single-
+task learning. The adoption of multi-task reinforcement
+learning  or few-shot policy generalization  extends
+beyond the scope of this work. Expanding to multitask RL
+approaches is our next objective.
+Dynamic interaction: This work does not extensively
+investigate the dynamics of interaction between the robot
+and deformable, particularly stretchable objects. The manipu-
+lation tasks focus primarily on the final outcomes of actions,
+rather than on modeling the interactive dynamics essential
+for tasks that require continuous adjustments based on real-
+time feedback. This limitation may restrict the applicability
+of INR-DOM to more interactive and dynamic tasks, where
+understanding and adapting to ongoing changes during
+manipulation are crucial.
+ACKNOWLEDGMENTS
+This work was partly supported by Institute of Information
+communications Technology Planning  Evaluation (IITP)
+grants funded by the Korea government (MSIT) (No. RS-2022-
+Samsung Electronics Co., Ltd, South Korea (No. IO220811-
+REFERENCES
+Karim Abou Zeid, Jonas Schult, Alexander Hermans,
+and Bastian Leibe. Point2vec for self-supervised repre-
+sentation learning on point clouds. In Proceedings of
+the German Conference on Pattern Recognition (GCPR),
+Philip J Ball, Laura Smith, Ilya Kostrikov, and Sergey
+Levine. Efficient online reinforcement learning with of-
+fline data. In Proceedings of the International Conference
+on Machine Learning (ICML), pages 15771594. PMLR,
+David Blanco-Mulero, Oriol Barbany, Gokhan Alcan,
+Adria Colome, Carme Torras, and Ville Kyrki. Bench-
+marking the sim-to-real gap in cloth manipulation. IEEE
+Robotics and Automation Letters (RA-L), 9(8):29812988,
+Lawrence Yunliang Chen, Baiyu Shi, Roy Lin, Daniel
+David Held, and Ken Goldberg. Bagging by Learning
+to Singulate Layers Using Interactive Perception.
+Proceedings of the IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), 2023.
+Siwei Chen, Yiqing Xu, Cunjun Yu, Linfeng Li,
+and David Hsu.
+Differentiable particles for general-
+purpose deformable object manipulation. arXiv preprint
+BP Duisterhof, Z Mandi, Y Yao, JW Liu, J Seidenschwarz,
+MZ Shou, D Ramanan, S Song, S Birchfield, B Wen, et al.
+deformable object manipulation. In The 16th International
+Workshop on the Algorithmic Foundations of Robotics
+(WAFR), 2024.
+Jinyuan Feng, Min Chen, Zhiqiang Pu, Tenghai Qiu,
+Jianqiang Yi, and Jie Zhang. Efficient multi-task reinforce-
+ment learning via task-specific action correction. IEEE
+Transactions on Cognitive and Developmental Systems,
+pages 115, 2025.
+Jiaming Gong, Wei Liu, Mengjie Pei, Chengchao Wu, and
+Liufei Guo. Resnet10: A lightweight residual network for
+remote sensing image classification. In Proceedings of
+the International Conference on Measuring Technology
+and Mechatronics Automation (ICMTMA), pages 975978.
+Feida Gu, Yanmin Zhou, Zhipeng Wang, Shuo Jiang,
+and Bin He.
+A survey on robotic manipulation of
+deformable objects: Recent advances, open challenges and
+new frontiers. arXiv preprint arXiv:2312.10419, 2023.
+Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and Sergey
+Levine. Soft actor-critic: Off-policy maximum entropy
+deep reinforcement learning with a stochastic actor. In
+Proceedings of the International Conference on Machine
+Learning (ICML), pages 18611870. PMLR, 2018.
+Raia Hadsell, Sumit Chopra, and Yann LeCun. Dimen-
+sionality reduction by learning an invariant mapping. In
+Proceedings of the IEEE Conference on Computer Vision
+and Pattern Recognition (CVPR), volume 2, pages 1735
+Kaiming He, Haoqi Fan, Yuxin Wu, Saining Xie, and
+Ross Girshick.
+Momentum contrast for unsupervised
+visual representation learning. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 97299738, 2020.
+Zixuan Huang, Xingyu Lin, and David Held. Mesh-based
+dynamics with occlusion reasoning for cloth manipulation.
+In Proceedings of Robotics: Science and Systems (RSS),
+Michael Laskin, Aravind Srinivas, and Pieter Abbeel.
+forcement learning. In Proceedings of the International
+Conference on Machine Learning (ICML), pages 5639
+Seunghan Lee, Taeyoung Park, and Kibok Lee.
+contrastive learning for time series. In Proceedings of the
+International Conference on Learning Representations
+(ICLR), 2024.
+Chenchang Li, Zihao Ai, Tong Wu, Xiaosa Li, Wenbo
+and dynamics prediction for deformable object manipula-
+tion. In Proceedings of the IEEE International Conference
+on Robotics and Automation (ICRA), pages 1477014776.
+Yunzhu Li, Jiajun Wu, Russ Tedrake, Joshua B Tenen-
+for manipulating rigid bodies, deformable objects, and
+fluids. In Proceedings of the International Conference on
+Learning Representations (ICLR), 2019.
+Huan Lin, Feng Guo, Feifei Wang, and Yan-Bin Jia.
+Picking up a soft 3d object by feeling the grip.
+International Journal of Robotics Research, 34(11):1361
+Xingyu Lin, Yufei Wang, Zixuan Huang, and David
+Held. Learning visible connectivity dynamics for cloth
+smoothing. In Conference on robot learning, pages 256
+Martina Lippi, Petra Poklukar, Michael C Welle, Anas-
+tasiia Varava, Hang Yin, Alessandro Marino, and Danica
+Kragic. Latent space roadmap for visual action planning of
+deformable and rigid object manipulation. In Proceedings
+of the IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 56195626. IEEE,
+Alberta Longhini, Marco Moletta, Alfredo Reichlin,
+Michael C Welle, David Held, Zackory Erickson, and
+Danica Kragic. Edo-net: Learning elastic properties of
+deformable objects from graph dynamics. In Proceedings
+of the IEEE International Conference on Robotics and
+Automation (ICRA), pages 38753881. IEEE, 2023.
+William E. Lorensen and Harvey E. Cline. Marching
+In Computer Graphics, 21(4):163169, 1987.
+Jianlan Luo, Zheyuan Hu, Charles Xu, You Liang Tan,
+Jacob Berg, Archit Sharma, Stefan Schaal, Chelsea Finn,
+Abhishek Gupta, and Sergey Levine. SERL: A software
+suite for sample-efficient robotic reinforcement learning.
+In Proceedings of the IEEE International Conference on
+Robotics and Automation (ICRA), pages 1696116969.
+Peter Mitrano and Dmitry Berenson. The grasp loop
+planning with ropes and cables.
+In Proceedings of
+the IEEE International Conference on Robotics and
+Automation (ICRA), pages 1088810894. IEEE, 2024.
+Masaki Murase, Kimitoshi Yamazaki, and Takamitsu
+Matsubara. Kullback leibler control approach to rubber
+band manipulation. In Proceedings of the International
+Symposium on System Integration (SII), pages 680685.
+NVIDIA. Isaac Sim - Robotics Simulation and Synthetic
+Data Generation, 2024. URL
+isaacsim. (accessed on Jan. 30, 2025).
+Aaron van den Oord, Yazhe Li, and Oriol Vinyals.
+Representation learning with contrastive predictive coding.
+arXiv preprint arXiv:1807.03748, 2018.
+Jeong Joon Park, Peter Florence, Julian Straub, Richard
+continuous signed distance functions for shape representa-
+tion. In Proceedings of the IEEE Conference on Computer
+Vision and Pattern Recognition (CVPR), pages 165174,
+Antoine Petit, Vincenzo Lippiello, Giuseppe Andrea
+Tracking elastic de-
+formable objects with an rgb-d sensor for a pizza chef
+robot. Robotics and Autonomous Systems, 88:187201,
+Charles R Qi, Hao Su, Kaichun Mo, and Leonidas J
+3d classification and segmentation. In Proceedings of
+the IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 652660, 2017.
+Nikhila Ravi, Valentin Gabeur, Yuan-Ting Hu, Ronghang
+ing Pan, Kalyan Vasudev Alwala, Nicolas Carion, Chao-
+Yuan Wu, Ross Girshick, Piotr Dollar, and Christoph
+Feichtenhofer. SAM 2: Segment anything in images and
+videos. In Proceedings of the International Conference
+on Learning Representations (ICLR), 2025.
+Yu Ren, Ronghan Chen, and Yang Cong. Autonomous
+manipulation learning for similar deformable objects via
+only one demonstration. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+Punam K. Saha, Gunilla Borgefors, and Gabriella Sanniti
+di Baja. Chapter 1 - skeletonization and its applications
+a review. In Punam K. Saha, Gunilla Borgefors, and
+Gabriella Sanniti di Baja, editors, Skeletonization, pages
+342. Academic Press, 2017.
+Gautam Salhotra, I-Chun Arthur Liu, Marcus Dominguez-
+object manipulation from expert demonstrations. IEEE
+Robotics and Automation Letters (RA-L), 7(4):87758782,
+Bokui Shen, Zhenyu Jiang, Christopher Choy, Leonidas J.
+Zhu. Acid: Action-conditional implicit visual dynamics
+for deformable object manipulation. In Proceedings of
+Kaushik Shivakumar, Vainavi Viswanath, Anrui Gu,
+Yahav Avigal, Justin Kerr, Jeffrey Ichnowski, Richard
+Autonomously untangling long cables using interactive
+perception. In Proceedings of the IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Vincent Sitzmann, Julien Martel, Alexander Bergman,
+David Lindell, and Gordon Wetzstein. Implicit neural
+representations with periodic activation functions.
+Conference on Neural Information Processing Systems
+(NeurIPS), volume 33, pages 74627473, 2020.
+Bao Thach, Brian Y Cho, Alan Kuntz, and Tucker
+Hermans.
+Learning visual shape control of novel 3d
+deformable objects from partial-view point clouds. In
+Proceedings of the IEEE International Conference on
+Robotics and Automation (ICRA), pages 82748281. IEEE,
+Weifu Wang and Devin Balkcom. Knot grasping, folding,
+and re-grasping.
+International Journal of Robotics
+Manuel Watter, Jost Springenberg, Joschka Boedecker,
+and Martin Riedmiller. Embed to control: A locally linear
+latent dynamics model for control from raw images. In
+Conference on Neural Information Processing Systems
+(NeurIPS), volume 28, 2015.
+Youngsun Wi, Pete Florence, Andy Zeng, and Nima Fazeli.
+objects.
+In Proceedings of the IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Mengdi Xu, Yikang Shen, Shun Zhang, Yuchen Lu, Ding
+decision transformer for few-shot policy generalization. In
+Proceedings of the International Conference on Machine
+Learning (ICML), pages 2463124645. PMLR, 2022.
+Wilson Yan, Ashwin Vangipuram, Pieter Abbeel, and
+Lerrel Pinto.
+Learning predictive representations for
+deformable objects using contrastive estimation.
+Conference on robot learning, pages 564574. PMLR,
+Xumin Yu, Yongming Rao, Ziyi Wang, Zuyan Liu, Jiwen
+with geometry-aware transformers. In Proceedings of the
+International Conference on Computer Vision (ICCV),
+Wentao Yuan, Tejas Khot, David Held, Christoph Mertz,
+and Martial Hebert. Pcn: Point completion network. In
+Proceedings of the International Conference on 3D Vision
+(3DV), pages 728737. IEEE, 2018.
+Amy Zhang, Rowan McAllister, Roberto Calandra, Yarin
+tions for reinforcement learning without reconstruction.
+Proceedings of the International Conference on Learning
+Representations (ICLR), 2021.
+Xinyang Zheng, Yang Liu, Pengshuai Wang, and Xin
+3d shape generation.
+In Computer Graphics Forum,
+volume 41, pages 5263. Wiley Online Library, 2022.
+Jihong Zhu, Andrea Cherubini, Claire Dune, David
+Fanny Ficuciello, Kensuke Harada, Jens Kober, Xiang Li,
+et al. Challenges and outlook in robotic manipulation of
+deformable objects. Robotics  Automation Magazine,
+Matt Zucker, Nathan Ratliff, Anca D Dragan, Mihail
+J Andrew Bagnell, and Siddhartha S Srinivasa. Chomp:
+Covariant hamiltonian optimization for motion planning.
+International Journal of Robotics Research, 32(9-10):

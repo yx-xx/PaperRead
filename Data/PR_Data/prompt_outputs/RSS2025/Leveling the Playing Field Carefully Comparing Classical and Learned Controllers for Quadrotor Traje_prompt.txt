@@ -1,0 +1,1081 @@
+=== PDF文件: Leveling the Playing Field Carefully Comparing Classical and Learned Controllers for Quadrotor Traje.pdf ===
+=== 时间: 2025-07-21 14:25:09.443248 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Leveling the Playing Field: Carefully Comparing
+Classical and Learned Controllers for Quadrotor
+Trajectory Tracking
+Pratik Kunapuli
+University of Pennsylvania
+pratikkseas.upenn.edu
+Jake Welde
+University of Pennsylvania
+jweldeseas.upenn.edu
+Dinesh Jayaraman
+University of Pennsylvania
+dineshjseas.upenn.edu
+Vijay Kumar
+University of Pennsylvania
+kumarseas.upenn.edu
+AbstractLearning-based control approaches like reinforce-
+ment learning (RL) have recently produced a slew of impressive
+results for tasks like quadrotor trajectory tracking and drone
+racing. Naturally, it is common to demonstrate the advantages of
+these new controllers against established methods like analytical
+controllers. We observe, however, that reliably comparing the
+performance of such very different classes of controllers is more
+complicated than might appear at first sight. As a case study, we
+take up the problem of agile tracking of an end-effector for a
+quadrotor with a fixed arm. We develop a set of best practices
+for synthesizing the best-in-class RL and geometric controllers
+(GC) for benchmarking. In the process, we resolve widespread
+RL-favoring biases in prior studies that provide asymmetric
+access to: (1) the task definition, in the form of an objective
+and (3) feedforward information, describing the desired future
+trajectory. The resulting contributions are the following: our im-
+provements to the experimental protocol for comparing learned
+and classical controllers are critical, and each of the above
+asymmetries can yield misleading conclusions. Prior works have
+implied that RL outperforms GC, but we find the gaps between
+the two controller classes are much smaller than previously pub-
+lished when accounting for symmetric comparisons. Geometric
+control achieves lower steady-state error than RL, while RL
+has better transient performance, resulting in GC performing
+better in relatively slow or less agile tasks, but RL performing
+better when greater agility is required. Finally, we open-source
+implementations of geometric and RL controllers for these aerial
+I. INTRODUCTION
+The capabilities of aerial robots have seen explosive growth
+in recent years, with many exciting results in fast quadrotor
+advances have involved data-driven techniques, and this has
+spawned careful studies of the design choices in learning-
+based controller synthesis, such as policy architectures, train-
+ing procedures, and modeling choices. It is now largely
+accepted wisdom that data-driven controller synthesis ap-
+proaches outperform more classical model-based methods for
+aerial robot control tasks.
+pared these two very different classes of controllers. This
+may be partly be attributed to the small overlap in research
+Fig. 1: Trajectory Tracking for a Quadrotor. Rollouts of tra-
+jectory tracking from an initial perturbation of a reinforcement
+learning controller (blue) and a geometric controller (orange)
+on a quadrotor. Robots are visualized at t  1 and t  5 to
+highlight transient and steady-state performance relative to the
+reference trajectory (grey). RL Controller has better transient
+performance (t  1), but worse steady-state error (t  5)
+compared to GC.
+communities engaged in the development and application of
+model-based versus learned controllers. In any case, existing
+empirical studies largely focus on careful comparisons within
+each broad model class: such as Sun et al.  who compare
+model-based controllers, or Dionigi et al. , Kaufmann et al.
+who benchmark learning-based controllers.
+As we will discuss in detail in Sec II and IV, the few prior
+studies that do compare learned and model-based controllers
+suffer from some shortcomings. While they aim to reproduce
+in good faith the respective common practices of the model-
+based and learned control communities, this inadvertently
+confounds the comparison, because these standard practices
+are very different. It is standard in data-driven controller
+synthesis research to optimize parameters with a carefully
+designed objective function on a dataset of experiences that
+exactly match the target task. On the other hand, the tuning
+of a model-based controller is often a much more heuristic
+manual procedure to achieve a good enough configura-
+tion. Inheriting such practices when comparing learned and
+model-based controllers can produce misleading conclusions:
+the model-based controller may be sub-optimally tuned and
+perform worse only on that account. In other words, correct
+comparisons across learned and model-based controllers is
+more complicated than might appear at first sight.
+In this paper, our first contribution is to identify and fix
+three key asymmetries that can produce misleading gains
+for learning versus model-based methods on standard aerial
+vehicle tasks like trajectory tracking: objective functions, task-
+relevant data, and feedforward inputs specifying upcoming
+trajectory waypoints. Our second contribution is to apply
+these proposed improvements in experimental protocol to
+throughly benchmark reinforcement learned controllers (RL)
+and geometric controllers (GC) for agile trajectory tracking
+in quadrotors. Having leveled the playing field, our findings
+substantially erode the gains of RL versus GC controllers:
+the two controller classes perform about on par in most
+of our evaluations, with small gains for GC in steady-state
+(Fig 1). These findings add nuance to todays prevailing
+wisdom about the relative merits of these controllers. We show
+further how our improved recipe for empirical comparison
+can be applied towards validating various hypotheses on new
+aerial robot classes and tasks. Finally, we provide re-useable
+implementations of best practices for both RL and geometric
+controller synthesis for aerial vehicle trajectory tracking tasks
+including task implementations in a highly parallel RL-ready
+future practitioners and researchers.
+II. RELATED WORKS
+In this section, we elaborate on the deficiencies highlighted
+in Sec I in the state of current scientific evidence regarding the
+efficacy of learned and model-based controllers for quadrotor
+control.
+Comparative studies for quadrotor control have been per-
+formed in the past, but a majority of them consider compar-
+isons within the same class of controllers. Among learning-
+based methods in quadrotor trajectory tracking tasks, Kauf-
+mann et al.  evaluate the effect of control abstraction on
+tracking performance in hardware experiments, Dionigi et al.
+evaluate the effect of observation on policy performance,
+and Welde et al.  evaluate the sample efficiency gains
+afforded by a symmetry-informed approach to tracking control
+via RL. While comparisons across model-based analytical con-
+trollers are fairly straightforward [24, 25], comparisons involv-
+ing learning-based methods must contend with a data-driven
+approach and compare to a non-data-driven approach, making
+it difficult to perform a correct experimental comparison. As
+the communities are largely disjoint, it is reasonable that these
+papers are preoccupied comparing against other works of the
+same controller class, and thus there are few works that even
+consider the comparison between RL and analytical controllers
+like geometric controllers (GC) for trajectory tracking tasks.
+RL-based control is the state-of-the-art for agile trajectory
+tracking in quadrotors, owing to better computational tractabil-
+ity than Model Predictive Control (MPC) and outperforming
+GC in tracking error. To evaluate such claims, we summarize
+the few most relevant prior comparison studies in Table I.
+Based on our close reading of these papers, supplementary
+presents the access to task objective functions, task-aligned
+experiences or datasets, and feedforward waypoint tracking
+specifications made available to each method considered in
+these works. Significant asymmetries are apparent in the access
+granted to RL and GC methods respectively, which we believe
+(and show evidence in Sec V) might confound these prior
+findings. Among the recent works presenting a model-free
+RL method, there are few that train directly on the tracking
+static task like hovering [7, 8, 19], making the upper bound
+of tracking performance unclear. Even those few that directly
+optimize the tracking task either omit a comparison against
+an analytical controller [5, 12, 28] or compare against an im-
+plementation lacking essential components proposed in prior
+work on analytical control , resulting in an asymmetrical
+comparison. Often this is a result of inheriting a baseline
+controller which may not be optimized for the task at hand,
+such as an existing module of the firmware of a commercially-
+available platform [8, 19]. These observations motivate the
+key contribution of our work: to identify and fix oversights
+in these prior experimental comparisons (Sec IV), ultimately
+enabling us to arrive at more reliable and nuanced conclusions
+regarding the efficacy of RL and GC controllers for various
+aerial vehicles and tasks (Sec V).
+III. STATE-OF-THE-ART CONTROLLERS
+In this section we overview two popular classes of con-
+(RL), that have widely been used for trajectory tracking in
+quadrotors. Our empirical evaluations and comparisons in later
+sections will focus on these two classes of controllers.
+A. Geometric Control
+Seminal works in the quadrotor control literature [14, 17]
+showed that quadrotors are differentially flat systems and
+analytically developed a hierarchical controller for this system.
+This control paradigm uses an explicit control law, constructed
+from separate position and attitude control loops that are
+connected via a backstepping-like approach to yield a cascade-
+like control structure. In this paper, we refer to this controller
+simply as the Geometric Controller (GC) for brevity (but
+it is sometimes also referred to as SE(3) Control  or
+Differential-Flatness Based Control (DFBC) ).
+The controller exploits the coupled dynamics between the
+attitude and position of the system, and controls them with two
+geometric PD control loops separately. First, a desired linear
+Geometric Control (GC)
+Reinforcement Learning (RL)
+Tuned for Obj.?
+Traj Data?
+Feed Forward?
+Tuned for Obj.?
+Traj Data?
+Feed Forward?
+Benchmark of Learned Policies
+SimpleFlight
+Leveraging Symmetry
+Sim-2-Multi-Real
+Power of Input
+Learning to Fly in Seconds
+Geometric SE(3) Control
+NMPC vs. DFBC
+PID AutoTune
+NonLinear PID
+TABLE I: Trajectory Tracking Controller Comparisons in Recent Literature. Partial survey of works proposing trajectory
+tracking methods for quadrotors based on GC andor RL. We measure these works on whether (to the best of our knowledge)
+the methods a) optimized a task objective, b) were optimized for trajectory tracking, and c) incorporate future reference
+information. represents a controller had this component, represents a suboptimal implementation (details in Sec IV), and
+represents a method that did not have this component. Asymmetries occur when comparing across model classes whose
+implementation was granted unequal access to task, data, or feedforward information.
+acceleration is computed from the position PD controller.
+desired orientation, which constitutes the reference tracked by
+the attitude PD controller. The final output of the controller
+is the collective thrust and moment applied at the center-of-
+mass (COM) of the vehicle. A detailed implementation of this
+controller is presented in Appendix B.
+B. Reinforcement Learning
+Reinforcement learning (RL) seeks to train a policy
+parameterized by , represented by a neural network. This
+allows the controller to express a wide range of policies at the
+expense of requiring data to learn parameters . As is standard
+in RL, the action at is produced by passing an observation
+ot through the policy according to: at (ot), and the
+policy is optimized by maximizing rewards rt  R(ot, at).
+Policy optimization is performed by collecting experience and
+optimizing based on the rewards accumulated along the expe-
+riences over many episodes. Following previous work [7, 28],
+we define the observation as a body-frame error representation
+concatenating position error
+Bep R3, orientation error
+BeR R33, the gravity vector Bg R3, velocity error
+Bev R3, and angular velocity error Be R3:
+This representation allows us to use the state of any arbi-
+trary body B in the observation to the RL policy , given
+some desired position specified by WpB
+d and yaw orientation
+specified by WRB
+The observation is flattened into a vector in R21. The action
+produced by the policy is at R4, clipped to lie within [1, 1]
+and then scaled to the collective thrust fT and body moment
+M limits of the platform. Further implementation details are
+provided in Appendix C.
+IV. METHODOLOGY
+A proper comparative study levels the playing field between
+signal-to-noise ratio from experiments, so that the conclusions
+drawn offer insights to guide future research and practice.
+In this section, we identify commonly-overlooked details that
+yield misleading conclusions in comparative studies for tra-
+jectory tracking controllers for aerial vehicles and propose
+mechanisms to correct them. We finish by summarizing the
+necessary techniques to perform a proper, fair, and unbiased
+comparison between learning-based and analytical controllers.
+A. Task Definition
+The goal of a trajectory tracking task is to drive an output
+of the system (e.g., the COM for quadrotors) asymptotically
+towards a specified trajectory despite some initial disturbance.
+To quantitatively compare solutions, we must choose some
+objective which describes the optimal performance in the task.
+1) Trajectories: Formally, we can define our trajectory as
+a time-varying goal g(t) R4 describing the desired position
+and yaw of some body in the system. We sample g(t) at a
+fixed rate to discretize it into desired waypoints of position
+and yaw.
+If comparing two methods, they should be optimized on the
+same tasks, otherwise the training task distribution may be
+the dominant source of performance differences, confounding
+the results between the controller classes. Unfortunately, many
+State Component
+Tracking Lissajous
+Position (m)
+Velocity (ms)
+Yaw (rad)
+Angular Velocity (rads)
+TABLE II: Initial Conditions. Randomization ranges for
+initialization in Hover and Tracking Lissajous tasks by state
+component.
+prior works inadvertently make this error, as seen in Table I. In
+hardware experiments, for example, it is common to tune gains
+for low-level controllers on simple, near-hover tasks but then
+evaluate the controller with the same gains on any trajectory.
+This is done primarily for ease of tuning, interpretability, and
+because of the risk of damaging hardware in case of crashes
+while tuning on more dynamic trajectories. However, in order
+to hold controllers equal, all controllers must be optimized or
+tuned on the same class of tasks for the results to be insightful.
+In this study, we present two versions of trajectory tracking
+for the quadrotor: Hovering at a specified pose (i.e., tracking
+a constant reference), and Tracking Lissajous curves, where
+the desired position and yaw is specified as a Lissajous curve.
+Axsin(x  t  x)  x
+Aysin(y  t  y)  y
+Azsin(z  t  z)  z
+Asin(  t  )
+Hovering is simply a special case of the Lissajous curve,
+where the amplitudes Ax,y,z, are set to 0 and the desired
+end-effector position and yaw is defined by x,y,z,. Details
+regarding ranges used for randomization in each task is in
+Appendix A.
+2) Initial Conditions: The distribution from which the
+initial conditions are sampled is also a core component of the
+task definition, since even for the same trajectory, varied initial
+conditions describe vastly different tasked behaviorfor ex-
+task than first recovering from large initial perturbations and
+then hovering at the goal. In order to hold methods equal, we
+must explicitly specify the family of initial conditions. Initial
+conditions for the tasks considered are listed in Table II.
+3) Objective: The task objective is crucial to rigorously
+encode optimality. Intuitively, this objective describes how well
+a method accomplishes the task, and serves to distinguish
+performance during evaluation as well as provide a structured
+objective during optimization and tuning. In RL, this objective
+is optimized directly, and as such, the gradients may not be
+very informative during the initial stages of training. Correct-
+ing this often requires the addition of extra terms to help guide
+the policy gradients, resulting in a proxy objective [10, 23].
+While designing an effective reward function for some tasks
+may be quite difficult, for trajectory tracking, the reward
+Parameter
+TABLE III: Objective Hyperparameters. Parameters which
+define the form of the reward function (objective) for trajectory
+tracking tasks.
+objective commonly mirrors an optimal control objective, like
+the linear quadratic regulator-style tracking costs used in some
+works [12, 19].
+We define the objective for the tasks considered following
+previous work  to measure deviation of the end-effector
+from the desired trajectory:
+r(t)  p(p(t) pd(t), p)  R((t) d(t))
+v(v(t) vd(t))  ((t) d(t)).
+The desired position pd(t) represents the x, y, and z coordi-
+nates of the desired end-effector waypoint in the world frame.
+vd(t) represents the desired velocity, and d(t) represents
+the desired angular velocity of the body being tracked in
+the world frame, both obtained from the derivative of the
+trajectory g(t). This form follows previous work , with
+, allowing the position tolerance to be tuned
+with . The hyperparameters used for the reward function are
+listed in Table III.
+B. Optimizing Controllers
+the respective tunable parameters for each controller class.
+1) Training the Reinforcement Learning (RL) Policy: The
+RL policy is parameterized by a 3-layer MLP with 256 units
+per layer for the network (details in Appendix C). Optimizing
+the network parameters is done by applying the popular model-
+free RL method, proximal policy optimization (PPO) .
+This approach is standard in the field, where methods optimize
+a reward function (3) over many million simulated environ-
+ment steps. We found that annealing the position tolerance p
+was key to enabling agile behavior while still converging to
+the goal without large steady-state error. We reduced p by
+half every 50M timesteps, going from 0.8 at the beginning of
+training and ending at 0.1 as seen in Table III.
+2) Tuning the Geometric Controller (GC): The tunable
+parameters of the Geometric Controller take the form of PD
+gains for both the position and attitude loops. Considering each
+axis separately, this amounts to 12 gains. However, we elect
+to match the gains for the xV and yV axes, owing to the sym-
+metrical control authority over pitch and roll, which is greater
+than that over yaw (zV). This reduces the number of tunable
+parameters to 8. While hand-tuning this controller is common
+via Optuna , which uses Bayesian Optimization to more
+systematically tune the parameters according to a specified
+objective function. We use the same reward function as the
+reinforcement learning controller (Eqn. 3), in order to produce
+the geometric controller tuned with the best performance.
+Tuning gains for the PD controller via optimization is not
+novel. Specific to quadrotor control, Zhu et al.  and Cheng
+et al.  presented an approach to tune PD gains using gradient
+can be used to tune PID gains, Berkenkamp et al.  used
+Gaussian Processes to tune gains, and recently, Zhang et al.
+used RL to tune PID gains directly. In fact, Loquercio
+et al.  presented an auto-tuning procedure for an MPC
+controller and found that optimal gains varied even along a
+single trajectory depending on the motion in various segments.
+In this work, we specifically tune the controller for each task,
+in the same way that RL is trained on each task, facilitating
+comparisons between best-in-class controllers. To the best of
+our knowledge, all of the prior methods comparing RL and
+GC have used static gains that are specific per-platform for all
+C. Feedforward Terms
+A core component of differential flatness-based controllers
+in trajectory tracking is the use of higher-order derivatives of
+the reference flat outputs (i.e., desired COM position and yaw
+). The addition of these terms allows the SE(3) controller
+to choose actions informed by how the reference will move
+in the future, leading to asymptotic stability even in agile
+trajectory tracking scenarios. These feedforward terms are a
+vital component of the GC control laws, and depend on up to
+4th order derivatives of position and 2nd order derivatives of
+yaw [14, 27]. Feed forward reference acceleration, pd, appears
+directly in the computation of the desired acceleration pdes
+in the position PD controller along with the position error,
+velocity error, and gravitational acceleration. Using standard
+pdes  Kp(p pd) Kv(v vd) mgzW  pd.
+and angular acceleration d from derivatives of the desired
+orientation Rdes (which is determined in part by the desired
+acceleration pdes) and uses them in the attitude PD controller:
+des  KR(eR) K( d)
+(RT Rdesd RT Rdes d).
+mentations as seen in Table I. Feedforward information in
+the prior work is often replaced by an integral loop to close
+steady-state errors  in the position control (4), or simply
+omitted [8, 11, 19] by setting the feedforward angular velocity
+and acceleration to 0 in the attitude loop (5), perhaps due to
+ease of implementation. This information is crucial to encode
+the future reference information, and contributes a significant
+performance gain, as we will verify in Sec V.
+In fact, the benefit of leveraging future information is also
+seen in many recent reinforcement learning controllers for
+trajectory tracking [11, 12]. Often, this information appears
+as a horizon of future waypoints or goals appended to the
+observation. In order to give both controllers access to the
+same information and to avoid privileging one controller over
+to the observation for both the GC and RL controllers. The
+horizon length used is H  10, corresponding to samples from
+t  dt to t  10dt of the reference trajectory. This horizon
+is sufficiently large for the GC controller to approximate
+high-order derivatives of the reference via finite differencing,
+while the RL controller directly observes the horizon without
+imposing any structure a priori.
+D. Summing Up: Best Practices For Benchmarking
+In summary, there are a number of advantages that could be
+afforded to methods of either class, but which have often been
+inadvertently only presented to RL in standard implementa-
+tions. As RL is a data-driven approach, it must use some data
+and objective function, and the fair practice to advantage GC
+equally is to use a tuning algorithm on the same objective and
+data. Furthermore, when specifically considering trajectory
+of the geometric controller, and both RL and GC should get
+the same access to future reference information in the form
+of a horizon of waypoints. Holding equal the optimization
+to properly evaluate controller differences.
+Prior works have compared RL controllers against hand-
+tuned GC implementations (asymmetric optimization), which
+may have been tuned for hovering (asymmetric data access).
+Even trajectory tracking works like  compare against a
+controller using PID (asymmetric access to future reference
+information), and do not use feedforward information equally
+between the RL and GC method compared.
+V. EXPERIMENTAL RESULTS
+In this section, we seek to first validate the methodology
+proposed for fairly comparing learning-based and analytical
+tries leads to strengthened baseline models. Next, armed with
+a powerful experimental protocol to compare methods fairly,
+we seek to answer specific questions about trajectory tracking
+of aerial vehicles:
+1) How do the best-in-class RL and GC controllers perform
+for trajectory tracking?
+2) Does an offset between the COM and the reference point
+(e.g., an end effector) affect tracking performance?
+3) In which scenarios does each controller perform better
+than the other?
+A. Simulation Environment
+We perform the experiments in simulation, giving us the best
+ability to hold methods equal in data access, initial conditions,
+and optimization, and to evaluate over large numbers of trials.
+To simulate the aerial vehicles during training and evaluation
+of policies, we implement the dynamics in IsaacLab ,
+using the IsaacSim  physics engine. Following prior work
+leveraging massively parallelized simulation , the envi-
+ronment is implemented with GPU-level parallelism, allowing
+for a large number of simultaneous simulations. We ensure
+RL-?-Liss.-FF
+GC-?-Liss.-FF
+Lissajous Tracking
+Normalized Gap to Max Reward
+<Manual> vs <Optimized>
+RL-Opt-?-FF
+GC-Opt-?-FF
+Hover Liss.
+Hover Liss.
+<Hover> vs <Lissajous>
+RL-Opt-Liss.-?
+GC-Opt-Liss.-?
+<None> vs <Feed Forward> vs <PID>
+RL-?-Hover-FF
+GC-?-Hover-FF
+Normalized Gap to Max Reward
+RL-Opt-?-FF
+GC-Opt-?-FF
+Hover Liss.
+Hover Liss.
+RL-Opt-Hover-?
+GC-Opt-Hover-?
+Fig. 2: The Impact of Each Type of Asymmetry in RL vs. GC Comparisons. Model comparisons in both Lissajous Tracking
+(top row) and Hover (bottom row) tasks for the aerial manipulator vehicle. Results are shown with median and inter-quartile
+range across 1000 evaluations per task. Controllers are measured on normalized gap to maximum reward to highlight improved
+performance by correcting asymmetries. Hatched bars represent controller variants that are a suboptimal choice within each
+category. Comparisons are isolated into asymmetric access to optimization (left), asymmetric access to data (middle), and
+asymmetric access to future reference information (right). All controllers improve by conducting the protocols presented for
+Tracking task.
+the same goal configurations are randomly sampled across
+evaluated methods, regardless of control strategy selected.
+Following prior work , we simulate the dynamics at
+performed on 4096 simultaneous environments over 200 mil-
+lion total timesteps in approximately 30 minutes (175, 000
+stepssec) on an NVIDIA RTX A5000 GPU. The code to
+run this environment (as well as training scripts) is open-
+sourced in order to accelerate the development of agile aerial
+manipulation.
+In this study, we consider a quadrotor platform with a
+rigidly attached arm. This aerial manipulator morphology is
+a generalization of the quadrotor, and serves as a platform to
+evaluate new hypotheses regarding control of aerial vehicles.
+We expect that the GC will suffer in this morphology since
+it is principally designed to operate on the COM as opposed
+to controlling the end-effector directly, whereas RL can be
+applied to any body in the system. Together with the quadrotor,
+this aerial manipulator robot allows us to answer the questions
+posed above.
+B. Validating the Experimental Protocol
+In this section, we show how previous methods may have
+drawn conclusions between RL-based methods and GC-based
+implementations that bias towards better results for the RL-
+based controller. Specifically, we show how correcting the
+asymmetries laid out in the methodology (access to the
+optimization objective, access to the dataset, and use of
+future reference information) lead to significantly improved
+performance of both controllers, closing the the perceived gap
+in controller performance in recent literature. We construct
+models from the controller type: {RL, GC}, optimization
+(Hov.), Lissajous (Liss.)}, and feed forward strategy: {None,
+Feedforward (FF), Integral (PID)}. We optimize (train) every
+method according to the dataset and optimization procedure
+Lissajous Tracking and Hover tasks, highlighting results be-
+tween choices of optimization, dataset, and feed forward
+information in Fig 2 for the aerial manipulator morphology.
+A full presentation of the achieved reward, position tracking
+Quadrotor
+Aerial Manipulator
+Controller
+Avg. Reward
+Position RMSE (m)
+Yaw RMSE (rad)
+Avg. Reward
+Position RMSE (m)
+Yaw RMSE (rad)
+RL-Opt.-Liss.-FF
+GC-Opt.-Liss.-FF
+TABLE IV: Trajectory Tracking for Quadrotor and Aerial Manipulator. Comparison of the best RL controller against the
+best GC controller in trajectory tracking for a Quadrotor and an Aerial Manipulator (Quadrotor with fixed-arm) over 1000 trials
+in the Lissajous Tracking task. Rewards are averaged over time per rollout, then presented as average and standard deviation
+over the trials. Maximum reward is 15.0. RMSE of position and yaw are shown as averages with standard deviation over 1000
+trials. Contrary to many literature claims, performance is very similar between best-in-class methods.
+the supplementary material. We measure the performance of
+the controllers in Fig 2 by the difference between maximum
+reward and the average reward achieved over the rollout to
+highlight the improved reward by correcting for asymmetries.
+1) Optimizing Controllers: First, we consider the effect of
+optimizing the controller in the left column of Fig 2. In these
+mizing based on some objective. Note, that it is not feasible
+to hand-tune the neural network RL controllers we study
+in this work, and thus we omit this variant. Comparatively,
+we can observe how tuning for an objective affects the GC,
+and we see that tuning the controller for the objective lowers
+the gap to maximum reward, improving performance. In this
+from the measured task (Lissajous tracking in top row, Hover
+in bottom row), and utilize feedforward information so this
+represents the best-performing model.
+2) Data Access: In the middle column of Fig 2, we com-
+pare the effect of task-aligned experience during optimization
+on the controller performance. We see that models optimized
+on another task (Hover for the Lissajous Tracking evaluation
+and vice versa) perform worse than those optimized for the
+same task as that on which they are evaluated. This result is
+expected for RL (since it is a data-driven method), but note
+that GC also benefits from this practice, which should thus
+be adopted. Commonly, GC gains are hand-tuned in quasi-
+static motions and set for all downstream tasks like trajectory
+disadvantaging the GC.
+3) Future Reference Information: Finally, in the last col-
+umn (Fig 2) we investigate the role of feedforward information
+for both Lissajous Tracking and Hover. In the top row we
+can clearly see that for Lissajous tracking both RL and GC
+benefit from the addition of future reference information.
+information in GC performs worse than if no feedforward
+information was provided at all, perhaps due to the integral
+terms being sensitive to the gains which are auto-tuned. In the
+bottom row, we find that utilizing feedforward information
+presents no benefit due to the static nature of the reference in
+the Hover task, and all models are nearly perfect in this task,
+except for the GC controller using PID.
+4) Conclusions: From these results, it is evident the best
+performing GC controller is the one which optimizes a reward,
+has access to the same dataset being evaluated on, and uses
+feedforward terms (GC-Opt.-Liss.-FF). This policy adopts the
+strategies proposed in this work to reduce asymmetries in the
+three areas, and not performing these corrective measures in
+any one category increases the gap to optimal reward, creating
+a suboptimal policy. Indeed, we can examine how previous RL
+methods had implemented the analytical baseline, and show
+why their claims of superior performance over the baseline
+may have been misguided or overstated. For trajectory track-
+(GC-Man.-Hover-None) , optimizing for the wrong dataset
+(GC-Opt.-Hover-None), or using PID instead of feedforward
+terms (GC-Opt.-Liss.-PID or GC-Opt.-Hover-PID) [7, 8, 11]
+all result in misguided comparisons since the baseline method
+is handicapped. This ultimately results in an over-estimate
+of the performance gap between RL and GC in trajectory
+previously thought. We open-source the implementation and
+optimization code for the strengthened controllers, hoping to
+accelerate research in agile aerial vehicles. We hope to impress
+the importance of these corrections of model-based controllers
+to the research community to improve baselines and draw more
+robust conclusions.
+C. Best-of-the-Best Comparison
+By using this protocol to obtain best-in-class methods for
+both RL and GC controllers, we can now perform experiments
+to develop controllers for trajectory tracking of the quadrotor
+and the aerial manipulator. We seek to properly evaluate the
+claim that RL outperforms GC for trajectory tracking. We
+develop the best-in-class controllers for both morphologies
+using both RL and GC, and evaluate the robots on Lissajous
+Tracking in 1000 evaluations, showing the median error over
+time with inter-quartile range for both position and yaw
+tracking in Fig. 3. Root-mean-square-error (RMSE) for these
+experiments are recorded in Table IV.
+Both controllers work well to quickly reduce the error in
+position and yaw of large initial perturbations. Although the
+RMSE metrics seem to indicate the RL controller has a slight
+edge over the GC controller, we see in Fig. 3 that the GC error
+converges to 0 while the RL controller has a slight steady-
+state offset. While RMSE is a standard metric to report in
+Position
+Error (m)
+Quadrotor
+Aerial Manipulator
+Time (s)
+Error (rad)
+Time (s)
+RL-Opt.-Liss.-FF
+GC-Opt.-Liss.-FF
+Fig. 3: Trajectory Tracking Errors. Position and yaw errors
+over time for both the best-in-class RL and GC controllers
+evaluated on the Quadrotor and Aerial Manipulator morpholo-
+gies. Results are shown as the median with inter-quartile range
+shaded from 1000 evaluations per morphology in Lissajous
+Tracking.
+trajectory tracking, we notice it is sensitive to the scale of
+the inital perturbation and the duration of the episode (where
+long episodes emphasize steady-state error and short episodes
+emphasize transient performance), and as such may not reflect
+the overall or asymptotic performance of the controller for
+some downstream task. In summary, although the best-in-class
+RL controller achieves lower RMSE in trajectory tracking for
+both a quadrotor and aerial manipulator compared to the best-
+in-class GC controller, the steady-state error does not converge
+to zero. This suggests that the RL controller is better at
+achieving transient performance, while the GC achieves better
+asymptotic performance at the cost of near-term error, echoing
+results shown in . Thus, we answer question 1, showing that
+GC outperforms RL on the reward objective and RL only has
+a slight advantage in position RMSE from large perturbations
+due to better initial transient performance, reversing claims of
+prior literature.
+work well to control the desired reference point, whether it
+is the COM location in the quadrotor or the end-effector in
+the aerial manipulator. This shows impressive results for the
+excellent performance in the end-effector tracking, answering
+question 2.
+Time-To-Catch (s)
+Controller
+TABLE V: Ball Catching success rate. Percentage of catches
+made by the aerial manipulator with varied initial velocities by
+each controller, denoted by the time-to-catch in each setting.
+Results are shown as mean catch rate over 100 trials.
+D. Does RL beat GC?
+In order to evaluate if and when RL outperforms GC,
+we choose to evaluate on the Hover task, which isolates
+the transient component of the trajectory tracking task (since
+the reference trajectory is stationary). In this setting, we can
+evaluate how the controllers can reduce their position and yaw
+errors as a function of time from a large initial perturbation.
+As seen in Fig 2, for the Hover task, the feed-forward terms
+do not yield any significant benefit in performance due to the
+stationary trajectory. Thus, we use the RL-Opt.-Hover-None
+as the RL controller, and GC-Opt.-Hover-None as the GC
+controller. Additionally, since we evaluate this on a quadrotor
+with a fixed arm (that is, a 0-DOF Aerial Manipulator ), we
+can directly compare controller assumptions by presenting an
+RL controller observing the end-effector state (RL-EE), a GC
+controller which can only by design observe the COM state,
+and an RL controller observing the same COM state as the GC
+(RL-COM). This comparison allows us to directly investigate
+if observing only the COM state is inherently limiting for
+control of the end-effector. The insights from this experiment
+are only possible due to the experimental protocol optimizing
+the controllers in the same way, isolating resultant differences
+in performance to the inherent controllers.
+We evaluate this for 1000 random goal positions, and
+present the results in Fig. 4. This evaluation is also motivated
+by the real-world task of catching projectiles (Ball-Catching),
+for which agility and transient performance are essential. Thus,
+we present an evaluation scenario in which a ball is thrown
+with some random initial velocity, and the quadrotor aims
+to catch the ball at a given height off the ground. Time-to-
+Catch is a metric used to roughly define difficulty of the
+times correspond to more difficult tasks. This is modulated
+by affecting the vertical component of the initial velocity
+which moves the catch location as well as the time to reach
+the catch plane. We present the catch success percentages in
+Table V for 100 evaluations of 5 catch opportunities each,
+with varied initial velocities corresponding to different time
+allocations for the catching. Please view videos of this task in
+the supplementary materials.
+Here we can see that there is a manifest difference between
+the controllers, where RL-EE is shown to have the best tran-
+sient performance in reducing position error compared to the
+Position Error (m)
+Time (s)
+Yaw Error (rad)
+Fig. 4: Hover Errors. Position and yaw errors over time
+for the RL controller observing the end-effector (RL-EE), RL
+controller observing the COM (RL-COM), and the geometric
+controller (GC). Errors are shown as the median with inter-
+quartile ranges across 1000 evaluations in the Hover task.
+other controllers, resulting in the highest success percentages
+of balls caught. The GC controller, although guaranteed to
+converge to 0 steady-state error, has the worst transient per-
+formance among the controllers, resulting in poor performance
+in the ball catching task. The RL-COM performance indicates
+that the COM state observation is not the impeding factor
+for the GC transient performance, as the RL-COM has better
+GC may be limiting for very agile behavior, especially of an
+end-effector.
+E. Data Asymmetry under Domain Randomization
+Thus far, weve considered data asymmetry as access in
+simulation to rollout data under a particular task. Another
+use of simulation data is to perform domain randomization, a
+common technique used to bridge the simulation to real-world
+gap by simulating a distribution of parameters that may be
+unknown or hard to model. Often, this is used with RL in order
+to train a single model that is able to generalize or perform well
+on any test-time parameters that fall within the distribution.
+Controller
+Avg. Reward
+Position RMSE (m)
+Yaw RMSE (rad)
+TABLE VI: Controller Performance under Domain Ran-
+domization. Comparison of RL and GC controllers optimized
+for Lissajous trajectory tracking, with feed-forward terms, un-
+der varied amounts of domain randomization (0-40) of mass,
+with standard deviation over 1000 trials in the 20 domain
+randomization setting for evaluation.
+and in alignment with evaluating the controllers fairly, we train
+the quadrotor trajectory tracking task under different ranges
+of domain randomization varying the mass, inertia tensor, and
+thrust-to-weight ratio of the vehicles. The training distributions
+are 0, i.e. no domain randomization (RL-0, GC-0), 20
+(RL-20, GC-20), and 40 (RL-40, GC-40) uniformly sampled
+centered at the nominal value for each mass, inertia, and
+thrust-to-weight. The evaluation is performed on 1000 random
+samples from the 20 distribution. All controllers evaluated
+here perform optimization, are trained on the Lissajous task,
+and use feed forward information, matching best practices
+established in this work (i.e. RL-Opt-Liss-FF and GC-Opt-
+Liss-FF). Results can be seen in Table VI.
+All controllers in this setting perform worse than without
+domain randomization, owing to the increased difficulty of
+the test-time task. The RL controllers exhibit less degradation,
+matching the low position and yaw RMSE from the evaluation
+setting without domain randomization, but perform slightly
+worse in the average reward (seemingly due to angular velocity
+oscillations). The GC performs significantly worse than before,
+largely due to the model-based nature of the controller, since
+the relatively small number of optimizable parameters are not
+able to correct for the model uncertainty at evaluation time.
+Here we can see that RL is more amenable to the domain
+randomization technique for sim-to-real transfer, and can be a
+preferred controller in settings where simulation is needed to
+overcome mismatch in test-time configurations.
+F. Realistic Dynamics
+body system (as in this work). In reality, there are more com-
+plex dynamics involved in the real-world counterpart of the
+can be mitigated by running tight control loops at a fast rate
+in simulation can take advantage of these phenomena for better
+Controller
+Avg. Reward
+Position RMSE (m)
+Yaw RMSE (rad)
+RL-Simple
+RL-Realistic
+GC-Simple
+GC-Realistic
+TABLE VII: Controller Performance under Realistic Dy-
+namics. Comparison of RL and GC controllers optimized for
+Lissajous trajectory tracking, with feed-forward terms, under
+Simple dynamics (rigid body dynamics only) or Realistic
+dynamics (motor dynamics and saturation). Results are shown
+as averages with standard deviation over 1000 trials in the
+realistic dynamics setting for evaluation.
+test-time performance. Specifically, we aim to answer whether
+RL can learn from these realistic dynamics more than GC,
+since RL is a data-driven method whereas GC only considers
+the rigid body dynamics. We trained models with and without
+the realistic dynamics for both RL (RL-Simple, RL-Realistic)
+and GC (GC-Simple, GC-Complex) and evaluate on settings
+where motor dynamics are modeled as a first-order system and
+motor saturation and allocation is considered, but controller
+delay is assumed to be 0 from an on-board controller.
+We present the results of this ablation in Table VII. We
+find that the RL model trained in the simple dynamics fails
+to perform well under the realistic dynamics, likely due to
+over-fitting to the simple dynamics and performing bang-
+bang control, which is not feasible with respect to the motor
+dynamics. The best-performing model, RL-Realistic, is trained
+and evaluated under the more complex dynamics and is able
+to learn under the improved dynamics, as expected. We expect
+this model to be able to transfer most reliably to a real-world
+platform. Comparatively, the GC controllers do not perform
+as well, owing to the simplicity of the dynamics model con-
+sidered in the controller. However, the change from simple to
+realistic dynamics does not affect performance nearly as much
+as it does for the RL controllers, and both GC-Simple and GC-
+Realistic are able to perform similarly, albeit slightly worse
+than the best-performing data-driven method. Ultimately, we
+see that using realistic dynamics models improves the expected
+transferability of the RL methods due to the data-driven nature
+of the controller, but does not affect GC controllers in the
+same way. We expect that both the GC controllers and the RL-
+Realistic controller will be able to transfer from simulation to
+a real robot, and the controller performance will be similar to
+results presented here in simulation.
+VI. DISCUSSION AND LIMITATIONS
+With the robust protocol established in this work, we
+are able to correct asymmetries in comparisons from prior
+quadrotor trajectory tracking. We show that reinforcement
+learning (RL) controllers do not always perform better than
+geometric control (GC), and only perform better in specific
+transient settings at the expense of steady-state error. For
+some particularly agile tasks like ball-catching, this results
+in significantly improved performance, but for tasks requiring
+less agility the GC performs better. Additionally, we are able
+to evaluate controller methods under new hypotheses and
+since we ensure models are fairly optimized, we can attribute
+results directly to the controller. This experimental protocol
+should be used for any comparison involving data-driven
+controllers being compared against model-based controllers,
+as not carefully applying the same advantages can mislead
+conclusions as we have shown in our experiments.
+One of the main limitations of this work is that the eval-
+uations are performed in simulation as opposed to on real
+condition. In this vein, we present the results of comparing the
+controller synthesis approaches in an idealized setting, without
+factors such as state estimation error, control delay, unmodeled
+RL controllers and the GC controller similarly, but transfer
+of these policies from simulation to real hardware should be
+performed in future work. During this process, however, it
+is imperative to maintain the fair comparison by applying
+any new methodologies to both controllers equally. We also
+do not reproduce the exact experiments of previous works
+in terms of modeling the same training distributions, model
+architecture innovations, or evaluation platforms. We instead
+propose a thorough and principled approach to benchmark
+controllers of various classes fairly, and future work should
+reproduce the benchmarks of earlier works under this exper-
+imental protocol to dissect contributions. Finally, in future
+work our careful approach to comparison across geometric
+control and reinforcement learning should be applied to other
+robot morphologies and tasks, in order to ascertain whether
+the conclusions obtained here in trajectory tracking problems
+for quadrotors and fixed-arm aerial manipulators also persist
+more broadly.
+VII. CONCLUSIONS
+In this work, we present a robust experimental protocol
+correcting common asymmetries in comparing RL and GC
+metries yield misleading conclusions. We execute this protocol
+in order to study trajectory tracking performance for end-
+effector control of a fixed-arm underactuated aerial manip-
+show that the RL controller performs better in the transient
+setting at the expense of steady-state error, and that the gaps
+between the two controllers are very close when both are
+the best-in-class versions of the controllers. We demonstrate
+a practical scenario in which transient performance matters
+via a ball-catching task and show that the RL controller is
+able to out-perform the GC in this setting. We believe this
+work will guide future researchers in developing more agile
+aerial manipulators, and elucidate better comparisons between
+learning-based and classical controllers.
+VIII. ACKNOWLEDGMENTS
+We gratefully acknowledge the support of ARL DCIST
+CRA W911NF-17-2-0181, NSF Grant CCR-2112665, NIFA
+grant 2022-67021-36856, the IoT4Ag Engineering Research
+Center funded by the National Science Foundation (NSF)
+under NSF Cooperative Agreement Number EEC-1941529,
+and NVIDIA.
+REFERENCES
+Takuya Akiba, Shotaro Sano, Toshihiko Yanase, Takeru
+hyperparameter optimization framework. In Proceedings
+of the 25th ACM SIGKDD international conference on
+knowledge discovery  data mining, pages 26232631,
+Leonard Bauersfeld, Elia Kaufmann, Philipp Foehn,
+Sihao Sun, and Davide Scaramuzza. Neurobem: Hybrid
+aerodynamic quadrotor model. In Robotics: Science and
+Systems XVII, RSS2021. Robotics: Science and Systems
+Felix Berkenkamp, Angela P Schoellig, and Andreas
+Safe controller optimization for quadrotors
+with gaussian processes.
+In 2016 IEEE international
+conference on robotics and automation (ICRA), pages
+Muharrem Selim Can and Hamdi Ercan.
+Real-time
+tuning of pid controller based on optimization algorithms
+for a quadrotor.
+Aircraft Engineering and Aerospace
+Jiayu Chen, Chao Yu, Yuqing Xie, Feng Gao, Yinuo
+Yi Wu, et al. What matters in learning a zero-shot sim-
+to-real rl policy for quadrotor control? a comprehensive
+study. arXiv preprint arXiv:2412.11764, 2024.
+Sheng Cheng, Minkyung Kim, Lin Song, Chengyu Yang,
+Yiquan Jin, Shenlong Wang, and Naira Hovakimyan.
+Transactions on Robotics, 2024.
+Gabriele
+Giuseppe
+Loianno.
+The power of input: Benchmarking zero-
+shot sim-to-real transfer of reinforcement learning con-
+trol policies for quadrotor control.
+arXiv preprint
+Jonas Eschmann, Dario Albani, and Giuseppe Loianno.
+Learning to fly in seconds. IEEE Robotics and Automa-
+tion Letters, 2024.
+Matthias Faessler, Antonio Franchi, and Davide Scara-
+Differential flatness of quadrotor dynamics
+subject to rotor drag for accurate tracking of high-speed
+trajectories. IEEE Robotics and Automation Letters, 3(2):
+Dhawal Gupta, Yash Chandak, Scott M. Jordan, Philip S.
+via reward function optimization, 2023.
+URL https:
+arxiv.orgabs2310.19007.
+Kevin Huang, Rwik Rana, Alexander Spitzer, Guanya
+tracking for quadrotor control. In Jie Tan, Marc Tou-
+The 7th Conference on Robot Learning, volume 229 of
+Proceedings of Machine Learning Research, pages 326
+340. PMLR, 0609 Nov 2023. URL
+mlr.pressv229huang23a.html.
+Elia Kaufmann, Leonard Bauersfeld, and Davide Scara-
+A benchmark comparison of learned control
+policies for agile quadrotor flight. In 2022 International
+Conference on Robotics and Automation (ICRA), pages
+Elia Kaufmann, Leonard Bauersfeld, Antonio Loquercio,
+Matthias Muller, Vladlen Koltun, and Davide Scara-
+muzza. Champion-level drone racing using deep rein-
+forcement learning. Nature, 620(7976):982987, 2023.
+Taeyoung Lee, Melvin Leok, and N Harris McClamroch.
+Geometric tracking control of a quadrotor uav on se (3).
+In 49th IEEE conference on decision and control (CDC),
+pages 54205425. IEEE, 2010.
+Jacky Liang, Viktor Makoviychuk, Ankur Handa, Nut-
+tapong Chentanez, Miles Macklin, and Dieter Fox. Gpu-
+accelerated robotic simulation for distributed reinforce-
+ment learning. In Conference on Robot Learning, pages
+Antonio Loquercio, Alessandro Saviolo, and Davide
+Scaramuzza. Autotune: Controller tuning for high-speed
+IEEE Robotics and Automation Letters, 7(2):
+Daniel Mellinger, Quentin Lindsey, Michael Shomin,
+and Vijay Kumar.
+control for aerial grasping and manipulation.
+IEEERSJ International Conference on Intelligent Robots
+and Systems, pages 26682673, 2011.
+Mayank Mittal, Calvin Yu, Qinxi Yu, Jingzhou Liu,
+Nikita Rudin, David Hoeller, Jia Lin Yuan, Ritvik Singh,
+Yunrong Guo, Hammad Mazhar, Ajay Mandlekar, Buck
+robot learning environments.
+IEEE Robotics and Au-
+tomation Letters, 8(6):37403747, 2023. doi: 10.1109
+Artem Molchanov, Tao Chen, Wolfgang Honig, James A
+(multi)-real: Transfer of low-level robust control policies
+to multiple quadrotors. In 2019 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 5966. IEEE, 2019.
+Alejandro
+Nonlinear pid-type controller for quadrotor trajectory
+tracking. IEEEASME transactions on mechatronics, 23
+Nikita Rudin, David Hoeller, Philipp Reist, and Marco
+Hutter. Learning to walk in minutes using massively par-
+allel deep reinforcement learning. In Aleksandra Faust,
+David Hsu, and Gerhard Neumann, editors, Proceedings
+of the 5th Conference on Robot Learning, volume 164 of
+Proceedings of Machine Learning Research, pages 91
+100. PMLR, 0811 Nov 2022. URL
+mlr.pressv164rudin22a.html.
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+algorithms. arXiv preprint arXiv:1707.06347, 2017.
+Joar Skalse, Nikolaus H. R. Howe, Dmitrii Krashenin-
+reward hacking, 2022.
+Sihao Sun, Angel Romero, Philipp Foehn, Elia Kauf-
+nonlinear mpc and differential-flatness-based control for
+quadrotor agile flight, 2024. URL
+Ezra Tal and Sertac Karaman.
+Accurate tracking of
+aggressive quadrotor trajectories using incremental non-
+linear dynamic inversion and differential flatness. IEEE
+Transactions on Control Systems Technology, 29(3):
+Wufan Wang, Xiaming Yuan, and Jihong Zhu. Automatic
+pid tuning via differential evolution for quadrotor uavs
+trajectory tracking.
+In 2016 IEEE Symposium Series
+on Computational Intelligence (SSCI), pages 18. IEEE,
+Jake Welde, James Paulos, and Vijay Kumar. Dynami-
+cally feasible task space planning for underactuated aerial
+manipulators. IEEE Robotics and Automation Letters, 6
+Jake Welde, Nishanth Rao, Pratik Kunapuli, Dinesh
+Leveraging symme-
+try to accelerate learning of trajectory tracking con-
+trollers for free-flying robotic systems.
+arXiv preprint
+Junyang Zhang, Cristian Emanuel Ocampo Rivera, Kyle
+based drl auto-tuned nonlinear pid drone controller for
+robust autonomous flights, 2025. URL
+Jiangcheng Zhu, Endong Liu, Shan Guo, and Chao Xu.
+A gradient optimization based pid tuning approach on
+quadrotor.
+In The 27th Chinese Control and Deci-
+sion Conference (2015 CCDC), pages 15881593. IEEE,
+APPENDIX A
+TASK SPECIFICATIONS
+We enumerate the specific ranges of values used in the
+various tasks in terms of randomized parameters for the
+trajectory and initialization in Table VIII.
+Lissajous Parameters
+Lissajous Tracking
+TABLE VIII: Randomization Ranges for Tasks. Ranges used
+for both optimization and evaluation in Hover and Lissajous
+Tracking tasks, listed in terms of randomized Lissajous pa-
+rameters.
+APPENDIX B
+GC IMPLEMENTATION DETAILS
+The geometric controller (GC) observes the state of the
+of the quadrotor in the world frame. This information is
+the position p, orientation R, linear velocity v, and angular
+velocity . Conditioned on some goal, specified by the desired
+position pd and desired yaw d as well as 4th order derivatives
+of the desired position and 2nd order derivatives of the desired
+PD control strategy for the position and attitude separately.
+The GC first computes a desired acceleration from the position
+and derivatives of the reference trajectory using a PD-control
+pdes  Kp(p pd) Kv(v vd) mgzW  pd,
+desired orientation can be computed according to [27, eq. (13-
+Rdes  H1(d)H2( pdes
+and the attitude control loop uses a second PD-control struc-
+ture with feed-forward. We obtain d by differentiating (7):
+desR RT Rdes),
+des  KR(eR) K( d)
+(RT Rdesd RT Rdes d).
+fT  mpdes  RzV,
+M  J( des)    J.
+APPENDIX C
+RL IMPLEMENTATION DETAILS
+The RL policy is parameterized by a neural network, rep-
+resenting a wide range of hypothesis classes for the structure
+of the policy. For both the actor and critic, we use a network
+with 3 layers, each with 256 nodes, activated by ELU, totaling
+use PPO  from the RSL-RL library , and perform 750
+total updates on rollouts from 4096 simultaneous agents of
+64 timesteps each. We found annealing the position tolerance
+p key to enabling agile behavior while still converging to
+the goal without large steady-state error. We reduced p by
+half every 50M timesteps, going from 0.8 at the beginning of
+training and ending at 0.1 as seen in Table III. We define our
+observation as follows:
+BRW(WpB WpB
+(WRB)T WRB
+BRW(gzW)
+BRW(WvB WvB
+BRW(WB WB
+where BRW is the rotation from the world frame W to the
+body B, the position of the body in the world frame is WpB,
+the linear velocity of the body in the world frame is WvB,
+and the angular velocity in the world frame is WB. The
+observation errors are computed relative to the desired position
+of the body in the world frame WpB
+body frame to the world frame WRB
+of the body in the world frame WvB
+velocity of the body in world frame WB

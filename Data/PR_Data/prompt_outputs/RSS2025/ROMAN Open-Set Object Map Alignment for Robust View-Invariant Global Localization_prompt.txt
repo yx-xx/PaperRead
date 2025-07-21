@@ -1,0 +1,1046 @@
+=== PDF文件: ROMAN Open-Set Object Map Alignment for Robust View-Invariant Global Localization.pdf ===
+=== 时间: 2025-07-21 14:29:05.300774 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Robust View-Invariant Global Localization
+Mason B. Peterson1, Yixuan Jia1, Yulun Tian2, Annika Thomas1, and Jonathan P. How1
+AbstractGlobal localization is a fundamental capability re-
+quired for long-term and drift-free robot navigation. However,
+current methods fail to relocalize when faced with signicantly
+different viewpoints. We present ROMAN (Robust Object Map
+Alignment Anywhere), a global localization method capable of lo-
+calizing in challenging and diverse environments by creating and
+aligning maps of open-set and view-invariant objects. ROMAN
+formulates and solves a registration problem between object
+submaps using a unied graph-theoretic global data association
+approach with a novel incorporation of a gravity direction prior
+and object shape and semantic similarity. This works open-
+set object mapping and information-rich object association al-
+gorithm enables global localization, even in instances when maps
+are created from robots traveling in opposite directions. Through
+a set of challenging global localization experiments in indoor,
+that ROMAN achieves higher relative pose estimation accuracy
+than other image-based pose estimation methods or segment-
+based registration methods. Additionally, we evaluate ROMAN as
+a loop closure module in large-scale multi-robot SLAM and show
+a 35 improvement in trajectory estimation error compared to
+standard SLAM systems using visual features for loop closures.
+Code and videos can be found at
+I. INTRODUCTION
+Global localization  refers to the task of localizing a
+robot in a reference map produced in a prior mapping session
+or by another robot in real-time, i.e., inter-robot loop closures
+in collaborative SLAM . It is a cornerstone capability for
+drift-free navigation in GPS-denied scenarios. In this paper,
+we consider global localization using object- or segment-level
+6] to hold great promise in challenging domains that involve
+drastic changes in viewpoint, appearance, and lighting.
+At the heart of object-level localization is a global data
+association problem, which requires nding correspondences
+between observed objects and existing ones in the map without
+an initial guess. Earlier approaches such as [710] rely on
+geometric verication based on RANSAC , which ex-
+hibits intractable computational complexity under high outlier
+regimes. Recently, graph-theoretic approaches [4, 1216] have
+emerged as a powerful alternative that demonstrates superior
+accuracy and robustness when solving the correspondence
+This work is supported in part by the Ford Motor Company, DSTA,
+1Massachusetts Institute of Technology, Cambridge, MA 02139, USA.
+{masonbp, yixuany, annikat, jhow}mit.edu.
+2University of California San Diego, San Diego, CA 92093, USA.
+yut034ucsd.edu
+We use object and segment interchangeably.
+Fig. 1: Pair of segment submaps matched by two robots traveling in
+opposite directions in an off-road environment. Associated segments
+found by the proposed method are connected by lines and projected
+onto the image plane. (Top) Each pair of associated segments is
+drawn with the same color. The remaining, unmatched segments
+are shown in random colors and all other background points are
+shown in gray. (Bottom) The same associated segments and their
+convex hulls are visualized in the original image observations. Further
+visualization is shown in the supplementary video.
+problem. In particular, methods based on consistency graphs
+[1216] formulate a graph where nodes denote putative object
+correspondences and edges denote their geometric consisten-
+cies. The data association problem is then solved by extracting
+large and densely connected subsets of nodes yielding the
+desired set of mutually consistent correspondences. While
+segment-based matching has become an established strategy
+for loop closures, prior approaches were largely demonstrated
+in indoorstructured settings , with limited object varia-
+we focus on unseen environments (i.e., we do not make
+assumptions about the type of environment in which we
+operate), noisy segmentations, extreme viewpoint changes
+(Fig. 1), and RGB-D only sensing. Our key claim is that the
+proposed work is the only method that performs reliably in
+such extreme regimes and clearly outperforms state-of-the-art
+segment-based [11, 12, 19] and visual-feature-based [20, 21]
+methods in global localization tasks.
+Performance in these challenging scenarios is made possible
+by extending graph-theoretic data association to use infor-
+mation beyond mutual (pairwise) geometric consistency. We
+enhance the representational richness of association afnity
+metrics by developing a unied formulation that incorporates:
+(i) open-set semantics, extracted as semantically meaningful
+3D segments [22, 23] with descriptors obtained from vision-
+language foundation model, CLIP ; (ii) segment-level
+geometric attributes, such as the volume and 3D shapes of
+segments that provide additional discriminative power; and
+(iii) an additional prior about gravity direction that is readily
+available from onboard inertial sensors.
+Contributions. We present ROMAN (Robust Object Map
+Alignment Anywhere), a robust global localization method in
+challenging unseen environments. In detail, ROMAN consists
+of the following contributions:
+1) A graph-theoretic data association formulation with a
+novel method to incorporate segment-level similarities
+computed using CLIP descriptors and geometric at-
+tributes based on shape and volume. When gravity direc-
+tion is known, a gravity-direction prior is also utilized.
+Our method implicitly guides the solver to correct 3D
+segment-to-segment associations in challenging regimes
+when object centroids alone are insufcient for identify-
+ing correct associations (e.g., due to repetitive geometric
+structures or scenes with few distinct objects)
+2) A pipeline for creating open-set 3D segment maps from a
+single onboard RGB-D camera, using FastSAM  for
+open-set image segmentation and CLIP  for comput-
+ing open-set feature descriptors. These maps compactly
+summarize the detailed RGB-D point clouds into sparse
+and view-invariant representations consisting of segment
+locations and metric-semantic attributes, which enable
+efcient and robust global localization.
+3) Extensive
+experimental
+evaluation
+proposed
+method using real-world datasets (see Fig. 1) that in-
+volve urban, off-road, and ground-aerial scenarios. Our
+approach improves pose estimation accuracy by 45 in
+When using ROMAN rather than visual features for inter-
+robot loop closures in multi-robot SLAM, our method
+reduces the overall localization error by 8 on large-scale
+collaborative SLAM problems involving 6-8 robots and
+by 35 on a subset of particularly challenging sequences.
+II. RELATED WORKS
+Object-based maps are lightweight environment represen-
+tations that enable robots to match perceived objects with
+previously built object maps using object geometry or se-
+mantic labels as cues for object-to-object data association.
+Compared to conventional keypoints extracted from visual or
+lidar observations, object- or segment-level representations are
+more stable against sensor noise and viewpoint, lighting, or
+appearance changes, which often cause visual feature-based
+methods to fail . Furthermore, these representations are
+lightweight and efcient to transmit, an important criterion for
+multi-robot systems. In this section, we review related methods
+for using object maps for global localization and SLAM.
+Object SLAM. To incorporate discrete objects into SLAM,
+sparse maps of objects are described with geometric prim-
+itives such as points , cuboids  or quadrics .
+SLAM  trains domain-specic object detectors for ob-
+jects like tables and chairs. Choudhary et al.  use objects as
+landmarks for localization, providing a database of discovered
+objects. Lin et al.  showed that semantic descriptors can
+improve frame-to-frame object data association. Recent works
+[6, 31] further leverage open-set semantics from pre-trained
+models. Other methods [32, 33] combine the use of coarse
+objects for high-level semantic information with ne features
+for high accuracy in spatial localization. Object-level mapping
+also conveniently handles dynamic parts of an environment
+which can be naturally described at an object level [34, 35].
+Random sampling for object-based global localization.
+Object-level place recognition may be performed by an ini-
+tial coarse scene matching procedure (e.g., matching bag-of-
+words descriptors for scenes ) but is commonly solved
+in conjunction with the object-to-object data association by
+attempting to associate objects and accepting localization
+estimates when object matches are good [5, 37]. Object-to-
+object data association may be solved by sampling potential
+rotation and translation pairs between maps  or object
+associations [710] using RANSAC . Random sampling
+methods often require signicant computation for satisfactory
+results and the probability of nding correct inlier associations
+diminishes exponentially as the number of outliers grows .
+Graph matching for object-based global localization.
+accurate alternative for object data association. Objects are
+represented as nodes in a graph with graph edges encoding
+distance between objects [4, 37, 39]. Data association can be
+performed by matching small, local target graphs with the prior
+map graph using graph-matching techniques.
+Maximal consistency for object-based global localiza-
+tion. Different from graph-matching methods, consistency
+graph algorithms use nodes to represent potential associations
+between two objects in different datasets, and edges to encode
+consistency between pairs of associations. Data associations
+are found by selecting large subsets of mutually consistent
+nodes (associations), which can be formulated as either a
+maximum clique [1316] or densest subgraph  problem.
+The work by Dube et al.  is one of the early works that
+performs global localization by nding maximum cliques of
+consistency graphs. Ankenbauer et al.  leverage graph-
+theoretic data association  as the back-end association
+solver to perform global localization in challenging outdoor
+scenarios. Matsuzaki et al.  use semantic similarity be-
+tween a camera image and a predicted image to evaluate
+pairwise consistency. Thomas et al.  use pre-trained, open-
+set foundation models for zero-shot segmentation in novel
+environments for open-set object map alignment. Our method
+extends these prior works by incorporating object-to-object
+similarity and an additional pairwise association prior used
+to guide the optimization to correct associations.
+Inter-Robot Loop Closures for Collaborative SLAM.
+In the context of multi-robot collaborative SLAM (CSLAM),
+our approach serves to detect inter-robot loop closures that
+fuses individual robots trajectories and maps. State-of-the-
+art CSLAM systems [4246] commonly adopt a two-stage
+loop closure pipeline, where a place recognition stage nds
+candidate loop closures by comparing global descriptors and
+a geometric verication stage nds the relative pose by
+registering the two keyframes. To improve loop closure ro-
+tency maximization (PCM) which extracts inlier loop closures
+from candidate loop closures by solving a maximum clique
+problem. Do et al.  extends PCM  by incorporating
+loop closure condence and weighted pairwise consistency.
+Choudhary et al.  performs inter-robot loop closure via
+object-level data association; however, a database of 3D object
+templates is required. Hydra-Multi  employs hierarchical
+inter-robot loop closure that includes places, objects, and
+visual features summarized in a scene graph.
+III. ROMAN
+We now give an overview of the ROMAN global local-
+ization method. The core idea behind this work is that small,
+local maps of objects near a robot give rich, global information
+about the robots pose in a previously mapped area. To
+leverage this information, ROMAN uses a mapping module
+to create object submaps and a robust data association module
+to associate objects in the robots local map with objects seen
+by another robot or mapping session (see Fig. 3).
+Our mapping pipeline begins with open-set image segmen-
+tation to extract initial observations of objects. Then, object
+observations are aggregated into an abstract object map. While
+we initially represent mapped objects with a dense point
+are abstracted to a single point and a feature descriptor,
+making our world representation communication- and storage-
+efcient. A submap centered around a robots pose and con-
+taining nearby sparse, abstract objects is then created and
+used for global localization. Using local 3D segments, global
+localization can be achieved by matching objects in a local
+submap with objects from another robot or session. This is
+accomplished using our robust object data association method
+that leverages segment geometry, semantic information, and
+the direction of gravity to correctly associate objects. Our
+view-invariant global localization formulation enables global
+localization even in cases when maps were created by robots
+traveling in opposite directions. We rst describe ROMANs
+object data association method in Section IV and then present
+our approach for creating open-set object maps in Section V.
+A. Notation
+We use boldfaced lowercase and uppercase letters to de-
+note vectors and matrices, respectively. We dene [n]
+{1, 2, . . . , n}. For any n N and x1, . . . , xn R, we use
+n to denote the geometric mean
+of x1, . . . , xn, and GM(x) to denote the geometric mean of
+the elements of the vector x. For any vectors x, y Rn, their
+cosine similarity is denoted as cos sim(x, y)
+x2y2 . We
+dene the element-wise operation ratio(x, y) min( x
+Promoted Associations
+Penalized Associations
+Semantics
+Fig. 2: Visualization of improved afnity metrics. The gravity-
+based distance score, sgravity promotes pairs of associations that are
+consistent with the direction of gravity, while sshape and ssemantic are
+used to encourage individual associations to be consistent in terms
+of geometric shape and semantics respectively.
+where min and x
+y are also performed element-wise. We use
+b SE(3) to denote the pose of frame Fb with respect to
+frame Fa.
+IV. ROBUST OBJECT DATA ASSOCIATION
+While our data association method can be used for gen-
+eral point cloud registration, we focus on the problem of
+associating objects between two local object submaps for
+global localization. We rst detail submap alignment for global
+localization in Section IV-A then briey review fundamentals
+in graph-theoretic data association in Section IV-B before
+describing the proposed afnity metrics for object association
+in Sections IV-C to IV-E.
+A. Submap Alignment
+We consider a pair of submaps Mi and Mj which are
+associated with gravity-aligned poses Ti
+Mi and Tj
+Mj. Each
+submap Mi  {p1, . . . , pmi} where pk is a 3D segment,
+represented by a 3D point in the gravity-aligned map frame
+FMi and a feature vector containing shape and semantic
+attributes (object feature descriptors are discussed in greater
+detail in Section IV-D). We formulate global localization as
+the problem of estimating the transformation Ti
+j which relates
+the two local frames Fi and Fj. To accomplish this, we
+attempt to associate objects in Mi with objects in Mj. After
+nding these associations, TMi
+Mj can be computed using the
+closed-form Aruns method , enabling the relation between
+frames Fi and Fj given that Ti
+to correctly associate segments, a challenging task in the
+presence of uncertainty, outliers, and geometric ambiguity. To
+this end, we construct a novel map-to-map object association
+method leveraging a graph-theoretic formulation incorporating
+the direction of gravity within maps and object shape and
+semantic attributes.
+Fig. 3: ROMAN employs a front-end mapping module to create maps of open-set objects, representing each object with its centroid and
+feature descriptor. Local collections of objects are grouped into submaps and used for global localization by matching objects between two
+submaps. Accurate data association is achieved using a graph-theoretic formulation which leverages object shape and semantic similarity
+and a gravity prior.
+B. Preliminaries: Graph-Theoretic Global Data Association
+We follow the formulation used by CLIPPER  by rst
+constructing a consistency graph, G, where each node in
+the graph is a putative association ap  (pi, pj) between
+a segment pi Mi and a segment pj Mj. Edges are
+created between nodes when associations are geometrically
+consistent with each other. Specically, given two putative
+correspondences ap  (pi, pj) and aq  (qi, qj), CLIPPER
+declares that ap and aq are consistent if the distance between
+segment centroids in the same map is preserved, i.e., if
+d(ap, aq)  c(pi) c(qi)c(pj) c(qj) is less than
+a threshold , where c() R3 is centroid position of a
+segment. In this case, a weighted edge between ap and aq
+is created with weight sa(ap, aq) exp
+d(ap,aq)2
+bounded noise in the segment point representation.
+Given the consistency graph G, a weighted afnity matrix
+M is created where Mp,q  sa(ap, aq) and Mp,p  1. CLIP-
+PER determines inlier associations by (approximately) solving
+for the densest subset of consistent associations, formulated as
+the following optimization problem,
+subject to
+upuq  0 if Mp,q  0, p, q,
+where up is 1 when association ap is accepted as an inlier and
+0 otherwise. In the following sections, we describe methods to
+improve afnity metrics. Given our construction of M, we then
+use CLIPPERs solver to nd inlier associations u. See
+for more details.
+C. Improving afnity metrics: general strategies
+In its original form, the afnity matrix M in Equation (1)
+relies solely on distance information between pairs of cen-
+troids. However, when applied to segment maps, unique
+challenges are introduced that are often not faced in other
+point registration problems (e.g., lidar point cloud registration),
+including dealing with greater noise in segment centroids (e.g.,
+due to partial observation) and few inlier segments mapped
+in both Mi and Mj, which can lead to ambiguity when
+performing segment submap registration. To address these
+post-processing methods that leverage additional information
+such as segment size and gravity direction to lter incorrect
+object associations or reject returned inlier associations if they
+result in an estimated Ti
+j that is inconsistent with gravity.
+In comparison to works that use prior information in pre-
+processing or post-processing steps which may discard valu-
+able information, ROMAN directly incorporates gravity and
+object similarity into the underlying optimization problem
+in Equation (1). The key to our approach is to extend the
+original similarity metric to (i) use additional geometric (e.g.,
+attributes to disambiguate segments, and (ii) directly incorpo-
+rate knowledge of the gravity direction (when available) to
+guide the data association solver.
+Consider the putative association ap  (pi, pj). Intuitively,
+if objects pi and pj are dissimilar, then the association ap
+is less likely to be correct, which should be represented in
+the data association optimization formulation of Equation (1).
+Given a segment similarity score so(ap) comparing objects
+pi and pj,  and  suggest setting the diagonal entries
+of M to reect object similarity information, e.g., by setting
+tion (1) shows that this approach has limited impact,
+uMu  p[n]
+p  q[n],qp (Mp,qupuq)
+As the dimension of M increases, the number of off-diagonal
+terms (pairwise association afnity terms) increases quadrati-
+cally and will quickly dominate the overall objective function.
+afnity score by so() so that Mp,q  sa(ap, aq)so(ap)so(aq).
+While this gives segment-to-segment similarity a signicant
+role in the registration problem, the elements of M are skewed
+to be much smaller resulting in many fewer accepted in-
+lier associations. To incorporate segment-to-segment similarity
+without signicantly diminishing the magnitudes of the entries
+of M, we instead propose using the geometric mean,
+The use of geometric mean in merging scores of potentially
+different scales is well-studied in the eld of operation re-
+search . It was shown that, under reasonable assumptions,
+the geometric mean is the only averaging function that merges
+scores correctly [54, 55]. With this insight in mind, we incor-
+porate additional information into the optimization problem (1)
+through careful designs of sa(, ) and so(), which will be
+explained in the subsequent subsections. An ablation study on
+fusion methods is presented in Section VI-F.
+D. Improving afnity metrics: incorporating metric-semantic
+segment attributes
+In this subsection, we design the segment-to-segment sim-
+ilarity score so() by comparing geometric and semantic
+attributes of the mapped segments (visualized in Fig. 2).
+From the relatively dense point-cloud representation created
+for online mapping, a low-data shape descriptor and the
+averaged semantic feature descriptor are extracted for each
+3D segment. These descriptors are compared using a shape
+similarity scoring function sshape() and a semantic similarity
+score ssemantic(), which we present next. The nal segment-to-
+segment similarity score so() is set to be the geometric mean
+of those two scores.
+a) Semantic similarity metric: To incorporate semantic
+ilarity score by taking the cosine similarity of their CLIP
+observe that the cosine similarity score of pairs of CLIP
+embeddings from images is usually higher than 0.7, which
+does not allow semantic similarity to play a signicant role in
+determining data associations in Equation (1). We propose to
+rescale the cosine similarity score using hyperparameters min
+and max, so that scores less than min are set to 0, scores
+larger than max are set to 1, and scores between min and
+max are scaled linearly so that they range from 0 to 1.
+b) Shape similarity metric:
+To incorporate segment
+shape attributes, we dene a segment-to-segment shape simi-
+larity score:
+sshape(ap)  GM (ratio(f(pi), f(pj))) ,
+where f(p) returns a four-dimensional vector of the shape
+attributes of p and is dened as follows. For each segment
+point cloud of segment p, and f2(p), f3(p), and f4(p) denote
+the linearity, planarity, and scattering attributes of the 3D
+points computed via principle component analysis (PCA). The
+interested reader is referred to  for details. The scoring
+function sshape() [0, 1] allows direct feature element-to-
+element scale comparison. Intuitively, if one element is much
+larger than the other, the score will be near 0, while if the
+element is very similar in scale, sshape will be close to 1.
+E. Improving afnity metrics: incorporating gravity prior
+We additionally address implicitly incorporating knowledge
+of the gravity direction in the global data association formu-
+lation. Due to the geometric-invariant formulation of Equa-
+tion (1), the solver naturally considers registering object maps
+as a 6-DOF problem. Often in robotics, an onboard IMU
+makes the direction of the gravity vector well-dened, so we
+are only interested in transformations with x, y, z, and yaw
+components. Because the optimization variable of Equation (1)
+is a set of associations rather than a set of transformations, it is
+not immediately clear how to leverage this information within
+the optimization problem, motivating the post-processing re-
+jection step from . In this work, we propose a method to
+leverage this extra knowledge within the data association step
+by replacing sa(, ) with a redesigned pairwise score metric,
+sgravity(, ), to guide the solver to select pairs of associations
+that are consistent with the direction of the gravity vector.
+vector by decoupling computations in the x-y plane and along
+the z axis:
+sa(ap, aq)  exp
+xy(ap, aq)
+z(ap, aq)
+dxy(ap, aq)   cxy(pi) cxy(qi)cxy(pj) cxy(qj)
+dz(ap, aq)   (cz(pi) cz(qi)) (cz(pj) cz(qj))  .
+In effect, this prohibits selecting pairs of associations where
+the vertical distances between objects within the same submap
+are dissimilar, as visualized in Fig. 2. It is important to note
+that we use the difference in the z-axis since we have direc-
+tional information from the gravity vector while we only use
+distance in the x-y plane. The directional information helps
+further disambiguate correspondence selection in scenarios
+where distance information is insufcient.
+V. OPEN-SET OBJECT MAPPING
+This section describes ROMANs approach to creating
+open-set object maps used for global localization in diverse
+environments. A map containing accurate and concise metric-
+object-based global localization. However, creating such a
+map has historically been difcult due to the need for an
+object classier. Using recent zero-shot open-set segmentation,
+object-level environment information can easily be extracted
+from each image, but aggregating this information is difcult
+due objects or groups of objects being segmented incon-
+sistently between views, occluded object observations, and
+drift in robot odometry. To overcome these difculties, we
+propose the following open-set object mapping pipeline, which
+is visualized in Fig. 3.
+A. Mapping
+The inputs to ROMANs mapping module consist of RGB-D
+images and robot pose estimates (e.g., provided by a visual-
+inertial odometry system). Per image object observations are
+made by segmenting a color image using FastSAM
+and applying a series of preprocessing steps to lter out
+undesirable segments. Distinct and stationary objects are most
+likely to be segmented consistently across different views, so
+our segment ltering aims to capture only such segments.
+We use YOLO-V7  to reject segments containing people.
+image and remove large planar segments which are often
+large ground regions or non-distinct walls which cannot be
+represented well as an object. Each of the remaining segments
+is fed into CLIP  to compute a semantic descriptor.
+are then sent to a frame-to-frame data association and tracking
+Data association is performed between existing 3D segment
+tracks and incoming 3D observations by computing the grid-
+aligned voxel-based IOU between pairs of tracks and observa-
+tions with 3D voxel overlap . We use a global nearest
+neighbor approach  to assign observations to existing
+object tracks and create new tracks for any unassociated
+observation. Semantic descriptors of the associated segments
+are merged by taking a weighted average of descriptors of the
+existing segment and the incoming segment as in . Because
+FastSAM may segment objects differently depending on the
+the same object. Specically, 3D segments are merged based
+on high grid-aligned voxel IOU or when a projection of the
+two segments onto the image plane results in a high 2D IOU.
+The result of our mapping pipeline is a set of open-set 3D
+objects with an abstractable representation. While performing
+frame-to-frame data association and object merging. However,
+our global localization only uses a low-data representation
+of segments consisting of centroid position, shape attributes,
+and mean semantic embedding, which enables efcient map
+communication and storage.
+B. Submap Creation
+As a robot travels, submaps are periodically created. After
+a robots odometry estimate reaches a distance greater than cd
+from the previous submap pose, a new submap is instantiated.
+The new submap is assigned the current robots pose with
+pitch and roll components removed using the IMUs gravity
+direction estimate, which ensures that objects are represented
+in a gravity-aligned frame for data association. All objects
+within a radius r of the submap center are added, and objects
+continue to be added until the robots distance from the
+submap center is greater than r. The submap is then saved,
+after using a maximum submap size N to remove objects
+(starting at objects farthest from the center) so that the submap
+size mi N thus limiting submap alignment computation.
+association module and ROMAN attempts to align the current
+submap with previous submaps (e.g., from earlier in the run or
+from another robot or session). Resulting Ti
+j estimates from
+the submap object data association and alignment are used
+for global localization if the number of associated objects is
+greater than a threshold, .
+VI. EXPERIMENTS
+In this section, we evaluate ROMAN in an extensive series
+of diverse, real-world experiments. Our evaluation settings
+consist of urban domains from the large-scale Kimera-Multi
+sults demonstrate that ROMAN achieves superior performance
+compared to existing baseline methods, obtaining up to 45
+improvement in relative pose estimation accuracy in opposite
+directions and 35 improvement in nal trajectory estimation
+error in a subset of particularly challenging sequences from the
+Kimera-Multi datasets. The experiments were run on a laptop
+with a 4090 Mobile GPU and a 32-thread i9 CPU.
+A. Experimental Setup
+Baselines. We compare the alignment performance of
+ROMAN against the following baselines. RANSAC-100K and
+RANSAC-1M apply RANSAC , as implemented in ,
+on segment centroids with a max iteration count of 100,000
+and 1 million respectively. CLIPPER runs standard CLIP-
+PER  on segment centroids, and CLIPPER  Prune
+prunes initial putative associations using semantic and shape
+attributes and rejects incorrect registration results using gravity
+information (so it has access to similar information as the
+proposed method). TEASER  Prune runs the robust
+registration of  using the same pruning mechanism as
+CLIPPER  Prune. Binary Top-K, which mimics the
+association method of SegMap , takes the top-k most similar
+segments (in terms of the semantic and shape descriptors)
+and constructs a binary afnity matrix that we use for nding
+associations with solver from . We also compare against
+recent image-based pose estimation methods. MASt3R and
+MASt3R (GT Scale) use the learned 3D reconstruction model
+of  to estimate relative camera poses with the models
+estimated translation scale and the ground truth translation
+scale respectively. SuperGlue (GT Scale) similarly esti-
+mates relative camera poses using  to match SuperPoint
+features . Additionally, we incorporate ROMAN as a
+loop closure detection module in single-robot and multi-robot
+SLAM and compare against KM (Kimera-Multi
+ORB3 (ORB-SLAM3 ) which both use BoW descriptors
+of ORB features for loop closures.
+Performance metrics. We use the following metrics for
+comparing segment-based place recognition, submap align-
+ment (equivalent to relative pose estimation for image-based
+methods),and full SLAM results. For place recognition, each
+algorithm is given a query submap and a database composed
+of submaps from every other robot run. Submap registration
+is performed on the query submap and every submap from
+the database. The database submap with the highest number
+of associations is returned and success is achieved if the
+query and returned submaps overlap. We vary the threshold on
+number of required object association  to generate precision-
+recall curves, and following , precision-recall area under
+the curve (AUC) is reported.
+To evaluate alignment success rate, an algorithm is given
+a pair of submaps whose center poses are within 10 m of
+each other. We evaluate the image-based methods by giving
+an algorithm the two images corresponding to the two submap
+center poses. To avoid giving segment-based methods an unfair
+view (FOVs) do not overlap. Following , alignment (i.e.,
+pose estimation) success is determined when the transforma-
+tion error is less than 1 m and 5 deg, with respect to ground
+Full SLAM results are evaluated using root mean squared
+(RMS) absolute trajectory error (ATE) between the registered
+estimated and ground truth multi-robot trajectories. We use
+open-source evo  to compute ATE.
+Parameters. For global localization, we use the parameter
+values outlined in Table I. We additionally include results for
+two larger variants of our work: ROMAN-L, which uses r
+pose graph optimization, we use odometry covariances with
+uncorrelated rotation and translation noise parameters. We use
+standard deviations of 0.1 m and 0.5 deg for sparse odometry
+and 1.0 m and 2.0 deg for loop closures.
+TABLE I: Parameters
+Parameter
+Description
+Pairwise consistency noise parameters
+Submap radius and spacing distance
+min  max
+Cosine similarity scaling values
+Association threshold and max submap size
+B. MIT Campus Global Localization
+We rst evaluate ROMANs map alignment using the out-
+door Kimera-Multi Dataset  recorded on MIT campus.
+Each robot creates a set of submaps using Kimera-VIO
+for odometry and our ROMAN mapping pipeline. We use
+these submaps to evaluate segment-based place recognition
+and submap alignment for global localization, as described
+in Section VI-A. We evaluate methods on all multi-robot
+submap pairs from this dataset that are within 10 m of
+each other and whose corresponding camera FOVs overlap.
+In Table II, we show place recognition and submap alignment
+results. To highlight performance across different viewpoints,
+we bin the alignment tests into three different ground-truth
+relative heading groups:  60 deg (same direction), 60 deg
+<  120 deg (perpendicular), and  > 120 deg. When
+TABLE II: Kimera-Multi Outdoor Data Alignment Success Rate
+Pose Estimation Success Rate
+Recognition
+(5, 1 m error)
+Segment-Based
+RANSAC-100K
+RANSAC-1M
+CLIPPERPrune
+TEASERPrune
+Binary Top-K
+SuperGlue (GT Scale)
+MASt3R (GT Scale)
+ROMAN-XL
+the heading difference is small, alignment is comparatively
+easier. Aligning submaps from opposite views or from paths
+that cross perpendicularly, presents the hardest cases for global
+localization.
+Table II shows that the ROMAN outperforms other segment-
+based methods in terms of place recognition and alignment
+success rate in all heading intervals while operating at a
+similar runtime. In opposite directions, ROMAN achieves a pose
+estimation success rate 75 higher than the next-best segment-
+based method, CLIPPERPrune. Compared to image-based
+outperforms the next-best method, MASt3R (which is given
+ground truth scale), in every case except for in similar direction
+ROMAN-XL achieves a pose estimation success rate in opposite
+directions that is 45 better than MASt3R (GT Scale) and
+31 better when averaged across the different headings.
+In terms of communication and submap storage size, each
+object includes a 3D centroid, a four-dimensional shape de-
+scriptor and a 768-dimensional semantic descriptor. With each
+submap consisting of at most N  40 objects, a submap
+packet size is strictly less than 250 KB. For a trajectory of
+length 1 km, the entire map could be represented with less
+than 25 MB of data.
+C. Loop Closures in Visual SLAM
+We integrate ROMAN as a loop closure detection module
+for single and multi-robot pose-graph SLAM and compare
+the trajectory estimation results here and in Section VI-D.
+We use Kimera-VIO  for front-end odometry when creat-
+ing initial ROMAN submaps. Then, we attempt to register
+each new submap with all existing submaps from the ego
+robot and other robots. Loop closures are reported when the
+number of associations found is at least . Then, sparsied
+Kimera-VIO odometry and ROMAN loop closures are fed into
+the robust pose graph optimization of Kimera-Multi  to
+estimate multi-robot trajectories. Root-mean-squared (RMS)
+absolute trajectory errors (ATE) in the tunnel, hybrid, and
+outdoor Kimera-Multi datasets are reported in Table III.
+We compare SLAM with ROMAN loop closures against a
+centralized Kimera-Multi (KM)  and multi-session ORB-
+SLAM3 (ORB3) . Note that in the single-robot case, the
+baselines are essentially a single-robot version of Kimera and
+TABLE III: Kimera-Multi Data  SLAM Comparison Against
+Various Loop Closure Methods (RMS ATE m)
+Dist. (m)
+Tunnel 0
+Tunnel 1
+Tunnel 2
+Tunnel 3
+Tunnel All
+Hybrid All
+Outdoor All
+Hybrid 1, 2, 3
+Hybrid 4, 5
+Outdoor 1, 2
+single-robot ORB-SLAM3, where a deeper comparison was
+made in . Similar to
+, we found that ORB-SLAM3
+fails to nd reasonable trajectory estimates in some robot
+Estimation errors show that, on average, in easier single-
+robot tunnel runs, ROMAN loop closures result in lower
+trajectory errors than ORB-SLAM3 and errors comparable to
+Kimera-Multi. The full, large-scale multi-robot runs show that
+ROMANs ability to detect loop closures in challenging visual
+scenarios results in moderate gains compared to Kimera-
+Multis trajectory errors. Improvement is somewhat limited
+due to the high-connectivity of robot paths and the fact that
+most robot trajectory overlap occurs when robots are traveling
+in the same direction, which are loop closure opportunities
+in which visual-feature-based methods already perform well.
+robot trajectories that contain difcult instances for visual loop
+closures (e.g., perpendicular path crossing and scenes with
+high visual aliasing), results show that ROMAN has a signi-
+cantly lower ATE in these challenging scenarios. The trend is
+that as loop closure scenarios become increasingly difcult,
+ROMAN demonstrates more signicant improvements over
+state-of-the-art methods.
+D. Loop Closures in Off-Road Environment
+We further evaluate the proposed methods ability to register
+segment maps in an outdoor, off-road environment with high
+visual ambiguity (Fig. 1). In this experiment, data is recorded
+on a Clearpath Jackal using Intel RealSense D455 to capture
+RGB-D images and Kimera-VIO  is used for odometry.
+The robot is teleoperated across four runs, following similar
+trajectories but with different runs traversing the same area
+while traveling in different directions. We run the ROMAN
+pipeline on three different pairs of robot trajectories. We
+compare ROMAN to KM loop closures in
+Fig. 4. The three
+pairs consist of an easy, medium, and hard case. The easy
+case involves two robots that traverse the same loop in the
+Kimera-Multi
+single-robot loop closures
+multi-robot loop closures
+Fig. 4: Off-road qualitative pose graph trajectory estimate. Easy,
+closures. Different combinations were paired together to make easy,
+direction; in the medium case, the two runs go in opposite direction
+except for the small connecting neck; and in the hard case, robots
+only cross paths going opposite directions. Only ROMAN successfully
+nds loop closures between robots running in opposite directions.
+same direction (with one robot that leaves the loop and later
+returns). In the medium difculty case, the robots travel in
+opposite directions except for a short section in the middle
+where both robots briey view the scene from the same
+direction. Finally, in the difcult case, robots travel in a large
+loop in opposite directions. While ground-truth pose is not
+available for this data, Fig. 4 qualitatively shows that ROMAN
+successfully detects loop closures in all three cases. More
+direction traversals, while loop closures from KM only work
+reliably in same-direction traversals and fail to nd any loop
+closures in the hard case.
+E. Ground-Aerial Cross-View Localization
+We also evaluate ROMANs robustness to view changes
+by conducting indoor localization experiments where segment
+maps created from ground views are aligned with segment
+maps created from aerial views. Snapshots of the setup from
+both views are shown in Fig. 5. We test object map alignment
+on 20 ground-aerial pairs of traverses through the environment,
+and report alignment success rate in Table IV. We show
+that ROMAN maintains an advantage over other baselines,
+demonstrating its global localization capability in a small-scale
+aerial-ground cross-view localization demonstration.
+F. Ablation Study
+examining the contribution of different afnity metric im-
+Fig. 5: Environmental setup used in the ground-aerial cross-view
+localization experiment as seen from both ground view (left) and
+aerial view (right).
+TABLE IV: Ground-Aerial Cross-View Localization Results
+RANSAC-100K
+RANSAC-1M
+CLIPPERPrune
+TEASERPrune
+Fusion methods. Here, we compare different methods for
+fusing object similarity scores so with pairwise scores sa
+in Table V. We investigate fusing scores with geometric
+mean (ROMAN), product
+[4, 47], arithmetic mean, and set-
+ting the diagonal elements of the afnity matrix Mpp
+GM(so(ap)so(aq)) [12, 52]. Table V shows that fusing scores
+using the geometric mean results in a much higher alignment
+success rate compared to other fusion methods. Intuitively,
+fusing scores using the arithmetic mean has fewer zeroed-
+out elements of the afnity matrix which results in the
+optimization problem becoming less well-constrained. Fusing
+via the product of scores improves the alignment success, but
+tends to over-penalize, since in this case, including so can only
+lower the overall similarity score. Changing only the diagonal
+elements also improves over standard CLIPPER , but is
+limited in impact as described in Section IV-C.
+Afnity component contributions. In Table V, we ad-
+ditionally examine the effect of using ROMAN for map
+alignment while excluding the following individual afnity
+metric components: the gravity-guided pairwise score sa, the
+shape similarity score sshape, and the semantic similarity score
+ssemantic. While each component helps ROMAN achieve higher
+alignment success, the gravity prior makes the most signicant
+difference and the semantic similarity score makes the least.
+largest difference.
+Robustness to segmentation errors. As a small experi-
+value for which ROMAN is tuned) to obtain degraded seg-
+mentation (128) and over-segmentation (512). On average,
+FastSAM  returns 4.0 segments at image size 128, 11.3 at
+terms of mean pose estimation success rate. With severe under-
+is slightly lower than the best segment-based baselines shown
+in Table II, however some of the effects of under-segmentation
+could be mitigated by including segments in a larger radius r.
+Robustness to dynamic objects. The ROMAN pipeline de-
+TABLE V: Ablations Results
+Ablations
+Pose Estimation Success Rate
+Recognition
+(5, 1 m error)
+Semantics
+Arithmetic Mean
+Diagonal
+liberately lters out pedestrians, and the robust data association
+effectively rejects other dynamic objects. To demonstrate the
+effect of dynamic objects, we disable the pedestrian lter and
+report that ROMAN achieves a mean alignment success rate of
+0.251, which is still better than other segment-based baselines
+in Table II.
+Hyperparameter sensitivity. Table II shows the effect of
+varying ROMAN submap sizes, controlled by N (maximum
+submap size) and r (submap radius). We vary N from the
+default value 40 to 80 with r increasing from 15 m to 30 m
+correspondingly. The results show that these two submap size
+parameters can be effectively altered to achieve a trade-off
+between alignment success rate and runtime. An ablation over
+the segment noise parameters  and  are recorded in Table V.
+We note that the lowest mean recall over all pairs is still higher
+than the mean recall of any other segment-based method
+in Table II.
+Scalability. Our mapping pipeline runs at 9.6 Hz when
+computing CLIP  embeddings and at 17.9 Hz without
+running CLIP on the outdoor Kimera-Multi Dataset  As
+shown in Table V, alignment success rate only drops 12
+without CLIP embeddings which could be used for running
+ROMAN on a more compute-constrained platform. Removing
+CLIP embeddings also reduces map size by 100 times.
+VII. LIMITATIONS
+One of the fundamental challenges with using open-set
+segmentation like FastSAM  for object mapping is deter-
+mining what constitutes a discrete object. ROMANs ltering
+and merging steps signicantly improve the quality of resulting
+object maps; however, inconsistent segmentations may some-
+times still result in duplicate representations of objects (e.g.,
+a car and each of its doors may be represented as distinct 3D
+segments).
+ments (e.g. ground, walls, etc.) because they do not t well
+into the centroid-focused object data association. This does
+not exploit the information present in non-object segments,
+e.g. roads, walls, and buildings. Our object registration could
+additionally be improved by employing a coarse-to-ne tech-
+nique for using more precise information than object centroids
+for submap registration.
+experiments shown in this paper (i.e. up to eight 1000 m long
+robot trajectories), trajectories longer than this would require
+signicant computation to register the growing number of
+submaps as robots continue mapping. A faster place recog-
+nition stage could improve scalability.
+VIII. CONCLUSION
+This work presented ROMAN, a method for performing
+global localization in challenging outdoor environments by
+robust registration of 3D open-set segment maps. Associations
+between maps were informed by geometry of 3D segment lo-
+of the gravity vector in object maps, which enabled global
+localization even in instances of robots viewing scenes from
+opposite directions.
+REFERENCES
+H. Yin, X. Xu, S. Lu, X. Chen, R. Xiong, S. Shen, C. Stachniss, and
+Y. Wang, A survey on global lidar localization: Challenges, advances
+and open problems, International Journal of Computer Vision, pp. 1
+P.-Y. Lajoie, B. Ramtoula, F. Wu, and G. Beltrame, Towards collab-
+orative simultaneous localization and mapping: a survey of the current
+research landscape, Field Robotics, 2022.
+R. F. Salas-Moreno, R. A. Newcombe, H. Strasdat, P. H. Kelly, and A. J.
+of objects, in Proceedings of the IEEE conference on computer vision
+and pattern recognition, 2013, pp. 13521359.
+J. Yu and S. Shen, Semanticloop: loop closure with 3d semantic graph
+A. Thomas, J. Kinnari, P. Lusk, K. Kondo, and J. P. How, SOS-
+robot localization in unstructured environments, arXiv:2401.04791,
+X. Liu, J. Lei, A. Prabhu, Y. Tao, I. Spasojevic, P. Chaudhari,
+N. Atanasov, and V. Kumar, Slideslam: Sparse, lightweight, decentral-
+ized metric-semantic slam for multi-robot navigation, arXiv preprint
+R. Dube, D. Dugas, E. Stumm, J. Nieto, R. Siegwart, and C. Cadena,
+2017 IEEE international conference on robotics and automation (ICRA).
+G. Tinchev, S. Nobili, and M. Fallon, Seeing the wood for the
+IEEERSJ International Conference on Intelligent Robots and Systems
+R. Dube, A. Cramariuc, D. Dugas, H. Sommer, M. Dymczyk, J. Nieto,
+R. Siegwart, and C. Cadena, Segmap: Segment-based mapping and
+localization using data-driven descriptors, The International Journal of
+Robotics Research, vol. 39, no. 2-3, pp. 339355, 2020.
+A. Cramariuc, F. Tschopp, N. Alatur, S. Benz, T. Falck, M. Bruhlmeier,
+B. Hahn, J. Nieto, and R. Siegwart, Semsegmap3d segment-based
+semantic localization, in 2021 IEEERSJ International Conference on
+Intelligent Robots and Systems (IROS).
+M. A. Fischler and R. C. Bolles, Random sample consensus: a paradigm
+for model tting with applications to image analysis and automated
+P. C. Lusk and J. P. How, Clipper: Robust data association without an
+initial guess, IEEE Robotics and Automation Letters, 2024.
+J. G. Mangelson, D. Dominic, R. M. Eustice, and R. Vasudevan,
+Pairwise consistent measurement set maximization for robust multi-
+robot map merging, in 2018 IEEE international conference on robotics
+and automation (ICRA).
+J. Shi, H. Yang, and L. Carlone, Robin: a graph-theoretic approach
+to reject outliers in robust estimation using invariants, in 2021 IEEE
+International Conference on Robotics and Automation (ICRA).
+B. Forsgren, M. Kaess, R. Vasudevan, T. W. McLain, and J. G. Mangel-
+clique over k-uniform hypergraphs for robust multi-robot map merging,
+The International Journal of Robotics Research, vol. 43, no. 14, pp.
+R. Dube, M. G. Gollub, H. Sommer, I. Gilitschenski, R. Siegwart,
+C. Cadena, and J. Nieto, Incremental-segment-based localization in 3-d
+point clouds, IEEE Robotics and Automation Letters, vol. 3, no. 3, pp.
+S. D. Sarkar, O. Miksik, M. Pollefeys, D. Barath, and I. Armeni,
+the IEEECVF International Conference on Computer Vision, 2023, pp.
+L. Li, X. Kong, X. Zhao, W. Li, F. Wen, H. Zhang, and Y. Liu, Sa-
+International Conference on Robotics and Automation (ICRA).
+H. Yang, J. Shi, and L. Carlone, Teaser: Fast and certiable point cloud
+P.-E. Sarlin, D. DeTone, T. Malisiewicz, and A. Rabinovich, Superglue:
+Learning feature matching with graph neural networks, in Proceedings
+of the IEEECVF conference on computer vision and pattern recognition,
+V. Leroy, Y. Cabon, and J. Revaud, Grounding image matching in 3d
+with mast3r, in European Conference on Computer Vision.
+N. Ravi, V. Gabeur, Y.-T. Hu, R. Hu, C. Ryali, T. Ma, H. Khedr,
+R. Radle, C. Rolland, L. Gustafson et al., Sam 2: Segment anything in
+images and videos, arXiv preprint arXiv:2408.00714, 2024.
+X. Zhao, W. Ding, Y. An, Y. Du, T. Yu, M. Li, M. Tang, and J. Wang,
+Fast segment anything, arXiv preprint arXiv:2306.12156, 2023.
+A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal,
+G. Sastry, A. Askell, P. Mishkin, J. Clark et al., Learning transferable
+visual models from natural language supervision, in International
+conference on machine learning.
+Y. Tian, Y. Chang, L. Quang, A. Schang, C. Nieto-Granda, J. P. How, and
+L. Carlone, Resilient and distributed multi-robot visual slam: Datasets,
+Conference on Intelligent Robots and Systems (IROS).
+S. L. Bowman, N. Atanasov, K. Daniilidis, and G. J. Pappas, Proba-
+bilistic data association for semantic slam, in 2017 IEEE international
+conference on robotics and automation (ICRA). IEEE, 2017, pp. 1722
+S. Yang and S. Scherer, Cubeslam: Monocular 3-d object slam, IEEE
+Transactions on Robotics, vol. 35, no. 4, pp. 925938, 2019.
+L. Nicholson, M. Milford, and N. Sunderhauf, Quadricslam: Dual
+quadrics from object detections as landmarks in object-oriented slam,
+IEEE Robotics and Automation Letters, vol. 4, no. 1, pp. 18, 2018.
+S. Choudhary, A. J. Trevor, H. I. Christensen, and F. Dellaert, Slam
+with object discovery, modeling and mapping, in 2014 IEEERSJ
+International Conference on Intelligent Robots and Systems.
+S. Lin, J. Wang, M. Xu, H. Zhao, and Z. Chen, Topology aware
+object-level semantic mapping towards more robust loop closure, IEEE
+Robotics and Automation Letters, vol. 6, no. 4, pp. 70417048, 2021.
+D. Maggio, Y. Chang, N. Hughes, M. Trang, D. Grifth, C. Dougherty,
+E. Cristofalo, L. Schmid, and L. Carlone, Clio: Real-time task-driven
+open-set 3d scene graphs, arXiv preprint arXiv:2404.13696, 2024.
+Y. Wang, C. Jiang, and X. Chen, Voom: Robust visual object
+odometry and mapping using hierarchical landmarks, arXiv preprint
+M. Zins, G. Simon, and M.-O. Berger, Oa-slam: Leveraging objects
+for camera relocalization in visual slam, in 2022 IEEE international
+symposium on mixed and augmented reality (ISMAR).
+R. Tian, Y. Zhang, Z. Cao, J. Zhang, L. Yang, S. Coleman, D. Kerr,
+and K. Li, Object slam with robust quadric initialization and mapping
+for dynamic outdoors, IEEE Transactions on Intelligent Transportation
+L. Schmid, M. Abate, Y. Chang, and L. Carlone, Khronos: A unied
+approach for spatio-temporal metric-semantic slam in dynamic environ-
+N. Hughes, Y. Chang, S. Hu, R. Talak, R. Abdulhai, J. Strader, and
+L. Carlone, Foundations of spatial perception for robotics: Hierarchical
+representations and real-time systems, The International Journal of
+Robotics Research, p. 02783649241229725, 2024.
+A. Gawel, C. Del Don, R. Siegwart, J. Nieto, and C. Cadena, X-
+and Automation Letters, vol. 3, no. 3, pp. 16871694, 2018.
+R. Raguram, J.-M. Frahm, and M. Pollefeys, A comparative analysis of
+ransac techniques leading to adaptive real-time random sample consen-
+Computer Vision, Marseille, France, October 12-18, 2008, Proceedings,
+Part II 10.
+Y. Wang, C. Jiang, and X. Chen, Goreloc: Graph-based object-level
+relocalization for visual slam, IEEE Robotics and Automation Letters,
+J. Ankenbauer, P. C. Lusk, A. Thomas, and J. P. How, Global local-
+ization in unstructured environments using semantic object maps built
+from various viewpoints, in 2023 IEEERSJ international conference
+on intelligent robots and systems (IROS).
+S. Matsuzaki, K. Koide, S. Oishi, M. Yokozuka, and A. Banno, Single-
+shot global localization via graph-theoretic correspondence matching,
+Advanced Robotics, vol. 38, no. 3, pp. 168181, 2024.
+Y. Tian, Y. Chang, F. H. Arias, C. Nieto-Granda, J. P. How, and
+L. Carlone, Kimera-multi: Robust, distributed, dense metric-semantic
+slam for multi-robot systems, IEEE Transactions on Robotics, vol. 38,
+P. Schmuck, T. Ziegler, M. Karrer, J. Perraudin, and M. Chli, Covins:
+Visual-inertial slam for centralized collaboration, in 2021 IEEE Inter-
+national Symposium on Mixed and Augmented Reality Adjunct (ISMAR-
+Adjunct).
+P.-Y. Lajoie and G. Beltrame, Swarm-slam: Sparse decentralized col-
+laborative simultaneous localization and mapping framework for multi-
+robot systems, IEEE Robotics and Automation Letters, vol. 9, no. 1,
+Y. Huang, T. Shan, F. Chen, and B. Englot, Disco-slam: Distributed
+scan context-enabled multi-robot lidar slam with two-stage global-local
+graph optimization, IEEE Robotics and Automation Letters, vol. 7,
+Y. Chang, K. Ebadi, C. E. Denniston, M. F. Ginting, A. Rosinol,
+A. Reinke, M. Palieri, J. Shi, A. Chatterjee, B. Morrell et al., Lamp
+2.0: A robust multi-robot slam system for operation in challenging
+large-scale underground environments, IEEE Robotics and Automation
+H. Do, S. Hong, and J. Kim, Robust loop closure method for multi-
+robot map fusion by integration of consistency and data similarity, IEEE
+Robotics and Automation Letters, vol. 5, no. 4, pp. 57015708, 2020.
+S. Choudhary, L. Carlone, C. Nieto, J. Rogers, H. I. Christensen,
+and F. Dellaert, Distributed mapping with privacy and communication
+national Journal of Robotics Research, vol. 36, no. 12, pp. 12861311,
+Y. Chang, N. Hughes, A. Ray, and L. Carlone, Hydra-multi: Collabo-
+rative online construction of 3d scene graphs with multi-robot teams,
+in 2023 IEEERSJ International Conference on Intelligent Robots and
+Systems (IROS).
+K. S. Arun, T. S. Huang, and S. D. Blostein, Least-squares tting of
+two 3-d point sets, IEEE Transactions on pattern analysis and machine
+M. B. Peterson, P. C. Lusk, A. Avila, and J. P. How, MOTLEE: collab-
+orative multi-object tracking using temporal consistency for neighboring
+robot frame alignment, arXiv preprint arXiv:2405.05210, 2024.
+M. Leordeanu and M. Hebert, A spectral technique for correspondence
+problems using pairwise constraints, in Tenth IEEE International Con-
+ference on Computer Vision (ICCV05) Volume 1, vol. 2.
+limitations
+conclusions
+scales of measurement, in Operations Research and The Public
+Science.
+J. Aczel and F. S. Roberts, On the possible merging functions,
+Mathematical Social Sciences, vol. 17, no. 3, pp. 205243, 1989.
+J. Aczel, Determining merged relative scores, Journal of Mathematical
+Analysis and Applications, vol. 150, no. 1, pp. 2040, 1990.
+M. Weinmann, B. Jutzi, and C. Mallet, Semantic 3d scene interpreta-
+relevant features, ISPRS Annals of the Photogrammetry, Remote Sensing
+and Spatial Information Sciences, vol. 2, pp. 181188, 2014.
+Y. Shi, N. Wang, and X. Guo, Yolov: Making still image object detec-
+tors great at video object detection, arXiv preprint arXiv:2208.09686,
+H. W. Kuhn, The hungarian method for the assignment problem, Naval
+research logistics quarterly, vol. 2, no. 1-2, pp. 8397, 1955.
+Q. Gu, A. Kuwajerwala, S. Morin, K. M. Jatavallabhula, B. Sen,
+A. Agarwal, C. Rivera, W. Paul, K. Ellis, R. Chellappa et al., Concept-
+in 2024 IEEE International Conference on Robotics and Automation
+Q.-Y. Zhou, J. Park, and V. Koltun, Open3d: A modern library for 3d
+data processing, arXiv preprint arXiv:1801.09847, 2018.
+D. DeTone, T. Malisiewicz, and A. Rabinovich, Superpoint: Self-
+supervised interest point detection and description, in Proceedings
+of the IEEE conference on computer vision and pattern recognition
+C. Campos, R. Elvira, J. J. G. Rodrguez, J. M. Montiel, and J. D.
+M. Zaffar, S. Garg, M. Milford, J. Kooij, D. Flynn, K. McDonald-Maier,
+and S. Ehsan, Vpr-bench: An open-source visual place recognition eval-
+uation framework with quantiable viewpoint and appearance change,
+International Journal of Computer Vision, vol. 129, no. 7, pp. 2136
+P.-E. Sarlin, M. Dusmanu, J. L. Schonberger, P. Speciale, L. Gruber,
+V. Larsson, O. Miksik, and M. Pollefeys, Lamar: Benchmarking local-
+ization and mapping for augmented reality, in European Conference on
+Computer Vision.
+M. Grupp, evo: Python package for the evaluation of odometry and
+slam.  2017.
+A. Rosinol, M. Abate, Y. Chang, and L. Carlone, Kimera: an open-
+source library for real-time metric-semantic localization and mapping,
+in 2020 IEEE International Conference on Robotics and Automation
+M. Abate, Y. Chang, N. Hughes, and L. Carlone, Kimera2: Robust
+and accurate metric-semantic slam in the real world, in International
+Symposium on Experimental Robotics.

@@ -1,0 +1,1126 @@
+=== PDF文件: Collaborative Object Transportation in Space via Impact Interactions.pdf ===
+=== 时间: 2025-07-21 13:45:45.252959 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Collaborative Object Transportation in Space
+via Impact Interactions
+Joris Verhagen
+School of Electrical Engineering and Computer Science
+KTH Royal Institute of Technology
+Jana Tumova
+School of Electrical Engineering and Computer Science
+KTH Royal Institute of Technology
+AbstractWe present a planning and control approach for col-
+laborative transportation of objects in space by a team of robots.
+Object and robots in microgravity environments are not subject
+to friction but are instead free floating. This property is key to
+how we approach the transportation problem: the passive objects
+are controlled by impact interactions with the controlled robots.
+In particular, given a high-level Signal Temporal Logic (STL)
+specification of the transportation task, we synthesize motion
+plans for the robots to maximize the specification satisfaction in
+terms of spatial STL robustness. Given that the physical impact
+interactions are complex and hard to model precisely, we also
+present an alternative formulation maximizing the permissible
+uncertainty in a simplified kinematic impact model. We define
+the full planning and control stack required to solve the object
+transportation problem; an offline planner, an online replanner,
+and a low-level model-predictive control scheme for each of the
+robots. We show the method in a high-fidelity simulator for a
+variety of scenarios and present experimental validation of 2-
+Code and Videos at  stl
+I. INTRODUCTION
+The challenge of object transportation with autonomous
+robots is both a relevant and a much-researched topic. This
+problem appears in different settings and solutions take on a
+myriad of different forms. In this work, we consider object
+transportation in the context of space environments, with
+robots such as the Astrobee  in the International Space
+construction  or deorbeting debris [12, 3]. While robots
+and objects in land, sea, and air environments are subject to
+friction and gravity, robots and objects in space do not locally
+suffer from this. When collaborative transportation takes place,
+this absence should be utilized to its fullest extent.
+We propose a planning and control approach for collab-
+orative transportation of free-floating objects where impacts
+are the only robot-object interactions and the only way to
+change an objects velocity. An example of such scenario
+in an experimental platform with freeflyers is illustrated in
+Fig. 1. The advantage of transportation via impact interaction
+is its modeling and computational simplicity and its scalability
+(both computationally and in robot availability). Compared
+to grasping and carrying, this approach also promotes lower
+energy consumption as well as increased robot availability,
+since the impacts are minimal, instantaneous, and occasional.
+An experimental platform with two controllable freeflyers and a
+passive object. To transport the object from the top of the figure to the bottom
+while avoiding the obstacle, Robot 1 impacts it to make it travel towards the
+top left corner, where Robot 2 impacts it to travel towards the bottom left
+where Robot 2 impacts it to reach its desired final destination. Impact times
+are shown as red stars.
+to the object (e.g. via a gripper) as these impacts can occur
+between objects and robots of any size and shape.
+Using the compact formulation of both kinematic impact
+equations and forward reachability of undisturbed friction-
+less systems, we are able to model this complex problem
+as a Mixed-Integer Linear Programming problem (MILP),
+providing global optimality guarantees even in the presence
+of complex spatio-temporal goals and constraints. Although
+the kinematic impact equations are compact, having them
+be accurate is a challenge. To that end, we propose an
+impact-robust planner that explicitly maximizes permissible
+uncertainty in the impact equation.
+Upon deployment, we consider the interplay between the
+offline planner, an online replanner and a model predictive
+controller. The offline planner synthesizes a motion plan with
+simplified point-impact kinematics while the online replanner
+locally adapts the motion plan around a pre-planned impact to
+consider updated state information of the approaching object
+and the physical shapes of the robot and object. Our planning
+and control method is shown in a high-fidelity simulator for
+a range of transportation scenarios and on an experimental
+freeflyer space platform for 2-robot, 1-object scenarios.
+Our contributions can be summarized as follows.
+We present an impact-aware planner for multi-agent
+systems with spatio-temporal specifications on control-
+lable freeflyer robots and passive free-floating objects.
+The planner maximizes either model-agnostic robustness
+metrics like STL spatial robustness or the uncertainty on
+the post-impact state of objects.
+We then present an impact-aware online planner that
+relaxes simplifying assumptions on the impact kinematics
+used in the offline planner and considers updated state
+information of the free-floating objects.
+We present a model predictive control strategy to execute
+the mission in real-time, which we show in a high-fidelity
+simulator and on an experimental freeflyer platform.
+A. Related Work
+There is a significant body of work on collaborative trans-
+portation of objects with robots. Examples include multi-robot
+formation transport in dynamics scenarios  with parameter
+and dynamics uncertainty . A distributed control approach
+has also been proposed for formation transportation in space
+.  proposes a game-theoretic approach using robots that
+apply either force or torque to the transported object. Closest
+to our approach on planning is  which considers a reach-
+avoid planning problem of an object with rigidly attached
+For scenarios where robots are not rigidly attached to
+for capturing targets with robotic manipulators [29, 33, 11].
+scenarios [18, 21]. We refer to , a comprehensive, albeit
+work utilizes simpler impact kinematics, due to our online
+replanning strategy, and explicitly utilizes the free-floating
+property of objects in space.
+Close to our planning and control approach are works on
+robot air hockey and billiards, where impacts are explicitly
+used in generating desired behavior of passive objects that
+float or roll passively. In , a hierarchical learning-based
+planner and optimization based controller is utilized to play air
+hockey against an unknown opponent.  and  consider
+the game of billiards where a search-based planner is used
+to pot balls. In contrast to these games, our scenario allows
+the robots to replan during execution and to collaborate on
+achieving a high-level specification.  considers minimal
+pokes to place objects in desired location. The presence of
+friction makes this problem challenging. We are instead able
+to utilize kinematic impact models and forward reachability in
+a globally optimal planner.
+In the space of spatio-temporal planning and control, our
+approach relies on the embedding of STL specifications in
+mixed-integer optimization problems . The complexity of
+collaborative specifications ensure that conventional trajec-
+tory formulations (via constant time discretization) become
+intractable. We hence rely on generalizations of these embed-
+dings to piecewise-linear curves  for objects and Bezier
+curves  for robots.
+II. PRELIMINARIES
+Let R, N, and B be the set of real, natural (including
+zero), and binary numbers respectively. R0 denotes the set
+of nonnegative real numbers.
+A. System Modelling
+The set of robots is denoted by R  {R1, ..., RR} and the
+set of passive objects by O  {O1, ..., OO} with S  RO
+the set of all systems, which are assumed to be rigid bodies.
+Let xS be the state of system S S with xS  [pS, qS, pS, qS]
+where p and q indicate position and orientation of the system.
+As we wish to plan for specific impact times, let
+impact(Si, Sj, t) {, } be an indicator whether Si S
+impacts Sj S at time t. Note that impact(Si, Sj, t)
+impact(Sj, Si, t).
+M(xSi, xSj, t) : Rn  Rn  R0 Rn be an impact model
+states of Si and Sj at impact time t and responding with the
+post-impact state of Si (its first argument).
+B. Signal Temporal Logic
+Signal Temporal Logic (STL)  is a formal specifica-
+tion language for dynamical systems. An STL formula is
+interpreted over real-valued signals qualitatively (the signal
+satisfies or violates the formula) or quantitatively (the extent
+to which the signal satisfies or violates the formula). Time-
+bounded STL over n-dimensional continuous-time signals
+Definition 1 (Time-bounded STL). Let I  [t1, t2] be a closed
+bounded time interval, where t1, t2 R0, t1 t2. Let  :
+X R be a real-valued function and p  (x) 0 a
+Boolean predicate. STL formulas are recursively defined as
+where  and are the Boolean negation and conjunction
+operators and UI is the time-bounded Until operator.
+Formula 1UI2 specifies that 1 should hold until, within
+defined as I  UI  ( holds eventually, within I), and
+I   I  ( holds at all times within I).
+Spatial robustness is a quantitative way to evaluate satis-
+faction or violation of a formula by considering the degree of
+satisfaction via the value of the predicate function :
+p(t, x)  (x(t)),
+1UI2(t, x)  max
+min(2(, x), min
+The reader is referred to  for a thorough analysis of spatial
+and also temporal robust semantics of STL.
+(a) Illustration of impact kinematics for point masses (according to
+Eq. (5)). The dashed and solid line indicate a trajectory of the object and
+robot respectively. Green and blue dots indicated endpoints of Bezier curves.
+The impact occurs after the first Bezier curve. (b) Impact kinematics for non-
+rotating cylindrical objects (according to Eq. (6)). The moving blue object
+impacts a stationary green object. Both objects direction is changed according
+to the tangential and normal component of the impact on the boundaries of
+the objects.
+C. Zonotopes
+A zonotope in Rn is a tuple Z < c, G >, where c Rn
+is the center, and G Rnk is a set of its k generators. We
+use V (Z) to denote the set of vertices of zonotope Z.
+Zonotopes enjoy a range of advantageous properties which
+make them excellent candidates for reachability analysis: they
+are defined as Minkowski sums of their generators and they are
+closed under Minkowski sums and linear transformation .
+Z < c, diag([
+which defines a hyperrectangle. For trajectory planning, these
+hyperrectangles can be embedded for reach and avoid behavior
+using integer variables in mixed-integer programming.
+D. Impact Kinematics
+Let pS(t) and pS(t) denote the position and velocity of a
+robot or an object and let p
+S (t) and p
+S (t) denote the pre-
+and post-impact velocity for an impact at time t. The general
+impact model is
+Si(t)  M( p
+Si(t), p
+Sj(t), t).
+For point masses, impact kinematics can be approximated
+by linear relations between pre- and post-impact velocities.
+The post-impact velocities can then be obtained via
+with its recognizable solution
+R  mR emO
+R  (1  e)mO
+O  (1  e)mR
+R  mO emR
+with e [0, 1] being the constant of restitution relating the pre-
+and post-impact velocities, which is a property of the materials
+under impact. We use m1, m2, m3, m4 for short-hand notation
+of the mass fractions.
+An example of a robot trajectory (solid line) and an object
+trajectory (dotted line) of the same mass can be seen in
+Fig. 2(a). For e  1 it is a perfectly elastic kinematic impact,
+For bodies of a physical size, the pre-impact velocities p
+O can be split into a tangent and normal component
+under the assumption of non-rotating bodies or no transfer of
+rotational momentum during impact. We can then write the
+velocity jump as a system of linear equations in the local
+where x and y denote the tangent and orthogonal axis w.r.t.
+the plane of impact. The post-impact velocities in the global
+frame can then be obtained via a rotation with , the angle
+between global and local frame,
+A schematic example of point-mass and cylindrical body
+impacts with its global and local axis is shown in Fig. 2(b).
+E. Bezier Curves
+Bezier curves are a popular tool in trajectory planning of
+autonomous systems [22, 17, 20]. A Bezier curve is repre-
+sented by a polynomial equation and parameterized by a finite
+number of control points, its decision variables. Namely, a
+Bezier curve r of degree d is constructed and evaluated using
+the summation of its d Bernstein polynomials multiplied with
+their respective d control points according to
+(1 s)dbsb  r(b),
+where s is the phasing parameter,
+(1 s)dbsb is the
+bth Bernstein polynomial, and r(b) is the bth control point.
+An example of a Bezier curve with its control points is shown
+in Fig. 3.(a). Although Bezier curves are nonlinear in nature,
+(a) a Bezier curve with its control points (red dots) and convex
+hull (shaded blue), (b) a trajectory of robot Ri with three Bezier curves.
+Note the bounding-box used for collision avoidance, (c) the Bezier trajectory
+formulation for objects (first degree Bezier curves) and robots (higher-degree
+Bezier curves and continuity conditions). rR1(0) and rR1(1) are the pre-
+and post-impact curves of impact 1. rR1(1) and rR1(2) are the pre- and
+post-impact curves of impact 2.
+the following properties allow us to reason over their convex
+1) Convex hull: the curve r(s) is entirely contained within
+the convex hull generated by its control points r(b),
+r(s) hulld
+b0(r(b))
+s [0, 1]. A more conservative
+but closed-form overapproximation is the bounding-box
+property obtained by using the interval hull, r(s)
+b0(r(b)), maxd
+b0(r(b))] which we use to embed
+collision avoidance.
+2) Endpoint values: the curve r(s) starts at the first control
+point r(0) as s  0 and ends at the last control point
+r(d) as s  1.
+3) Derivatives: the derivative r(s)
+is a linear
+combination of the control points of r(s) and is again
+a Bezier curve of degree d 1 with control points
+r(b)  d  (r(b1) r(b)) for b N[0,...,d1].
+and r(d1), are linear combinations of the control points
+of r(s) and the interval hull of r is formed as a linear
+combination of its control points. This means that smooth,
+kinematically feasible, and collision-free trajectories can be
+constructed through Mixed-Integer Linear Programming by
+returning a finite set of control points of a Bezier curve as
+illustrated in Fig. 3.(b).
+III. PROBLEM FORMULATION AND APPROACH
+We wish to solve the problem of collaborative transportation
+of passive objects in a weightless environments by a team of
+robots. The transportation tasks as well as the goals for the
+are specified via STL. The robots interact with the objects via
+an instantaneous impact. Formally, let Ri R and Oi O be
+controllable robots and uncontrollable objects. We aim to find
+a controller uRi, Ri R, such that the robot and the object
+trajectories are maximally robust. Furthermore, we require
+STL satisfaction, kinematic constraints and smoothness, and
+collision avoidance.
+A. Problem formulation
+We formulate the problem of collaborative transportation
+via impact interactions as
+J(xR, uR, xO),
+s.t. [xR, xO]  ,
+xR VR, xO VO,
+M(xRi(t), xOj(t))
+if impact(Ri, Oj, t)
+otherwise
+M(xOi(t), xRj(t))
+if impact(Oi, Rj, t)
+otherwise
+pSi(t) pSj(t)2 radSi  radSj,
+where xSi  [p, , p, ]T R2n is the state of a system
+Si {O, R}, and xR and xO denote the conjoined state of
+all robots and objects respectively. VR and VO denote the per-
+missible velocity set of the robots and objects respectively and
+radSi the bounding radius of Si. uRi Rn denotes the control
+input of Ri. We assume workspace constraints and obstacle
+avoidance are captured in  (e.g. [t0,tf ](xSi Obs)).
+Eq. (9a) ensures that the trajectories of the robots and
+objects satisfy the high-level specification. Eq. (9b) are the
+velocity constraints. Eq. (9c) and (9d) ensure the conditional
+smoothness and kinematics of the robot and object respec-
+and an object. Eq. (9e) ensures collision avoidance between
+robots and objects, except at moments when impact is desired.
+Example 1. Consider a 2-robot, 1-object scenario; R
+{R1, R2}, O  {O1}, S  {R1, R2, O1}. We use a corridor
+transportation scenario as a running example, as shown in
+Fig. 4(a). The robots in the bottom and top of the figure,
+both depicted as a black dots, aim to transport the object
+depicted with white details to the green square area in the top
+before time runs out, corresponding to an STL specification
+O1  [t0,tf ](xO1 Xf). Additionally, the robots and the
+object should avoid collision with corridor walls, correspond-
+ing to STL specification Si  [t0,tf ](xSi Wfree), Si S.
+To transport the object from a static initial position to a static
+final position, the plan requires at least two impacts; a throw
+and a catch.
+B. Approach
+We take a hierarchical approach to address the problem.
+We define an offline planner that, using simplified kinematic
+impact models, can efficiently solve the multi-agent planning
+problem with STL specifications via a Bezier curve trajectory
+formulation. A part of this plan is when and where robots
+impact objects. An online replanner that corrects the plans of
+the two Bezier curves leading up to and following an impact.
+The replanner considers a more complex impact model and
+the updated states of the robots and objects during execution.
+tracking of the planned Bezier curves and ensures the pre-
+impact conditions to enable the desired post-impact behavior
+of the robot.
+We describe the offline planner in Sec IV with STL spatial
+robustness as the optimization function in Sec. IV-B and an
+impact-robust optimization metric in Sec. IV-C. In Sec. V
+we describe how this planning problem is implemented as a
+mixed-integer optimization problem. The online replanner is
+detailed in Sec. VI and the impact-aware MPC in Sec. VII.
+IV. OFFLINE PLANNER
+In the offline planner, we use a simplistic point-mass
+kinematic impact model which ensures that all constraints
+regarding impacts can be encoded linearly. Additionally, for
+between impacts. Instead, we abstract the planning aspect of
+Eq. (9) to a kinematically constrained geometric optimization
+problem. In summary, we make two additional assumptions:
+Assumption 1 (Planner Impact Modeling). For the modeling
+of the impact kinematics in the planner, the radii rRi and
+rOi of robots Ri R and objects Oi O respectively are
+assumed zero, and hence Ri and Oi are considered points.
+Assumption 2 (Planner State Modeling). The state xSi is
+reduced to xSi  [pSi, pSi] for the planner, meaning we ignore
+rotation of the robots and objects.
+Relaxing these assumptions in the offline planner would
+introducing the nonlinear impact model of Eq. (6) which,
+for planning, introduces non-convexities, making it difficult
+to obtain global optimal solutions w.r.t. the specifications Si.
+Inaccuracies introduced by these assumptions will be treated
+by the replanner and the controller.
+For the robots, we consider integrator dynamics with uncon-
+strained (but attenuated, see Sec. V) acceleration inputs and
+the possibility of discrete jumps in velocities due to an impact
+with an object. As such, we define the impact model operator
+for the offline planner as
+Mplanner(xSi, xSj)  mSi emSj
+mSi  mSj
+Si  (1  e)mSj
+mSi  mSj
+according to the point-mass impact equations in Eq. (5).
+A. Trajectory Formulation
+Finding a plan to satisfy Eq. (9) inadvertently includes a
+decision on if, when, and with whom to impact according
+to Eqs. (9c) (9d) and (9e). Fine-grained constant-time dis-
+cretization of the problem would lead to a large number of
+possible impact points to be considered; later on in the MILP
+formulation of the planner this would project onto a large num-
+ber of binary variables. In order to reduce the computational
+with Bezier curves. We define a curvature Bezier curve r(s)
+and a temporal Bezier curve t : h(s). We then couple these
+curves to parameterize the physical trajectory over time. We
+base our multi-agent Bezier formulation on the work in
+which has been explored for high-level specifications with STL
+in . In these works, the authors express a trajectory curve
+p via the use of r(s) and h(s) as
+r(s) : p(h(s)),
+r(s) : p(h(s))h(s),
+where p is the physical trajectory of interest, parameterized by
+the two types of Bezier curves. The main advantage of this
+formulation is that we may generate trajectories spanning long
+distances and durations with a small number of Bezier curves
+and hence a small number of variables. The computational
+speedup in the context of STL was shown in .
+For objects, r(s) and h(s) are limited to 1st degree Beziers
+(straight line curves) as only impacts with robots may in-
+stantaneously change their velocity. An indicative example of
+the parametrization, in addition to requirements on collision
+avoidance is shown in Fig. 3(c). Note that impacts may
+only occur at endpoints of Bezier curves and that an impact
+subsequently assigns a pre-impact label to that Bezier curve
+and a post-impact label to the proceeding curve.
+B. Spatially Robust Offline Planner
+We will discuss two different options of integrating the im-
+pact kinematics into the planner: without and with uncertainty
+in the impact kinematics. This section focuses on the former
+and the following section on the latter.
+We embed the deterministic impact condition using Eq. (5)
+for each curve of the interacting robot and object. Additionally,
+if no impact occurs, the Bezier curves of robots and objects
+should be smooth via
+R(k  1)  x
+O(k  1)  x
+Although we do not explicitly consider any uncertainty in
+the robot dynamics or impact kinematics, a common choice in
+trajectory planning with spatio-temporal specifications such as
+is a generalization of a piece-wise linear trajectory, we can rely
+on  or  to embed STL spatial robustness according to
+the definitions in Eq. (2). The spatially robust planner problem
+An example corridor travel scenario with (a) the problem setup with 2 robots (R1 and R2) and one object (O1). The objective is to transport O1 to
+goal while all systems should avoid the red obstacles. (b) the spatially-robust plan from the offline planner in IV-B with two impacts denoted by I1 and I2.
+(c) the vertical position over time. (d) the vertical velocity over time. Notice that the velocity (and therefore position) of O1 can only be changed via impacts
+with R1 or R2. The change in velocity is instantaneous, according to the impact kinematics in Eq. (5).
+is formulated as
+J(rRi, hRi, rOj, hOj)  (xR, xO),
+Mplanner(xRi(t), xOj(t))
+if impact(xRi, xOj, t)
+otherwise
+Mplanner(xOj(t), xRi(t))
+if impact(xOj, xRi, t)
+otherwise
+(9a), (9b), (9e), Ri R, Oi O,
+where we reiterate that for the planner, xSi  [pSi, pSi]T and
+pSi and pSi can be constructed from the Bezier curves rSi
+and hSi according to Eq. (11).
+The solution of Eq. (15) ensure that R and O satisfy  with
+maximal spatial robustness, adhering to velocity constraints,
+avoiding collisions between objects and robots and resolving
+the impact times and positions.
+Example 2. Consider again the corridor scenario in Fig. 4(a).
+The initial and final static positions for R1 and R2 are [1, 0]
+and [8, 0] respectively. As we maximize the spatial robustness
+Si Si, O1 is pushed by R1 to move towards
+the goal, maximizing the distance the walls and the goals
+boundaries (  0.4m). R2 catches O1 and brings it to
+a standstill. Fig. 4(b), (c) and (d) show how smooth Bezier
+curves and piecewise linear curves construct the robot and
+object trajectories. At collision, the velocity of the robot and
+object is changed instantaneously.
+C. Impact-Robust Offline Planner
+The spatially robust planner can accommodate uncertainties
+arising in the execution of the planned trajectory in terms of
+STL spatial robustness. This model-free robustness metric is
+not explicitly related to the most significant contributor of un-
+certainty; the impact kinematics. To address inaccurate track-
+ing of the pre-impact trajectory (in position or velocity), the
+kinematic model assumptions, or inaccurate model constants,
+we introduce the impact-robustness term , which captures
+the permissible uncertainty in the post-impact velocity of the
+objects.
+object O, represented as an initial set X0 contained by the
+zonotope ZO,X0 Rn. By ensuring kinematically feasible
+robot trajectories leading up to the desired impact with O upon
+execution we ensure that the robot can generate the desired
+post-impact state on O for all possible states xO ZO,X0.
+If we consider an interval-hull overapproximation ZO,X0 (via
+Eq. (3)), this amounts to doing so only for extremal vertices
+according to the following Lemma.
+Lemma 1. Let Z be a interval hull zonotope of zonotope Z.
+If for all v V ( Z) there exists a trajectory xR,v(t0 : tf) that
+intersects v at tf, then for all x Z there exist a trajectory
+that interests x at tf.
+Considering an impact on all extremal vertices v V ( Z)
+requires the creation of 2n Bezier trajectories, as this is the
+number of vertices of an n-dimensional interval hull.
+Let pv denote the position at an outer vertex v V ( Z) of
+the interval hull zonotope of Z, we then obtain the kinematic
+impact equation v V ( Z)
+otherwise.
+The uncertainty term  represents a deviation from the nominal
+post-impact velocity of the object. The remainder of this
+section is devoted to formulating the planning problem so that
+the optimization metric in Eq. (9) is to maximize , i.e. the
+optimal plan is the most robust with respect to post-impact
+velocity uncertainty.
+For the uncertainty propagation of the uncertain set ZO,X0
+after impact, we use zonotope propagation on each vertex v
+, zerosnk >,
+which ensures that uncertainty in the post-impact velocity
+translates to velocity and spatial uncertainty in the state
+propagation
+where c and G are from Eq. (18), dependent on the impact
+condition. Since the system under consideration is a double
+integrator without friction, as it is a floating object in space,
+we can define the matrix exponential as eAt  (I  At).
+Note that in the trajectory formulation in Eq. (11), t is
+the duration of the temporal Bezier curve, h(s), which is
+a continuous variable. This means that as t, pv,O, pv,O,
+and  are continuous variables, Eq. (19) introduces bilinear
+constraints. We remedy this by choosing a constant time-
+discretization for the objects.
+We continue this forward reachability process for all trajec-
+tory curves by obtaining the pre-impact interval hull Z
+bility procedure repeats itself for all impacts and non-impacts
+according to Eqs. (17) and (18). An example of this procedure
+is schematically shown in Fig. 5.
+The impact-robust planner problem is then formulated as
+J(rRi, hRi, rOi)  ,
+Mplanner(xv,Ri(t), v ZOj(t))
+Mplanner(v ZOj(t), xv,Rj(t))
+where v p refers to the velocity states of the vertex v ZOj.
+Notice that the impact-robust planning problem in Eq. (20)
+does not optimize for the duration of the object curve (hOi) but
+does face the challenge of increased overall curves compared
+to the spatially robust planning problem in Eq. (15).
+Example 3. Consider again the corridor transportation sce-
+nario. The initial state of the object is now defined as a
+bounded set, ZO1,X0  ZO1,X0. As we maximize the impact-
+uncertainty in the post-impact velocity translates to spatial
+and velocity uncertainty in the next pre-impact zonotope.
+The increase from ZO1,X0 to Z
+O1 is shown in Fig. 5. This
+also highlights that we consider 2n trajectories of the robots
+for the feasibility x
+A second impact with R1, while also introducing a post-
+impact uncertainty, allows redirecting the object. This kind
+of behavior is implicitly embedded via the impact-robustness
+metric  and not apparent when maximizing a model-free
+robustness metric.
+V. MILP ENCODING OF THE OFFLINE PLANNER
+Given the planner from Sec. IV, we present its MILP
+encoding. We detail how the constraints in Eq. (9a)-(9e) are
+embedded in the offline MILP planner and how accelerations
+of the robots can be attenuated using quadratic cost terms.
+1) Specification : For the satisfaction of  for xR and
+xO in Eq. (9a), we refer for details to  and . The key-
+takeaway is that each Bezier curve is assigned a robustness
+value w.r.t. space- or time-robustness, p(xS,i) or p(xS,i).
+Using the recursive definitions in Eq. (2), the robustness
+of trajectory xSi can be determined. The propagation of
+robustness through  is reliant on min and max operators
+over relevant time intervals I, which can be encoded exactly
+in MILP optimization problems. Stay-in behavior for a convex
+polytope RoI can be encoded as
+(Hfr(i)(j) bf),
+i N[0,N1]
+where nfaces denotes the number of faces of the RoI polytope
+in the linear inequality form, Hx b and d denotes the degree
+of the Bezier curve. Additionally, collision avoidance with
+RoI can be encoded by ensuring that all control points of
+a Bezier curve are outside at least one surface of RoI
+(Hfr(i)(j) bf),
+i N[0,N1]
+where the disjunctions over the faces of the objects are
+encoded via the well-known big-M method.
+2) Dynamics and Impacts: The integrator constraint in
+Eq. (9c) and (9d) is apparent via the construction of the
+trajectories in Eq. (11). For modeling of the impact kinematics,
+we keep track of variables z(R,O) B(NRNO) indicating
+whether curve Ni of robot R has an impact with Nj of
+An example corridor travel scenario with (a) the problem setup with 2 robots (R1 and R2) and one object (O1). The objective is to transport O1 to
+goal while all systems should avoid the red obstacles. (b) the impact-robust plan from the offline planner in IV-C. Three planned impacts are indicated by I1,
+I2 and I3. Instead of a deterministic state for O1 as in Fig. 4, the post-impact states are now represented by zonotopes and the robot trajectories consider the
+traversal to all extremal vertices. (c) the vertical position over time. Impact I2 at t 45s creates a decreasing funnel indicating that the overall uncertainty
+in the system can be reduced by additional impacts (as all v ZO have a unique impact). (d) the vertical velocity over time. Notice that the velocity (and
+therefore position) of O1 can only be changed via impacts with R1 or R2 and that any impact between O1 and Ri introduces the propagation of a funnel
+due to the uncertain post-impact term . Note the constant time duration of of the zonotope segments of the object in (c) and (d).
+object O. We can use these variables to embed conditional
+smoothness and impact conditions
+z(R,O)[i, j]  , O O, j NO),
+indicating that this smoothness constraint is only enforced if
+this robots curve does not intersect with any curves of any
+object. In a similar conditional manner, we embed the impact
+conditions
+R(i)  m1 p
+(i)  m2 h(d1)
+(i)  m2 r(d1)
+i N[0,N2], z(R,O)[i, j]  1
+V ( ZO,X0) and the robustness term  is added.
+3) Velocity Bounds: Velocity constraints in Eq. (9b) can
+be encoded due to the bounding-box property of the control
+points of Bezier curve i of system S
+h(i)(j) xS r(i)(j) h(i)(j)xS,
+where xS and xS are the velocity lower- and upper-bound
+given by the user or physical properties of the robot.
+4) Collision Avoidance: As trajectories are parametrized
+by Bezier curves or Zonotopes, collision checks between a
+robot at time t and an object at time t relies on checking the
+intersection of the entire curve for which t [h(0)
+O ]. This is in sharp contrast with the requirement
+that robots and objects should impact in order to generate mo-
+tion of the objects1. A heuristic best-effort collision avoidance
+approach is to indicate pre- and post-impact Beziers and not
+constrain collisions on these curves.
+We found however that this led to significant additional
+complexity in the MILP as well as requiring additional
+heuristics. To this end, we only ensure collision avoidance
+between robots and between objects and defer any collision
+avoidance between robots and objects to safety constraints in
+the controller. If the trajectories of Si and Sj are parametrized
+by Bezier curves (e.g. objects and robots in the best-case
+planner or robots in the impact-robust planner), we can ensure
+collision avoidance with
+pSi(t) pSj(t)2 radSi  radSj, t
+box(rSi(k)) B
+box(rSj(l)) B
+where Brad
+denotes the infinity-norm ball with radius rad. If
+Si and Sj are parametrized by zonotopes (e.g. objects in the
+impact-robust planner), we can ensure collision avoidance with
+pSi(t) pSj(t)2 rSi  rSj, t
+Si(k), Z
+Si(k)) B
+Sj(l), Z
+Sj(l)) B
+with the zonotope interval hull overapproximation ZSi
+fore sound but conservative.
+restitution coefficient, c, is 1, post-impact bounding boxes are guaranteed
+to intersect, regardless if the physical systems do.
+5) Acceleration Attenuation:
+As mentioned in Sec.III,
+while the Bezier trajectories can be arbitrarily smooth and
+adhere to position and velocity constraints, any constraint
+on higher-order derivatives leads to non-convex equations
+(according to the derivative of Eq. (11)). As such, we add
+the potential to attenuate acceleration by the quadratic cost
+J(rSi, hSi)
+rSi(k)T QrrSi(k)  hSi(k)T QhhSi(k),
+as described in . The introduction of this cost term makes
+what was a Mixed-Integer Linear Program into a Mixed-
+Integer Quadratic Program, adding computational complexity.
+VI. ONLINE TWO-BODY IMPACT PLANNER
+A significant assumption in the offline Mixed-Integer Prob-
+lem (MIP) planner in Sec. V is that collisions happen between
+point masses. The reason for this assumption is that for
+point masses, all impact conditions are linear, enabling glob-
+ally optimal solutions with spatio-temporal tasks via mixed-
+integer programming. However, upon execution of the plan,
+the physical sizes of the robots and objects need to be taken
+into account via Eq. (6). Additionally, changes in the object
+position and velocity require careful replanning in order to
+generate the desirable post-impact velocities obtained from the
+MILP planner.
+To that end, we consider an online planner that, given the
+currently observed position and velocity of an object, and
+the desired post-impact velocity of the object, recomputes the
+Bezier curves before and after impact. We enable the replanner
+when the robot is on a pre-impact Bezier curve and the object
+is on a free floating segment towards that impact. We formulate
+the replanning via a Quadratic Program (QP)
+s.t. [xR(t0), xR(t0)]  [xMILP(t0), xMILP(t0)],
+[xR(tf), xR(tf)]  [xMILP(tf), xMILP(tf)],
+xR(timpact) xdes
+R (timpact)2
+xR(timpact) xdes
+R (timpact)2
+Eqs. (9b),
+where t0, tf, timpact are the start of the pre-impact Bezier, the
+end of the post-impact Bezier and the planned impact time
+and xdes
+from solving Eq. (7) (see Appendix. A) using
+predicted pre-impact states of the object
+xO(timpact,i)  xO(t)  xO(t)(timpact,i t),
+where xO(t) and xO(t) are estimated positions and velocities
+of the object at the current time of replanning t, xO(timpact,i
+denotes the estimated position of the object at the impact time,
+impact from the offline planner, and x
+of object O at impact i to ensure this behavior. It is x
+is one the left-hand side of Eq. (7). Cost terms (29c) and (29d)
+then ensure that at time timpact, the robot impacts to ensure
+minimal deviation from the solution of Eq. (7).
+Although the problem in Eq. (7) is non-convex, the offline
+MIP planner provides excellent initial guesses on  and p
+contrast to the offline MIP planner, this recomputed online plan
+considers the physical sizes of objects and robots as shown in
+Fig. 2. For validation, we include workspace constraints in
+Eq. (29) via Eq. (21).
+Remark 1. Not considering  in Eq. (29) means that STL
+satisfaction is not guaranteed upon execution. Based on the
+reference trajectories from the offline planner, the execution
+realizes desired pre-impact positions and velocities of the
+objects at the next impact, at the cost of accurate tracking
+of the Bezier curves of the robots, whether or not satisfaction
+of  is dependent on bounded-error tracking of the original
+planned trajectories.
+VII. IMPACT-AWARE MPC
+We now consider the real-time control of the robots such
+that Eq. (9) may be solved on physical free-flying platforms.
+model of a free-flyer
+mR(q)T F,
+where the control input vector u, for the planar case, is defined
+as u  [F T ,  T ]T U R3 where F R2 and  R1
+are applied forces and torques in the body frame. We refer
+to App. A for more details on the robot properties. For the
+2(q) with equivalent model properties.
+The low-level MPC that controls the robots ensures control
+actuation minimization, accurate tracking, collision avoidance
+We define the low-level Nonlinear MPC problem as
+J(x(k))  min
+J(x(nk), u(nk)),
+s.t. x(m  1k)  g(x(mk), u(mk)),
+x(mk) X,
+u(mk) U, m N[0,N1],
+x(0k)  x(k).n N[0,N],
+where the discrete-time dynamics, g(x(mk), u(mk)), con-
+sider the impact according to
+g(x(mk), u(mk))
+if tm  timpact
+otherwise
+Simulation results of the corridor travel scenario. The initial setup and planned trajectory are shown in Fig. 4 and 5 respectively. On the left is the
+spatially robust- and on the right the impact-robust planner result. (a) the executed trajectory. (b) snapshots of the simulation where the robots have moved
+from low to high opacity instances. The impacts are highlighted by the red stars. (c) the vertical position over time with the red dotted line indicating the
+preplanned object position. (d) the vertical velocity over time. Note that the velocity change of O1 is instantaneous due to the impact with R1 and R2.
+where RK4 denotes the integration of the continuous dy-
+namics in Eq. (30) with the Runge-Kutta 4 scheme. The cost
+Appendix. B. The MPC scheme ensures accurate tracking
+of the (re)planned Bezier curves under the planned impact
+occurrence. An impact detector is used to ensure that the pre-
+or post-impact stage of a robot w.r.t. the object is accurately
+considered in the controller and online planner. We change the
+weights in Q and QN based on whether the impact is in the
+MPC horizon and whether the state k is before or after the
+impact. Details are shown in Appendix. B.
+VIII. SIMULATIONS AND EXPERIMENTS
+In this section, we present high-fidelity simulator results and
+real-world experiments on the ATMOS freeflyer platform .
+Due to the fact that in our simulator experiments we run
+the entire software stack existing on the robot (Software-
+for both simulations and experiments. Position and attitude
+measurements from either Gazebo or a motion capture system
+are fused with IMU data using an EKF onboard the low-level
+PX4 flight controller. After solving the MIP with Gurobi ,
+all replans and MPCs are solved using Casadi  run centrally
+on a laptop with an Intel Core i7-14700HX CPU and 32Gb of
+RAM. The MPC sends force and rate commands to the low-
+level PX4 flight controller, either physically on the robot over
+a Wifi6 network or on a simulated PX4 on the laptop. For all
+scenarios we introduce the quadratic acceleration attenuation
+cost term in Eq. (28).
+Code and Videos at  stl.
+A. Simulator Results
+We perform simulations in the high-fidelity Gazebo sim-
+ulator. We simulate the entire software stack of the freeflyer
+robots used later in the experimental results. For two scenarios,
+we qualitatively compare the model-free spatially robust plan
+and the impact-robust plan. From the impact-robust plan,
+which has Bezier curves for all outer vertices of the zonotope
+representing the state of the object, we interpolate these Bezier
+curves to obtain a nominal motion plan.
+1) Corridor Scenario: First, we consider the running corri-
+dor example where object O1 is to be transported between two
+robots. The planned trajectories for this transportation scenario
+have already been presented in Fig. 4 and 5 for the spatially
+robust and impact-robust optimization metrics respectively. We
+define R1, R2 and O1 as the two robots and object with
+initial and final conditions: R1(0)  [1, 1], R1(100)  [1, 1],
+overall specification is for the object to reach a goal region at
+100 sec. and for all systems to avoid obstacles.
+[100,100](pO1 goal)
+[0,100](pSi Wfree),
+where the goal region is shown in Fig. 4 and 5.
+For the Spatially Robust Planner the simulation results of
+Fig. 4 are shown on the left in Fig. 6. Note the replanned
+mass assumption from the offline planner has to be relaxed
+and generating the desired pre-impact velocity of R1 requires
+moving backwards to get more distance between R1 and O1.
+Notice that R2 also replans and, as shown on the most-left
+horizontal deviation in the impact.
+For the Impact Robust Planner the simulation results of
+Fig. 5 are shown on the right in Fig. 6. Notice that after the
+second impact, O1 reaches the goal with a non-zero velocity.
+In contrast to the spatially robust planner, where the non-
+zero velocity was not planned, here this post-impact velocity
+is specifically taken into account w.r.t. the satisfaction of
+(indicated by the solid red line being between the dashed red
+lines). The maximal uncertainty in the post-impact velocity
+s denoting that after any impact that occurs, a
+positive or negative deviation of 0.019 meters per second may
+occur (both in the x and y direction).
+Obstacle avoidance scenario where object O1 needs to be moved from the top of the red obstacle to its bottom. (a) the preplanned trajectory with
+the impact-robust MILP planner,   0.5m. Four impacts are planned with the initial and final impact with robot R1 on the top right and bottom right
+respectively. (b) snapshots from the simulator. The impacts are highlighted by the red stars. (c) the executed trajectories, indicating the replanned trajectories
+to accommodate the physical sizes of the robots and object and their updated state.
+Obstacle avoidance scenario where object O1 needs to be moved from the top of the red obstacle to its bottom. (a) the preplanned trajectory with
+the impact-robust MILP planner,   0.0055 m
+s . Three impacts are planned. The post-impact uncertainty over the first impact makes the deterministic initial
+state an uncertain state for the next impact, denoted by a zonotope interval hull ZO1 (b) snapshots from the simulator. The impacts are highlighted by the red
+stars. (c) the executed trajectories, indicating the replanned trajectories to accommodate the physical sizes of the robots and object and their updated state.
+2) Obstacle Avoidance Scenario: We now consider the
+specification to bring an object from an initial state to a final
+state via impacts with two other robots. The environment
+is shown in Fig. 7. Consider again R1, R2, and O1 with
+initial and final condition: R1(0)  [9, 5], R1(150)  [9, 1],
+overall specification is
+[0,150](pO1 goal)
+[0,150](pSi Obs),
+where the goal and obstacle are shown in Fig. 7 and 8.
+For the Spatially Robust Planner in Fig. 7, notice that both
+the robot and the objects try to maximize the distance to the
+wall and that the object proceeds towards the center of the goal
+region. Notice however, that the distance to the wall is larger
+than at the initial position of the object as the [0,150] considers
+the minimal distance in the time-horizon. Upon execution, a
+significant replan w.r.t. the offline plan is necessary to steer
+the object from top left to bottom left. This is due to the fact
+that for point masses with e  1, the velocities will simply
+swap (according to Fig. 3). However, for the physical bodies
+and the real restitution coefficient on the robot, a significant
+stopping force is required to remove the horizontal velocity
+For the Impact Robust Planner in Fig. 8, notice that the
+offline planner plans three impacts. It is apparent that the addi-
+tional fourth impact in the goal region for the spatially robust
+planner will not affect the overall robustness   0.0055 m
+the limiting factor is the vertical traversal. Note in the executed
+trajectory that R2 needs to overtake O1, with which it has
+impacted. A Control Barrier Function ensures safety during
+these kind of maneuvers.
+B. Experimental Results
+We now perform hardware validation on the freeflyer plat-
+form. The platform floats via three passive air-bearings located
+beneath the robot and is (ignoring air friction) weightless in
+the plane. It is actuated by 8 solenoid air valves, actuated at
+a frequency of 10Hz. For details on the entire experimental
+Although the platforms are not subject to any significant
+friction due to its floating and low velocities, any unevenness
+in the floor will significantly alter a free-floating objects
+trajectory. To that end, we run a velocity-keeping MPC on
+the object, detailed in Appendix. C.
+1) Throw-and-Catch Scenario: We perform a simple throw-
+and-catch scenario, not unlike the corridor scenario we per-
+formed in simulation. For clarity, we consider an initial state
+of the robots that is different from the object in both directions.
+Consider again R1, R2, and O1 with initial and final condition:
+specification is
+[30,30](pO1 goal),
+Simple object transportation scenario where O1 should be moved to the green region, starting from the initial setup in (a). (b) the preplanned
+trajectories with the spatially robust planner,   0.25m. (c) vertical position over time. (d) the vertical velocity over time.
+Fig. 10.
+Experimental results of the simple object transportation scenario
+in Fig. 9. (a) the executed replanned trajectories from the online replanner
+in Sec. VI. (b) the vertical position over time, notice the deviation from the
+nominal plan in Fig. 9c. (c) the vertical velocity over time.
+The Spatially Robust Planner results are shown in Fig. 9
+and the experimental results in Fig. 10. Notice that, similar
+to the corridor scenario with the spatially robust planner,
+two impacts are planned that throw and catch the object.
+nominal plan to account for the physical sizes of the robot.
+Notice in the velocity plot in Fig. 10 that the post-impact
+velocity of O1 is less noisy but deviates slightly. This is due
+to the velocity-keeping MPC on O1. To ensure an accurate
+replan for the catch by R2, we estimate O1s velocity over a
+pre-specified duration (4 seconds in this experiment).
+2) Pong Scenario: We consider a more complex scenario
+where an object should visit multiple areas of interest consecu-
+tively. The initial and final condition are: R1(0)  [0.5, 1.0],
+and O1(0)  [1.25, 0.75]. The overall specification is
+The Spatially Robust Planner results are shown in Fig. 11.
+Note that the offline motion planner resolves the ambiguity in
+which order to satisfy [0,100](pO1 C) and [0,100](pO1
+D) based on the location of the areas and the robots. As
+we maximize the spatial robustness of , O1 plans to visit
+each region in its center. The execution shows the significant
+alterations to the preplanned motion plan, highlighting the
+necessity of the replanner.
+We notice a significant deviation in the planned trajectory
+for O1. We hypothesize that this is caused by using a constant
+restitution coefficient and that preplanned impact times are
+held constant. Extending the impact time after the first impact
+could ensure that O1 achieves a greater spatial robustness.
+IX. LIMITATIONS
+Our impact-aware planner, replanner, and MPC is plan-
+ning robust trajectories while considering online adaptation
+to changing circumstances. However, it is not without its
+forms to consider different robot and object shapes, the current
+implementation is limited to 2D circular robots and objects.
+tainty in the post-impact velocity of objects, this is only
+with respect to the idealized kinematic impact model. The
+model-based robustness metric  therefore only relates to an
+abstraction of the true model-based robustness. In reality, there
+are complex impact dynamics at play that we do not consider
+in the MILP planner or in the replanner. The effect of this is
+apparent in the Pong scenario in Fig. 11.
+in its replanning strategy. Doing this could ensure that
+the updated plan is minimally violating  but it would
+reintroduce binary variables (or non-convexities ) leading to
+a centralized formulation that is too computationally expensive
+to reliably update on the fly. Now, robots may unnecessarily
+violate their specification, Ri, to accommodate a post-impact
+velocity for an object, determined by the offline planner.
+to provide dynamically feasible trajectories as acceleration
+constraints would be non-convex . Instead we indirectly
+penalize accelerations via the cost term in Eq. (29). We further
+limit dynamic feasibility concerns via lower-bounding hRi and
+conservative velocity constraints VR.
+Fig. 11.
+Complex Pong scenario where O1 should visit A, B, and C, but it is not pre-specified in which order this should be. (a) the preplanned trajectories
+from the spatially robust planner (with an additional cost term for acceleration attenuation) (b) snapshots from the hardware experiment. The impacts 4 planned
+impacts are denoted by red stars. (c) the realized positions w.r.t. the specification . The spatial deviations make the specification difficult to satisfy, motivating
+the robustness metrics.
+X. CONCLUSION
+In this paper, we have proposed a solution to the complex
+problem of collaborative transportation of passive objects
+in space. We have shown how the lack of gravity can be
+effectively utilized for synthesizing minimal interaction trans-
+portation by instantaneously changing an objects velocity
+via impacts with controllable robots. The absence of gravity
+then allows for passive floating through space, until another
+impact changes its velocity. We have also shown how an
+impact-robustness metric is able to implicitly generate de-
+sirable behavior when uncertainty in impact dynamics are
+considered. We have validated the conjoined offline planning,
+online planning, and low-level control approach in high-
+fidelity simulation examples and on hardware.
+Future work will involve generalizations to objects and
+robots of different shapes, replanning with velocity matching
+instead of impacts (for fragile objects) and replanning while
+considering minimally violating the high-level specification.
+servicing by considering orbital dynamics in our approach.
+An additional avenue is the use of online impact parameter
+estimation to iteratively refine the kinematic impact model.
+XI. ACKNOWLEDGEMENTS
+This work was partially supported by the Wallenberg AI,
+Autonomous Systems and Software Program (WASP) funded
+by the Knut and Alice Wallenberg Foundation. The authors
+are also affiliated with Digital Futures. The authors would like
+to thank Pedro Roque, Elias Krantz, and Tafarrel Firhannoza
+Pramono for their help with the experimental validation.
+REFERENCES
+Javier Alonso-Mora, Stuart Baker, and Daniela Rus.
+Multi-robot formation control and object transport in
+dynamic environments via constrained optimization. The
+International Journal of Robotics Research, 36(9):1000
+Joel AE Andersson, Joris Gillis, Greg Horn, James B
+framework for nonlinear optimization and optimal con-
+trol. Mathematical Programming Computation, 11:136,
+Vincent Dubanchet, David Saussie, Daniel Alazard, Car-
+oline Berard, and Catherine Le Peuvedic. Modeling and
+control of a space robot for active debris removal. CEAS
+Space Journal, 7(2):203218, 2015.
+Hamed Farivarnejad, Amir Salimi Lafmejani, and Spring
+Berman. Fully decentralized controller for multi-robot
+collective transport in space applications. In 2021 IEEE
+Aerospace Conference (50100), pages 19. IEEE, 2021.
+Angel Flores-Abad, Ou Ma, Khanh Pham, and Steve
+Ulrich. A review of space robotics technologies for on-
+orbit servicing. Progress in aerospace sciences, 68:126,
+Yann Gilpin, Vince Kurtz, and Hai Lin.
+A smooth
+robustness measure of signal temporal logic for symbolic
+control.
+IEEE Control Systems Letters, 5(1):241246,
+Antoine Girard.
+Reachability of uncertain linear sys-
+tems using zonotopes.
+In International workshop on
+hybrid systems: Computation and control, pages 291
+305. Springer, 2005.
+Gurobi Optimization, LLC. Gurobi Optimizer Reference
+Nan Han, Jianjun Luo, and Lijun Zong.
+Cooperative
+game method for on-orbit substructure transportation
+using modular robots. IEEE Transactions on Aerospace
+and Electronic Systems, 58(2):11611175, 2021.
+Yunhao Hu, Wei Zhang, Hao Wen, and Haiyan Hu.
+On-orbit transportation with non-conserved momenta by
+cooperative space robots. Advances in Space Research,
+Panfeng Huang, Dongke Wang, Zhongjie Meng, Fan
+and adaptive target capturing control for tethered space
+robots with uncertainties. IEEEASME Transactions on
+Steffen Jaekel, Roberto Lampariello, Wolfgang Rackl,
+Marco De Stefano, Nassir Oumer, Alessandro M Gior-
+John Ratti, et al.
+Design and operational elements of
+the robotic subsystem for the e. deorbit debris removal
+mission. Frontiers in Robotics and AI, 5:100, 2018.
+Julius Jankowski, Ante Maric, and Sylvain Calinon. AiR-
+tic Optimal Shooting. arXiv preprint arXiv:2401.14964,
+Jean-Francois Landry, Jean-Pierre Dussault, and Philippe
+A heuristic-based planner and improved con-
+troller for a two-layered approach for the game of bil-
+liards. IEEE Transactions on Computational Intelligence
+and AI in Games, 5(4):325336, 2013.
+Delun Li, Lou Zhong, Wei Zhu, Zhipeng Xu, Qirong
+A survey of space robotic
+technologies for on-orbit assembly. Space: Science
+Oded Maler and Dejan Nickovic. Monitoring temporal
+properties of continuous signals. In International sympo-
+sium on formal techniques in real-time and fault-tolerant
+Tobia Marcucci, Mark Petersen, David von Wrangel, and
+Russ Tedrake. Motion planning around obstacles with
+convex optimization. Science robotics, 8(84):eadf7843,
+Dragomir N Nenchev and Kazuya Yoshida.
+analysis and post-impact motion control issues of a free-
+floating space robot subject to a force impulse. IEEE
+Transactions on Robotics and Automation, 15(3):548
+Thomas Nierhoff, Konrad Leibrandt, Tamara Lorenz,
+and Sandra Hirche.
+Robotic billiards: understanding
+humans in order to counter them. IEEE transactions on
+Yash Vardhan Pant, Houssam Abbas, Rhudii A Quaye,
+and Rahul Mangharam. Fly-by-logic: Control of multi-
+drone fleets with temporal logic objectives.
+ACMIEEE 9th International Conference on Cyber-
+Physical Systems (ICCPS), pages 186197. IEEE, 2018.
+I Paraskevas, Zisos Mitros, and Evangelos Papadopoulos.
+On Inertia and Stiffness Effects During Impact Docking.
+In 13th Symp. on Advanced Space Technology in Robotics
+and Automation,(ASTRA 15), 2015.
+Xiangjun Qian, Inaki Navarro, Arnaud de La Fortelle,
+and Fabien Moutarde.
+Motion planning for urban au-
+tonomous driving using Bezier curves and MPC. In 2016
+IEEE 19th international conference on intelligent trans-
+portation systems (ITSC), pages 826833. Ieee, 2016.
+Vasumathi Raman, Mehdi Maasoumy, and Alexandre
+Donze. Model predictive control from signal temporal
+logic specifications: A case study. In Proceedings of the
+4th ACM SIGBED International Workshop on Design,
+Pedro Roque, Sujet Phodapol, Elias Krantz, Jaeyoung
+Open-Source and Modular Space Systems with ATMOS.
+arXiv preprint arXiv:2501.16973, 2025.
+Sadra Sadraddini and Calin Belta. Robust temporal logic
+model predictive control. In 2015 53rd Annual Allerton
+Conference on Communication, Control, and Computing
+(Allerton), pages 772779. IEEE, 2015.
+Trey Smith, Jonathan Barlow, Maria Bualat, Terrence
+Smith. Astrobee: A new platform for free-flying robotics
+on the international space station.
+In International
+Symposium on Artificial Intelligence, Robotics, and Au-
+tomation in Space (i-SAIRAS), number ARC-E-DAA-
+Dawei Sun, Jingkai Chen, Sayan Mitra, and Chuchu Fan.
+Multi-agent motion planning from signal temporal logic
+specifications. IEEE Robotics and Automation Letters, 7
+Andrea Tagliabue, Mina Kamel, Roland Siegwart, and
+Juan Nieto.
+Robust collaborative object transportation
+using multiple MAVs.
+The International Journal of
+Robotics Research, 38(9):10201044, 2019.
+N Uyama, Y Fujii, K Nagaoka, and K Yoshida. Exper-
+imental evaluation of contact-impact dynamics between
+a space robot with a compliant wrist and a free-flying
+object. In International symposium on artificial intelli-
+Joris Verhagen, Lars Lindemann, and Jana Tumova.
+Temporally robust multi-agent stl motion planning in
+continuous time. In 2024 American Control Conference
+(ACC), pages 251258. IEEE, 2024.
+David von Wrangel and Russ Tedrake.
+Using Graphs
+of Convex Sets to Guide Nonconvex Trajectory Opti-
+mization. In 2024 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 9863
+Ahmed Zermane, Leo Moussafir, Youcan Yan, and Ab-
+derrahmane Kheddar.
+Minimal Impact Pokes to Place
+Objects on Planar Surfaces. IEEE Robotics and Automa-
+tion Letters, 2024.
+Long Zhang, Qingxuan Jia, Gang Chen, and Hanxu
+Sun. Pre-impact trajectory planning for minimizing base
+attitude disturbance in space manipulator systems for a
+capture task.
+Chinese Journal of Aeronautics, 28(4):
+APPENDIX
+A. Two-body Impact Problem
+During replanning, we wish to consider the physical sizes
+and updated positions of the robots and objects. To that end,
+we first solve the the two-body impact problem from Eq. (6)
+to obtain the desired pre-impact position and velocity of the
+B. Impact-Aware MPC Details
+The cost function J(x(nk), u(nk)) in the impact-aware
+MPC is given as
+J(x, x, u)
+x(nk), x(nk), u(nk)
+x(nk), x(nk)
+Q  u(nk)2
+e(k  nk)
+x(nk) x(nk), x {p, v, }
+1 (x(nk)T x(nk))2, x {q}
+where x Rn, x Rn, and u Rm are the reference
+trajectory by evaluating the robots Beziers Eq. (8), the state
+and the control input of Ri. Q, R, and QN are positive definite
+weight matrices. For all scenarios, we run the MPC with a
+horizon of 1 second and 10 sampling intervals.
+1) Weight-Scheduling: While an impact traverses through
+the horizon of the MPC, we adapt the weights Q, QN and
+R. As we are mainly interested in creating the desired post-
+impact vector of the object (at the cost of potentially having
+the robot deviate from its post-impact pre-planned trajectory),
+we schedule the weights as follows
+diag([1e-3, 1e-3, 1e-3,
+if timpact [t0, tN]
+otherwise
+[px, py, pz, px, py, pz, q]
+[Fx, Fy, Fz, x, y, z].
+C. Velocity-Keeping MPC Details
+As the floor on the experimental setup is not completely
+impacts. For online planning, deviations in the straight-line
+travel can be alleviated by using a height-map of the floor and
+forward integrating the observed state of the object. However,
+for simplicity and a to make a true experimental version of
+the high-fidelity simulator, we instead opt to run a velocity-
+keeping MPC on the object.
+This MPC keeps position, detects an impact, turns off the
+controller for a pre-specified duration to estimate the post-
+impact velocity vector (1 second), and then draws a linear
+segment from the current state to a future state using this
+pref(t)  p1 t
+t  (p  t p) t
+where t >> 0 is a duration that far exceeds the time to
+the next interval, p is the position after the 1 second duration,
+and p is the averaged velocity over the 1 second duration.

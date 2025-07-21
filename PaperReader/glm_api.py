@@ -57,7 +57,7 @@ def analyze_paper_with_glm(text, pdf_filename="unknown"):
     """
     client = ZhipuAI(api_key=GLM_API_KEY)
     prompt = (
-        "请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：\n"
+        "请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：\n"
         "{\n"
         "  \"论文标题\": \"\",\n"
         "  \"研究主题关键词\": \"\",\n"
@@ -129,12 +129,15 @@ def parse_glm_output(content):
                 return result
             except json.JSONDecodeError:
                 pass
-        
-        # 尝试3：提取所有花括号内的内容（处理无标记或部分标记）
-        brace_match = re.search(r'\{.*\}', content, flags=re.DOTALL)
-        if brace_match:
+        # 尝试3：提取最后一对大括号内的内容（处理无标记或部分标记）
+        brace_matches = list(re.finditer(r'\{[^{}]*\}', content, flags=re.DOTALL))
+        if brace_matches:
+            last_brace = brace_matches[-1].group(0)
+            # 检查是否缺失右大括号
+            if last_brace.count('{') > last_brace.count('}'):
+                last_brace += '}'
             try:
-                data = json.loads(brace_match.group(0))
+                data = json.loads(last_brace)
                 for key in result:
                     if key in data:
                         result[key] = str(data[key]).strip()
@@ -150,7 +153,6 @@ def parse_glm_output(content):
         line = line.strip()
         if not line:
             continue
-        # 匹配键值对格式（支持中文和英文冒号）
         m = re.match(r'[\'"\s]*([^"\':：]+)[\s]*[:：][\s]*([^"\',]+)[\s,]*', line)
         if m:
             key = m.group(1).strip().replace('"', '').replace("'", "")
@@ -169,7 +171,6 @@ def parse_glm_output(content):
                 result["创新点关键词"] = value
             elif "主要结论" in key:
                 result["主要结论关键词"] = value
-    
     return result
 
 # def parse_glm_output(text):

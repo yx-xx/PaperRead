@@ -1,0 +1,853 @@
+=== PDF文件: Online Competitive Information Gathering for Partially Observable Trajectory Games.pdf ===
+=== 时间: 2025-07-21 14:26:23.381473 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Online Competitive Information Gathering for
+Partially Observable Trajectory Games
+Mel Krusniak, Hang Xu, Parker Palermo, and Forrest Laine
+Vanderbilt University, Nashville, TN 37212
+AbstractGame-theoretic agents must make plans that opti-
+mally gather information about their opponents. These problems
+are modeled by partially observable stochastic games (POSGs),
+but planning in fully continuous POSGs is intractable without
+heavy ofine computation or assumptions on the order of belief
+maintained by each player. We formulate a nite historyhorizon
+renement of POSGs which admits competitive information
+gathering behavior in trajectory space, and through a series
+of approximations, we present an online method for comput-
+ing rational trajectory plans in these games which leverages
+particle-based estimations of the joint state space and performs
+stochastic gradient play. We also provide the necessary adjust-
+ments required to deploy this method on individual agents. The
+method is tested in continuous pursuit-evasion and warehouse-
+pickup scenarios (alongside extensions to N > 2 players and to
+more complex environments with visual and physical obstacles),
+demonstrating evidence of active information gathering and
+outperforming passive competitors.
+I. INTRODUCTION
+In this work, we consider rational online trajectory planning
+in non-cooperative, imperfect-information settings. While ap-
+proximate solutions can be found to some partially observ-
+able multi-robot problems through e.g. reinforcement learn-
+robots in realistic spaces during execution remains difcult.
+For instance, robots in adversarial scenarios can leverage the
+sensing limitations of their adversaries to mislead or misdirect.
+These interactions are critical to intelligent behavior: intelli-
+gent agents seek out and use information, and anticipate their
+counterparts doing the same.
+Observation interactions such as this are often modeled with
+either extensive form games or partially observable stochastic
+theoretic formulations allow for provably correct behavior with
+respect to adversarial information gathering and deception.
+Using these formulations to solve discrete parlor games like
+poker  is well studied, but at present, it remains an open
+challenge to do so live in continuous spaces as required in
+robotics without extensive ofine computation and training.
+Our work addresses this case, presenting a method to plan
+information-aware strategies in the manner of model predictive
+game play (or MPGP  an extension of model predictive
+control to game-theoretic multi-robot environments) . We
+contend that this work is complementary to and compatible
+with ofine methods , and even when online methods are
+Active Information
+Gathering
+Passive Information
+Gathering
+Pursuer west
+Pursuer east
+Illustration of information gathering modalities in a pursuit-evasion
+game TAG. Cones indicate eld of view at each planned step. The pursuers
+initial position (east  west) is random and unknown to the evader.
+to compute solutions from scratch. Our method is not real-
+within reach.
+As a concrete example, consider a pursuit-evasion scenario
+between two free-moving UAVs with mounted cameras. Each
+UAV observes its opponents location if its opponent is within
+its eld of view (assumed to face the direction of motion),
+and observes random noise otherwise. The pursuer starts with
+equal probability in one of two locations  unknown to the
+aware trajectory plan, the evader briey turns to check one
+gathering. (In the alternative, passive information gathering,
+plans are generated without considering potential future obser-
+vations.) Figure 1 visualizes the distinction in the UAV pursuit-
+evasion scenario, where each column shows a possible ground
+truth pursuer location.
+Standard MPGP considers only perfect information games,
+so this work develops a variant which uses imperfect in-
+formation games to permit active information gathering. We
+present a simple, live planner for these scenarios which permits
+competition through information as well as in trajectory space
+using a particle representation of the joint distribution of
+observation histories and states.
+A. Technical Contributions
+This work presents the following technical contributions:
+A novel enhancement of model-predictive game play to
+handle imperfect information games, addressing POSGs
+over a nite history and horizon;
+Description of a simple online solver method for this
+robotic planning contexts;
+Evidence that this method achieves active informa-
+tion gathering in pursuit-evasion and warehouse-pickup
+robotics scenarios, alongside extensions to N-player
+games and more realistic setups with visual and physical
+obstacles; and
+Experimental data regarding timing and equilibrium
+agreement using our method, as necessary considerations
+for practical game-theoretic multi-agent robotics.
+II. BACKGROUND
+Our work is inuenced by several overlapping formulations
+for imperfect information rational planning.
+Partially observable stochastic games (POSGs) are used
+in modern training of competitive agents.
+Extensive form games (EFGs), closely related to POSGs,
+are foundational for no-regret algorithms regarding agent
+interactions but are difcult to apply to large problems.
+Multi-agent belief space planning adapts belief-based
+control theory methods to N-player environments.
+Interactive POMDPs are applicable to some specic
+multi-agent cases with limitations on information mod-
+In this section, we address these major inuences.
+A. POSGs and EFGs
+Partially observable stochastic games are N-player exten-
+sions of POMDPs , . As an extension of planning
+in POMDPs, planning in POSGs is NP-hard , and most
+POSGs cannot be tractably solved. Nevertheless, modern ad-
+vances in multi-agent reinforcement learning (MARL) have
+yielded approaches to nding strong strategies in POSGs,
+particularly in imperfect information parlorvideo games like
+closely related to extensive form games (EFGs), which provide
+a treelike interpretation of planning under imperfect informa-
+tion. Both model similar problems; the exact distinction made
+varies  .
+Many important multi-agent RL-based methods are in-
+formed by POSGs andor EFGs, including neural ctitious
+and variations on policy space response oracles  . In
+these methods, deep neural networks extend from tabular to
+continuous contexts and handle large state and action spaces at
+the cost of expensive ofine training. Rather than solving such
+games in their entirety in this manner, we take an online view,
+seeking rational behavior in settings where pre-computation is
+not an option.
+B. Belief Space Planning and Model Predictive Game Play
+Given the context of online planning, we also consider
+control-theoretic work. For instance, belief space planning is
+an important concept in single-player planning which creates
+plans in state distributions (belief space) rather than in state
+space . These methods are online, using minimal if any
+deep learning. Unfortunately, while formulating POMDPs
+into belief MDPs for this purpose is common, there is no
+widespread corresponding concept of a belief POSG. At-
+tributing beliefs to other players (as in the theory of mind )
+forms a belief hierarchy: players have beliefs over the state,
+beliefs over other players beliefs, beliefs over those beliefs,
+and so on. Working around this issue imposes limitations.
+Some methods (e.g., Laine et al. ) attribute immediate
+intentions in a planning framework but not formal beliefs.
+Schwarting et al.  presents an LQR-style controller for
+multiplayer belief-space planning but only considers rst-order
+information space.
+Our work relies on a paradigm called model predictive
+game play (sometimes game planning), or MPGP  .
+Rather than solving a trajectory optimization problem for each
+horizon as in typical model predictive control, in MPGP, play-
+ers solve a trajectory equilibrium problem (that is, a game).
+Existing MPGP approaches are not designed for imperfect
+information games, though progress has been made by explic-
+itly rewarding information gathering  for instance, Sadigh
+et al.  do so by rewarding observations that inform a
+model of human behavior. (Here, we reward agents for seeking
+information in terms of improvement on the underlying non-
+informational task rather than introducing a separate reward.)
+C. Alternative Multi-Agent POMDPs
+In competitive settings, interactive POMDPs (I-POMDPs)
+model uncertainty interactions with arbitrarily hierarchical
+beliefs. This yields nuanced strategies but causes a large belief
+space that is computationally difcult to handle. Methods to
+address this include particle-lter approaches (somewhat akin
+to the approach used in our work) and Monte Carlo tree search
+variants  . However, these methods were tested only on
+approaches are fundamentally limited by reasoning at a nite
+order. Higher-order reasoning (e.g., reasoning about other
+players beliefs about ones own belief) is made intractable
+by an exponential dependency of belief space on belief order.
+D. Summary of Background
+Existing learning-based methods on frameworks like POSGs
+and EFGs address partially observable settings, but do so
+via ofine training (and sometimes only in discrete spaces).
+More specic formulations restrict competition over informa-
+tion. Meanwhile, belief-space planning and model-predictive
+game play address online planning, but are either partially
+observable or multiplayer; never both. We situate our work
+between these to consider online game-theoretic planning
+under imperfect information in full.
+In the remainder of this work we use POSGs as our descrip-
+tive framework, which suitably express imperfect information
+while permitting intuitive model-predictive game play.
+III. FORMULATION
+A. Framework
+Consider a POSG G, as dened as a tuple with the following
+X (i), the set of states for player i (s.t. x(i)
+A(i), the set of actions for player i (s.t. a(i)
+Z(i), the set of observations for player i (s.t. z(i)
+T (i)(x(i)
+t xt1, at1), the state transition for player i;
+O(i)(z(i)
+t xt), the observation model for player i;
+r(i)(xt), the (simplied) reward function for player i; and
+X0(x0), the joint prior distribution over players states.
+(This distributes over initial congurations of the game
+for all players. These initial states may be correlated
+between players.)
+For notational simplicity we assume x is factored by player,
+though this need not be the case. We index over both players
+and time: x(i) denotes player is states for all timesteps, xt
+denotes all players states at timestep t, and x denotes the
+joint state at all timesteps (and likewise for actions a and
+observations z). To maintain parity with extensive form games,
+we speak in terms of cumulative costs, and dene them based
+on instant rewards as c(i)(x) : P
+t1 r(i)(xt).
+We make the following high-level assumptions on all
+POSGs that we consider:
+Assumption 1 (Complete POSG and common knowledge).
+G is fully dened; we do not consider incomplete games or
+model-free methods. All costs and transitions are public.
+Assumption 2 (Differentiability). T (i), O(i), and r(i) are
+differentiable in all variables. This is required to use gradient
+play to seek equilibria at the planning level.
+Assumption 3 (Deterministic Strategies). While mixed
+strategies can elicit competitive improvement in the types of
+games we consider , this improvement is often minor. For
+B. Imperfect Information MPGP
+We encounter two major necessities when adapting POSGs
+to MPGP:
+1) Active information gathering: Rather than planning
+single trajectories, players nd maps from possible fu-
+ture observation histories to trajectories. (This follows
+from the concept of information sets in extensive form
+games; observation histories in POSGs uniquely and
+perfectly index information sets. It also corresponds to
+a shift from open- to closed-loop Nash equilibria .)
+2) Belief modeling: Players must model account for the
+past and future observations of other players, and plan
+To address the former, we consider nite past and future of
+lengths Tpast and Tfuture respectively, and optimize mappings
+from observation histories z(i)
+t ] to ac-
+tions a(i)
+t . (We represent these mappings as policies  with
+parameters .) To address the latter, we require players to
+track the (fully unconditioned) joint distribution of observation
+histories and states qt(xt, z[t])) from X0 to the planning time
+The resulting game is
+xX 1Tfuture
+zZTpast1Tfuture
+c(i)(x)p(x, zxt, z[t])qt(xt, z[t])
+p(x, zxt, z[t])
+tTfuture
+T(xt1xt, (z[t])) O(ztxt)
+and i 1..N. This game is the core of our approach;
+each player k 1..N will simultaneously solve all N of the
+optimization problems in (1) once per timestep to generate a
+plan (and generate plans for all other players as an important
+byproduct). There is no reference to the planning player k
+in this equilibrium problem  in theory all players solve
+identical problems, though we introduce some mechanisms for
+recovery if this fails to be the case in sections IV-B and IV-C.
+C. Motivating Opponent Information Tracking
+How is it that all players solve an identical game? In theory,
+a player does not know its opponents observation histories,
+and it plays against opponents which do not know its own.
+To explain how Eq. 1 is formulated under this condition, we
+might imagine an optimization problem in which all players
+(as modeled by the planner) play in expectation over possible
+states and opponent observations, conditioned on their own
+observations. This leads to a version of q which can be
+forward-updated via Bayesian lter. Since observations are
+optimization units in the equilibrium problem solved by player
+k during planning, each with a unique possible observation
+history. We describe each optimization unit in this game as
+(i,z(i))
+xX 1Tfuture
+zZ1Tfuture
+c(i)(x)p(x, zxt, z(i))qt(xt, z(i)z(i))
+for every possible observation history at planning time held
+by each player, z(i) (Zi)Tpast. (This includes the planning
+player k  even though z(i) is known by that player for i  k,
+the opponents modeled during planning must still treat it as
+unknown.)
+Actualizing this setup would require agents to main-
+tain the prior over both states and observation histories,
+qt(xt, z(i)z(i)), for every possible observation history z(i)
+on which it might be conditioned. Of course, this is not
+histories. Maintaining the fully joint probability over states
+and observation histories (which embeds z) works around this.
+We use q(i)
+t (xt, z(i)z(i))  q(i)
+t (xt, z)p(z(i)), and because
+player i selects unique actions for all z(i), any scaling factor of
+the form f(z(i)) > 0 in player is objective does not affect the
+policy parameters at equilibrium. As such, given p(z(i)) > 0,
+we may omit the marginal probability of z(i) and consider
+qt(xt, z[t]), forming Eq. 1.
+IV. APPROACH
+t (x, z)
+using a particle representation, estimates the integral via Monte
+Carlo sampling, and solves the game with gradient play. Then,
+each player acts in accordance with model predictive game
+observation history as input and advancing the true state of
+the world by only the rst step of each plan. Players record a
+new real-world observation and the process is repeated.
+The following sections describe this approach in detail.
+A. Equilibrium Computation
+We rst turn to Nash equilibrium planning to solve the game
+presented in Eq. 1 given q(i)
+t (xt, z[t]).
+For each player, we evaluate the objective via ordinary
+Monte Carlo sampling, drawing Kbatch particles (xt, z[t]) from
+q(i) and then rolling out the game for Tfuture steps on each par-
+ticle to sample the remaining timesteps of x and z, generating
+actions using each players policy. Using automatic differen-
+(i)[c(i)(x) p(x, z)] is calculated, and applied via gradient
+descent. Gradient steps are performed until convergence for
+all players. (All components of the game are differentiable per
+our Assumption 2). There are some conditions under which
+gradient play does not converge to a Nash equilibrium ;
+online planning, as we will discuss in section VI-B.
+As we will discuss, each players q(i)
+is implemented
+with a particle representation consisting of potential states
+With this representation, Algorithms 1 and 2 describe the
+equilibrium planning procedure in detail, with the former
+implementing the basic Monte Carlo objective estimate and the
+latter implementing gradient play over particles. opt refers to
+any gradient-based optimization procedure on .
+B. Distribution Update
+The planning component previously discussed requires
+knowledge of q(i)
+the current time according to player i, necessitating a suit-
+able update rule. Intuitively, q(i)
+is the joint distribution of
+stateobservation histories at time t assuming that all players
+have behaved rationally up to time t. Since agents nd equilib-
+rium policies at each time step, q(i)
+can be updated in an open-
+loop manner using only , completely ignoring real-world
+observations. This is possible because  maps all possible
+observation histories to an action, not just z[t]. By maintaining
+as the joint distribution over histories of observations
+and states, players need not track a belief hierarchy over
+each others beliefs: this joint distribution is the same for all
+Algorithm 1: obj (expected cost over particles)
+particles
+for k 1..Kbatch do
+while t < t  Tfuture do
+zt1 Z w.p. O(i)(xt)
+at1 (o[t1])
+xt1 X w.p. T (i)(xt, at1)
+c c  r(i)(xt1)
+return c
+Algorithm 2: calceq (gradient play over particles)
+for i 1..N do
+(i) opt((i), (i)[obj ((X, Z, w), , i)])
+obj ((X, Z, w), , i)
+(i) c(i)
+until (i) <  i 1..N
+observations they receive, to which they respond optimally.
+To that end, we approximate q(i)
+with Kall Kbatch
+particles (X, Z, w), with Xk  xt,k and Zk  z[t],k for
+k 1..Kall, each particle with weight wk. After planning,
+each particle is stepped forward with the equilibrium policies
+and receives a sampled observation for each player according
+to its joint state. Particle weights are not affected, nor is there
+any conditioning on zt.
+We use this unconditioned approach because any approach
+conditioning q(i)
+with zt causes an asymmetry between agents,
+which results in planning against opponents that are not
+representative of the real world (and therefore a suboptimal
+plan). However, if any player diverges from the equilibrium,
+or players nd different equilibria, particles are updated with
+unrepresentative equilibrium policies and q(i)
+may no longer
+match the true state. Furthermore, with limited particles, it is
+possible that the planning players true observations z(i) may
+not be represented jointly with the true state in any particle,
+causing the policy for z(i) to optimize poorly during gradient
+play. As such, there is a fundamental trade-off between usage
+of true observations to model the world state efciently, and
+correctness in the corresponding model of the opponent.
+To accomplish this, we condition a small proportion of parti-
+cles  with true observations, reweighting them accordingly.
+can be interpreted as modulating the closed-loop  opponent-
+modeling trade-off.
+Algorithm 3 implements this distribution update.
+Algorithm 3: updateparticles (update rule for
+policy parameters , probability
+for k 1..Kall do
+t Z w.p. O(Xk)
+with probability
+k wk  O(ztXk)
+k [Zk..., z
+k X w.p. T(Xk, (z; ))
+return (X, Z, w)
+C. Equilibrium Selection
+Our method can be deployed in a shared brain setting,
+in which case it calculates an equilibrium joint policy once
+across all players, or in a separate brain setting, in which
+case all players do so independently. In the former case, it is
+assumed that q(i)
+for all i, j 1..N. However, in the
+is not generally true. Agents may nd different local equi-
+librium joint policies, potentially modeling opponent behavior
+incorrectly and causing q(i)
+and q(j)
+to diverge for j  i.
+Figure 2 visualizes this failure case in a pursuit-evasion
+scenario (for more detail on the pursuit-evasion game used
+pursuer (blue) and evader (red) distributions respectively. In
+this case, the pursuer nds one deterministic-strategy equilib-
+rium in which the evader turns right at the boundary, and the
+evader nds a different equilibrium in which it turns left. The
+discrepancy primarily harms the pursuer, causing it to pursue
+an inaccurate model of the evader.
+Visualization of an equilibrium selection failure in a pursuit-evasion
+game. Opacity mapped to particle weight.
+(Left): Pursuer q(i). (Middle): True state. (Right): Evader q(i).
+sistently with an opponents true policy and  > 0, the
+correct D(i) can generally be recovered as conditional updates
+deweight particles that are inconsistent with observations of
+the opponents true state evolution in favor of those that are. To
+promote the existence of particles following different possible
+equilibria selections, an agent can complete the equilibrium
+planning step Neq times. Each of these candidate policies is
+applied to a subset of particles during the distribution update
+world action.
+Alg. 4 fully describes our proposed method in the separate-
+brain setting. In Alg. 4, partition creates Neq roughly-
+equal index sets of the particles, and act performs an action
+in the real world; the remaining functions are as given in Alg.s
+2 and 3. Note that Alg. 4 is not always guaranteed to converge
+for all POSGs  in particular, those which do not have pure
+strategy equilibria (violating Assumption 3). However, we nd
+its empirical performance compelling, as we demonstrate over
+the following two sections.
+Algorithm 4: Active information planning
+for k 1..Kall do
+Zk 0TpastO
+P partition(1..Kall, Neq)
+z(i) 0TpastO(i)
+for t 1..do
+for p 1..Neq do
+p calceq((X, Z, w), p)
+for p 1..Neq do
+(XP , ZP , wP )
+updateparticles((XP , ZP , wP ), z(i)
+D. Implementation
+We implemented this approach in the Julia programming
+language . Policies are represented with feedforward neural
+networks and optimized with the Adam optimizer. We used
+Flux.jl  to implement these networks and perform auto-
+matic differentiation.
+V. EXPERIMENTAL SETUP
+To test our method, we considered three variants of a
+UAV pursuit-evasion scenario as well as a warehouse-pickup
+in this section.
+Trajectories in the three simulated UAV tag environments. Pursuer is blue; evader is red. Plans are solid lines and histories are dotted.
+(Left) Field of view tag.
+(Center) Tag chain.
+(Right) Hide and seek.
+A. Pursuit-Evasion (UAV Tag)
+Pursuit-evasion is a self-explanatory scenario in two dimen-
+sions comparable to the childhood game of tag. We simu-
+lated two UAVs equipped with xed eld-of-view cameras,
+notated pursuer and evader.
+Control. Agents control their own velocity xvel, and their
+position xpos is simulated through double-integrator dynamics
+for Tfuture  Tpast  7 timesteps. The evader has a slightly
+greater maximum velocity than the pursuer.
+Costs. The pursuer (arbitrarily indexed i  1) seeks to
+minimize x(1)
+pos x(2)
+pos2 while the evader seeks to maximize
+it at every timestep. Agents are independently penalized for
+departures from a circular area; otherwise, this is a zero-sum
+Observations. Both players receive perfect observations
+of their own state. Observations of opponent position are
+limited to a eld of view in the UAVs direction of motion.
+trimmed multivariate Gaussian around the opponent location
+with   x(i)
+Cscale  ( f
+otherwise
+where  is the bearing between the agents heading (taken
+from their velocity) and their opponent, and f is the agents
+eld of view, both in radians. Observations are trimmed to
+be within the play area. Parameters 2
+base and Cscale adjust the
+minimum variance and the variance per radian outside the eld
+of view, respectively.
+Initialization. Initial states are normally distributed around
+the origin. There is no process noise; uncertainty is a result
+of initial uncertainty or observation noise (as a simplication,
+rather than a limitation of the method).
+number of players: N
+2 pursuers labeled P1..P N
+2 pursue evaders
+2 . Pursuer Pi pursues evader Ei, but evader Ei evades
+pursuer Pi1 (and evader E N
+2 evades pursuer P1). This results
+in a cycle of partial pursuit-evasion games. Agents receive
+observations of all other agents in their eld of view. We
+consider this variant to demonstrate extensibility to N-player,
+general-sum scenarios. We use N  4, and for simplicity, we
+consider chain tag in the shared brain setting only, assuming
+area includes circular obstacles that block UAVs elds of
+view. Agents receive high-variance observations for obstructed
+opponents in the same way as those outside the eld of view.
+A penalty is applied for colliding with these obstacles in the
+same manner as the exterior boundary. We consider this variant
+to showcase a complex environment which may incentivize
+nuanced hiding and detection behavior.
+B. Warehouse Pickup
+We also consider one non-pursuit-evasion example. Imagine
+a warehouse which uses an autonomous robot (P1) to load
+goods. P1 simply proceeds greedily towards the nearest task
+location. At a later time, an additional robot (P2), created
+by a different manufacturer, is introduced. Unlike P1, P2 is
+designed for multi-robot environments and does not proceed
+greedily towards task location, instead reasoning about other
+agents in a decentralized manner. P2 is connected to a simple
+station which broadcasts the locations of both robots.
+We seek a plan for P2 that works around P1s inability to
+cooperate. However, there is an additional wrinkle  locations
+broadcast by the station may be noisy. This inaccuracy is
+modeled as the sum of two components: inaccuracy caused
+by potentially stale data about a distant P1, and inaccuracy
+caused by channel noise between P2 and the station. We use
+P1s and P2s distance from the station, respectively, as proxies
+for the amount of noise incurred by these effects.
+Control. The warehouse is modeled by the [0, 1]2 space.
+Control is the same as in pursuit-evasion examples. P2 has a
+higher maximum velocity than P1.
+Costs. Both players are penalized by their distance from
+each target j. P2 is additionally penalized for proximity to
+pos x(1)
+2).  and
+control the weighting between P2s objectives and the scale
+used to determine proximity; we use   4.0 and   20.
+Observations. P1 only observes its own position perfectly.
+P2 observes its own position perfectly and P1s position
+imperfectly. Its observations of P1 are exact when both players
+are at the station (notated s : [0.5, 1.0]) and receive additive
+noise N(0, 2) where   1x(1)
+pos s2  2x(2)
+controls the strength of each noise component; here, we use
+Initialization. Both robots are randomly initialized any-
+where in the warehouse. We use two task locations, which
+are also random.
+Active information gathering behavior in a 4-step warehouse pickup
+environment. Background gradient indicates observation accuracy. Diamonds
+indicate P2s observations (observations 3 and 4 are out of bounds). Green
+circles indicate task locations.
+Fig. 4 visualizes correct behavior in the warehouse pickup
+scenario (as generated by Alg. 2). P2 (red) rst travels to the
+station to localize P1, then selects the task location further
+from P1 to prevent a collision.
+VI. RESULTS
+A. Improvement from Active Information Gathering
+As a baseline, we used an passive-gathering version of our
+solver which implements a variant of Eq. 1 where  maps
+only from past observations. We ran each of the four possible
+congurations  passive or active solver for each player
+on twenty independent trials for each scenario (seventy for the
+warehouse example). Each lasted twenty timesteps. We used
+Tfuture  Tpast  6,   0.1, Kall  1000, and Kbatch  10,
+except where noted.
+For simplicity of analysis, we assume equilibrium selec-
+tion succeeds and players nd the same equilibrium  we
+explicitly consider equilibrium selection in the next section.
+We terminate Alg. 2 after 100 gradient iterations (rather than
+allowing convergence) for a more level comparison between
+active and passive information gathering, as the active version
+typically takes more iterations to converge.
+The competitive behavior of the agents for each ac-
+tivepassive conguration and each scenario is quantied in
+Table I, listing the average costs (in distance units) achieved
+by each player over all trials with standard error. We do
+not include boundary penalties in the reported cost. Both
+pursuerP1 (blue) and evaderP2 (red) costs are shown in
+each cell. We note the following scenario-specic details:
+(1) TAG and HIDESEEK are effectively zero-sum, thus the
+apparent repetition. (2) In TAGCHAIN, mean costs for each
+team (evaders and pursuers) are used rather than individual
+costs. (3) In the WAREHOUSE example, P1 has no imperfect
+observations and therefore there is no distinction between
+active and passive modes.
+In all cases except one, our method for active informa-
+tion gathering elicits a reduction in cost. In Table I, blue
+(pursuer) costs are lower in the left column, which corresponds
+to that agent using active information gathering, and likewise
+red (evaderP2) costs are lower in the second row of each
+scenario. Figures 1 and 4 show the desirable, active plans in
+TAG and WAREHOUSE, where in both cases an information-
+gathering trajectory clearly outperforms a greedy plan. Several
+of these differences (particularly in TAG and WAREHOUSE)
+are statistically signicant with p < 0.05.
+The single exception to improvement is the evader in
+method. We reason that optimal evader strategy in this game
+is too complex to be captured with only Tpast past observa-
+step horizon is a poor strategic decision which unnecessarily
+complicates the optimization procedure.
+pursuer(s)
+pursuer(s)
+Passive evader
+Active evader
+TAGCHAIN
+Passive evaders
+Active evaders
+HIDESEEK
+Passive evader
+Active evader
+Passive P1
+Active P1
+WAREHOUSE
+Passive P2
+Active P2
+COSTS IN PASSIVEACTIVE CONFIGURATIONS, PER SCENARIO
+B. Timing and Convergence
+While this method is not yet real-time, we do report some
+preliminary timing results.
+Table II gives the average wall time per gradient step,
+per player, for each scenario. We average over 20 trials,
+otherwise using the same setup as in the previous experiments.
+(Note that the particle distribution updates take a negligible
+amount of time in comparison). Based on these results, we
+believe real-time execution is within reach, particularly as
+code optimization, GPU support, better handling of matrix
+improvements.
+Scenario
+Time (seconds)
+TAGCHAIN
+HIDESEEK
+WAREHOUSE
+TABLE II
+OPTIMIZATION TIMES PER GRADIENT STEP, PER PLAYER
+As noted previously, Alg. 4 is not guaranteed to converge in
+all scenarios  for instance, some congurations of pursuit-
+evasion have mixed strategy solutions which cannot be found
+using pure gradient play. However, empirically, we note that
+the algorithm converges well when pure strategy solutions
+are available. Figure 5 shows the cost convergence when
+optimizing the rst step of WAREHOUSE over 600 gradient
+P1. While there is still inherent noise due to the method
+of stochastic gradient play, the method largely converges,
+and as policy parameters from the previous timestep are
+reused as initial parameters, subsequent steps benet from past
+optimization (motivating our choice of 100 gradient steps in
+our experiments).
+P2s cost as the rst step of WAREHOUSE is solved. Ribbon indicates
+standard error.
+We also examined empirical scaling with respect to the
+method parameters. Table III shows scaling behavior w.r.t
+Tfuture over ten trials. The relation between Tfuture and time-to-
+converge is theoretically exponential: the number of possible
+world congurations, and ergo particles that must be pro-
+early in the plan limits potential future congurations (and
+reduces the future cost). (On the other hand, we found little
+relation between Tpast and time-to-converge, which we believe
+to be specic to the relatively atemporal games we analyzed.)
+Wall Time (s)
+TABLE III
+particles per batch Kbatch. (Kall has little effect on convergence,
+as gradient play, the most expensive component, only occurs
+over the batch). Insufcient Kbatch results in fast convergence
+to an information-unaware minimum, as indicated in Table IV.
+Wall Time (s)
+TABLE IV
+C. Equilibrium Agreement
+In general, POSGs can admit arbitrarily many equilibria in
+deterministic strategies, and determining which equilibrium
+an opponent is playing is a fundamental difculty of agent
+modeling. Section IV-C details our approach to minimizing
+this issue. In this section we analyze how well this approach
+performs.
+We tested ordinary eld of view tag with different settings
+of Neq for each player, playing the game for 100 steps but
+otherwise keeping the same setup as Section VI-A. Figure
+6 shows distance between the pursuer and evader for each
+conguration of Neq (blue congurations favor the pursuer;
+red favor the evader). Performance improves for both players
+with more equilibrium solves. Games with insufcient Neq
+favor the evader, possibly because pursuer equilibrium policies
+(which converge on the evader) are more similar than evader
+equilibrium policies (which diverge).
+To conrm that this improvement is actually caused by bet-
+ter opponent modeling, we tracked the approximate expected
+negative log likelihood (surprisal) of the true opponent position
+for various settings of Neq for each agent, using a Gaussian
+approximation of q(i)
+) and taking Neq  4 for the
+opponent. Higher values indicate the opponent true position
+is not captured by q(i)
+t . Figure 7 shows the results, indicating
+that a greater number of solves decreases uncertainty about
+the opponent position. The pursuer tends to receive more in-
+formative observations, improving its estimates independently
+of Neq; this causes the discrepancy between pursuer and evader
+seen in Figure 7. Note that trials for each setting of Neq are
+seeded by sample number.
+Distance between players in eld of view tag for different
+congurations of Neq Red congurations favor the evader; blue favor the
+pursuer.
+Negative log likelihood of opponent position for settings of Neq.
+Logarithmic scale. Ribbons indicate standard error.
+VII. CONCLUSION
+A. Summary
+In this work we discussed rational information gathering in
+the context of model predictive game planning. We formulated
+the active planning problem in a nite-historyhorizon setting,
+and described a basic method for incorporating potential
+future observations into the planning procedure using gradient
+play and a number of approximations and additions to make
+the method suitable for independent planning agents. Using
+that method, we showed that active information gathering is
+indeed competitively preferable for players in variants of a
+pursuit-evasion game, and provided additional analysis on the
+parameters of the solution method.
+B. Limitations
+As noted, we implemented our approach with no attention
+given to fast planning. In reality, code and hardware optimiza-
+tions make this prospect more likely, making this approach
+online in both the analytical and practical sense.
+More fundamentally, we have assumed a nite history of
+observations is suitably informative, and as we discussed
+regarding the hide-and-seek example, performance suffers
+when this is not the case. There are many potential approaches
+to handling the curse of history, and applying any of them in
+a way that avoids the need for recursively hierarchical beliefs
+is a promising research direction.
+The method is also subject to all assumptions made in
+Section III-A. In particular, nondeterministic strategies can be
+permitted with a minor formulation change, and the ability
+to deliberately, directly introduce uncertainty into the state is
+quite consequential in settings permitting information gath-
+ering (and also potentially permits theoretical convergence
+guarantees). Combining imperfect information methods with
+mixed-strategy approaches like that in  may be a source
+of further improvement in competitive play.
+REFERENCES
+Stefano V Albrecht, Filippos Christianos, and Lukas
+Schafer.
+Multi-agent reinforcement learning: Founda-
+tions and modern approaches. MIT Press, 2024.
+Anton Bakhtin, David J Wu, Adam Lerer, Jonathan Gray,
+Athul Paul Jacob, Gabriele Farina, Alexander H Miller,
+and Noam Brown.
+Mastering the game of no-press
+diplomacy via human-regularized reinforcement learning
+and planning. arXiv preprint arXiv:2210.05492, 2022.
+Tamer Basar and Georges Zaccour. Handbook of dynamic
+game theory. Springer, 2018.
+Tyler Becker and Zachary Sunberg. Bridging the Gap be-
+tween Partially Observable Stochastic Games and Sparse
+POMDP Methods, May 2024. URL
+Jeff Bezanson, Alan Edelman, Stefan Karpinski, and
+Viral B Shah.
+computing. SIAM review, 59(1):6598, 2017.
+Noam Brown, Adam Lerer, Sam Gross, and Tuomas
+Sandholm.
+Deep counterfactual regret minimization.
+In International conference on machine learning, pages
+Simon Le Cleach, Mac Schwager, and Zachary Manch-
+ester. Algames: A fast solver for constrained dynamic
+games. arXiv preprint arXiv:1910.09713, 2019.
+Piotr J Gmytrasiewicz and Prashant Doshi.
+Interac-
+tive pomdps: Properties and preliminary results.
+International Conference on Autonomous Agents: Pro-
+ceedings of the Third International Joint Conference on
+Autonomous Agents and Multiagent Systems-, volume 3,
+Yanlin Han and Piotr Gmytrasiewicz. Learning others
+intentional models in multi-agent settings using interac-
+tive pomdps. Advances in Neural Information Processing
+Johannes Heinrich and David Silver. Deep reinforcement
+learning from self-play in imperfect-information games.
+arXiv preprint arXiv:1603.01121, 2016.
+Mike Innes. Flux: Elegant machine learning with julia.
+Journal of Open Source Software, 3(25):602, 2018.
+Vojtech Kovark, Martin Schmid, Neil Burch, Michael
+partially observable multiagent decision making. Arti-
+cial Intelligence, 303:103645, 2022.
+Forrest Laine, David Fridovich-Keil, Chih-Yuan Chiu,
+and Claire Tomlin.
+Multi-hypothesis interactions in
+game-theoretic motion planning. In 2021 IEEE Interna-
+tional Conference on Robotics and Automation (ICRA),
+pages 80168023. IEEE, 2021.
+Marc Lanctot, Vinicius Zambaldi, Audrunas Gruslys,
+Angeliki Lazaridou, Karl Tuyls, Julien Perolat, David
+A unied game-theoretic
+approach to multiagent reinforcement learning. Advances
+in neural information processing systems, 30, 2017.
+Eric Mazumdar, Lillian J Ratliff, and S Shankar Sastry.
+On gradient-based learning in continuous games. SIAM
+Journal on Mathematics of Data Science, 2(1):103131,
+Stephen McAleer, JB Lanier, Kevin A Wang, Pierre
+Algorithm for Extensive-Form Games.
+In Advances
+in Neural Information Processing Systems, volume 34,
+pages 2312823139. Curran Associates, Inc., 2021.
+c2e06e9a80370952f6ec5463c77cbace-Abstract.html.
+Julien Perolat, Bart De Vylder, Daniel Hennes, Eugene
+Jerome T Connor, Neil Burch, Thomas Anthony, et al.
+Mastering the game of stratego with model-free multi-
+agent reinforcement learning. Science, 378(6623):990
+Lasse Peters, David Fridovich-Keil, Laura Ferranti, Cyrill
+ing mixed strategies in trajectory games.
+Robert Platt Jr, Russ Tedrake, Leslie Pack Kaelbling, and
+Tomas Lozano-Perez.
+Belief space planning assuming
+maximum likelihood observations. In Robotics: Science
+and systems, volume 2, 2010.
+Dorsa Sadigh, S Shankar Sastry, Sanjit A Seshia, and
+Anca Dragan. Information gathering actions over human
+internal state. In 2016 IEEERSJ International Confer-
+ence on Intelligent Robots and Systems (IROS), pages
+Brian Scassellati. Theory of mind for a humanoid robot.
+Autonomous Robots, 12:1324, 2002.
+Wilko Schwarting, Alyssa Pierson, Sertac Karaman, and
+Daniela Rus. Stochastic dynamic games in belief space.
+IEEE Transactions on Robotics, 37(6):21572172, 2021.
+Jonathon Schwartz, Ruijia Zhou, and Hanna Kurniawati.
+Online planning for interactive-pomdps using nested
+monte carlo tree search. In 2022 IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+pages 87708777. IEEE, 2022.
+Oskari Tammelin, Neil Burch, Michael Johanson, and
+Michael Bowling. Solving heads-up limit texas holdem.
+In Twenty-fourth international joint conference on arti-
+cial intelligence, 2015.
+Oriol Vinyals, Igor Babuschkin, Wojciech M Czarnecki,
+Michael Mathieu, Andrew Dudzik, Junyoung Chung,
+David H Choi, Richard Powell, Timo Ewalds, Petko
+multi-agent reinforcement learning. nature, 575(7782):
+Nikos Vlassis, Michael L Littman, and David Barber.
+On the computational complexity of stochastic controller
+optimization in pomdps. ACM Transactions on Compu-
+tation Theory (TOCT), 4(4):18, 2012.
+Zijian Wang, Riccardo Spica, and Mac Schwager. Game
+theoretic motion planning for multi-robot racing.
+Distributed Autonomous Robotic Systems: The 14th In-
+ternational Symposium, pages 225238. Springer, 2019.
+Yaodong Yang and Jun Wang. An overview of multi-
+agent reinforcement learning from game theoretical per-
+spective. arXiv preprint arXiv:2011.00583, 2020.

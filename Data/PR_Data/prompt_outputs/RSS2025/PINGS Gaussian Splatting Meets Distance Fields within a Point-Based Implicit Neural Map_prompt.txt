@@ -1,0 +1,1262 @@
+=== PDF文件: PINGS Gaussian Splatting Meets Distance Fields within a Point-Based Implicit Neural Map.pdf ===
+=== 时间: 2025-07-21 14:28:40.242334 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：within a Point-Based Implicit Neural Map
+Xingguang Zhong
+Liren Jin
+Louis Wiesmann
+Marija Popovic
+Jens Behley
+Cyrill Stachniss,
+Center for Robotics, University of Bonn, Germany
+Lamarr Institute for Machine Learning and Articial Intelligence, Germany
+Neural Points
+Distance Field:
+Surface Mesh
+Radiance Field:
+Rendered Image
+Large-scale SLAM
+timestep
+Fig. 1: We present PINGS, a novel LiDAR-visual SLAM system unifying distance eld and radiance eld mapping using an elastic point-
+based implicit neural representation. On the left, we show a globally consistent neural point map overlaid on a satellite image. The map was
+built using PINGS from around 10,000 LiDAR scans and 40,000 images collected by a robot car driving in an urban environment for around
+5 km. The estimated trajectory is overlaid on the map and colorized according to the timestep. On the right, we show a zoomed-in view
+of a roundabout mapped by PINGS. It illustrates from left to right the rendered image from the Gaussian splatting radiance eld, neural
+points colorized by the principal components of their geometric features, and the reconstructed mesh from the distance eld (colorized by
+the radiance eld). The red line indicates the local trajectory of the robot car (shown as the CAD model).
+AbstractRobots benet from high-delity reconstructions of
+their environment, which should be geometrically accurate and
+photorealistic to support downstream tasks. While this can be
+achieved by building distance elds from range sensors and
+radiance elds from cameras, realising scalable incremental
+mapping of both elds consistently and at the same time with
+high quality is challenging. In this paper, we propose a novel
+map representation that unies a continuous signed distance
+eld and a Gaussian splatting radiance eld within an elastic
+and compact point-based implicit neural map. By enforcing
+geometric consistency between these elds, we achieve mutual
+improvements by exploiting both modalities. We present a novel
+LiDAR-visual SLAM system called PINGS using the proposed
+map representation and evaluate it on several challenging large-
+scale datasets. Experimental results demonstrate that PINGS can
+incrementally build globally consistent distance and radiance
+elds encoded with a compact set of neural points. Compared to
+state-of-the-art methods, PINGS achieves superior photometric
+and geometric rendering at novel views by constraining the radi-
+ance eld with the distance eld. Furthermore, by utilizing dense
+photometric cues and multi-view consistency from the radiance
+improved odometry estimation and mesh reconstruction. We also
+provide an open-source implementation of PINGS.
+I. INTRODUCTION
+The ability to perceive and understand the surroundings
+is fundamental for autonomous robots. At the core of this
+capability lies the ability to build a map  a digital twin of the
+robots workspace that is ideally both geometrically accurate
+and photorealistic, enabling effective spatial awareness and
+operation of the robot [24, 41].
+Previous works in robotics mainly focus on the incremental
+mapping of an occupancy grid or a distance eld using range
+based implicit neural representation can effectively model a
+continuous signed distance eld (SDF) for LiDAR simultane-
+ous localization and mapping (SLAM), enabling both accurate
+localization and globally consistent mapping.
+or distance elds [49, 51] fall short of providing photorealistic
+novel view rendering of the scene, which is crucial for applica-
+tions requiring dense photometric information. This capability
+can be achieved by building an additional radiance eld with
+visual data using representations such as neural radiance eld
+(NeRF)  or a 3D Gaussian splatting (3DGS) model .
+Recent works demonstrated the potential of radiance elds,
+especially 3DGS, for various robotic applications including
+human-robot interaction , scene understanding [92, 97],
+simulation or world models for robotics learning [2, 12, 81],
+visual localization [4, 42], and active reconstruction [26, 27].
+image collections in bounded scenes with ofine processing,
+limiting their applicability for mobile robotic applications.
+In this paper, we investigate how to simultaneously build
+elds as well as accurate distance elds for large-scale en-
+vironments using LiDAR and camera data. Building upon
+PIN-SLAMs  point-based neural map for distance elds
+and inspired by Scaffold-GS , we propose a novel point-
+based model that additionally represents a Gaussian splatting
+radiance eld. By enforcing mutual supervision between these
+elds during incremental mapping, we achieve both improved
+rendering quality from the radiance eld and more accurate
+distance eld for better localization and surface reconstruction.
+The main contribution of this paper is a novel LiDAR-visual
+SLAM system, called PINGS, that incrementally builds contin-
+uous SDF and Gaussian splatting radiance elds by exploiting
+their mutual consistency within a point-based neural map. The
+distance eld and radiance eld infered from the elastic neural
+points enable robust pose estimation while maintaining global
+consistency through loop closure correction. The compact
+neural point map can be efciently stored and loaded from
+distance eld and high-delity real-time novel view rendering
+from the radiance eld, as shown in Fig. 1.
+In sum, we make four key claims: (i) PINGS achieves better
+RGB and geometric rendering at novel views by constraining
+the Gaussian splatting radiance eld using the signed distance
+eld; (ii) PINGS builds a more accurate signed distance eld
+for more accurate localization and surface reconstruction by
+leveraging dense photometric cues from the radiance eld; (iii)
+PINGS enables large-scale globally consistent mapping with
+loop closures; (iv) PINGS builds a more compact map than
+previous methods for both radiance and distance elds.
+Our open-source implementation of PINGS is publicly
+available at:
+II. RELATED WORK
+A. Point-based Implicit Neural Representation
+Robotics has long relied on explicit map representations
+with discrete primitives like point clouds , surfels [3, 73],
+localization  and planning .
+to model radiance elds  and geometric (occupancy or dis-
+tance) elds [44, 49, 52] using multi-layer perceptrons (MLP).
+These continuous representations offer advantages like com-
+pact storage, and better handling of regions with sparse obser-
+vations or occlusions, while supporting conversion to explicit
+representations for downstream tasks.
+Instead of using a single MLP for the entire scene, recent
+methods use hybrid representations that combine local feature
+vectors with a shared shallow MLP. Point-based implicit neural
+representations [51, 79] store optimizable features in a neural
+point cloud, which has advantages over grid-based alternatives
+through its exible spatial layout and inherent elasticity under
+transformations for example caused by loop closures.
+Point-based implicit neural representations have been used
+for modeling either radiance elds or distance elds for vari-
+ous applications including differentiable rendering [8, 79], dy-
+namic scene modeling , surface reconstruction , visual
+odometry [56, 86], and globally consistent mapping . For
+elds with neural points for odometry estimation and uses the
+elasticity of these neural points during loop closure correction.
+In this paper, we propose a novel LiDAR-visual SLAM
+system that is built on top of PIN-SLAM  and encodes
+a Gaussian splatting radiance eld within neural points while
+jointly optimizing it alongside the distance eld. Compared to
+NeRF-based approaches [8, 79], this offers faster novel view
+rendering suitable for robotics applications.
+B. Gaussian Splatting Radiance Field
+NeRF  pioneered the use of MLPs to map 3D positions
+and view directions to color and volume density, encoding
+radiance elds through volume rendering-based training with
+posed RGB images. More recently, 3DGS  introduced
+explicit 3D Gaussian primitives to represent the radiance
+to NeRF-based methods, 3DGS is more efcient by using
+primitive-based differentiable rasterization  instead of ray-
+wise volume rendering. The explicit primitives also enables
+editing and manipulation of the radiance eld. These proper-
+ties make 3DGS promising for robotics applications [2, 26,
+geometric accuracy and scalability for incremental mapping.
+We discuss the related works addressing geometric accuracy
+in the following and addressing scalable mapping in Sec. II-C.
+While 3DGS achieves high-delity photorealistic rendering,
+it often lacks the geometric accuracy. To tackle this limitation,
+SuGaR  uses a hybrid representation to extract meshes
+from 3DGS and align the Gaussian primitives with the surface
+meshes. To address the ambiguity in surface description,
+another solution is to atten the 3D Gaussian ellipsoids to
+2D disks [11, 23, 25, 85]. The 2D disks gradually align with
+surfaces during training, enabling more accurate depth and
+normal rendering. However, extracting surface meshes from
+these discrete primitives still requires either TSDF fusion
+with rendered depth or Poisson surface reconstruction .
+Another line of works [58, 84] model discrete Gaussian
+opacity as a continuous eld, similar to NeRF-based surface
+reconstruction . Several works [6, 39, 83] jointly train a
+distance eld with 3DGS and align the Gaussian primitives
+with the zero-level set of the distance eld to achieve accurate
+surface reconstruction. However, these methods rely solely on
+image rendering supervision for both 3DGS and neural SDF
+training without direct 3D geometric constraints, leading to
+ambiguities in textureless or specular regions. The volume
+rendering-based SDF training also impacts efciency.
+While 3DGS originally uses structure-from-motion point
+directly from LiDAR measurements [10, 21, 78]. Direct depth
+measurements can further supervise depth rendering to im-
+prove geometric accuracy and convergence speed [25, 42].
+Our approach uniquely combines geometrically consistent
+2D Gaussian disks with a neural distance eld supervised
+by direct LiDAR measurements, enforcing mutual geometric
+consistency between the representations. This differs from GS-
+elds without mutual supervision.
+C. Large-Scale 3D Reconstruction
+This paper focuses on online large-scale 3D reconstruction.
+There have been numerous works for the scalable occupancy
+or distance eld mapping in the past decade, using efcient
+data structures such as an Octree [22, 93], voxel hashing [33,
+Scalable radiance eld mapping has also made signicant
+progress recently. For large scale scenes captured by aerial
+results using level-of-detail rendering and neural Gaussian
+compression. For driving scenes with short sequences contain-
+ing hundreds of images, both NeRF-based [54, 81] and 3DGS-
+based [9, 13, 19, 80, 90, 95] approaches have demonstrated
+high-delity ofine radiance eld reconstruction, enabling
+closed-loop autonomous driving simulation [9, 81].
+at ground level with thousands of images remains chal-
+lenging due to scene complexity and memory constraints.
+BlockNeRF  addresses this by dividing scenes into over-
+lapping blocks, training separate NeRFs per block, and consol-
+idating them during rendering. Similarly, SiLVR  employs
+a submap strategy for scalable NeRF mapping. For 3DGS,
+hierarchical 3DGS  introduces a level-of-detail hierarchy
+that enables real-time rendering of city-scale scenes. The
+aforementioned methods require time-consuming structure-
+from-motion preprocessing and ofine divide-and-conquer
+While there are several works on incremental mapping and
+SLAM with NeRF [49, 56, 60] or 3DGS [29, 42, 72, 96], they
+primarily focus on bounded indoor scenes and struggle with
+our target scenarios. Our proposed system enables incremental
+radiance and distance eld mapping at the scale of previous
+ofine methods [31, 61], while achieving globally consistent
+3D reconstruction through loop closure correction.
+III. OUR APPROACH
+Our approach, called PINGS, is a LiDAR-visual SLAM sys-
+tem that jointly builds globally consistent Gaussian splatting
+radiance elds and distance elds for large-scale scenes.
+Notation. In the following, we denote the transformation
+from coordinate frame A to frame B as TBA SE(3),
+such that point pB  TBApA, with rotation RBA SO(3)
+and translation tBA R3, where the rotation is also param-
+eterized by a unit quaternion q. At timestep t, each sensor
+frame St (LiDAR frame Lt or camera frame Ct) is related to
+the world frame W by pose TW St, with TW S0 xed as identity.
+We denote the rotation of a vector v R3 by a quaternion q
+as qvq1 and the multiplication of two quaternions as q1q2.
+Overview. We assume the robot is equipped with a LiDAR
+sensor and one or multiple cameras. At each timestep t, the
+input to our system is a LiDAR point cloud P  {p R3}
+and M camera images I  {Ii RHW 3  i  1, . . . , M}
+collected by the robot. We assume the calibration of the
+LiDAR and cameras to be known but allow for the imper-
+fect synchronization among the sensors. Our system aims to
+simultaneously estimate the LiDAR pose TW Lt while updating
+a point-based implicit neural map M, which models both a
+SDF and a radiance eld, as summarized in Fig. 2.
+A. Point-based Implicit Neural Map Representation
+We dene our point-based implicit neural map M as a set
+of neural points, given by:
+M  {mi  (xi, qi, f g
+where each neural point mi is dened in the world frame W
+by a position xi R3 and a quaternion qi R4 representing
+the orientation of its own coordinate frame. Each neural point
+stores the optimizable geometric feature vector f g
+and appearance feature vector f a
+i RFa. In addition, we
+keep track of each neural points creation timestep  c
+last update timestep  u
+to determine its active status and
+associate the neural point with the LiDAR pose TW L at the
+middle timestep i  ( c
+i )2between  c
+i and  u
+allowing direct map manipulation through pose updates.
+We maintain a voxel hashing  data structure V with a
+voxel resolution vp for fast neural point indexing and neighbor
+During incremental mapping, we dynamically update the
+neural point map based on point cloud measurements. For
+each newly measured point pW in the world frame, we check
+its corresponding voxel in V. If no active neural point exists
+in that voxel, we initialize a new neural point m with the
+position x  pW , an identity quaternion q  (1, 0, 0, 0), and
+the feature vectors f g  0, f a  0. Additionally, we dene a
+local map Ml centered at the current LiDAR position tW Lt,
+which contains all active neural points within radius rl. To
+avoid incorporating inconsistent historical observations caused
+by odometry drift, both map optimization and odometry esti-
+mation are operated only within this local map Ml. After the
+map optimization at each timestep, we reassign the local map
+Ml into the global map M.
+both the SDF (Sec. III-B) and the radiance eld (Sec. III-C).
+Neural point map
+Signed distance field
+GS radiance field
+Training data pool
+rasterization
+initialize
+operation flow
+gradient flow
+Fig. 2: Overview of PINGS: We take a stream of LiDAR point clouds P and camera images I as input. We initialize a neural point map
+M from P and maintain a training pool of SDF-labeled points Qp and recent images Qi. The map uses a voxel hashing structure V where
+each neural point stores geometric features f g and appearance features f a. These features are used to predict SDF values S(p) at an
+arbitrary position p and spawn Gaussian primitives G through MLP decoders. We compute three kind of losses: (1) Gaussian splatting loss
+Lgs comparing rendered images through differentiable rasterization and reference images in the training pool, (2) SDF loss Lsdf comparing
+predicted SDF and labels of the sampled points in the training pool, and (3) consistency loss Lcons to align the geometry of both representations.
+The losses are backpropagated to optimize the neural point features f g and f a. Meanwhile, we estimate LiDAR odometry by aligning the
+point cloud to current SDF and backpropagate Lgs to rene the camera poses. The nal outputs are LiDAR poses TW Lt, camera poses TW Ct,
+and a compact neural point map M representing both SDF and Gaussian splatting radiance elds, enabling various robotic applications.
+B. Neural Signed Distance Field
+For the modeling and online training of a continuous SDF
+using the neural points, we follow the same strategy as in
+PIN-SLAM  and present a recap in this section.
+We model the SDF value s at a query position p in the world
+frame W conditioned on its nearby neural points. For each
+neural point mj in the k-nearest neighborhood Np of p, we
+dene the relative coordinate dj  qj(pxj)q1
+denoting p
+in the local coordinate system of mj. Then, we feed the
+geometric feature vector f g
+j and the relative coordinate dj
+to a globally shared SDF decoder Dd to predict the SDF sj:
+sj  Dd(f g
+As shown in Fig. 3 (a), the predicted SDF values sj of the
+neighboring neural points at the query position p are then
+interpolated as the nal prediction s  S(p), given by:
+with the interpolation weights wj  p xj2.
+To optimize the neural SDF represented by the neural point
+geometric features {f g
+i1 and the SDF decoder Dd, we
+sample points along the LiDAR rays around the measured end
+points and in the free space. We take the projective signed
+distance along the ray as a pseudo SDF label for each sample
+point. For incremental learning, we maintain a training data
+pool Qp containing sampled points from recent scans, with a
+maximum capacity and bounded by a distance threshold from
+the current robot position. At each timestep, we sample from
+the training data pool in batches and predict the SDF value at
+the sample positions. The SDF training loss Lsdf is formulated
+as a weighted sum of the binary cross entropy loss term Lbce
+and the Eikonal loss term Leik, given by:
+Lsdf  bceLbce  eikLeik.
+The loss term Lbce applies a soft supervision on the SDF
+values by comparing the sigmoid activation of both the pre-
+dictions and the pseudo labels. The Eikonal loss term Leik
+regularizes the SDF gradients by enforcing the Eikonal con-
+1 for the sampled points. For more details regarding the SDF
+The incrementally built neural SDF map can then be used
+for LiDAR odometry estimation and surface mesh extraction.
+C. Neural Gaussian Splatting Radiance Field
+We use camera image streams I to construct a radiance
+eld by spawning Gaussian primitives from our neural point
+map M and optimizing M via differentiable rasterization.
+Neural Point-based Gaussian Spawning. Inspired by
+spawning Gaussian primitives, see Fig. 3 (b). For each neural
+point m lying within the current camera frustum, we spawn K
+Gaussian primitives by feeding its feature vectors (f g, f a)
+through globally shared MLP decoders. We parameterize each
+spawned Gaussian primitive g with its position  R3 in the
+world frame, rotation r R4 in the form of a unit quaternion,
+scale s R3, opacity  [1 , 1], and RGB color c [0 , 1]3.
+Neural point
+3D Gaussian ellipsoid
+Gaussian surfel with normal
+Fig. 3: Example of neural point-based SDF prediction, Gaussian primitives spawning, and the geometric consistency of PINGS: (a) SDF
+prediction at a query point through weighted interpolation of predictions from neighboring neural points. (b) Neural points spawning multiple
+Gaussian primitives to compose the radiance eld. (c) Example of an accurate SDF but geometrically inaccurate radiance eld with 3D
+Gaussian ellipsoids in regions with dense LiDAR coverage but sparse camera views, weak texture, or poor lighting. (d) Example of a
+geometrically accurate radiance eld but inaccurate SDF in regions with rich visual data but sparse LiDAR measurements. (e) Our solution:
+attening 3D Gaussian ellipsoids to surfels and enforcing geometric consistency by aligning surfel centers with the SDF zero-level set and
+aligning surfel normals with SDF gradients, resulting in accurate geometry for both elds.
+Each neural point spawns Gaussian primitives in its local
+coordinate frame dened by its position x and orientation q.
+The world-frame position i of each spawned primitive is:
+{i  qoiq1  x  oi Do(f g)}K
+where Do is the offset decoder that maps the geometric
+feature f g to a set of K local offsets {oi}K
+transformed into the world frame through quaternion rotation
+and translation. Likewise, the rotation ri of each spawned
+Gaussian primitive is predicted by the rotation decoder Dr
+and then rotated by quaternion q as:
+{ri  qri  ri Dr(f g)}K
+The scale decoder Ds predicts each primitives scale si as:
+i1  Ds(f g) .
+We predict opacity values  in the range [1, 1] and treat
+only Gaussian primitives with positive opacity as being valid.
+To adaptively control spatial density of Gaussian primitives
+based on viewing distance, we feed the geometric feature f g
+and the view distance v  x tW C2 into the opacity
+decoder D. This implicitly encourages the network to predict
+fewer valid Gaussians for distant points and more for nearby
+each Gaussian primitive is predicted as:
+i1  D(f g, v) .
+For view-dependent color prediction, we take a dif-
+approach
+spherical
+harmonics
+3DGS . We feed the appearance feature f a and the
+view direction dv  (x tW C)v to the color decoder Dc
+to predict the color ci of each Gaussian primitive, given by:
+i1  Dc(f a, q1dvq) ,
+where the view direction dv is also transformed into the local
+coordinate system of the neural point.
+Note that we treat position, rotation, scale, and opacity
+as geometric attributes of a Gaussian primitive, using the
+geometric feature f g for their prediction, while using the
+appearance feature f a to predict color.
+Gaussian Splatting Rasterization. We gather all the valid
+Gaussians primitives G  spawned at the current viewpoint:
+The distribution of each Gaussian primitive gi in the world
+frame is represented as:
+N(x; i, i)  exp
+where the covariance matrix i is reparameterized as:
+i  R(ri) S(si) S(si)R(ri),
+where R(ri) SO(3) is the rotation matrix derived from the
+quaternion ri and S(si)  diag(si) R33 is the diagonal
+scale matrix composed of the scale si on each axis.
+Using a tile-based rasterizer , we project the Gaussian
+primitives to the 2D image plane and sort them according to
+depth efciently. The projected Gaussian distribution is:
+(TCW ) ,
+where  and  are the projected mean and covariance,
+denotes the perspective projection, J is the Jacobian of the
+projective transformation, and W is the viewing transforma-
+tion deduced from current camera pose TW C. The rendered
+RGB image I at each pixel u is computed via alpha blending:
+where the weight wi of each of the depth-sorted Gaussian
+primitives G(u) covering pixel u is given by:
+wi  Tii , Ti
+where i is the projected opacity of the i-th Gaussian
+i) evaluated at pixel u with the projected mean
+and covariance
+Gaussian Surfels Training. To achieve accurate and multi-
+view consistent geometry, we adopt Gaussian Surfels , a
+state-of-the-art 2DGS representation , by attening 3D
+Gaussian ellipsoids into 2D disks (last dimension of scale
+sz  0). For each pixel u, we compute the surfel depth d (u)
+as the ray-disk intersection distance, and obtain the normal n
+as the third column of the rotation matrix R(r). Using alpha
+using the weights wi calculated in Eq. (15):
+widi (u) ,
+Given the training view with the RGB image bI and the
+sparse depth map bD projected from the LiDAR point cloud,
+we dene the Gaussian splatting loss Lgs combining the
+photometric rendering Lphoto, depth rendering Ldepth, and area
+regularization Larea terms, given by:
+Lgs  photoLphoto  depthLdepth  areaLarea,
+Lphoto  0.8  L1
+0.2  Lssim
+Ldepth  L1
+where L1 is the L1 loss, Lssim is the structural similarity
+index measure (SSIM) loss , sx
+i and sy
+i are the scales of
+the Gaussian surfel gi. The area loss term Larea encourages
+minimal overlap among the surfels covering the surface.
+To handle inaccurate camera poses resulting from imperfect
+LiDAR odometry and camera-LiDAR synchronization, we
+jointly optimize the camera poses on a manifold during radi-
+ance eld training . We also account for real-world lighting
+variations by optimizing per-frame exposure parameters .
+D. Joint Optimization with Geometric Consistency
+To enforce mutual alignment between the surfaces rep-
+resented by the SDF and Gaussian splatting radiance eld,
+we futhermore propose to jointly optimize the geometric
+consistency. This joint optimization helps resolve geometric
+ambiguities in the radiance eld through the direct surface
+description of SDF, while simultaneously rening SDFs ac-
+curacy in regions with sparse LiDAR measurements using the
+dense photometric cues and multi-view consistency from the
+radiance eld, see Fig. 3 (c), (d), and (e).
+For each sampled Gaussian surfel, we randomly sample
+points along its normal direction n from the center  with
+random offsets  U (max, max). We enforce geometric
+consistency between the SDF and Gaussian surfels through a
+two-part consistency loss Lcons, given by:
+Lcons  d
+S (i  ini) i ,
+1 S (i  ini)T ni
+S (i  ini)
+where Ld
+cons enforces SDF values to match sampled offsets via
+an L1 loss, and Lv
+cons aligns SDF gradients S at the sampled
+points with surfel normals n using cosine distance.
+We dene the total loss L given by the sum of the SDF loss
+Lsdf in Eq. (4), Gaussian splatting loss Lgs in Eq. (17), and
+the geometric consistency loss Lcons in Eq. (21):
+L  Lsdf  Lgs  Lcons.
+We jointly optimize the neural point features {f g
+decoder parameters, camera poses, and exposure correction
+parameters to minimize the total loss L.
+E. PINGS LiDAR-Visual SLAM System
+We devise a LiDAR-visual SLAM system called PINGS
+using the proposed map representation, built on top of the
+LiDAR-only PIN-SLAM  system. PINGS alternates be-
+tween two main steps: (i) mapping: incremental learning of
+the local neural point map Ml, which jointly models the SDF
+and Gaussian splatting radiance eld, and (ii) localization:
+odometry estimation using the learned SDF. In addition, loop
+closure detection and pose graph optimization run in parallel.
+We initialize PINGS with 600 iterations of SDF training
+using only the rst LiDAR scan. At subsequent timesteps, we
+jointly train the SDF and radiance eld for 100 iterations. To
+prevent catastrophic forgetting during incremental mapping,
+we freeze decoder parameters after 30 timesteps and only up-
+date neural point features. We found the decoders converge on
+learning the interpretation capability within these 30 frames.
+We maintain sliding window-like training pools Qp and Qi
+containing SDF-labeled sample points and image data whose
+view frustum overlaps with the local map Ml, respectively.
+Each training iteration samples one image from Qi and 8192
+points from Qp for optimization.
+We estimate LiDAR odometry by aligning each new scan
+to the SDFs zero level set using an efcient Gauss-Newton
+optimization  that requires only SDF values and gradients
+queried at source point locations, eliminating the need for
+explicit point correspondences. Initial camera poses are de-
+rived from the LiDAR odometry and extrinsic calibration, then
+rened via gradient descent during the radiance eld optimiza-
+tion to account for imperfect camera-LiDAR synchronization,
+as described in Sec. III-C.
+In line with PIN-SLAM, we detect loop closures using
+the layout and features of the local neural point map. We
+then conduct pose graph optimization to correct the drift of
+the LiDAR odometry and get globally consistent poses. We
+move the neural points along with their associated LiDAR
+frames to keep a globally consistent map. Suppose T is the
+pose correction matrix of LiDAR frame Li after pose graph
+each neural point associated with Li as:
+where q is the rotation part of T in the form of a
+quaternion. Since the positions, rotations, and colors of the
+spawned Gaussian primitives are predicted in the local frames
+of their anchor neural points, see Eq. (5), Eq. (6), and Eq. (9),
+they automatically transform with their anchor neural points,
+thus maintaining the global consistency of the radiance eld.
+PINGS aims to build static distance and radiance elds
+without artifacts from dynamic objects. Since measured points
+with large SDF values in stable free space likely correspond to
+dynamic objects , we identify neural points representing
+dynamic objects through SDF thresholding. We disable Gaus-
+sian primitive spawning for these points, effectively preventing
+dynamic objects from being rendered from the radiance eld.
+IV. EXPERIMENTAL EVALUATION
+The main focus of this paper is an approach for LiDAR-
+visual SLAM that unies Gaussian splatting radiance elds
+and signed distance elds by leveraging their mutual consis-
+tency within a point-based implicit neural map representation.
+We present our experiments to show the capabilities of our
+method called PINGS. The results of our experiments support
+our key claims, which are: (i) PINGS achieves better RGB
+and geometric rendering at novel views by constraining the
+Gaussian splatting radiance eld using the SDF; (ii) PINGS
+builds a more accurate SDF for more accurate localization
+and surface reconstruction by leveraging dense photometric
+cues from the radiance eld; (iii) PINGS enables large-scale
+globally consistent mapping with loop closures; (iv) PINGS
+builds a more compact map than previous methods for both
+radiance and distance elds.
+A. Experimental Setup
+1) Datasets: We evaluate PINGS on self-collected in-house
+car datasets and the Oxford Spires dataset . Our in-house
+car datasets were collected using a robot car equipped with
+four Basler Ace cameras providing 360visual coverage and
+an Ouster OS1-128 LiDAR (45vertical FOV, 128 beams)
+mounted horizontally, both operating at 10 Hz. We calibrate
+the LiDAR-camera system using the method proposed by
+Wiesmann et al.  and generate reference poses through
+ofine LiDAR bundle adjustment , incorporating RTK-
+GNSS data, point cloud alignment as well as constraints from
+precise geo-referenced terrestrial laser scans.
+We evaluate the SLAM localization accuracy and scalability
+of PINGS on two long sequences from our dataset: a 5 km se-
+quence with around 10,000 LiDAR scans and 40,000 images,
+and a second sequence which is a bit shorter. Both sequences
+traverse the same area in opposite directions on the same day.
+For better quantitative evaluation of the radiance eld mapping
+and 600 images each, as shown in Fig. 4. Having sequences
+captured in opposite driving directions and lane-level lateral
+displacement allows us to evaluate novel view rendering from
+substantially different viewpoints from the training views (out-
+of-sequence testing views), which is a critical capability for
+downstream tasks such as planning and simulation.
+We evaluate surface reconstruction accuracy on the Oxford
+Spires dataset , which provides a millimeter-accurate refer-
+ence map from a Leica RTC360 terrestrial laser scanner. The
+In-sequence trajectory
+Out-of-sequence trajectory
+Roundabout
+Residential Area
+Fig. 4: Visualization of the ve scenes from our in-house car dataset
+used for novel view rendering evaluation. For each scene, we show a
+birds eye view rendering from the radiance eld built by PINGS, with
+a detailed zoom-in of the Campus scene. The robot car traversed each
+area twice in opposite directions with lane-level lateral displacement.
+The black trajectory provided images for training (sampled) and in-
+sequence testing (unsampled), while the red trajectory provided out-
+of-sequence testing views.
+data was collected using a handheld system equipped with
+three global-shutter cameras and a 64-beam LiDAR.
+2) Parameters and Implementation Details: For mapping
+lution vp to 0.3 m, and maximum sample offset for consistency
+loss max to 0.5 vp. The training data pool Qd has a capacity
+of 2  107 SDF-labeled sample points, and Qi has a capacity
+of 200 images. During map optimization, we use Adam
+with learning rates of 0.002 for neural point features, 0.001 for
+The neural point feature dimensions Fg and Fa are set to
+32 and 16, respectively. All decoders use shallow MLPs with
+one hidden layer of 128 neurons. Each neural point spawns
+K  8 Gaussian primitives. For decoder activations, we use
+sigmoid for SDF decoder Dd and color decoder Dc, tanh for
+offset decoder Do and opacity decoder D, and exponential
+for scale decoder Ds. The Gaussian spawning offset is scaled
+to [2vp, 2vp], and the scale output is clamped to a maximum
+of 2vp. The rotation decoder Dr output is normalized to valid
+unit quaternions. The weights for different loss terms are set
+area  0.001, and d
+cons  0.02.
+For training and testing, we use image resolutions of 512
+Spires dataset. The experiments are carried out on a single
+NVIDIA A6000 GPU.
+B. Novel View Rendering Quality Evaluation
+We evaluate novel view rendering quality on ve subse-
+quences from the in-house car dataset. For quantitative evalu-
+LPIPS  to assess photorealism, along with Depth-L1 error
+to measure geometric accuracy. We compute these metrics
+TABLE I: Quantitative comparison of rendering quality on the in-house car dataset. We evaluate rendering photorealism using PSNR, SSIM,
+and LPIPS metrics, and geometric accuracy using Depth-L1 error (in m). Best results are shown in bold, second best are underscored.
+Sequence
+In-Sequence Testing View
+Out-of-Sequence Testing View
+Depth-L1
+Depth-L1
+Neural Point  3DGS
+Neural Point  GGS
+PINGS (Ours)
+Residential Area
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+Roundabout
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+PINGS (Ours)
+Neural Point  GSS
+Neural Point  3DGS
+PINGS birds-eye view
+Fig. 5: Qualitative comparison of rendering quality on the in-house car dataset. Left: Birds eye view rendering of the Church scene,
+showing the training view trajectory (black line) and the test viewpoint for comparison (green camera frustum). Right: RGB and normal map
+renderings from different methods at the test viewpoint, with detailed comparison of curb and sidewalk rendering in the highlighted box.
+for both in-sequence and out-of-sequence testing views. We
+consider the following methods for comparison:
+tialized with LiDAR measurements and supervised with
+the depth rendering loss Ldepth as dened in Sec. III-C.
+2D Gaussian representation using surfels instead of 3D
+ellipsoids. It uses the same setup as the 3DGS baseline but
+adds the depth-normal consistency loss from GSS .
+Neural Point3DGS: Our extension of Scaffold-GS
+that enables incremental training and adds supervision of
+neural point geometric features through the SDF branch,
+as detailed in Sec. III-C.
+Neural PointGSS: A variant that replaces the 3D Gaus-
+sian in Neural Point3DGS with 2D Gaussian surfels.
+PointGSS by introducing geometric consistency loss
+Lcons into the joint training, as described in Sec. III-D.
+For fair comparison, we disable the localization part and
+use the ground truth pose for all the compared methods. For
+3DGS and GSS, we initialize their Gaussian primitive density
+to match the total number of Gaussians spawned by PINGS.
+We show the quantitative comparison on ve sequences
+in Tab. I as well as show the qualitative comparison of the
+RGB and normal map rendering results on the church scene
+at a novel view in Fig. 5. Our method PINGS achieves
+TABLE II: Quantitative evaluation of surface reconstruction quality on the Oxford-Spires dataset. We use the metrics include accuracy error
+(in m), completeness error (in m), and Chamfer distance (in m), as well as precision, recall and F-score (with 0.1 m threshold).  denotes
+methods requiring ofine batch processing. Best results are shown in bold, second best are underscored.
+Sequence
+Accuracy
+Completeness
+Chamfer Distance
+Precision
+Blenheim Palace 05
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Christ Church 02
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Keble College 04
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Observatory Quarter 01
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Blenheim Palace
+Christ Church
+Keble College
+Observatory Quarter
+Fig. 6: Qualitative results of the surface mesh reconstruction by PINGS on the Oxford-Spires dataset. The meshes are extracted using
+marching cubes algorithm from the SDF with a resolution of 0.1 m.
+superior performance in both photorealistic rendering quality
+and depth rendering accuracy on the in-house car dataset, and
+consistently outperforms the baselines for both in-sequence
+and out-of-sequence testing views. Analysis of the results
+reveals several insights: (i) The adoption of GSS over 3DGS
+leads to improved geometric rendering quality and enhanced
+out-of-sequence rendering photorealism; (ii) Our approach of
+spawning Gaussians from neural points and jointly training
+with the distance eld provides better optimization control
+and reduces oating Gaussians in free space, resulting in
+superior rendering quality; (iii) The addition of geometric
+consistency constraints from SDF enables better surface align-
+ment of Gaussian surfels, further enhancing both geometric
+accuracy and photorealistic rendering quality, as evidenced by
+the smoother normal maps produced by PINGS compared to
+Neural PointGSS. These improvements are less signicant
+in the Roundabout scene, where the dense viewpoint coverage
+from the vehicles circular trajectory provides strong multi-
+view constraints, reducing the benet of additional geometric
+constraints from the SDF.
+In sum, this experiment validates that PINGS achieves better
+RGB and geometric rendering at novel views by constraining
+the Gaussian splatting radiance eld using the SDF.
+C. Surface Reconstruction Quality Evaluation
+We evaluate surface reconstruction quality on four se-
+quences from the Oxford-Spires dataset. We follow the bench-
+mark  to report the metrics including accuracy error,
+completeness error, and Chamfer distance, as well as precision,
+recall and F-score calculated with a threshold of 0.1 m. We
+compare the performance of PINGS with ve state-of-the-art
+parison of geometric mapping quality, we disable the local-
+ization modules of PIN-SLAM and PINGS and use ground
+truth poses across all methods. For GSS, after completing the
+radiance eld mapping, we render depth maps at each frame
+and apply TSDF fusion  for mesh extraction. Results of
+the vision-based ofine processing methods (OpenMVS and
+Nerfacto) are taken from the benchmark . For the remain-
+ing methods (GSS, VDB-Fusion, PIN-SLAM, and PINGS),
+TABLE III: Localization performance comparison of PINGS against
+state-of-the-art odometrySLAM methods on the in-house car dataset.
+We report average relative translation error (ARTE) [] and absolute
+trajectory error (ATE) [m]. Odometry methods are shown above the
+second best are underscored.
+Seq. 1 (5.0 km)
+Seq. 2 (3.7 km)
+KISS-ICP
+PIN odometry
+PINGS odometry
+PIN-SLAM
+PINGS (Ours)
+we extract surface meshes from their SDFs using marching
+cubes  at a resolution of 0.1 m.
+We show the qualitative results of PINGS on the four se-
+quences in Fig. 6. Quantitative comparisons in Tab. II demon-
+strate that PINGS achieves superior performance, particularly
+in terms of Chamfer distance and F-score metrics. Notably,
+when using identical neural point resolution, PINGS con-
+sistently outperforms PIN-SLAM across all metrics through
+its joint optimization of the radiance eld and geometric
+consistency constraints. This improvement validates that incor-
+porating dense photometric cues and multi-view consistency
+from the radiance eld improves the SDF accuracy, ultimately
+enabling surface mesh reconstruction with higher quality.
+D. SLAM Localization Accuracy Evaluation
+We compare the pose estimation performance of PINGS
+against state-of-the-art LiDAR odometrySLAM systems on
+two full sequences of the in-house car dataset. The compared
+methods include F-LOAM , KISS-ICP , SuMa ,
+we use average relative translation error (ARTE)  to
+assess odometry drift and absolute trajectory error (ATE)
+to measure the global pose estimation accuracy. The results
+shown in Tab. III demonstrate that PINGS achieves both lower
+odometry drift and superior global localization accuracy than
+the compared approaches. Compared to PIN-SLAM, the im-
+provement stems from the rened SDF obtained through joint
+optimization with the radiance eld and geometric consistency
+constraints. The improved SDF leads to more accurate LiDAR
+odometry and relocalization during loop closure correction.
+E. Large-Scale Globally Consistent Mapping
+Fig. 1 demonstrates the globally consistent SLAM capa-
+bilities of PINGS on a challenging 5 km sequence from our
+in-house car dataset. In Fig. 7, we show the effect of loop
+closure correction. Without loop closure correction, odometry
+drift accumulates over time, causing neural points to be incon-
+sistently placed when revisiting previously mapped regions.
+This results in visual artifacts in the radiance eld rendering,
+such as duplicate objects and trees incorrectly appearing on the
+road. After conducting loop closure correction and updating
+the map, both the neural point map and RGB rendering achieve
+With loop closure
+Without loop closure
+Neural Points
+Rendering
+timestep
+timestep
+Fig. 7: Demonstration of the effect of loop closure correction on the
+in-house car dataset. When the vehicle revisits a previously mapped
+RGB rendering (viewed from the green frustum) with and without
+correcting the loop closure. Without loop closure correction, the
+misaligned neural points create visual artifacts like trees appearing
+on the road. After applying loop closure correction and map update,
+we achieve globally consistent neural point map and RGB rendering.
+Map memory (MB)
+Map memory (MB)
+VDB Fusion
+Fig. 8: Map memory efciency analysis comparing mapping quality
+versus memory usage. Left: Radiance eld comparison between
+PINGS and GSS on the in-house car dataset using LPIPS metric.
+on the Oxford Spires dataset using Chamfer distance. Points represent
+results at different map resolution, with points closer to the bottom-
+left corner indicating better quality-memory trade-off.
+global consistency. These results validate that PINGS can build
+globally consistent maps at large scale through loop closure
+correction by leveraging the elasticity of neural points.
+F. Map Memory Efciency Evaluation
+Fig. 8 depicts the map memory usage in relation to the ren-
+dering quality for the radiance eld and the surface reconstruc-
+tion quality for the distance eld. Experiment results validate
+that storing the neural points and decoder MLPs in PINGS
+is more memory-efcient than directly storing the Gaussian
+primitives or the discrete SDF in voxels. With equivalent
+memory usage, PINGS achieves superior performance across
+both metrics: better novel view rendering photorealism (lower
+LPIPS) compared to GSS  on the in-house car dataset,
+and better surface reconstruction accuracy (lower Chamfer
+distance) compared to the discrete TSDF-based method VDB-
+Fusion  on the Oxford Spires dataset. Moreover, while
+GSS and VDB-Fusion each model only a single eld type, our
+PINGS framework efciently represents both radiance eld
+and SDF within a single map. The efciency of PINGS comes
+from the globally-shared decoder MLPs that learn common
+code multiple Gaussian primitives and continuous SDF values
+through feature vectors instead of storing them explicitly.
+V. LIMITATIONS
+Our current approach has three main limitations. First,
+although our SDF mapping and LiDAR odometry modules
+operate at sensor frame rate, the computationally intensive
+radiance eld mapping results in an overall processing time of
+around ve seconds per frame on an NVIDIA A6000 GPU.
+This performance bottleneck could potentially be addressed
+through recent advances in efcient optimization schemes for
+Gaussian splatting training [20, 40]. Second, PINGS relies
+solely on online per-scene optimization without using any pre-
+trained priors. Incorporating such priors  into our unied
+map representation could improve both mapping quality and
+convergence speed. Finally, though PINGS can lter dynamic
+objects using the distance eld, it lacks explicit 4D modeling
+capabilities. This limitation is noticeable in highly dynamic
+environments and when objects transition between static and
+dynamic states. Future work could address this challenge by
+incorporating object detection priors [9, 80] to enable accurate
+4D mapping of both radiance and distance elds.
+VI. CONCLUSION
+In this paper, we present a new LiDAR-visual SLAM system
+making use of a novel map representation that unies a con-
+tinuous signed distance eld and a Gaussian splatting radiance
+eld within an elastic and compact set of neural points. By
+introducing mutual geometric consistency constraints between
+these elds, we jointly improve both representations. The
+distance eld provides geometric structure to guide radiance
+eld optimization, while the radiance elds dense photometric
+cues and multi-view consistency enhance the distance elds
+accuracy. Our experimental results on challenging large-scale
+datasets show that our method can incrementally construct
+globally consistent maps that outperform baseline methods in
+the novel view rendering delity, surface reconstruction qual-
+ACKNOWLEDGEMENTS
+This work has partially been funded by the European Union
+under the grant agreements No 101070405 (DigiForest), by the
+Deutsche Forschungsgemeinschaft (DFG, German Research
+Foundation) under Germanys Excellence Strategy, EXC-2070
+390732324  PhenoRob, under STA 10515-1 within the
+FOR 5351  459376902 (AID4Crops), and by the German
+Federal Ministry of Education and Research (BMBF) in the
+project Robotics Institute Germany, grant No. 16ME0999.
+REFERENCES
+J. Abou-Chakra, F. Dayoub, and N. Sunderhauf. Parti-
+Radiance Fields. In Proc. of the IEEE Winter Conf. on
+Applications of Computer Vision (WACV), 2024.
+J. Abou-Chakra, K. Rana, F. Dayoub, and N. Suen-
+derhauf.
+Physically Embodied Gaussian Splatting: A
+Realtime Correctable World Model for Robotics.
+Proc. of the Conf. on Robot Learning (CoRL), 2024.
+J. Behley and C. Stachniss. Efcient Surfel-Based SLAM
+using 3D Laser Range Data in Urban Environments. In
+Proc. of Robotics: Science and Systems (RSS), 2018.
+M. Bortolon, T. Tsesmelis, S. James, F. Poiesi, and
+A. Del Bue. 6DGS: 6D Pose Estimation from a Single
+Image and a 3D Gaussian Splatting Model. In Proc. of
+the Europ. Conf. on Computer Vision (ECCV), 2024.
+D. Cernea. OpenMVS: Multi-View Stereo Reconstruc-
+tion Library, 2020.
+H. Chen, C. Li, and G.H. Lee. NeuSG: Neural implicit
+surface reconstruction with 3d gaussian splatting guid-
+ance. arXiv preprint, arXiv:2023.00846, 2023.
+Y. Chen, J. Wang, Z. Yang, S. Manivasagam, and R. Ur-
+tasun. G3R: Gradient Guided Generalizable Reconstruc-
+tion. In Proc. of the Europ. Conf. on Computer Vision
+(ECCV), 2024.
+Z. Chen, Z. Li, L. Song, L. Chen, J. Yu, J. Yuan,
+and Y. Xu.
+with Adaptive Radial Basis Functions. In Proc. of the
+IEEECVF Intl. Conf. on Computer Vision (ICCV), 2023.
+Z. Chen, J. Yang, J. Huang, R.d. Lutio, J.M. Esturo,
+B. Ivanovic, O. Litany, Z. Gojcic, S. Fidler, M. Pavone,
+L. Song, and Y. Wang.
+Reconstruction. arXiv preprint, arXiv:2408.16760, 2024.
+J. Cui, J. Cao, F. Zhao, Z. He, Y. Chen, Y. Zhong, L. Xu,
+Y. Shi, and J. Yu. LetsGo: Large-Scale Garage Modeling
+and Rendering via LiDAR Assisted Gaussian Primitives.
+ACM Trans. on Graphics (TOG), 43(6):118, 2024.
+P. Dai, J. Xu, W. Xie, X. Liu, H. Wang, and W. Xu. High-
+quality Surface Reconstruction using Gaussian Surfels.
+In Proc. of the Intl. Conf. on Computer Graphics and
+Interactive Techniques (SIGGRAPH), 2024.
+D. Driess, I. Schubert, P. Florence, Y. Li, and M. Tou-
+Reinforcement Learning with Neural Radiance
+In Proc. of the Conf. on Neural Information
+Processing Systems (NeurIPS), 2022.
+T. Fischer, J. Kulhanek, S.R. Bulo, L. Porzi, M. Pollefeys,
+and P. Kontschieder. Dynamic 3D Gaussian Fields for
+Urban Areas. In Proc. of the Conf. on Neural Information
+Processing Systems (NeurIPS), 2024.
+D. Fox, W. Burgard, and S. Thrun.
+The dynamic
+window approach to collision avoidance. IEEE Journal
+of Robotics and Automation, 4(1):2333, 1997.
+A. Geiger, P. Lenz, and R. Urtasun.
+Are we ready
+for Autonomous Driving? The KITTI Vision Benchmark
+Suite. In Proc. of the IEEE Conf. on Computer Vision
+and Pattern Recognition (CVPR), 2012.
+G. Grisetti, C. Stachniss, and W. Burgard.
+Improved
+Techniques for Grid Mapping with Rao-Blackwellized
+Particle Filters.
+IEEE Trans. on Robotics (TRO),
+A. Gropp, L. Yariv, N. Haim, M. Atzmon, and Y. Lipman.
+Implicit Geometric Regularization for Learning Shapes.
+In Proc. of the Intl. Conf. on Machine Learning (ICML),
+A. Guedon and V. Lepetit. Sugar: Surface-aligned gaus-
+sian splatting for efcient 3d mesh reconstruction and
+high-quality mesh rendering. In Proc. of the IEEECVF
+Conf. on Computer Vision and Pattern Recognition
+(CVPR), 2024.
+G. Hess, C. Lindstrom, M. Fatemi, C. Petersson, and
+L. Svensson.
+Rendering with 3D Gaussian Splatting for Autonomous
+Driving. arXiv preprint, arXiv:2411.16816, 2024.
+L. Hollein, A. Bozic, M. Zollhofer, and M. Niener.
+Levenberg-Marquardt. arXiv preprint, arXiv:2409.12892,
+S. Hong, J. He, X. Zheng, C. Zheng, and S. Shen.
+3d radiance eld map rendering.
+IEEE Robotics and
+Automation Letters (RA-L), 9(11):97659772, 2024.
+A. Hornung, K. Wurm, M. Bennewitz, C. Stachniss, and
+W. Burgard.
+Mapping Framework Based on Octrees.
+Autonomous
+B. Huang, Z. Yu, A. Chen, A. Geiger, and S. Gao. 2D
+Gaussian Splatting for Geometrically Accurate Radiance
+Fields. In Proc. of the Intl. Conf. on Computer Graphics
+and Interactive Techniques (SIGGRAPH), 2024.
+N. Hughes, Y. Chang, S. Hu, R. Talak, R. Abdulhai,
+J. Strader, and L. Carlone.
+Foundations of spatial
+perception for robotics: Hierarchical representations and
+real-time systems.
+Intl. Journal of Robotics Research
+C. Jiang, R. Gao, K. Shao, Y. Wang, R. Xiong, and
+Y. Zhang.
+Incorporated for Accurate Large-Scale Reconstruction.
+arXiv preprint, arXiv:2409.12899, 2024.
+L. Jin, X. Zhong, Y. Pan, J. Behley, C. Stachniss, and
+M. Popovic.
+using Gaussian Splatting. IEEE Robotics and Automation
+R. Jin, Y. Gao, H. Lu, and F. Gao.
+Gaussian-Splatting-based Planning Framework for Ac-
+tive High-Fidelity Reconstruction.
+In Proc. of the
+IEEERSJ Intl. Conf. on Intelligent Robots and Systems
+(IROS), 2024.
+M. Kazhdan and H. Hoppe. Screened poisson surface
+reconstruction.
+ACM Trans. on Graphics, 32(3):113,
+N. Keetha, J. Karhade, K.M. Jatavallabhula, G. Yang,
+S. Scherer, D. Ramanan, and J. Luiten. SplaTAM: Splat
+Track  Map 3D Gaussians for Dense RGB-D SLAM.
+In Proc. of the IEEECVF Conf. on Computer Vision and
+Pattern Recognition (CVPR), 2024.
+B. Kerbl, G. Kopanas, T. Leimkuhler, and G. Drettakis.
+3D Gaussian Splatting for Real-Time Radiance Field
+Rendering. ACM Trans. on Graphics (TOG), 42(4):1
+B. Kerbl, A. Meuleman, G. Kopanas, M. Wimmer,
+A. Lanvin, and G. Drettakis. A Hierarchical 3D Gaussian
+Representation for Real-Time Rendering of Very Large
+Datasets. ACM Trans. on Graphics (TOG), 43(4):115,
+D. Kingma and J. Ba. Adam: A Method for Stochastic
+Optimization.
+In Proc. of the Intl. Conf. on Learning
+Representations (ICLR), 2015.
+M. Klingensmith, I. Dryanovski, S. Srinivasa, and
+J. Xiao. Chisel: Real time large scale 3d reconstruction
+onboard a mobile device using spatially hashed signed
+distance elds. In Proc. of Robotics: Science and Systems
+T. Li, X. Wen, Y.S. Liu, H. Su, and Z. Han. Learning
+Deep Implicit Functions for 3D Shapes with Dynamic
+Code Clouds.
+In Proc. of the IEEECVF Conf. on
+Computer Vision and Pattern Recognition (CVPR), 2022.
+Y. Li, Z. Kuang, T. Li, G. Zhou, S. Zhang, and
+tion through Active Gaussian Splatting. arXiv preprint,
+Y. Liu, C. Luo, L. Fan, N. Wang, J. Peng, and Z. Zhang.
+rendering with gaussians. In Proc. of the Europ. Conf. on
+Computer Vision (ECCV), 2024.
+W. Lorensen and H. Cline. Marching Cubes: a High Res-
+olution 3D Surface Construction Algorithm. In Proc. of
+the Intl. Conf. on Computer Graphics and Interactive
+Techniques (SIGGRAPH), 1987.
+T. Lu, M. Yu, L. Xu, Y. Xiangli, L. Wang, D. Lin, and
+B. Dai. Scaffold-GS: Structured 3d gaussians for view-
+adaptive rendering. In Proc. of the IEEECVF Conf. on
+Computer Vision and Pattern Recognition (CVPR), 2024.
+X. Lyu, Y.T. Sun, Y.H. Huang, X. Wu, Z. Yang, Y. Chen,
+J. Pang, and X. Qi. 3DGSR: Implicit Surface Recon-
+struction with 3D Gaussian Splatting. ACM Trans. on
+Graphics (TOG), 43(6):112, 2024.
+S.S. Mallick, R. Goel, B. Kerbl, M. Steinberger, F.V.
+Taming 3DGS: High-
+Quality Radiance Fields with Limited Resources.
+Proc. of the Intl. Conf. on Computer Graphics and
+Interactive Techniques (SIGGRAPH), 2024.
+R. Mascaro and M. Chli.
+Scene Representations for
+Robotic Spatial Perception. Annual Review of Control,
+H. Matsuki, R. Murai, P.H. Kelly, and A.J. Davison.
+Gaussian splatting SLAM.
+In Proc. of the IEEECVF
+Conf. on Computer Vision and Pattern Recognition
+(CVPR), 2024.
+M.H. Maximum Wilder-Smith, Vaishakh Patil.
+ance Fields for Robotic Teleoperation. In Proc. of the
+IEEERSJ Intl. Conf. on Intelligent Robots and Systems
+(IROS), 2024.
+L. Mescheder, M. Oechsle, M. Niemeyer, S. Nowozin,
+and A. Geiger. Occupancy networks: Learning 3d recon-
+struction in function space. In Proc. of the IEEECVF
+Conf. on Computer Vision and Pattern Recognition
+(CVPR), 2019.
+B. Mildenhall, P. Srinivasan, M. Tancik, J. Barron, R. Ra-
+Neural Radiance Fields for View Synthesis. In Proc. of
+the Europ. Conf. on Computer Vision (ECCV), 2020.
+R.A. Newcombe, S. Izadi, O. Hilliges, D. Molyneaux,
+D. Kim, A.J. Davison, P. Kohli, J. Shotton, S. Hodges,
+and A. Fitzgibbon. KinectFusion: Real-Time Dense Sur-
+face Mapping and Tracking. In Proc. of the Intl. Symp. on
+Mixed and Augmented Reality (ISMAR), 2011.
+M. Niener, M. Zollhofer, S. Izadi, and M. Stamminger.
+Real-Time 3D Reconstruction at Scale Using Voxel
+Hashing. ACM Trans. on Graphics (TOG), 32(6):111,
+H. Oleynikova, Z. Taylor, M. Fehr, R. Siegwar, and
+J. Nieto.
+distance elds for on-board mav planning. In Proc. of the
+IEEERSJ Intl. Conf. on Intelligent Robots and Systems
+(IROS), 2017.
+J. Ortiz, A. Clegg, J. Dong, E. Sucar, D. Novotny,
+M. Zollhoefer, and M. Mukadam. isdf: Real-time neural
+signed distance elds for robot perception. In Proc. of
+Y. Pan, P. Xiao, Y. He, Z. Shao, and Z. Li. MULLS:
+Versatile LiDAR SLAM Via Multi-Metric Linear Least
+Square. In Proc. of the IEEE Intl. Conf. on Robotics
+Automation (ICRA), 2021.
+Y. Pan, X. Zhong, L. Wiesmann, T. Posewsky, J. Behley,
+and C. Stachniss. PIN-SLAM: LiDAR SLAM Using a
+Point-Based Implicit Neural Representation for Achiev-
+ing Global Map Consistency. IEEE Trans. on Robotics
+J.J. Park, P. Florence, J. Straub, R. Newcombe, and
+S. Lovegrove. DeepSDF: Learning Continuous Signed
+Distance Functions for Shape Representation. In Proc. of
+the IEEECVF Conf. on Computer Vision and Pattern
+Recognition (CVPR), 2019.
+V. Reijgwart, C. Cadena, R. Siegwart, and L. Ott. Ef-
+cient volumetric mapping of multi-scale environments
+using wavelet-based compression. In Proc. of Robotics:
+Science and Systems (RSS), 2023.
+K. Rematas, A. Liu, P.P. Srinivasan, J.T. Barron,
+A. Tagliasacchi, T. Funkhouser, and V. Ferrari. Urban
+radiance elds.
+In Proc. of the IEEECVF Conf. on
+Computer Vision and Pattern Recognition (CVPR), 2022.
+K. Ren, L. Jiang, T. Lu, M. Yu, L. Xu, Z. Ni, and
+Rendering with LOD-structured 3D Gaussians.
+E. Sandstrom, Y. Li, L. Van Gool, and M. R. Oswald.
+In Proc. of the IEEECVF Intl. Conf. on Computer Vision
+(ICCV), 2023.
+L. Schmid, O. Andersson, A. Sulser, P. Pfreundschuh,
+and R. Siegwart. Dynablox: Real-time Detection of Di-
+verse Dynamic Objects in Complex Environments. IEEE
+Robotics and Automation Letters (RA-L), 8(10):6259
+G. Song, C. Cheng, and H. Wang.
+Voxel Kernel Functions for Highly Efcient Surface
+Reconstruction in Open Scenes. In Proc. of the Conf. on
+Neural Information Processing Systems (NeurIPS), 2024.
+C. Stachniss, G. Grisetti, and W. Burgard. Information
+Gain-based Exploration Using Rao-Blackwellized Parti-
+cle Filters. In Proc. of Robotics: Science and Systems
+E. Sucar, S. Liu, J. Ortiz, and A.J. Davison.
+Implicit mapping and positioning in real-time. In Proc. of
+the IEEECVF Intl. Conf. on Computer Vision (ICCV),
+M. Tancik, V. Casser, X. Yan, S. Pradhan, B. Mildenhall,
+P.P. Srinivasan, J.T. Barron, and H. Kretzschmar. Block-
+Proc. of the IEEECVF Conf. on Computer Vision and
+Pattern Recognition (CVPR), 2022.
+M. Tancik, E. Weber, E. Ng, R. Li, B. Yi, J. Kerr,
+T. Wang, A. Kristoffersen, J. Austin, K. Salahi, A. Ahuja,
+D. McAllister, and A. Kanazawa. Nerfstudio: A Modular
+Framework for Neural Radiance Field Development. In
+Proc. of the Intl. Conf. on Computer Graphics and
+Interactive Techniques (SIGGRAPH), 2023.
+Y. Tao, Y. Bhalgat, L.F.T. Fu, M. Mattamala, N. Che-
+Reconstruction with Neural Radiance Fields for Robotic
+Inspection. In Proc. of the IEEE Intl. Conf. on Robotics
+Automation (ICRA), 2024.
+Y. Tao, M.A. Munoz-Banon, L. Zhang, J. Wang, L.F.T.
+marking Large-Scale LiDAR-Visual Localisation, Recon-
+struction and Radiance Field Methods. arXiv preprint,
+S. Thrun, D. Fox, W. Burgard, and F. Dellaert. Robust
+Monte Carlo Localization for Mobile Robots. Articial
+I. Vizzo, X. Chen, N. Chebrolu, J. Behley, and C. Stach-
+niss. Poisson Surface Reconstruction for LiDAR Odom-
+etry and Mapping. In Proc. of the IEEE Intl. Conf. on
+Robotics  Automation (ICRA), 2021.
+I. Vizzo, T. Guadagnino, J. Behley, and C. Stachniss.
+Range Sensor Data. Sensors, 22(3):1296, 2022.
+I. Vizzo, T. Guadagnino, B. Mersch, L. Wiesmann,
+J. Behley, and C. Stachniss.
+of Point-to-Point ICP  Simple, Accurate, and Robust
+Registration If Done the Right Way. IEEE Robotics and
+Automation Letters (RA-L), 8(2):10291036, 2023.
+H. Wang, C. Wang, C. Chen, and L. Xie.
+Fast LiDAR Odometry and Mapping.
+In Proc. of the
+IEEERSJ Intl. Conf. on Intelligent Robots and Systems
+(IROS), 2021.
+P. Wang, L. Liu, Y. Liu, C. Theobalt, T. Komura, and
+W. Wang.
+volume rendering for multi-view reconstruction.
+Proc. of the Conf. on Neural Information Processing
+Systems (NeurIPS), 2021.
+Z. Wang, A.C. Bovik, H.R. Sheikh, and E.P. Simoncelli.
+Image quality assessment: from error visibility to struc-
+tural similarity. IEEE Transactions on Image Processing,
+J. Wei and S. Leutenegger. GSfusion: Online RGB-D
+Mapping Where Gaussian Splatting Meets TSDF Fu-
+IEEE Robotics and Automation Letters (RA-L),
+T. Whelan, S. Leutenegger, R.S. Moreno, B. Glocker,
+and A. Davison. ElasticFusion: Dense SLAM Without
+A Pose Graph. In Proc. of Robotics: Science and Systems
+L. Wiesmann, T. Guadagnino, I. Vizzo, N. Zimmerman,
+Y. Pan, H. Kuang, J. Behley, and C. Stachniss. LocNDF:
+Neural Distance Field Mapping for Robot Localiza-
+IEEE Robotics and Automation Letters (RA-L),
+L. Wiesmann, T. Labe, L. Nunes, J. Behley, and C. Stach-
+niss. Joint Intrinsic and Extrinsic Calibration of Percep-
+tion Systems Utilizing a Calibration Environment. IEEE
+Robotics and Automation Letters (RA-L), 9(10):9103
+L. Wiesmann, E. Marks, S. Gupta, T. Guadagnino,
+Stachniss.
+Bundle Adjustment for Multi-Scan Alignment Utiliz-
+ing Continuous-Time Trajectories.
+arXiv preprint,
+L. Wu, C.L. Gentil, and T. Vidal-Calleja. VDB-GPDF:
+Online Gaussian Process Distance Field with VDB Struc-
+IEEE Robotics and Automation Letters (RA-L),
+Mapping with Gaussian Splatting.
+arXiv preprint,
+Q. Xu, Z. Xu, J. Philip, S. Bi, Z. Shu, K. Sunkavalli, and
+U. Neumann. Point-NeRF: Point-Based Neural Radiance
+Fields. In Proc. of the IEEECVF Conf. on Computer
+Vision and Pattern Recognition (CVPR), 2022.
+Y. Yan, H. Lin, C. Zhou, W. Wang, H. Sun, K. Zhan,
+X. Lang, X. Zhou, and S. Peng.
+Street Gaussians
+for Modeling Dynamic Urban Scenes. In Proc. of the
+Europ. Conf. on Computer Vision (ECCV), 2024.
+Z. Yang, Y. Chen, J. Wang, S. Manivasagam, W.C. Ma,
+A.J. Yang, and R. Urtasun. UniSim: A Neural Closed-
+Loop Sensor Simulator.
+In Proc. of the IEEECVF
+Conf. on Computer Vision and Pattern Recognition
+(CVPR), 2023.
+W. Yifan, F. Serena, S. Wu, C. Oztireli, and O. Sorkine-
+Hornung.
+Differentiable Surface Splatting for Point-
+based Geometry Processing. ACM Trans. on Graphics
+M. Yu, T. Lu, L. Xu, L. Jiang, Y. Xiangli, and B. Dai.
+Reconstruction. In Proc. of the Conf. on Neural Infor-
+mation Processing Systems (NeurIPS), 2024.
+Z. Yu, T. Sattler, and A. Geiger. Gaussian Opacity Fields:
+Efcient Adaptive Surface Reconstruction in Unbounded
+ACM Trans. on Graphics (TOG), 43(6):113,
+B. Zhang, C. Fang, R. Shrestha, Y. Liang, X. Long,
+and P. Tan.
+Splatting. arXiv preprint, arXiv:2406.01467, 2024.
+L. Van Gool, and M.R. Oswald. GLORIE-SLAM: Glob-
+ally optimized rgb-only implicit encoding point cloud
+slam. In Proc. of the Europ. Conf. on Computer Vision
+(ECCV), 2024.
+J. Zhang and S. Singh.
+Mapping in Real-time.
+In Proc. of Robotics: Science
+and Systems (RSS), 2014.
+R. Zhang, P. Isola, A.A. Efros, E. Shechtman, and
+O. Wang.
+The Unreasonable Effectiveness of Deep
+Features as a Perceptual Metric.
+In Proc. of the
+IEEECVF Conf. on Computer Vision and Pattern Recog-
+nition (CVPR), 2018.
+Z. Zhang and D. Scaramuzza. A Tutorial on Quantitative
+Trajectory Evaluation for Visual(-Inertial) Odometry. In
+Proc. of the IEEERSJ Intl. Conf. on Intelligent Robots
+and Systems (IROS), 2018.
+C. Zhao, S. Sun, R. Wang, Y. Guo, J.J. Wan, Z. Huang,
+X. Huang, Y.V. Chen, and L. Ren. TCLC-GS: Tightly
+coupled lidar-camera gaussian splatting for surround-
+ing autonomous driving scenes.
+In Proc. of the Eu-
+rop. Conf. on Computer Vision (ECCV), 2024.
+L. Zhao, Y. Wang, and S. Huang. Occupancy-SLAM:
+Simultaneously Optimizing Robot Poses and Continuous
+Occupancy Map.
+In Proc. of Robotics: Science and
+Systems (RSS), 2022.
+Y. Zheng, X. Chen, Y. Zheng, S. Gu, R. Yang, B. Jin,
+P. Li, C. Zhong, Z. Wang, L. Liu, et al. GaussianGrasper:
+3D Language Gaussian Splatting for Open-vocabulary
+Robotic Grasping. IEEE Robotics and Automation Let-
+X. Zhong, Y. Pan, J. Behley, and C. Stachniss. SHINE-
+archical Implicit Neural Representations.
+In Proc. of
+the IEEE Intl. Conf. on Robotics  Automation (ICRA),
+X. Zhong, Y. Pan, C. Stachniss, and J. Behley.
+LiDAR Mapping in Dynamic Environments using a
+4D Implicit Neural Representation.
+In Proc. of the
+IEEECVF Conf. on Computer Vision and Pattern Recog-
+nition (CVPR), 2024.
+X. Zhou, Z. Lin, X. Shan, Y. Wang, D. Sun, and M.H.
+Yang. DrivingGaussian: Composite Gaussian Splatting
+for Surrounding Dynamic Autonomous Driving Scenes.
+In Proc. of the IEEECVF Conf. on Computer Vision and
+Pattern Recognition (CVPR), 2024.
+L. Zhu, Y. Li, E. Sandstrom, S. Huang, K. Schindler, and
+I. Armeni. LoopSplat: Loop Closure by Registering 3D
+Gaussian Splats. In Proc. of the Intl. Conf. on 3D Vision
+X. Zuo, P. Samangouei, Y. Zhou, Y. Di, and M. Li.
+ting for holistic 3d scene understanding. Intl. Journal of
+Computer Vision (IJCV), 130:117, 2024.
+M. Zwicker, H. Pster, J. Van Baar, and M. Gross. EWA
+volume splatting. In Proc. of Visualization, 2001.

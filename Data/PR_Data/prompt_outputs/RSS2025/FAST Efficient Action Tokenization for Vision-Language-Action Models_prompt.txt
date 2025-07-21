@@ -1,0 +1,1444 @@
+=== PDF文件: FAST Efficient Action Tokenization for Vision-Language-Action Models.pdf ===
+=== 时间: 2025-07-21 14:46:07.522630 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Vision-Language-Action Models
+Karl Pertsch,1,2,3, Kyle Stachowicz,2,
+Brian Ichter1, Danny Driess1, Suraj Nair1, Quan Vuong1, Oier Mees2, Chelsea Finn1,3, Sergey Levine1,2
+1Physical Intelligence, 2UC Berkeley, 3Stanford
+AbstractAutoregressive
+sequence
+Transformer-based
+vision-language
+can be tremendously effective for capturing complex and
+generalizable robotic behaviors. However, such models require
+us to choose a tokenization of our continuous action signals,
+which determines how the discrete symbols predicted by the
+model map to continuous robot actions. We find that current
+approaches for robot action tokenization, based on simple
+poorly when learning dexterous skills from high-frequency
+robot data. To address this challenge, we propose a new
+compression-based tokenization scheme for robot actions, based
+on the discrete cosine transform. Our tokenization approach,
+Frequency-space Action Sequence Tokenization (FAST), enables
+us to train autoregressive VLAs for highly dexterous and
+high-frequency tasks where standard discretization methods fail
+completely. Based on FAST, we release FAST, a universal robot
+action tokenizer, trained on 1M real robot action trajectories.
+It can be used as a black-box tokenizer for a wide range of
+robot action sequences, with diverse action spaces and control
+frequencies. Finally, we show that, when combined with the
+0 VLA, our method can scale to training on 10k hours of
+robot data and match the performance of diffusion VLAs, while
+reducing training time by up to 5x.
+I. INTRODUCTION
+dously effective for capturing complex and generalizable
+robotic behaviors both from scratch [8, 72, 54, 6, 20, 65]
+and using models pre-trained for next-token prediction on
+Internet-scale image-text corpora [10, 40, 66, 7, 68]. How-
+continuous action signal, which determines how the discrete
+symbols predicted by the model map to continuous robot
+actions [67, 34, 42, 12]. It is widely known that a good choice
+of tokenization can be critical to the performance of sequence
+models [58, 60]. Prior robotic policies of this sort typically
+use nave tokenization strategies based on a per-dimension,
+per-timestep binning scheme [9, 10, 40]. We find that such
+methods perform poorly when learning dexterous skills with
+high-frequency control (see Figure 2, right). We observe that
+correlations between time steps are a major challenge for
+nave tokenization strategies when predicting sequences of
+: Core contributors
+Correspondence to: researchphysicalintelligence.company
+Fig. 1: We propose FAST, a simple yet effective approach
+for tokenization of robot action trajectories via time-series
+compression. FAST enables training of autoregressive VLAs
+that solve complex dexterous manipulation tasks and gener-
+alize broadly to new scenes. We use it to train 0-FAST,
+a generalist robot policy that matches the performance of
+the state-of-the-art 0 diffusion VLA on dexterous and long-
+horizon manipulation tasks, while training 5x faster (top).
+future actions, i.e., action chunks, as is common for high-
+frequency control. Highly correlated action tokens diminish
+the effectiveness of the next token prediction objective used
+in autoregressive VLAs. Intuitively, in such cases low token
+prediction loss can often be achieved with mappings as trivial
+as simply copying the most recent action token, leaving models
+in poor local optima.
+In this work, we propose a new tokenization strategy
+from first principles. Our key insight is that robot action
+signals need to be compressed before training, to reduce
+correlation between consecutive tokens. We take inspiration
+from compression-based tokenization strategies, such as the
+byte-pair encoding method commonly used by language mod-
+els [27, 60]. However, since robotic actions are continuous,
+the corresponding compression strategy should be chosen
+accordingly. We therefore base our method off of the discrete
+cosine transform (DCT) encoding, which is widely used for
+compressing continuous signals such as images (e.g., JPEG
+compression). We find that the resulting tokenization approach,
+Frequency-space Action Sequence Tokenization (FAST), en-
+ables us to train autoregressive VLA policies via simple
+next token prediction (see Figure 2, left) for highly dexter-
+ous and high-frequency tasks where standard discretization
+methods fail entirely. Additionally, FAST for the first time
+enables efficient VLA training on the recently introduced
+DROID dataset , a large-scale multitask in-the-wild
+robot manipulation dataset. The resulting policy is the first
+language-conditioned generalist manipulation policy that can
+be successfully evaluated zero-shot in unseen environments,
+simply by prompting it in natural language.
+Based on FAST, we develop FAST, a universal robot ac-
+tion tokenizer, trained on 1M real robot action trajectories that
+cover a large diversity of robot embodiments, action spaces
+and control frequencies. We demonstrate that the FAST to-
+kenizer effectively tokenizes a wide range of robot action
+and is a good off-the-shelf tokenizer for training autoregressive
+VLA models. When integrated with the 0 VLA, FAST-based
+autoregressive VLAs scale to training on 10k hours of robot
+data and achieve performance comparable to diffusion-based
+VLAs across a variety of tasks, while reducing training time
+by up to 5x (see Figure 1).
+II. RELATED WORK
+Tokenization for language, text, and audio. Tokenization is
+a key component of training pipelines for modern transformer-
+based autoregressive sequence models, and the choice of
+tokenization approach can have significant impact on model
+training and downstream performance . While there are
+multiple works exploring the training of tokenization-free
+language models [28, 56] that directly operate on bit streams,
+most language models today rely on a text tokenization
+stage prior to training. A common approach is byte pair
+encoding [27, 58], which compresses input text by merging
+frequently occurring token sequences into new tokens. For
+Vision-Language-Action Model
+Vision-Language-Action Model
+Vision-Language-Action Model
+fold the shirt
+fold the shirt
+fold the shirt
+OpenVLA-style
+Data Control Frequency (Hz)
+Comparing Action Tokenizers across
+Control Frequencies
+FAST Action
+tokenization
+Frequency
+Robot Data
+Fig. 2: Left: FAST tokenization enables training of autoregres-
+sive Transformers for dexterous robot control via simple next
+token prediction. Right: FAST outperforms popular binning
+tokenization schemes used by e.g. OpenVLA , particularly
+for high-frequency robot data, achieving better task completion
+progress on real-world evaluations that increases with higher
+control frequency.
+produced by a pre-trained vision encoder , and full au-
+toregressive image input-output can be achieved with a vector-
+quantizing autoencoder [22, 62]. Similar approaches can be
+extended to the video domain . In audio generation and
+speech synthesis, which share the time-series structure of ac-
+tion prediction, state-of-the-art models typically encode time-
+series audio data using either frequency-domain spectrogram
+images  or using learned vector quantizers .
+Vision-language-action models. Recently, multiple works
+have developed generalist robot policies [9, 54, 6, 10, 20, 40,
+datasets [55, 39, 63, 24, 49, 35]. One promising approach for
+training generalist policies are vision-language-action models
+tune vision-language models, that are pre-trained on internet-
+scale image and text data, for robot control. This has multiple
+billions of parameters, provides policies with the necessary
+expressivity for fitting large robot datasets. Reusing weights
+pre-trained on internet-scale datasets also improves the ability
+of VLAs to follow diverse language commands and generalize,
+e.g., to new objects and scene backgrounds [10, 40, 70, 66, 37].
+Most VLA models today are confined to rather simple, low-
+frequency control tasks, particularly models that use the most
+common autoregressive VLA design [10, 40]. We show that
+this is a direct consequence of the action tokenization schemes
+employed by these models, which make training on dexterous
+tasks challenging. We introduce a new action tokenization
+approach that allows us to train the first autoregressive VLAs
+on dexterous and high-frequency robot data.
+Action representations for VLA training. Prior works have
+explored various action parameterizations for training robot
+action representations like language sub-tasks [21, 2, 4], or
+keypoints [52, 32, 25, 19]. Such approaches can often learn
+from few examples or even perform tasks zero-shot without
+any robot examples [52, 32, 25], but require hand-designed
+low-level controllers for task execution, limiting their gener-
+ality. An alternative approach directly trains VLAs to output
+low-level robot control commands given image and language
+instruction inputs. The most common design directly embeds
+actions into discrete tokens, that can be generated with stan-
+dard autoregressive sequence models, like any popular vision-
+language model. Existing approaches map from continuous
+robot actions to discrete action tokens using a simple per-
+that this scheme struggles to scale to high-frequency robot
+control tasks. We propose a new tokenization scheme for
+robot actions, based on time-series compression techniques,
+that allows us to train autoregressive VLAs on high-frequency
+data. A number of works have also proposed alternatives
+to tokenization, for example by using regression heads or
+introducing new weights for diffusion decoding [20, 7, 42, 66].
+In comparison, our approach does not require modifications of
+the underlying pre-trained transformer model, can easily be ap-
+plied to any pre-trained autoregressive transformer model, and
+achieves competitive performance to state-of-the-art diffusion-
+based VLAs  across many tasks, while being significantly
+more compute efficient to train.
+Another set of related work explores vector-quantized action
+representations [42, 3, 51]. Such approaches train a vector-
+quantized encoder-decoder network, for which reconstruction
+quality can be sensitive to hyperparameter choices and struc-
+ture . We find that these methods perform well at coarse,
+low-fidelity reconstruction tasks, but fail on high-frequency
+tasks when fine-grained control is required. In comparison, our
+FAST tokenization scheme has few hyperparameters and can
+reconstruct actions with high precision while offering strong
+compression properties.
+III. PRELIMINARIES
+Problem formulation. Our goal is to train policies (a1:Ho)
+that map an observation o to a sequence of future robot
+actions a1:H. We assume that policies output an action
+chunk [72, 41], a sequence of H actions [15, 7, 72], which
+makes it easier to produce temporally-consistent actions and
+reduces compounding error. The goal of action tokenization is
+to define a mapping Ta : a1:H [T1, . . . , Tn] from a sequence
+of continuous actions a1:H, with dimensionality A, to a
+sequence of n discrete tokens T V from a vocabulary of
+size V. Note that the number of tokens n may differ between
+Fig. 3: Effect of sampling rate on prediction performance.
+We train a small autoregressive transformer model on a
+didactic interpolation task, in which the network must predict
+the black dashed curve given the four circles. We find that
+models trained with the binning tokenization approach used in
+prior VLAs [10, 40] produce increasingly poor predictions as
+we increase the sampling frequency of the underlying signal,
+due to strong correlation between consecutive tokens at high
+frequencies. Our FAST tokenization approach, based on the
+discrete cosine transform (DCT), addresses the problem and
+leads to high-quality predictions across all sampling rates.
+action sequences, just like sentences of the same length may
+be tokenized into a variable number of text tokens.
+Binning-based action tokenization. The most commonly
+used approach for action tokenization is a simple binning dis-
+cretization scheme [8, 10, 40, 75, 59]. For a given action a, this
+approach discretizes each dimension independently, dividing
+the range of values in the training dataset into N uniform
+dimensional actions a1:H, this tokenization scheme would be
+applied to each time step, resulting in a final token sequence
+frequency robot data, this tokenization scheme is sub-optimal:
+it can easily produce hundreds of tokens per action chunk,
+which make training challenging and lead to slow inference.
+IV. CASE STUDY: HOW DOES TOKENIZATION AFFECT
+VLA TRAINING?
+To illustrate the challenge of training autoregressive poli-
+cies with current action tokenization approaches, we start
+with a simple didactic example. We create a synthetic time-
+series dataset where the goal is to predict a cubic spline
+that interpolates four randomly-generated points (see Fig-
+ure 3, bottom). This toy problem reflects the challenge faced
+by policies trained on high-frequency action chunks, which
+must predict a sequence of continuous actions given some
+conditioning information. We tokenize the target sequences
+using the nave tokenization scheme employed in previous
+VLA policies, which discretizes each element in the sequence
+separately into one of 256 bins (see Section III). We then
+train a small, autoregressive transformer policy to predict the
+tokenized signal given the conditioning points. We repeat this
+experiment for different sampling rates of the target signal,
+from 25 to 800 timesteps per sequence, without changing
+the underlying dataset. This emulates training autoregressive
+policies on action data collected at different frequencies.
+The average prediction MSE of autoregressive models
+trained at different frequencies is shown in Figure 3, top
+(naive). We observe that the model with binning tokenization
+achieves good prediction performance (i.e., low MSE) for
+low sampling rates. But as the sampling rate increases, the
+prediction error steeply increases, until eventually the model
+simply copies the first action, as seen in the qualitative
+visualization in Figure 3, bottom left. Note that this issue
+cannot be attributed to the data itself: the complexity of the
+underlying data distribution does not change, and we would
+expect a model with the same capacity trained for the same
+number of steps to achieve comparable performance across all
+sampling rates. So what happened?
+To understand how the tokenization scheme impacts learn-
+ing performance, we need to look at the learning objective
+itself. Fundamentally, autoregressive models are trained to
+predict the next token, given all previous tokens. As such, their
+learning signal is proportional to the marginal information
+content of Ti given T1:i1. Crucially, when using the nave
+per-timestep tokenization scheme, this marginal information
+approaches zero as the control frequency of the training signal
+change per timestep decreases proportionally. This greatly
+slows down the rate of convergence during training and can
+make it challenging to fit complex, high-frequency datasets.
+For instance, OpenVLA worked well on the low-frequency
+BridgeV2 and RT-1 datasets, but has struggled to fit the higher-
+frequency DROID dataset . The result of our case study
+underlines the importance of designing better tokenization
+schemes for robot actions.
+V. EFFICIENT ACTION TOKENIZATION VIA TIME-SERIES
+COMPRESSION
+We saw in the previous section how redundancy in high-
+frequency action trajectories can lead to low marginal in-
+formation for each action token, and thereby poor training
+performance. To address this, we need a tokenization approach
+that compresses the highly redundant action signal into a
+smaller number of high-information tokens. In this section,
+we will first describe a simple approach for compressing
+continuous time series (V-A), then use it to design an action
+tokenization algorithm (Section V-B), and finally explain how
+we train a universal tokenizer for robot actions (Section V-C).
+A. Time-Series Compression via Discrete Cosine Transform
+There is a rich body of work on effectively compressing
+continuous time series, from approaches that compress signals
+after transforming them into the frequency domain [18, 1, 64]
+to learned compression approaches, e.g., based on vector
+quantization [62, 50]. One key takeaway of our work is that
+any sufficiently effective compression approach, when applied
+to the action targets, is suited to improve the training speed of
+VLA models. In practice, there are a few considerations that
+may still lead us to favor some compression algorithms over
+efficient is it at tokenizing and detokenizing actions.
+In this work, we use a compression algorithm based on
+the discrete cosine transform (DCT) . DCT is a frequency-
+space transform that represents a continuous signal as a sum
+of cosine elements of various frequencies. Low frequencies
+capture the overall shape of the signal, while high-frequency
+components reflect sharp jumps. DCT is a commonly used
+transformation for compression algorithms, e.g., for JPEG im-
+age compression , due to its simplicity and computational
+represent most of the information of an input signal in only
+a few coefficients. Signals can be compressed by omitting
+frequency components with low weights. Compared to learned
+compression approaches based on vector quantization, DCT-
+based compression is an analytical approach, thus extremely
+simple and fast.
+B. The FAST Tokenization Algorithm
+We use the discrete cosine transform to design FAST, a
+quick and effective tokenization approach for robot actions.
+We detail the steps from raw robot actions to action tokens
+in Figure 4. We first normalize the input actions, such that
+the 1st and 99th quantile of values in the training dataset for
+each action dimension maps to the range [1, . . . , 1]. This
+initial normalization step is useful to bring the data into a
+specified range and also makes tokenization of cross-embodied
+datasets with different action scales easier. We use quantiles
+to be robust to outlier actions which occasionally occur in
+large robot datasets. After the data is normalized, we apply the
+discrete cosine transform to each action dimension separately.
+To compress the DCT-converted signal we can simply omit
+insignificant coefficients, which we implement through a scale-
+and-round operation, where the scaling coefficient is a hyper-
+parameter that trades off between lossiness and compression
+rate of the tokenization operation.
+Normalized action chunk
+(first 2 dimensions displayed)
+Frequency components
+(first 2 dimensions displayed)
+Sparse frequency matrix (each dim  1 row)
+Low-frequency components first
+Compressed action tokens
+Encoding
+Discrete
+Transform
+Quantize
+Fig. 4: Overview of the FAST action tokenization pipeline. Given a normalized chunk of actions, we apply discrete cosine
+transform (DCT) to convert the signal to the frequency domain. We then quantize the DCT coefficients and use byte-pair
+encoding (BPE) to compress the flattened sequence of per-dimension DCT coefficients into the final action token sequence.
+See Section V-B for a detailed description.
+After the rounding operation, the DCT coefficient matrix
+is typically sparse, with most entries being zero and only a
+few significant coefficients remaining per action dimension. To
+actually realize the compression, we must convert this sparse
+matrix into a sequence of dense tokens. We flatten the matrix
+into a 1-dimensional vector of integers, interleaving action di-
+mensions by including all low-frequency components first, and
+train a byte pair encoding (BPE) tokenizer  to losslessly
+compress it into dense action tokens. The BPE step squashes
+the zero-valued components and merges frequently-occurring
+coefficient combinations across action dimensions. We choose
+BPE to compress the DCT matrix, since many efficient im-
+plementations exist and it can produce a fixed-size output
+vocabulary that can be easily integrated into the existing
+vocabulary of vision-language models for VLA training. Other
+lossless compression algorithms like Huffman coding  or
+Lempel-Ziv methods  (the algorithms underlying the gzip
+compression approach) could be used instead, but we leave
+this investigation for future work.
+Note that the order of flattening the AH DCT coefficient
+matrix prior to BPE encoding can have significant impact on
+policy training. There are two options: column-first flattening,
+i.e., concatenate the lowest-frequency components for each
+dimension first, or row-first flattening, i.e., concatenating all
+frequency components for a single action dimension first. We
+choose the former, since we find that predicting the low-
+frequency components, that characterize the overall shape of
+the output sequence, first during autoregressive prediction
+leads to more stable policy rollouts.
+All operations in our tokenization pipeline are easily invert-
+in reverse. The tokenizer has only two hyperparameters: the
+scale applied to the DCT coefficients before rounding, and the
+vocabulary size of the BPE compression step. We find that
+Algorithm 1 FAST Tokenizer
+procedure FASTTOKENIZER(a1:H)
+Compute DCT coefficients
+Quantize coefficients
+Flatten tokens
+BPE Training:
+TrainBPE(D : {[Tk]})
+return action tokens
+both parameters are not very sensitive, and we use the same
+values across all our single-dataset tokenization experiments
+(rounding scale 10, BPE vocabulary size 1024). This is in
+contrast to end-to-end learned compression modules that rely
+on vector quantization . Such networks are often tedious
+to train, and require careful dataset-specific hyperparameter
+selection to achieve good reconstruction [69, 50]. Our experi-
+ments show that our DCT-based tokenization approach trains
+higher-performing policies than VQ-based approaches, while
+being significantly simpler and easier to tune.
+We empirically demonstrate the benefits of our DCT-
+based tokenization in the toy example from Section IV.
+Figure 3 shows that training the autoregressive model on DCT-
+compressed target tokens achieves constantly low prediction
+error across a wide range of sampling frequencies. We provide
+a concise summary of our tokenization approach in Algo-
+rithm 1 and test the effectiveness of FAST tokenization on
+robot control problems in Section VI.
+C. A Universal Robot Action Tokenizer
+The only learned component of our tokenizer is the vo-
+cabulary of the BPE encoder, which needs to be trained for
+each new dataset that the tokenizer is being applied to. While
+this learning process is fast (typically only a few minutes),
+it adds additional friction to using FAST tokenization. Thus,
+we aim to train a universal action tokenizer, that can encode
+chunks of robot actions from any robot. To this end, we train a
+tokenizer using the pipeline described above on a large, cross-
+embodied robot action dataset, consisting of approximately
+one million 1-second action chunks from single-arm, bi-
+manual and mobile manipulation robots, with joint and end-
+effector control action spaces and various control frequencies.
+We provide a detailed breakdown of the data mixture used
+for training the universal tokenizer in Appendix A. Once
+as a black-box tokenizer on 1-second action sequences from
+any robot setup. Our experimental evaluation shows that it is
+competitive to tokenizers tuned for individual datasets.
+release. We release our pre-trained universal ac-
+convenient
+HuggingFace
+AutoProcessor class, that makes it easy to apply the
+tokenizer to any new robot action chunk in three lines of code:
+from transformers import AutoProcessor
+tokenizer  AutoProcessor.frompretrained(
+"<anonymous>fast",
+trustremotecodeTrue
+tokens  tokenizer(actionchunk)
+For best compression results, we recommend normalizing
+input actions to range [1, . . . , 1] via quantile normalization
+as described in Section V-B, and tokenizing 1-second action
+chunks at a time. Our module also makes it easy to train a
+new FAST tokenizer on a given dataset of action chunks:
+from transformers import AutoProcessor
+tokenizer  AutoProcessor.frompretrained(
+"<anonymous>fast",
+trustremotecodeTrue
+newtokenizer  tokenizer.fit(actiondataset)
+VI. EXPERIMENTS
+In our experiments, we test FAST with two VLA backbones:
+0  and OpenVLA . We compare FAST to alternative
+action tokenization schemes and ablate key design decisions.
+We then compare 0 models trained with FAST tokenization
+to the state-of-the-art 0 flow-matching (diffusion) VLA, and
+test the scaling of autoregressive VLA training with FAST to
+robot manipulation data.
+A. Experimental Setup
+implementation.
+different
+tokenization
+schemes for autoregressive VLA training with popular VLA
+Fig. 5: Evaluation environments. We test FAST across
+7 evaluation environments: 6 real-robot tasks and 1 simulation
+environment. The tasks are designed to test VLA performance
+on highly dexterous tasks, like folding cloths from a laundry
+basket (Laundry Folding), and generalization, e.g., zero-shot
+table-top manipulation in unseen environments (DROID).
+backbones. For most of our experiments, we use 0 ,
+a VLA based on PaliGemma-3B . We also test with
+least used tokens in the VLM vocabulary with the resulting
+action tokens, following prior VLAs [10, 40]. We fine-tune
+the VLA models for robot action prediction, without weight
+freezing. We provide more details on the policy training setup
+in Appendix C.
+Evaluation tasks. We develop a suite of 7 evaluation tasks
+(6 real robot, 1 simulated; see Figure 5), designed to test
+VLA performance on both, highly dexterous tasks like laundry
+manipulations 0-shot in unseen environments.
+suites. We measure average performance across Libero-
+Table bussing  (20 Hz): a UR5 single-arm robot needs
+to clean a table, sorting 12 objects into a trash bin (for
+trash) and a plastic container (for plates, bowls, cups and
+cutlery). The task requires precise grasping of various
+objects.
+T-Shirt folding  (50 Hz): a bi-manual ARX robot
+setup needs to fold various shirts on a stationary table
+top. At the beginning of the task, the shirts are placed
+flat on the table. Succeeding at the task requires precise
+grasps and movements to fold the shirt.
+Grocery bagging  (20 Hz): a UR5 single-arm robot
+needs to pack seven objects from a table into a grocery
+This task requires picking a diverse set of objects and
+carefully inserting them into the bag.
+Toast out of toaster  (50 Hz): a bimanual Trossen
+Viper-X robot needs to remove two slices of bread from
+a toaster and place them on a plate. This task requires
+precise grasping and placement of the bread slices.
+Laundry folding  (50 Hz): a bi-manual ARX robot
+needs to take shirts and shorts from a basket, flatten them
+on a table, fold and stack them. This is the most dexterous
+task we test. It requires precise grasps, dynamic motions
+to flatten the cloths, retrying and corrections when cloths
+got tangled up, and precise placements of the folded
+cloths on the existing stack of cloths. We report success
+rate on individual clothing items.
+Zero-shot DROID tabletop manipulation  (15 Hz):
+we test a policy trained on the full DROID dataset across
+various table-top manipulation tasks like picking and
+placing objects, wiping, opening and closing drawers etc.
+this is the first zero-shot evaluation of DROID policies
+in a completely unseen environment, without co-training
+or fine-tuning, simply by prompting a pre-trained model
+with natural language.
+We use grocery bagging, the toaster task, and laundry folding
+only to evaluate our most powerful, generalist VLA in Sec-
+tion VI-F. We provide additional details on training datasets
+and evaluation tasks in Appendix E.
+Comparisons. We test FAST, our DCT-based action tokeniza-
+tion approach, trained on each evaluation dataset individually,
+and FAST, our universal DCT-based action tokenizer, trained
+on a large dataset of 1M action sequences. Note that we
+trained the universal tokenizer on the most diverse real robot
+dataset we could assemble, which includes data from our real-
+robot evaluation tasks. We compare both tokenizers to the
+per-dimension binning scheme used by prior autoregressive
+VLAs like RT-2 , RT-2-X  and OpenVLA , dubbed
+nave tokenization. We apply the binning tokenization to each
+time step in the action chunk separately and then concatenate.
+tion without the need to train any separate model, we can
+consider an alternative compression scheme that instead trains
+a model to produce a quantized representation of the action
+chunk via FSQ , a simpler alternative to VQ-VAE .
+This tokenization strategy has been previously used to tokenize
+high-dimensional image data [50, 69], and can be viewed
+as an ablation of our compression-based approach, utilizing
+compressed representations but with a more complex learning-
+based alternative to our relatively simple DCT-based method.
+B. Comparing Action Tokenizers for VLA Training
+Dimension
+Frequency
+Avg. Token
+Compression
+BridgeV2
+Shirt Fold
+TABLE I: Comparison of the average token count per
+action chunk for nave tokenization and FAST. We use 1-
+second chunks in all datasets. With our method, each chunk
+requires many fewer tokens, particularly for high-frequency
+domains such as the T-shirt folding task, indicating that it is
+more effective at removing redundancy.
+We first provide a comparison of compression rates between
+our proposed FAST tokenizer and the nave binning scheme
+used in prior works in Table I. We use 1-second action chunks
+from datasets with various action dimensionalities and control
+frequencies. For both approaches we use the default hyper-
+see that FAST achieves a significant compression of the input
+action sequences across all datasets. The compression benefits
+are especially pronounced for datasets with high-frequency
+action data. Interestingly, FAST consistently generates roughly
+30 action tokens per chunk per robot arm (i.e., 60 tokens for
+the bi-manual setup) in each of the domains. This suggests that
+FAST finds a representation that approximates the complexity
+of the underlying action signal, and is largely independent of
+the frequency of the action data.
+We note that this compression is not entirely lossless,
+with a trade-off between compression ratio and reconstruction
+accuracy determined by the scale parameter  from Algo-
+rithm 1. Figures in Table I are at comparable reconstruction
+accuracy. Please see Figure 12 for plots showing the trade-off
+between compression and fidelity for each of the tokenizers
+we compare.
+tokenization approaches described in Section VI-A. We report
+results in Figure 6.
+prior works struggles to learn effective policies on high-
+frequency robot data. This is particularly apparent for the
+T-SHIRT FOLDING
+TABLE BUSSING
+Task Progress
+Task Progress
+Fig. 6: Comparison of policy performance using different tokenization approaches. We find that tokenization approaches
+that compress action targets (FAST, FSQ) lead to substantially more efficient training than the nave binning tokenization used
+in prior VLAs. Overall, we find that FAST leads to more effective policy training than FSQ, particularly on dexterous real-robot
+tasks. Our universal tokenizer, FAST, matches the performance of dataset-specific tokenizers. We report mean and 95 CI.
+Building 1
+Building 2
+Building 3
+Fig. 7: Evaluation environments of FAST policy trained
+on DROID . We find that the same policy checkpoint
+generalizes robustly, and performs various simple table-top
+tasks zero-shot across three test buildings.
+highest frequency tasks in our evaluations: Table Bussing
+(20Hz) and T-Shirt Folding (50Hz). On both tasks, policies
+trained with nave tokenization are unable to make progress
+on the task.
+In contrast, we find that compression-based tokenization
+leads to effective training. Comparing FAST to our FSQ
+on the dexterous, high-frequency tasks, despite being much
+simpler and requiring no separate neural network training.
+ful training of a strong generalist policy on the DROID
+Single Arm
+T-DROID Joint
+T-DROID EEF
+UMI on Legs
+Dexterous
+NYU Hand
+Berkeley Dex Arm
+Berkeley Dex Hand
+Humanoid
+Humanplus
+Open Television
+Compression Ratio
+(Naive  FAST)
+Fig. 8: Universal tokenizer. We test the compression rate
+achieved by our FAST tokenizer vs. nave tokenization across
+diverse robot datasets, unseen during tokenizer training. We
+find that FAST is effective across a wide range of robot
+in natural language. All prior works, including the original
+DROID paper  and OpenVLA , did not show zero-shot
+results and focused entirely on co-training or fine-tuning eval-
+uations instead. We demonstrate the generality of our DROID
+policy by testing it on various table-top manipulation tasks
+in environments across three university campuses (Figure 7).
+Out of the box, the policy can competently perform simple
+manipulation tasks, like picking and placing objects, opening
+and closing cupboards and turning on faucets, across a wide
+range of scenes and camera viewpoints. Even unsuccessful
+trials show sensible behavior, like approaching the handles of
+microwave and dish washer doors, even if ultimately failing
+to open them. We show success and failure videos on our
+website. While far from perfect, the level of generality and
+robustness of this policy substantially exceeds that of prior
+DROID policies.
+C. Universal Action Tokenizer
+In this section, we evaluate the performance of our universal
+action tokenizer, FAST, which we trained on 1M real robot
+action sequences (see Section V-C). To test the generality
+of the tokenizer, we assemble a diverse set of small testing
+datasets. This set spans a wide range of robot morphologies,
+action spaces, and control frequencies (see Figure 8, with a full
+list of datasets in Table III). Note that none of these datasets is
+part of the tokenizer training set. They thus test a scenario in
+which the tokenizer is applied to a completely new robot setup
+without recomputing the tokenization. We find that the FAST
+tokenizer achieves good compression performance across a
+wide range of robot datasets, reducing the number of action
+tokens by 2x across all datasets, and significantly more on
+We also test performance of the universal tokenizer for
+policy training, and report results alongside the per-dataset
+tokenizers in Figure 6. Across all tasks, the universal tok-
+enizer closely matches the performance of the dataset-specific
+FAST tokenizers, suggesting that the universal tokenizer can
+be used as a strong default for robot action tokenization.
+D. Ablation Studies
+We analyze two key aspects of our method: (1) Is our
+FAST tokenization approach independent of the underlying
+VLA backbone? (2) How important is the BPE compression
+T-Shirt Folding
+OpenVLA  FAST
+To answer the first question, we
+train an OpenVLA policy  on
+the challenging high-frequency T-
+shirt folding dataset, comparing
+the nave tokenization approach
+originally used in OpenVLA to
+our FAST tokenizer. To comply
+with the task setup, we modify the
+OpenVLA model code to accept
+multiple input images and predict
+1-second action chunks. The re-
+sults on the right demonstrate that FAST is able to significantly
+boost performance of OpenVLA, enabling it to train effectively
+on high-frequency robot manipulation data. This suggests, that
+our tokenization approach is independent of the underlying
+model backbone, and may be easily applied to a wide range
+of pre-trained autoregressive transformer models.
+FAST without BPE
+TABLE BUSSING
+Task Progress
+T-SHIRT FOLD
+encoding step on the table buss-
+ing and T-shirt folding tasks. The
+figure on the right shows that
+the resulting policies without BPE
+encoding achieve worse rollout
+performance (but still outperform
+nave tokenization). Intuitively, the
+DCT transform still concentrates
+most of the signals information
+in a few tokens, improving the
+learning signal. However, without
+the learning signal and also significantly slow down inference,
+since models need to autoregressively predict hundreds of
+action tokens, ultimately leading to worse policy performance.
+0 (3x compute)
+Task Progress
+Single Task Performance
+Fig. 9: Comparison of diffusion 0  to our 0 model with
+FAST decoding on single-task training. On small datasets
+(Libero, T-Shirt Folding), both perform comparably. On large
+datasets (Table Bussing), FAST converges faster. In DROID,
+we find that FAST follows language instructions better. We
+report mean and 95 CI.
+E. Comparing FAST to Diffusion
+In this section, we compare 0, a state-of-the-art diffusion
+autoregressive decoding. We compare the performance of both
+models on the tasks from Section VI-B.
+We report results in Figure 9. We find that on small
+datasets (Libero, T-Shirt Folding; <50h), both VLAs perform
+comparably. However, on large datasets like Table Bussing,
+we find that the FAST-based VLA converges significantly
+than the diffusion variant of 0. Additionally, we find that
+the autoregressive 0 model trained with FAST tokenization
+follows language instructions more closely: in the DROID
+investigation of the language following abilities of diffusion
+and autoregressive VLAs to future work.
+One current limitation of the autoregressive VLA is its
+inference speed: while 0 with diffusion typically predicts one
+second action chunks within 100ms on an NVIDIA 4090 GPU,
+the 0 model with FAST tokenization needs approximately
+750ms of inference time per chunk, since it must perform
+more autoregressive decoding steps (typically 30-60 action
+tokens need to be decoded, vs. 10 diffusion steps for diffusion
+0) and use the full 2B parameter language model backbone
+for autoregressive decoding (vs. a 300M parameter action
+expert for diffusion 0). While we did not find this slower
+inference to hurt performance on the static manipulation
+tasks we evaluated, it made evaluations significantly slower.
+Going forward, there are many techniques for accelerating the
+inference of discrete, autoregressive transformer models that
+are used extensively in the LLM literature (e.g., speculative
+will leave an investigation of these to future work.
+Laundry Folding
+Fig. 10: Rollout of 0-FAST on the laundry folding task. FAST tokenization enables autoregressive VLAs to perform
+TOAST OUT
+OF TOASTER
+Task Progress
+Generalist VLA Performance
+Fig. 11: Comparison of 0-FAST and diffusion 0
+generalist policies. 0-FAST matches the performance of
+diffusion 0 while requiring significantly less compute for
+training. Reported: mean and 95 CI.
+F. Scaling Autoregressive VLAs to Large Robot Datasets
+We have demonstrated FASTs effectiveness for training
+autoregressive VLAs on individual robot datasets, but does
+it scale to training dexterous generalist policies? To test this,
+we train the 0-FAST model from the previous section on
+a large cross-embodied robot data mixture It includes 903M
+timesteps of mixed-embodiment data from single-arm, bi-
+manual and mobile robots like the ones listed in Appendix A.
+source datasets BRIDGE v2 , DROID , and OXE .
+We compare zero-shot performance to the diffusion 0
+model in Figure 11. Overall, we find that the autoregressive
+0-FAST model matches the performance of the diffusion 0
+while requiring significantly less compute for training.
+We show a qualitative example of 0-FAST performing the
+laundry folding task in Figure 10 and include additional videos
+on our website.
+We find that 0-FAST converges significantly faster than
+the diffusion 0 model: the model in the evaluations above
+required 5x fewer GPU hours for training than the 0 model
+from Black et al. . We show robot evaluation results for
+multiple checkpoints throughout the course of training in
+Figure 1 (averaging performance on two representative tasks:
+table bussing and t-shirt folding). The results show clearly that
+0-FAST achieves high performance with significantly less
+compute. For state-of-the-art VLA training runs, which can
+often use thousands of GPU hours, a 5x reduction in required
+compute is significant. We include a full comparison across
+all tasks for a compute-matched 0 checkpoint in Appendix,
+Figure 15 and find that the same conclusions hold: 0-FAST
+clearly outperforms the compute-matched 0.
+To summarize, we have demonstrated that FAST tokeniza-
+tion allows us to train autoregressive VLAs on complex, dex-
+terous robot tasks that prior tokenization schemes completely
+fail on. We have also shown that FAST, when combined with
+state-of-the-art VLAs like 0, scales to training generalist,
+cross-embodied policies that rival the performance of the best
+diffusion VLAs while being significantly faster to train.
+VII. CONCLUSION
+In this paper, we introduced FAST, an efficient action
+tokenizer for high-frequency robotic control data. FAST uses
+the discrete cosine transform (DCT) followed by byte-pair
+encoding (BPE) to compress action chunks, leading to sig-
+nificantly better compression than existing action tokenizers
+across a range of robotics domains. Our real-world and simu-
+lated VLA experiments show that FAST yields dramatically
+improved performance over nave action discretization ap-
+methods based on vector quantization. We also developed
+default tokenizer for any robot action sequence, and used it
+to train 0-FAST, a dexterous generalist policy that can match
+performance of state-of-the-art diffusion VLAs while being
+significantly more efficient to train.
+VIII. LIMITATIONS
+Action tokenizers. While we believe that FAST is a signifi-
+cant step toward general purpose robot action tokenizers, many
+questions remain. In this work, we tested FAST on static robot
+manipulators. Our offline experiments demonstrated promising
+compression capabilities of FAST on other robot morpholo-
+gies like mobile robots, dexterous hands, and humanoids.
+Testing actual policy performance on these platforms is an
+exciting direction for future work. Additionally, exploring al-
+ternative compression schemes, and testing the combination of
+compression-based action encodings with non-autoregressive
+decoding approaches like diffusion  are interesting direc-
+tions for future investigation.
+VLA architectures. Our paper has taken initial steps to
+explore the trade-offs between two major classes of VLA
+the jury on the best VLA architecture is still out. Future work
+should carefully explore trade-offs in training speed, language
+grounding abilities, and expressiveness of either approach.
+Inference speed. While 0-FAST matches the overall per-
+formance of diffusion 0, it is slower at inference time
+(see Section VI-E). While the slower inference speed was
+acceptable on the static tasks we evaluated, future work should
+explore approaches for speeding up inference of autoregressive
+VLA models to enable them to solve highly dynamic tasks.
+There is a large literature of inference optimizations [43, 36,
+53] for large language models that can be readily applied to
+autoregressive VLAs.
+REFERENCES
+Nasir Ahmed, T
+crete cosine transform. IEEE transactions on Computers,
+Michael Ahn, Anthony Brohan, Noah Brown, Yevgen
+Chuyuan Fu, Keerthana Gopalakrishnan, Karol Haus-
+Brian Ichter, Alex Irpan, Eric Jang, Rosario Jauregui
+Peter Pastor, Jornell Quiambao, Kanishka Rao, Jarek Ret-
+Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Mengyuan
+Do as i can and not as i say:
+Grounding language in robotic affordances.
+In arXiv
+preprint arXiv:2204.01691, 2022.
+Suneel Belkhale and Dorsa Sadigh. Minivla: A better vla
+with a smaller footprint, 2024. URL
+Stanford-ILIADopenvla-mini.
+Suneel Belkhale, Tianli Ding, Ted Xiao, Pierre Sermanet,
+Quon Vuong, Jonathan Tompson, Yevgen Chebotar, De-
+bidatta Dwibedi, and Dorsa Sadigh. Rt-h: Action hier-
+archies using language, 2024. URL
+Lucas Beyer, Andreas Steiner, Andre Susano Pinto,
+Alexander Kolesnikov, Xiao Wang, Daniel Salz, Maxim
+Emanuele Bugliarello, et al. Paligemma: A versatile 3b
+vlm for transfer. arXiv preprint arXiv:2407.07726, 2024.
+Homanga Bharadhwaj, Jay Vakil, Mohit Sharma, Ab-
+hinav Gupta, Shubham Tulsiani, and Vikash Kumar.
+ulation via semantic augmentations and action chunking.
+In 2024 IEEE International Conference on Robotics and
+Automation (ICRA), pages 47884795. IEEE, 2024.
+Kevin Black, Noah Brown, Danny Driess, Adnan Es-
+A vision-language-action flow model for general robot
+control. arXiv preprint arXiv:2410.24164, 2024.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yev-
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana
+Dmitry Kalashnikov, Yuheng Kuang, Isabel Leal, Kuang-
+Huei Lee, Sergey Levine, Yao Lu, Utsav Malla, Deek-
+sha Manjunath, Igor Mordatch, Ofir Nachum, Carolina
+nell Quiambao, Kanishka Rao, Michael Ryoo, Grecia
+Sumedh Sontakke, Austin Stone, Clayton Tan, Huong
+anna Zitkovich. Rt-1: Robotics transformer for real-world
+control at scale.
+In arXiv preprint arXiv:2212.06817,
+Anthony Brohan, Noah Brown, Justice Carbajal, Yev-
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana
+control at scale. arXiv preprint arXiv:2212.06817, 2022.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen
+Danny Driess, Avinava Dubey, Chelsea Finn, Pete Flo-
+Isabel Leal, Lisa Lee, Tsang-Wei Edward Lee, Sergey
+Karl Pertsch, Kanishka Rao, Krista Reymann, Michael
+Jaspiar Singh, Anikait Singh, Radu Soricut, Huong Tran,
+Vincent Vanhoucke, Quan Vuong, Ayzaan Wahid, Ste-
+fan Welker, Paul Wohlhart, Jialin Wu, Fei Xia, Ted
+Zitkovich. Rt-2: Vision-language-action models transfer
+web knowledge to robotic control.
+In arXiv preprint
+Chi-Lam Cheang, Guangzeng Chen, Ya Jing, Tao Kong,
+Hang Li, Yifeng Li, Yuxiao Liu, Hongtao Wu, Jiafeng
+scale knowledge for robot manipulation. arXiv preprint
+Sanyuan Chen, Yu Wu, Chengyi Wang, Shujie Liu,
+Daniel Tompkins, Zhuo Chen, and Furu Wei. Beats: Au-
+dio pre-training with acoustic tokenizers. arXiv preprint
+An-Chieh Cheng, Yandong Ji, Zhaojing Yang, Xueyan
+and Xiaolong Wang.
+Language-Action Model for Navigation. arXiv preprint
+Xuxin Cheng, Jialong Li, Shiqi Yang, Ge Yang, and
+Xiaolong Wang.
+immersive active visual feedback.
+arXiv preprint
+Cheng Chi, Siyuan Feng, Yilun Du, Zhenjia Xu, Eric
+fusion policy: Visuomotor policy learning via action
+diffusion.
+In Proceedings of Robotics: Science and
+Systems (RSS), 2023.
+Cheng Chi, Zhenjia Xu, Chuer Pan, Eric Cousineau,
+Benjamin Burchfiel, Siyuan Feng, Russ Tedrake, and
+Shuran Song.
+Universal manipulation interface: In-
+the-wild robot teaching without in-the-wild robots.
+Proceedings of Robotics: Science and Systems (RSS),
+OX-Embodiment Collaboration, A Padalkar, A Pooley,
+A Jain, A Bewley, A Herzog, A Irpan, A Khazatsky,
+A Rai, A Singh, et al. Open X-Embodiment: Robotic
+learning datasets and RT-X models.
+arXiv preprint
+James W Cooley and John W Tukey.
+An algorithm
+for the machine calculation of complex fourier series.
+Mathematics of computation, 19(90):297301, 1965.
+Norman Di Palo and Edward Johns.
+Keypoint action
+tokens enable in-context imitation learning in robotics.
+In Proceedings of Robotics: Science and Systems (RSS),
+Ria Doshi, Homer Walke, Oier Mees, Sudeep Dasari,
+and Sergey Levine.
+Scaling cross-embodied learning:
+One policy for manipulation, navigation, locomotion and
+aviation. In Conference on Robot Learning, 2024.
+Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch,
+Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid,
+Jonathan Tompson, Quan Vuong, Tianhe Yu, et al. Palm-
+preprint arXiv:2303.03378, 2023.
+Patrick Esser, Robin Rombach, and Bjorn Ommer. Tam-
+ing transformers for high-resolution image synthesis,
+Scott Ettinger, Shuyang Cheng, Benjamin Caine, Chenxi
+Alexander McCauley, Jonathon Shlens, and Dragomir
+Anguelov. Large scale interactive motion forecasting for
+autonomous driving: The waymo open motion dataset. In
+Proceedings of the IEEECVF International Conference
+on Computer Vision (ICCV), pages 97109719, October
+Hao-Shu Fang, Hongjie Fang, Zhenyu Tang, Jirong Liu,
+Chenxi Wang, Junbo Wang, Haoyi Zhu, and Cewu Lu.
+diverse skills in one-shot. In 2024 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Kuan Fang, Fangchen Liu, Pieter Abbeel, and Sergey
+Levine. Moka: Open-world robotic manipulation through
+mark-based visual prompting.
+Systems (RSS), 2024.
+Zipeng Fu, Qingqing Zhao, Qi Wu, Gordon Wetzstein,
+and Chelsea Finn. Humanplus: Humanoid shadowing and
+imitation from humans. In Conference on Robot Learning
+(CoRL), 2024.
+Philip Gage. A new algorithm for data compression. The
+C Users Journal, 12(2):2338, 1994.
+Dan Gillick, Cliff Brunk, Oriol Vinyals, and Amarnag
+Subramanya.
+Multilingual language processing from
+Yuan Gong, Yu-An Chung, and James Glass.
+Audio Spectrogram Transformer.
+In Proc. Interspeech
+Irmak Guzey, Yinlong Dai, Georgy Savva, Raunaq Bhi-
+terity gap through object-oriented rewards, 2024. URL
+Huy Ha, Yihuai Gao, Zipeng Fu, Jie Tan, and Shuran
+Song. UMI on legs: Making manipulation policies mo-
+bile with manipulation-centric whole-body controllers. In
+Proceedings of the 2024 Conference on Robot Learning,
+Wenlong Huang, Chen Wang, Yunzhu Li, Ruohan Zhang,
+and Li Fei-Fei.
+relational keypoint constraints for robotic manipulation.
+arXiv preprint arXiv:2409.01652, 2024.
+David A. Huffman. A method for the construction of
+minimum-redundancy codes.
+Proceedings of the IRE,
+Huiwon Jang, Sihyun Yu, Jinwoo Shin, Pieter Abbeel,
+and Younggyo Seo. Efficient long video tokenization via
+coordinated-based patch reconstruction. arXiv preprint
+Zhenyu Jiang, Yuqi Xie, Kevin Lin, Zhenjia Xu, Weikang
+dexterous manipulation via imitation learning.
+preprint arXiv:2410.24185, 2024.
+Renren Jin, Jiangcun Du, Wuwei Huang, Wei Liu, Jian
+A comprehensive
+evaluation of quantization strategies for large language
+Joshua Jones, Oier Mees, Carmelo Sferrazza, Kyle Sta-
+geneous sensors via language grounding. arXiv preprint
+Siddharth Karamcheti, Suraj Nair, Ashwin Balakrishna,
+Percy Liang, Thomas Kollar, and Dorsa Sadigh. Pris-
+matic vlms: Investigating the design space of visually-
+conditioned language models. In International Confer-
+ence on Machine Learning (ICML), 2024.
+Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ash-
+win Balakrishna, Sudeep Dasari, Siddharth Karam-
+Lawrence Yunliang Chen, Kirsty Ellis, Peter David
+Yecheng Jason Ma, Patrick Tree Miller, Jimmy Wu,
+Suneel Belkhale, Shivin Dass, Huy Ha, Arhan Jain, Abra-
+ham Lee, Youngwoon Lee, Marius Memmel, Sungjae
+Kevin Black, Cheng Chi, Kyle Beltran Hatch, Shan
+nag R Sanketi, Archit Sharma, Cody Simpson, Quan
+Jonathan Heewon Yang, Arefeh Yavary, Tony Z. Zhao,
+Christopher Agia, Rohan Baijal, Mateo Guaman Cas-
+Daniel Morton, Tony Nguyen, Abigail ONeill, Rosario
+Abhishek Gupta, Dinesh Jayaraman, Joseph J Lim, Ji-
+tendra Malik, Roberto Martn-Martn, Subramanian Ra-
+Michael C. Yip, Yuke Zhu, Thomas Kollar, Sergey
+the-wild robot manipulation dataset. In Proceedings of
+Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla:
+An open-source vision-language-action model.
+preprint arXiv:2406.09246, 2024.
+Lucy Lai, Ann ZX Huang, and Samuel J Gershman.
+Action chunking as conditional policy compression.
+Seungjae Lee, Yibin Wang, Haritheja Etukuru, H. Jin
+Behavior generation with latent actions. arXiv preprint
+Yaniv Leviathan, Matan Kalman, and Yossi Matias. Fast
+inference from transformers via speculative decoding,
+2023. URL
+Toru Lin, Yu Zhang, Qiyang Li, Haozhi Qi, Brent Yi,
+Sergey Levine, and Jitendra Malik. Learning visuotactile
+skills with two multifingered hands. arXiv:2404.16823,
+Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang
+knowledge transfer for lifelong robot learning. Advances
+in Neural Information Processing Systems, 36, 2024.
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae
+Lee. Visual instruction tuning. In Advances in Neural
+Information Processing Systems (NeurIPS), 2023.
+Ilya Loshchilov and Frank Hutter.
+Decoupled weight
+decay regularization. arXiv preprint arXiv:1711.05101,
+Jianlan Luo, Zheyuan Hu, Charles Xu, You Liang Tan,
+Jacob Berg, Archit Sharma, Stefan Schaal, Chelsea Finn,
+Abhishek Gupta, and Sergey Levine. Serl: A software
+suite for sample-efficient robotic reinforcement learning,
+Ajay Mandlekar, Yuke Zhu, Animesh Garg, Jonathan
+crowdsourcing platform for robotic skill learning through
+imitation. In Conference on Robot Learning, pages 879
+Fabian Mentzer, David Minnen, Eirikur Agustsson, and
+Michael Tschannen.
+Finite scalar quantization: Vq-
+vae made simple, 2023. URL
+Atharva Mete, Haotian Xue, Albert Wilcox, Yongxin
+abstractions for learning continuous control, 2024. URL
+Soroush Nasiriany, Fei Xia, Wenhao Yu, Ted Xiao, Jacky
+elicits actionable knowledge for vlms.
+In Forty-first
+International Conference on Machine Learning, 2024.
+Tensorrt-llm.
+NVIDIATensorRT-LLM.
+Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+Liang Tan, Pannag Sanketi, Quan Vuong, Ted Xiao,
+Dorsa Sadigh, Chelsea Finn, and Sergey Levine. Octo:
+An open-source generalist robot policy. In Proceedings of
+Open X-Embodiment Collaboration, Abhishek Padalkar,
+Acorn Pooley, Ajinkya Jain, Alex Bewley, Alex Her-
+Anikait Singh, Anthony Brohan, Antonin Raffin, Ayzaan
+hard Scholkopf, Brian Ichter, Cewu Lu, Charles Xu,
+Chelsea Finn, Chenfeng Xu, Cheng Chi, Chenguang
+eter Buchler, Dmitry Kalashnikov, Dorsa Sadigh, Edward
+Giulio Schiavi, Hao Su, Hao-Shu Fang, Haochen Shi,
+Heni Ben Amor, Henrik I Christensen, Hiroki Furuta,
+Homer Walke, Hongjie Fang, Igor Mordatch, Ilija Ra-
+Jan Schneider, Jasmine Hsu, Jeannette Bohg, Jeffrey
+hyek Han, Kanishka Rao, Karl Pertsch, Karol Hausman,
+Keegan Go, Keerthana Gopalakrishnan, Ken Goldberg,
+Kendra Byrne, Kenneth Oslund, Kento Kawaharazuka,
+Kevin Zhang, Keyvan Majd, Krishan Rana, Krishnan
+imilian Du, Michael Ahn, Mingtong Zhang, Mingyu
+Nikhil J Joshi, Niko Suenderhauf, Norman Di Palo,
+Nur Muhammad Mahi Shafiullah, Oier Mees, Oliver
+Pierre Sermanet, Priya Sundaresan, Quan Vuong, Rafael
+Russell Mendonca, Rutav Shah, Ryan Hoque, Ryan Ju-
+Sherry Moore, Shikhar Bahl, Shivin Dass, Shuran Song,
+Sichun Xu, Siddhant Haldar, Simeon Adebola, Simon
+Stephen Tian, Sudeep Dasari, Suneel Belkhale, Takayuki
+Tianhe Yu, Tianli Ding, Todor Davchev, Tony Z. Zhao,
+Travis Armstrong, Trevor Darrell, Vidhi Jain, Vincent
+Ying Xu, Yixuan Wang, Yonatan Bisk, Yoonyoung Cho,
+Youngwoon Lee, Yuchen Cui, Yueh hua Wu, Yujin Tang,
+Yuke Zhu, Yunzhu Li, Yusuke Iwasawa, Yutaka Matsuo,
+Zhuo Xu, and Zichen Jeff Cui. Open X-Embodiment:
+Robotic learning datasets and RT-X models.
+arxiv.orgabs2310.08864, 2023.
+Artidoro Pagnoni, Ram Pasunuru, Pedro Rodriguez, John
+Lili Yu, Jason Weston, Luke Zettlemoyer, Gargi Ghosh,
+Mike Lewis, Ari Holtzman, and Srinivasan Iyer. Byte
+latent transformer: Patches scale better than tokens. 2024.
+Haozhi Qi, Ashish Kumar, Roberto Calandra, Yi Ma, and
+Jitendra Malik. In-hand object rotation via rapid motor
+Alec Radford, Jeff Wu, Rewon Child, David Luan, Dario
+Language models are
+unsupervised multitask learners. 2019.
+gio Gomez Colmenarejo, Alexander Novikov, Gabriel
+Jost Tobias Springenberg, et al.
+A generalist agent.
+Transactions on Machine Learning Research, 2022.
+Rico Sennrich, Barry Haddow, and Alexandra Birch.
+Neural machine translation of rare words with subword
+units. arXiv preprint arXiv:1508.07909, 2015.
+Himanshu Gaurav Singh, Antonio Loquercio, Carmelo
+tendra Malik. Hand-object interaction pretraining from
+Kavukcuoglu.
+Neural discrete representation learning,
+2018. URL
+Homer Rich Walke, Kevin Black, Tony Z Zhao, Quan
+dre Wang He, Vivek Myers, Moo Jin Kim, Max Du,
+BridgeData v2: A dataset for robot learning at
+scale. In Conference on Robot Learning, pages 1723
+Gregory K Wallace. The jpeg still picture compression
+standard. IEEE transactions on consumer electronics, 38
+(1):xviiixxxiv, 1992.
+Lirui Wang, Xinlei Chen, Jialiang Zhao, and Kaiming
+He. Scaling proprioceptive-visual learning with hetero-
+geneous pre-trained transformers. In The Thirty-eighth
+Annual Conference on Neural Information Processing
+Junjie Wen, Yichen Zhu, Jinming Li, Minjie Zhu, Kun
+action models for robotic manipulation. arXiv preprint
+Wilson Yan, Matei Zaharia, Volodymyr Mnih, Pieter
+Adaptive tokenization for image and video.
+preprint arXiv:2410.08368, 2024.
+Seonghyeon Ye, Joel Jang, Byeongguk Jeon, Sejune Joo,
+Jianwei Yang, Baolin Peng, Ajay Mandlekar, Reuben
+tent action pretraining from videos.
+arXiv preprint
+Lijun Yu, Yong Cheng, Kihyuk Sohn, Jose Lezama,
+Han Zhang, Huiwen Chang, Alexander G. Hauptmann,
+Ming-Hsuan Yang, Yuan Hao, Irfan Essa, and Lu Jiang.
+Micha Zawalski, William Chen, Karl Pertsch, Oier
+via embodied chain-of-thought reasoning. In Conference
+on Robot Learning, 2024.
+Neil Zeghidour, Alejandro Luebs, Ahmed Omran, Jan
+end-to-end neural audio codec, 2021. URL
+orgabs2107.03312.
+Tony Z Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+Finn. Learning fine-grained bimanual manipulation with
+low-cost hardware.
+arXiv preprint arXiv:2304.13705,
+Tony Z Zhao, Jonathan Tompson, Danny Driess, Pete
+Ayzaan Wahid. Aloha unleashed: A simple recipe for
+robot dexterity. arXiv preprint arXiv:2410.13126, 2024.
+Haoyu Zhen, Xiaowen Qiu, Peihao Chen, Jincheng Yang,
+Xin Yan, Yilun Du, Yining Hong, and Chuang Gan. 3d-
+arXiv preprint arXiv:2403.09631, 2024.
+Haoyu Zhen, Xiaowen Qiu, Peihao Chen, Jincheng Yang,
+Xin Yan, Yilun Du, Yining Hong, and Chuang Gan. 3d-
+arXiv preprint arXiv:2403.09631, 2024.
+Ruijie Zheng, Yongyuan Liang, Shuaiyi Huang, Jianfeng
+and Jianwei Yang. Tracevla: Visual trace prompting en-
+hances spatial-temporal awareness for generalist robotic
+policies. arXiv preprint arXiv:2412.10345, 2024.
+Zhiyuan Zhou, Pranav Atreya, Abraham Lee, Homer
+provement of instruction following skills via foundation
+models. In Conference on Robot Learning, 2024.
+Jacob Ziv and Abraham Lempel. Compression of individ-
+ual sequences via variable-rate coding. IEEE transactions
+on Information Theory, 24(5):530536, 1978.
+APPENDIX
+A. Data Mixture for Training Universal Tokenizer
+The training mixture for the universal tokenizer. For many
+end-effector camera frame, to ensure the generality of the
+resulting tokenizer. Open X-Embodiment , DROID ,
+and Bridge V2  are included in their original form. Before
+accommodate action spaces of different dimensionality.
+Dataset Name
+Morphology
+Action Space
+Frequency
+Bi-manual
+Bi-manual
+Franka FR3
+Single arm
+Mobile Trossen
+Trossen Biarm
+Bi-manual
+UR5 single
+Single arm
+UR5 biarm
+Bi-manual
+ARX slate mobile
+Bi-manual
+AgileX EE
+Bi-manual
+Fibocom EE
+Franka FR3 EE
+Single arm
+Mobile Trossen EE
+Trossen Biarm EE
+Bi-manual
+UR5 single EE
+Single arm
+UR5 biarm EE
+Bi-manual
+ARX slate mobile EE
+Bi-manual
+CamFrame
+AgileX Cam
+Bi-manual
+CamFrame
+Fibocom Cam
+CamFrame
+Franka FR3 Cam
+Single arm
+CamFrame
+Mobile Trossen Cam
+CamFrame
+Trossen Biarm Cam
+Bi-manual
+CamFrame
+UR5 single Cam
+Single arm
+CamFrame
+UR5 biarm Cam
+Bi-manual
+CamFrame
+ARX slate mobile Cam
+CamFrame
+Bi-manual
+Single arm
+Bridge V2
+Single arm
+Single arm
+B. Discussion of Alternative Compression Approaches
+While we mainly focus on comparisons between our DCT-
+based compression scheme and neural VQ-style tokenizers
+(FSQ) in the main paper, it is also worth comparing FAST
+to a few other tokenization schemes.
+Principal component analysis. PCA and DCT operate simi-
+In fact, we find that the first few principal components of
+action-sequence data are, similarly to DCT, represented by
+nearly identically in practice. However, we use DCT in FAST
+for simplicity as it is parameter-free and thus does not intro-
+duce a dependency on sequence length or dataset properties.
+Clustering. We also examine a clustering-based method,
+where each H  D action is encoded as a set of D tokens,
+with each token representing a 1-dimensional sequence. The
+clustering approach results in significantly larger tokenization
+error than FAST at the same token count (Fig. 12).
+Subsampling
+No subsampling
+FSQ (Dataset)
+ARX-Laundry
+UR5-Bussing
+Number of Tokens
+Reconstruction Error
+Fig. 12: Comparison of compression-reconstruction tradeoff
+on six training datsets. Any discretization method includes
+some hyperparameter that controls the tradeoff between re-
+construction fidelity and compression level, represented here
+as number of tokens in the output (vocab size is held constant
+across all tokenizers). We sweep this hyperparameter (FAST:
+rounding scale; nave tokenization: subsampling frequency;
+well across a wide range of scales. In particular, although it
+is less efficient than VQ-based tokenizers at low fidelities, it
+exhibits much better scaling to higher reconstruction fidelity,
+making FAST much more applicable to fine-grained control
+problems. Specific instantiations of each tokenizer (FAST,
+and nave tokenization without subsampling) are also shown.
+C. Policy Training
+We train policies with 0  and OpenVLA  backbones.
+Depending on the task, policies are conditioned on two or three
+inputs images (one third person camera, and one wrist camera
+per robot arm), using a resolution of 224x224 pixels. The VLA
+backbones encode each image separately via the pre-trained
+vision encoder and concatenate the resulting tokens. We addi-
+tionally condition on a natural language task instruction and
+the robots proprioceptive state. Both get tokenized via the
+LLMs language tokenizer, treating them as strings. For the pro-
+prioceptive state, we apply a bin tokenization pre-processing,
+akin to RT-2s action tokenization , discretizing into 256
+bins. We then tokenize the integers as part of the text input
+sequence. Note that a simple bin tokenization scheme is
+sufficient for the proprioceptive state, since it is an input to the
+policy (as opposed to the action outputs, that require advanced
+tokenization as our experiments demonstrate).
+We train all policies using a short linear learning rate warm-
+up (1k steps) and then a constant learning rate of 5e-5. We
+use the AdamW optimizer  (b1  0.9, b2  0.95) without
+weight decay, clip gradient magnitude to 1 and compute an
+EMA of the network weights with weight 0.999.
+During inference, we use simple greedy autoregressive
+toast out of toaster, laundry folding), where we found a small
+temperature of   0.7 to be helpful to get policies to move
+out of the home position (since some of the data included
+stationary chunks of actions where the robot hovers in the
+initial position at the beginning of training episodes).
+D. DROID Policy Setup
+setup to make it easy for others to reproduce and build on our
+results. For training on the DROID dataset, we condition the
+policy on a single third-person view and the wrist camera view.
+Since DROID provides two external camera views per episode,
+we randomly sample the third-person view during training.
+for each training episode, and we randomize over them during
+training. We do not use the camera calibration information.
+of the box, without the need for calibration. We use joint
+velocity and absolute gripper position action space, and train
+the policy to predict 15-step action chunks (we execute 8
+or 15-step chunks open-loop at inference time). We apply
+light data curation: we train only on the episodes marked as
+success (75k episodes) and filter out any idle timesteps with
+all-zero actions during training (usually timesteps in which the
+teleoperators reset the position of the VR controller during
+data collection). Other than that, we found training on the
+full dataset to work well, though there is likely potential for
+improving performance with more careful curation. We train
+policies for three epochs (240k iterations  256 batch size),
+which takes approximately 4 days on 8xH100 GPUs for the
+3B parameter VLAs we are using.
+E. Evaluation Tasks and Training Datasets
+used in our experiments. We detail the distribution of initial
+conditions and scoring criteria.
+Libero. We follow the training and evaluation setup of Liu
+et al. . We evaluate on the Libero-Spatial, Libero-Object,
+Libero-Goal and Libero-Long benchmarking suites and use the
+(a) Table Bussing
+(b) T-Shirt Folding
+(c) Grocery Bagging
+(d) Toast out of Toaster
+(e) Laundry Folding
+Fig. 13: Sampled initial configurations of evaluation tasks.
+corresponding datasets provided by the authors for training.
+We combine all datasets into one dataset with 270k samples,
+and train one policy jointly on all to reduce the number of
+policies that need to be trained. We train all policies for a
+total of 40k iterations (40 epochs). We use the re-rendered
+datasets of Kim et al.  for our experiments. Success is
+evaluated as a binary criterion per episode.
+Table Bussing. This task requires a single UR5e robot
+arm to clean a table by bussing objects (a mixture of trash,
+dataset contains demonstrations in randomized bussing scenes
+with approximately 70 objects. The evaluation scene, shown
+in Figure 13a, contains twelve objects on a table in an unseen
+configuration. The scene was created to stress the capability of
+the model, with utensils intentionally placed on top of trash,
+objects obstructing each other, and challenging objects such
+as chopsticks, transparent plastic, and reflective containers.
+The overall score is calculated as the percentage of objects
+correctly thrown away or placed in the bin.
+T-Shirt Folding. This task requires a bimanual ARX robot
+to fold a t-shirt. The training dataset has demonstrations of
+shirt folding with approximately 150 shirts, varying in size,
+cycles through five seen shirts of varying colors and sizes,
+each starting from a flat configuration. The overall score is
+calculated as the percentage of shirts successfully folded, as
+determined by a human rater.
+Grocery Bagging. This task requires a single UR5e robot
+arm to bag groceries. The evaluation scene, shown in Fig-
+ure 13c, contains seven items (with varying shapes, sizes,
+overall score is calculated as the percentage of items placed
+into the grocery bag.
+Toast out of Toaster. This task requires a bi-manual Trossen
+ViperX robot, mirroring the ALOHA  setup, to take two
+pieces of toast out of a toaster and place them onto a plate.
+The evaluation scene is shown in Figure 13d and the overall
+score tracks task progress, with one point for removing each
+piece of toast and one point for placing it on the plate, for a
+score out of four.
+Laundry Folding. This task requires a bi-manual ARX
+robot to take a piece of clothing, short or t-shirt, out of a
+laundry bin and fold it. It is a very challenging task, since
+successful folding of the tangled up laundry requires multiple
+steps of unfurling and flattening the laundry before folding can
+start. This task was evaluated with models pretrained on the
+a large generalist data mixture and fine-tuned with a small
+amount of high-quality, task-specific data. The evaluation
+randomly placed in a laundry hamper. The overall score is
+calculated as the percentage of clothing successfully folded
+and stacked, as determined by a human rater.
+DROID. We train on all successful episodes from the
+DROID dataset (75k episodes, 21M samples) for 240k it-
+erations (3 episodes). We apply light data curation (see
+Appendix D). After training, we deploy the policy zero-
+shot in new scenes, with unseen scene background, camera
+evaluation suite with 16 tasks and 44 trials total per policy
+(see Table II). Each trial is scored with a task progress rubric
+(e.g., 1 point for picking up the correct object, 1 point for
+placing it in the correct receptacle). We show example scenes
+TABLE II: DROID evaluation tasks.
+Put the spoon in the dish rack
+Put carrot in bowl
+Put plate in dish rack
+Wipe the table
+Put the plate on the table
+Clean up the table
+Close the drawer
+Put the stapler on the notebook
+Put stapler in the drawer
+Clean the whiteboard
+Put the marker in the cup
+Put the black sponge in the blue bowl
+Put the red bottle in the black bowl
+Put the watermelon in the purple bowl
+Move the watermelon from the purple bowl to the blue bowl
+Put the tape in the purple bowl
+Put the water bottle on the left side of the table
+Fig. 14: Setups used for quantitative DROID evaluation.
+from the quantitative evaluation in Figure 14. We further run
+qualitative tests of the policy across various real-world setups
+on three different university campuses (see Figure 7). We do
+not measure success rates during these evaluations, but provide
+numerous qualitative videos of successes and failures to help
+readers get a sense of the policys capabilities.
+TABLE III: Universal Tokenizer Evaluation Datasets.
+Morphology
+Dataset Name
+Platform
+Action Space
+Action Dim
+Control Frequency
+Single Arm
+Pickplace
+DROID-Eval EEF
+Pickplace
+DROID-Eval Joint
+Pickplace
+Insertion
+Table Bussing
+Pickplace
+Dexterous
+NYU DexHand
+JointEEF
+Dexterous manipulation
+Berkeley DexHand
+In-hand manipulation
+Berkeley DexArm
+xArmALLEGRO
+Dextrous pickplace
+UR5Psyonic Hand
+EEFJoint
+Dextrous pickplace
+Pickplace
+UMI on Legs
+Whole-body manipulation
+Humanoid
+HumanPlus
+Unitree H1
+Whole-body manipulation
+UCSD TeleVision
+Unitree H1 wNeck
+Manipulationactive perception
+Navigation
+Waymo Car
+2D delta
+Autonomous Driving
+0 (compute matched)
+TOAST OUT
+OF TOASTER
+Task Progress
+Compute Matched Performance
+Fig. 15: Comparison of 0-FAST and compute-matched
+diffusion 0  generalist policies. 0-FAST clearly outper-
+forms the diffusion VLA when trained with the same amount
+of training compute, due to its faster convergence. Reported:
+mean and 95 CI.

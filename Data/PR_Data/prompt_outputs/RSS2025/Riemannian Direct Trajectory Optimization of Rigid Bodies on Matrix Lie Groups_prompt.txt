@@ -1,0 +1,1146 @@
+=== PDF文件: Riemannian Direct Trajectory Optimization of Rigid Bodies on Matrix Lie Groups.pdf ===
+=== 时间: 2025-07-21 14:02:44.654403 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Riemannian Direct Trajectory Optimization of
+Rigid Bodies on Matrix Lie Groups
+Sangli Teng1, Tzu-Yuan Lin1, William A Clark2, Ram Vasudevan1, and Maani Ghaffari1
+1University of Michigan, 2Ohio University, Corresponding Author: sanglitumich.edu
+Fig. 1: Constrained Riemannian direct trajectory optimization of rigid bodies formulated on matrix Lie groups. The rigid body dynamics can be formulated
+in generalized coordinates (q Rn) or on maximal coordinates (product space of SO(3)  R3). We compare the landscape of a quadratic cost Rz z2
+defined on M  SO(3) projected on S2
+SO(3)SO(2) with different coordinates. With generalized coordinates represented by Euler angles, the landscape
+is highly complicated with saddle points. With the matrix Lie group coordinates, the decision variable is in a symmetric homogeneous space. In this work,
+AbstractDesigning dynamically feasible trajectories for rigid
+bodies is a fundamental problem in robotics. Although direct
+trajectory optimization is widely applied to solve this problem,
+inappropriate parameterizations of rigid body dynamics often
+result in slow convergence and violations of the intrinsic topo-
+logical structure of the rotation group. This paper introduces a
+Riemannian optimization framework for direct trajectory opti-
+mization of rigid bodies. We first use the Lie Group Variational
+Integrator to formulate the discrete rigid body dynamics on
+matrix Lie groups. We then derive the closed-form first- and
+second-order Riemannian derivatives of the dynamics. Finally,
+this work applies a line-search Riemannian Interior Point Method
+(RIPM) to perform trajectory optimization with general nonlin-
+ear constraints. As the optimization is performed on matrix Lie
+structure of the rotation group and be free of singularities.
+The paper demonstrates that both the derivative evaluations
+and Newton steps required to solve the RIPM exhibit linear
+complexity with respect to the planning horizon and system
+degrees of freedom. Simulation results illustrate that the proposed
+method is faster than conventional methods by an order of
+magnitude in challenging robotics tasks.
+I. INTRODUCTION
+Direct trajectory optimization [14] has been extensively
+applied for motion planning of rigid bodies. Most existing
+approaches model robot dynamics in generalized coordinates,
+which evolve on highly complex Riemannian manifolds .
+This complexity often leads to slow convergence and computa-
+tionally expensive derivative evaluations during optimization.
+On the other hand, as the real projective space RP3 cannot
+be embedded differentiably into R3 , there does not exist
+a globally smooth mapping from R3 to SO(3) (rotation
+matrices) or SU(2) (unit quaternions). Thus, any effort trying
+to parameterize 3D rotational motions by R3, such as Euler
+quaternion  or Rodriguez formula , breaks the topological
+structures and introduces singularities.
+The Euler-Poincar equations provide an alternative for-
+mulation [9, 10], which describe rigid body dynamics on
+the matrix Lie group, i.e., a smooth symmetric homogeneous
+space with superior computational advantages. Despite its
+structure for trajectory optimization remains absent. In con-
+widely adopted in robot perception, including Simultaneous
+Localization and Mapping (SLAM) , sensor registration
+, and globally optimal pose graph optimization [14, 15].
+These perception problems are typically formulated as Max-
+imum A Posteriori estimations that do not involve equality
+or inequality constraints. However, in motion planning, in-
+corporating constraints such as rigid body dynamics (equality
+constraints) and collision avoidance (inequality constraints) is
+necessary to ensure dynamical feasibility.
+To mitigate this gap, this work bridges the discrete rigid
+body dynamics on matrix Lie groups and constrained Rieman-
+nian optimizations to perform fast and topologically compati-
+ble trajectory optimization. The main contribution is illustrated
+in Figure 1 and can be summarized as follows:
+1) Derivation of the discrete multi-rigid body dynamics and
+a unified formulation for direct trajectory optimization of
+rigid body systems on matrix Lie groups. The proposed
+formulation is correct-by-construction to preserve the
+topological structure and conserve the energy.
+2) Derivation of the exact closed-form Riemannian second-
+order expansion of the dynamics leveraging Lie group
+symmetry. We show the complexity to evaluate the first-
+and second-order derivatives is linear w.r.t. the number
+of rigid bodies.
+3) Development of a line-search Riemannian Interior Point
+Method to conduct trajectory optimization with general
+nonlinear constraints.
+4) Verifications of the proposed method on challenging
+robotics tasks, including motion planning of drones and
+manipulators with full dynamics.
+5) Open-source implementation is available at
+comSangliTengRiemannianTrajectoryOptimization.
+The remainder of the paper is organized as follows. The
+related work is summarized in Section II. The math pre-
+liminary is provided in Section III. Then we formulate the
+direct trajectory optimization in Section IV. The rigid body
+dynamics and its differentiation are presented in Section VI
+and V, respectively. A constrained Riemannian optimization
+is implemented in Section VII and evaluated in Section VIII.
+Section IX and the conclusions are summarized in Section X.
+II. RELATED WORK
+In this section, we review the trajectory optimization of rigid
+body systems and Riemannian optimizations.
+A. Rigid Body Dynamics
+The majority of robotics applications model the dynamics
+in generalized coordinates. By expressing the kinetic energy
+in terms of joint angles, the robot dynamics evolves on the
+Riemannian manifold with the metric defined by inertia .
+Based on this model, the tracking controller  and its variants
+in task space [1719] can be applied for feedback control
+of high DOF robots. For optimization-based control, it is
+more challenging to evaluate the derivatives. The second-order
+derivative in generalized coordinates has cubic complexity
+w.r.t. the depth for a kinematic chain, even using the recent
+state-of-the-art method . Highly complicated tensor com-
+putations are also expected in this line of research [2123].
+Other than modeling the dynamics in generalized coordi-
+rigid body explicitly and enforces the constraints [7, 24].
+The graph structure of the kinematic chain  preserves the
+sparsity pattern, thus enabling the computation of gradients to
+have linear complexity w.r.t. the DOF. As each rigid body is
+explicitly modeled, the manifold structure of the rigid body
+can be preserved, such as the rigid body simulator [7, 25] that
+applies the variational integrator  in quaternion. However,
+as [7, 25] considers a three-DOF parameterization of quater-
+nion velocities, the representation has singularities. On the
+other hand, the Lie Group Variational Integrator (LGVI)
+in maximal coordinates  derives the discrete dynamics of
+matrix Lie groups that naturally admit a smooth representation
+that is suitable for Riemannian optimization.
+B. Trajectory Optimization
+Trajectory optimization aims to synthesize robot motions
+subject to dynamics, kinematics, input, and environment con-
+straints. The direct trajectory optimization derives the dynam-
+ics in discrete time and then conducts optimizations [3, 4, 29
+33]. By the state-of-the-art numerical optimization techniques
+[34, 35], the direct methods can handle large-scale problems
+with complicated constraints.
+For rigid body systems, the single rigid body dynamics
+has also been applied for tracking control or planning of
+legged robots [3640]. The simplified models with dynamics
+of angular rates neglected are applied in trajectory generation
+of quadrotors . However, none of the above methods
+can synthesize full dynamic trajectories of the robots. For
+full rigid body dynamics, [3, 4] incorporated the dynamics
+in generalized coordinates to synthesize the trajectories. The
+Differential Dynamic Programming (DDP) is applied in
+to synthesize an optimal trajectory on the matrix Lie group.
+The variation integrator-based dynamics has been applied to
+the Optimal Control Problem (OCP) of satellite , while
+the Lie group version is not fully explored to consider the 3D
+rotations. The OCP with discrete dynamics on the Lie group is
+formulated in  and can be solved via iterative root finding
+to meet the first-order optimality condition. The on-manifold
+Model Predictive Control (MPC)  synthesized the trajectory
+with full dynamics on SO(3) and applied the numerical
+optimization by lifting the variable to the Lie algebra . As
+[8, 42, 44] are designed on Lie groups, they do not face the
+singularity of gimbal locks when using Euler angles. However,
+the Rodrigueze formula , a three-DOF parameterization
+of rotational map, inevitably introduces singularities. Though
+such singularities can sometimes be avoided by manually
+rounding the velocity vector , an optimization framework
+that intrinsically handles the topological structures of the
+rotation group remains absent.
+C. Riemannian Optimization
+Riemannian optimization has been extensively applied to
+problems involving variables defined on smooth manifolds
+, such as matrix completion  and Semi-Definite Pro-
+gramming (SDP) [47, 48]. The Riemannian derivatives and
+the retraction map can seamlessly extend traditional first-
+and second-order numerical optimizations to the manifold
+setting. Since Riemannian optimization inherently finds search
+directions on the manifold, it involves far fewer constraints
+than formulations in the ambient space. For example, the on-
+manifold Gauss-Newton method has been successfully applied
+in SLAM  on SE(3). Similarly, optimization on the Stiefel
+manifold has been proposed to solve the relaxed pose graph
+optimization to obtain globally optimal solutions . Fur-
+convergence rates in continuous sensor registrations .
+Beyond perception tasks, OCPs for rigid bodies have been
+modeled on matrix Lie groups [28, 39, 4951] and could
+potentially benefit from Riemannian optimization techniques.
+tailored for motion planning of rigid bodies on matrix Lie
+groups. To address this gap, the application of constrained
+Riemannian optimization [5256] holds significant promise to
+consider general nonlinear constraints on matrix Lie groups.
+III. PRELIMINARIES
+In this section, we briefly review the basic concepts of
+Riemannian optimization  and matrix Lie groups.
+A. Riemannian Geometry
+Consider a finite-dimensional smooth manifold M, we
+denote the tangent space at x M as Tx M. A vector
+field is a map V : M T M with V (x) Tx M, and
+xM Tx M is the tangent bundle. We denote all
+smooth vector field on M as X(M). M is a Riemannian
+manifold if an Riemannian metric , x : Tx MTx M R
+for each tangent space x M, such that the map
+x 7V (x), U(x)x
+is a smooth function from M to R. For a function f : M1
+Then we define the gradient and the connection:
+Definition 1 (Riemannian Gradient). Let f : M R be a
+smooth function. The Riemannian gradient of f is the vector
+field grad f on M uniquely defined by the following identities:
+(x, v) TM,
+Df(x)[v]  v, grad f(x)x.
+Definition 2 (Connection). An affine connection on a manifold
+M is a R-bilinear map : X(M)  X(M) X(M) such
+1) fXY  fXY , and
+2) X(fY )  LXf  Y  fXY ,
+where f is a smooth function, and X and Y are vector fields.
+Given a Riemannian metric, there exists a unique affine
+the metric and is torsion-free; for more details, see e.g.
+6 in . In coordinates, a connection is determined by
+its Christoffel symbols k
+ij. Let x  (x1, . . . , xn) be local
+Definition 3 (Covariant Derivative). Let M be a manifold with
+X be a vector field along the curve c. The covariant derivative
+of X along c is
+where X is any extension of X to the whole manifold.
+The notion of a covariant derivative allows for the definition
+of a geodesic. A curve, c(t), is a geodesic if the covariant
+derivative of c along c vanishes, i.e.
+c(t) : D c
+In coordinates, the geodesic equation is a system of second-
+order differential equations involving the Christoffel symbols:
+ij xi xj  0,
+The Hessian on M is defined as differentiating the gradients
+w.r.t. the vector field on T M. Given a tangent vector u
+is denoted as uV , given the affine connection determined
+by the Riemannian metric , x. Now we proceed to define
+the Riemannian Hessian:
+Definition 4 (Riemannian Hessian). Let M be a Riemannian
+manifold with its Riemannian connection . The Riemannian
+Hessian of f at x M is the linear map Hess f(x) : TxM
+TxM defined as follows:
+Hess f(x)[u]  u grad f, u Tx M.
+Given the Hessian and gradients at x M, one could
+obtain the search direction v Tx M in the tangent space
+for numerical optimization as in Euclidean space. However,
+moving along the tangent vector v will generally leave the
+manifold. Thus, we need the retraction map:
+Definition 5 (Retraction). A retraction on a manifold M is a
+smooth map
+such that each curve c(t)  Rx(tv) satisfies c(0)  x and
+Given the retraction map, we have the second-order Taylor
+expansion on curves:
+Definition 6 (Second-order Retraction). Consider c(t) as the
+retraction curve:
+c(t)  Rx(tv),
+for x M and v Tx M. We have the second-order
+f (Rx(tv)) f(x)  tgrad f(x), vx  t2
+2 Hess f(x)[v], vx
+2 grad f(x), c(0)x  O
+Remark 1. In the case that the retraction Rx() is the
+Riemannian exponential map, the acceleration of c(t), i.e,
+B. Matrix Lie Group
+Let G be an n-dimensional matrix Lie group and g the as-
+sociated Lie algebra, i.e, the tangent space of G at the identity.
+For convenience, we define the following isomorphism
+(): Rn g,
+(): g Rn.
+that maps between the vector space Rn and g. Then,  Rn,
+we can define the Lie exponential map as
+exp() : Rn G,
+exp()  expm(),
+where expm() is the exponential of square matrices. We also
+define the Lie logarithmic map as the inverse of the Lie
+exponential map:
+log() : G Rn.
+For every X G, the adjoint action, AdX : g g, is a Lie
+algebra isomorphism that enables change of frames:
+AdX()  XX1.
+Its derivative at the identity gives rise to the adjoint map in
+Lie Algebra as
+We say a Riemannian metric is left (resp. right) invariant if
+they are invariant under left (resp. right) group translation:
+(left-invariant metric)
+(right-invariant metric)
+A metric is bi-invariant if it is both left and right invariant.
+In general, the Lie exponential and Riemannian exponential
+are not identical, as bi-invariant metrics may not exist for G.
+In particular, for a bi-invariant metric to exist, Adg must be
+an isometry on g ; this is always possible when the group
+is either compact or Abelian. In our work, we assume G is
+equipped with a bi-invariant metric, which is not restrictive for
+robotics applications as rigid body motion in Rn space can be
+modeled on SO(n)  Rn, a product space of a compact and
+an Abelian group:
+Assumption 1. We assume the group we study, namely G,
+admits a bi-invariant metric, and the Riemannian exponential
+is identical to the Lie exponential in the following derivation.
+IV. PROBLEM FORMULATIONS
+Now we formally define the direct trajectory optimization of
+rigid bodies in 3D spaces. For a rigid body system composed
+of Nb single rigid bodies modeled on SO(3)  R3, we define
+the configuration space as the product space:
+We define the time step t R and the time sequence
+{tk  kt  k  0, . . . , N} R. We assume that the set of
+all feasible control inputs is u U Rm, and we have the
+implicit rigid body dynamics:
+fd(xk1, xk, uk)  0, x MRB, u U,
+that relates the discrete configuration states at time tk and
+tk1. Then we have the optimization:
+Problem 1 (Direct Trajectory Optimization of Rigid Bodies).
+Consider the configuration space MRB of a Nb rigid body
+system and the set of feasible control input U, we synthesize
+the optimal trajectory of x MRB via the optimization:
+L(xk, uk)
+fd(xk1, xk, uk)  0,
+g(xk1) 0,
+uk U, xk1 MRB
+x0  xinit.
+with L(, ) the stage cost, P(, ) the terminal cost, g() the
+inequality constraints, and xinit the initial condition.
+As the state x MRB admits manifold structure on matrix
+Lie groups, in the following sections, we apply Riemannian
+optimization to solve Problem 1. The key to this goal is to
+formulate the discrete dynamics on matrix Lie groups and
+derive their Riemannian derivative.
+V. DISCRETE RIGID BODY DYNAMICS
+In this section, we derive the rigid body dynamics based on
+the variational integrators on MRB.
+A. Variation-based Discretization
+Consider a mechanical system with the configuration space
+M. We denote the configuration state as x
+the generalized velocity as x Tx M. Then we have the
+Lagrangian given the kinetic and potential energy T( x), V (x):
+L(x, x) : T( x) V (x).
+The key idea of a variational integrator is to discretize the
+Lagrangian (19) to obtain the discrete-time EoM . The
+discretization scheme ensures that the Lagrangian is conserved
+in discrete time, thus having superior energy conservation
+properties over long durations. The discrete Lagrangian Ld :
+M  M R could be considered as the approximation of
+the action integral via:
+Ld(xk, xk1)
+L(x, x)dt.
+Then the discrete variant of the action integral becomes:
+Ld(qk, qk1).
+responding to xk
+Txk M as the discrete version of
+integration by parts :
+Sd  D1Ld(x0, x1), x0 D2Ld(xN1, xN), xN
+D2Ld(xk1, xk)  D1Ld(xk, xk1), xk.
+where Di denotes the derivative with respect to the i-th
+argument and , the canonical inner product. By the least
+action principle, the stationary point can be determined by
+letting the derivative of xk be zero:
+D1Ld(xk, xk1)  D2Ld(xk1, xk)  0.
+For the holonomic constraints specified by the manifold:
+h(x)  0 Rm,
+another action integral can be considered:
+(t), h(x)dt t
+2 (tk), J(xk)xk
+2 (tk1), J(xk1)xk1.
+J(xk) : h(xk)
+the Jacobian of the constraints, h(xk)  J(xk)xk, and
+the constrained force. By adding these terms to the uncon-
+strained Lagrangian and taking variation w.r.t xk, we have the
+constrained dynamics:
+D1Ld(xk, xk1)  D2Ld(xk1, xk)  J(xk)Tkt,
+h(xk1)  0.
+The constraints h(xk1)  0 are needed to ensure the states
+in discrete time do not leave the manifold, which is essential
+in the multi-body case. To consider the external force u we
+consider the action integral of control input u(t):
+u(t), xdt t
+2 u(tk), xk t
+2 u(tk1), xk1.
+B. Dynamics on SO(3)  R3
+discrete equation of motion:
+Rk1  RkFk SO(3),
+pk1  pk  vkt,
+with Rk the orientation, Fk the discrete pose change, pk the
+tion can be applied:
+k Rk1 I  t
+pk  vk pk1 pk
+The kinetic and potential energy can be approximated by:
+2t tr((Fk I)Ib(Fk I)T)
+2tmpk1 pk2,
+where and Ib the nonstandard moment of inertia  that
+relate the standard moment of inertia Ib by Ib  tr(Ib)I3Ib.
+Via the taking variation on SO(3)R3, we have the dynamics:
+Fk1Ib IbF T
+k1  IbFk F T
+mvk1  mvk  mgt.
+With the constraints formulated on SO(3)R3, we can obtain
+the dynamics for multi-body systems. Compared to an explicit
+integration scheme, the LGVI naturally obeys the manifold
+constraints and conserves the energy [26, 27]. As the LGVI is
+completely in matrix form, there is no need to move back and
+forth between the Lie group and its Lie algebra for integration.
+The reader can refer to  for a detailed comparison of
+integrators on Lie groups for motion planning,
+VI. DIFFERENTIATE THE RIGID BODY DYNAMICS
+In this section, we derive the first- and second-order Rie-
+mannian derivatives of kinematics and dynamics of rigid body
+motion. Under Assumption 1 and remembering Remark 1, the
+BCH formula is sufficient to obtain the Riemannian gradients
+and Hessians via the retraction in Definition 6.
+A. Differentiate the Kinematic Chain
+Without loss of generality, we consider the kinematic chain
+constraints on G with finite length n:
+X1X2    Xn1Xn  I G.
+Now we leverage the BCH formula to derive the second-order
+retraction at the operating point X1, X2,    , Xn. We denote
+Y 1X1X2    Xn1Xn  Y 1,
+and vectorize it via the logarithmic map:
+log ( Y 1X1X2    Xn1Xn)  log ( Y 1).
+Consider the tangent vector Xi
+Xi G, the retraction by
+the Riemannian exponential under Assumption 1 is:
+ci(t)  Xi exp (ti).
+With Xi,j  XiXi1    Xj, i j and Xi1,i  I, the
+second-order retraction of (38) can be derived as:
+log ( Y 1X1 exp (t1)    Xn1 exp (tn1)Xn exp (tn))
+TABLE I: Summary of equations of motions for discrete rigid body dynamics and conventional constraints.
+Constraints
+Second-order Expansions
+Rotational
+Kinematics
+log Y : log (R1
+k1RkFk)  0 so(3)
+Translational
+Kinematics
+pk1 pk vkt  0 R3
+Rotational
+Dynamics
+(Fk1Ib IbF T
+k1 (IbFk F T
+k Ib)) 0 so(3)
+k1 IbFkF
+0.5(Fk1F 2
+k1 Ib IbF 2
+0.5(IbFkF 2
+Translational
+Dynamics
+mvk1 mvk mgt  0 R3
+Constraints
+Constraints
+(R1ei)T(R2ez)  0, i  x, y
+(R1ei)T(R2e
+(R2ez)T(R1e
+0.5(R1ei)T(R2R
+0.5(R2ez)T(R1R
+The Riemannian gradient and Hessian can be obtained by
+evaluating the first- and second-order terms of t. For clarity,
+the detailed derivation is deferred to Appendix A.
+B. Differentiate the Dynamics and Constraints
+Consider the rotational dynamics in (34), we again use the
+the retraction curve along the direction F
+i so(3):
+c(t)  Fi exp (tF
+i ) SO(3).
+As the (34) is already a skew matrix, the vectorized perturbed
+dynamics can be obtained by substituting the retraction curve
+and applying the ()map:
+(Fk1 exp (tF
+k1)Ib Ib exp (tF
+(IbFk exp (tF
+k ) exp (tF
+Via the Taylor expansion of the exponential map:
+exp (t) I  t
+the second-order expansion can be obtained by substituting the
+series and keeping the first and second-order terms of t.
+Then we apply the second-order retraction again to dif-
+ferentiate the holonomic constraints. Here, we consider two
+common constraints: pivot constraints and axis constraints.
+Given two rigid bodies connected by a pivot joint, we have:
+R1r1  p1  R2r2  p2,
+(Pivot Constraints)
+where Ri is the orientation of the rigid body in the world
+vector pointing from the center of mass (CoM) of each rigid
+body to the joint, represented in each rigid body frame. The
+associated second-order retraction can be computed from:
+R1 exp (tR
+2)  R2 exp (tR
+To constrain the rotation to one axis, e.g, ez, we have:
+(R1ei)T(R2ez)  0, i  x, y,
+(Axis Constraints)
+where ei is the unit vector of each axis. Then, the second-order
+retraction can be computed from:
+(R1 exp (tR
+1 )ei)T(R2 exp (tR
+ing second-order retraction in Table I.
+C. Complexity of Differentiation
+As the maximal coordinate formulation admits a graph
+the first- and second-order derivatives are linear w.r.t. the
+number of rigid bodies and kinematic pairs. The derivative
+for each rigid body can be evaluated by the first four rows of
+Table I. As the kinematic pair only involves the configuration
+state of two rigid bodies, the Hessian only involves the
+variables involved in the two rigid bodies. An example of the
+Jacobian is illustrated in Figure 2.
+VII. CONSTRAINED RIEMANNIAN OPTIMIZATION
+In this section, we apply the Riemannian Interior Point
+(RIPM) to conduct trajectory optimization. Though an RIPM is
+implemented in , we provide a customized implementation
+without dependencies on Manopt . We mainly refer to
+IPOPT  for the line-search implementation.
+A. Riemannain KKT Condition
+We introduce the optimality condition of constrained op-
+timization defined on smooth manifolds. By the language
+of Riemannian geometry, the condition coincides with its
+counterparts in Euclidean space . Consider an optimization
+problem with general nonlinear constraints:
+Problem 2 (Constrained Riemannian Optimization).
+variable
+manifold
+{hi(x)}l
+i1 the equality constraints and {gi(x)}m
+i1 the in-
+equality constraints.
+With the multiplier y Rl and z Rm, we further have the
+Lagrangian defined on the product manifold M  Rl  Rm:
+L(x, y, z) : f(x)
+zigi(x).
+The Riemannian gradients can then be obtained:
+gradx L(x, y, z)  gradx f(x)
+yi gradx hi(x)
+zi gradx gi(x)
+Then we have the following optimality conditions:
+Definition 7 (First-Order Optimality Conditions). x M is
+said to satisfy the KKT conditions if exist the multipliers y
+and z, such that:
+1) Stationary condition: gradx L(x, y, z)  0,
+2) Primal feasibility: hi(x)  0, gj(x) 0, i, j,
+3) Dual feasibility: zj 0, j,
+4) Complementarity condition: zjgj(x)  0, j.
+We then proceed to introduce the RIPM to search for the
+critical point that satisfies the KKT condition.
+B. Riemannian Interior Point Method
+In our application, we apply a line-search RIPM to find the
+KKT pair (x, y, z) MRlRm that satisfies the optimality
+condition in Definition 7. We consider the log-barrier problem
+with homotopy parameter  and slack variables s:
+Problem 3 (Log-barrier Problem).
+The convergence to Problem 2 (0) can be guaranteed if
+0 . The KKT condition of the barrier function can
+be written as:
+gradx f(x)  AE(x)y  AI(x)z  0
+g(x)  s  0
+with the Jacobian evaluated at x M defined as:
+AE(x) : Rl Tx M : AE(x)y :
+yi gradx hi(x), (51)
+AI(x) : Rm Tx M : AI(x)z :
+zi gradx gi(x).
+Then we differentiate the KKT vector field:
+Hessx L(x, y, z)
+with (dx, dy, dz, ds) Tx M  Rl  Rm  Rm the search
+A. The Hessian of the Lagrangian can be obtained by:
+Hessx L(x, y, z)  Hessx f(x)
+yi Hessx hi(x)
+zi Hessx gi(x).
+After obtaining the search direction via Riemannian New-
+tons method according to (53), we implement a backtracking
+line-search method to decide the step size . The procedure
+is summarized in Algorithm 1. The logic of Algorithm 1 is
+to accept the Newton step only if the improvement in feasi-
+bility or the reduction in cost is sufficient. The condition for
+adjusting the homotopy parameter for the log-barrier problem
+is determined by the violation of the optimality condition E:
+E  max {KKT, E, I, } ,
+with the violation of the KKT condition, equality constraints
+Fig. 2: Example of a rigid body system in maximal coordinates and its Jacobian. The blue block indicates the Jacobians with nonzero elements. The lighter
+gray box indicates zero block, while the darker gray box indicates the Jacobians of the autonomous single rigid body dynamics.
+Algorithm 1 Line-Search Riemannian Interior Point Method
+for k  1, . . . , Nmax do
+Decide the search direction
+k) solving (53) evaluated at (xk, yk, zk, sk)
+Check the termination condition
+if E0(dx
+k) tol then
+Update the homotopy parameter
+k) 10 then
+max{ tol
+Step size by fraction to boundary rule
+max {min, 1 }
+k max{ (0, 1]  z  dz
+k (1 j)z}
+k max{ (0, 1]  s  ds
+k (1 j)s}
+Backtracking line-search
+,k ,(xk)
+k h(xk)1  P
+for j  1, . . . , Jmax do
+x Rxk(dx
+k)  Apply the retraction map
+Log barrier loss and constraints violation
+(x),  h(x), c gradx f(x), dx
+k min and c < 0 and k,jcs > s then
+if (x) (xk)  c then
+break  Armijo condition satisfied
+k or  (1 )
+break  Feasibility or cost is improved
+k  Update step size
+Update the variables
+xk1 x, yk1 yk  dy
+return (xk, yk, zk, sk)
+and inequality constraints being
+KKT  gradx f(x)  AEy  AIz
+E  h(x),
+respectively. The sd and sc are normalizing parameters, and
+the termination condition for Problem 2 is E0. The parameters
+are shown in Table IV in the Appendix. B.
+VIII. NUMERICAL EXPERIMENTS
+In this section, we provide a comprehensive evaluation of
+the proposed method.
+A. System setup
+1) Cost function design: We consider the quadratic cost
+function on SO(3)  R3 to indicate the difference between
+the desired and the current configurations. For orientation and
+the discrete angular velocity, we consider the square of the
+weighted chordal distance :
+LSO(3)(R, Rd)  1
+d I)WR(RRT
+where WR is a positive-definite weighting matrix. The deriva-
+tive of the cost function can be obtained by considering the
+retraction curve:
+LSO(3)(R exp (t), Rd),  so(3).
+For distance, we consider the quadratic cost function in R3:
+LR3(p, pd)  1
+2(p pd)TWp(p pd).
+where Wp is a positive-definite weighting matrix.
+2) Software setup: The main loop of Algorithm 1 is imple-
+mented in MATLAB with the internal linear system solvers
+for the Newton steps. We use CasADi to evaluate the
+second-order retraction curve in Table I to obtain the first-
+and second-order derivatives. To improve the performance, we
+use code generation to obtain the C file and compile it in
+MATLAB as MEX files for execution. We consider CasADi as
+our interface for implementing direct trajectory optimization
+for the baselines using IPOPT and YALMIP  when using
+SNOPT . Due to the difference between the evaluation of
+the derivatives, we compare the time spent in the solver and
+the number of iterations as the metric.
+3) Hardware setup: We use a laptop with an Intel i7-
+11850H CPU to run all the experiments.
+B. Single Rigid Body
+In the first experiment, we demonstrate the proposed method
+on a single rigid body. We consider a quadrotor modeled as a
+full rigid body with input limits. The input is assumed to be
+a 4-DOF vector composed of the total linear force along the
+Fig. 3: Testing cases for drone docking from randomly generated initial poses
+in SO(3)  R3.
+zaxis in the body frame and a 3-DOF torque. As a result,
+the dynamics part can be expressed as:
+Fk1Ib IbF T
+k1  IbFk F T
+k Ib   t2,
+mvk1  mvk  mgt  Rk1ezuzt.
+We assume that the torque admit a symmetric box limits
+[lim, lim]3 and the linear force is within a non-negative
+interval uz [0, uz,lim].
+As the minimal dimension of a singularity-free representa-
+tion of SO(3) is 4, we do not consider the 3-DOF parameter-
+ified quaternion representation . We compare the proposed
+formulation with a sigularity-free quaternion-based variational
+integrator. As the quaternion parameterizes the rotation with
+a four-dimensional vector q :
+not have singularities. However, the constraint q2  1 is
+required to ensure q S3, and qv 0 is necessary to
+ensure the state lies in one branch of the manifold. Consider
+the integrator 1 with the singularity-free representation of
+IPOPT solver to conduct trajectory optimization with the
+gradient derived in the ambient space.
+We consider the task of docking the drone from randomly
+sampled initial poses to the origin with an identity pose and
+zero twists as shown in Figure 3. The location of the drone
+is uniformly sampled from a box. The orientation is also
+randomly sampled such that log (R0) is uniform in the interval
+[0, ] and all directions. We apply an initialization strategy that
+uniformly interpolates the geodesic curves between the initial
+and the goal states. The convergence result of the RIPM is
+presented in Figure 4. As we can see, 82 out of 100 cases
+converge while 93 out of 100 of the unconstrained cases
+converge to the tolerance tol  1e14. The ability to converge
+super-linearly to such high precision demonstrates the power
+of the proposed second-order method. For the constrained
+1The original implementation of  considers qv
+1 q2x q2y q2z
+to avoid manifold constraints and reduce dimensions, which, however, intro-
+duces a singularity that results in NaN error in numerical optimizations.
+tolerance is set to the default value of IPOPT 1e6.
+We also present the result of the quaternion-based method
+in Table II. We consider the baseline solver as the IPOPT
+based on the Interior Point Method and the SNOPT
+based on Sequential Quadratic Programming (SQP). Due to
+the polynomial nature of the dynamics and the manifold
+with the baselines. As the gradient-based nonlinear program-
+ming is sensitive to initializations, we also provide high-
+quality initialization from the globally optimal motion plan-
+ning methods  based on moment relaxation (dual of sum-
+of-square optimization)[66, 67]. We apply the open-source
+code in  to generate a certified optimal trajectory and
+perturb the solutions with different levels of Gaussian noise
+as initialization. We perturbed the position and velocity of the
+SDP-based solution by Gaussian noise with covariance 0.1I.
+We perturb the orientation and the discrete angular velocity on
+a quaternion with Gaussian noise with covariances 1  0.01I
+and 2  0.05I, project them to S3 by rounding the norm to
+1. As shown in Table II, the convergence rate of IPOPT and
+SNOPT soon degrades when the perturbation increases.
+handling general nonlinear constraints by designing trajec-
+tories for the drone in cluttered environments as shown in
+Figure 5. We consider nonconvex norm constraints (xxc)2
+(y yc)2 r2 for the drones to avoid the cylindrical regions.
+As the proposed RIPM considers general nonlinear constraints,
+future work can also incorporate more sophisticated represen-
+tations of collision-free regions, such as [68, 69].
+C. Multi-Rigid Body
+Complexity analysis: We verify the complexity of the
+proposed differentiation via a kinematic chain on SO(3)  R3
+with a single branch and different depths. We compare the time
+to evaluate the zeroth- to the second-order differentiation of
+the dynamics. As is shown in Figure 6, the time scales linearly
+w.r.t. the depth of the kinematic chain. The sparsity pattern of
+a kinematic chain and the Hessian of the Lagrangian of the
+following example is shown in Figure 7. The block diagonal
+structure indicates that the KKT system scales linearly w.r.t.
+the planning horizon.
+Motion planning of manipulator: In the second example,
+we apply the proposed method to motion planning of a 7-
+DOF KUKA iiwa manipulator. We model each link of the
+manipulator and enforce the revolute joint constraints via
+considering one pivot constraint and a 2-DOF axis constraint
+as shown in Table I. We consider the baseline as the direct
+methods with full dynamics in the generalized coordinates:
+qk1  qk  qkt,
+M(qk)( qk1 qk)
+C(qk, qk) qk  G(qk)  k.
+We consider moving the manipulator from the initial pose
+to the target pose while avoiding obstacles, a cylinder with
+fixed location and radius. For simplification, we only penalize
+the distance between the center of mass of each link and the
+Fig. 4: Convergence of RIPM on drone on SO(3)  R3 with full dynamics with 100 different initial conditions. The tolerance for convergence is set to
+E0  1e14. The convergence rate of unconstrained cases in (a) is much faster than that of constrained cases in (b). The dashed lines indicate the cases
+that do not converge, while the others are converged cases. Accelerated convergence or super-linear convergence is observed to indicate the success of the
+second-order method. In (c), we compared the iterations to converge. We can see that it takes fewer iterations for both cases to stop with the default tolerance
+of IPOPT tol  1e6. The convergence rate and speed outperform the quaternion-based method IPOPT computed in the ambient space.
+TABLE II: Comparison of convergence rate of single rigid body case. We summarize the convergent cases for the proposed method and baselines. Otherwise
+exact Hessian or SNOPT with approximated Hessian. With certified initialization, more than half of the cases using IPOPT can converge, while the performance
+degrades soon after noises are present. Similar performance is observed for SNOPT, which is even more sensitive to noise. The time in each iteration for the
+IPM-based method is also listed. The proposed method also takes only about 30 of the time as in IPOPT for the unconstrained cases in each iteration. The
+planning horizon is 40 steps.
+Initialization Strategy
+Convergence in 1000 Iters.
+Iters. to Convergence
+Avg Time per Iteration (sec)
+(in 100 Iters. for proposed)
+wo function evaluation
+Proposed
+Straight line
+82100 (constrained)
+Straight line
+Straight line
+TABLE III: Comparison of proposed formulation using RIPM on MRB with IPOPT in generalized coordinates. Without infeasibility restoration, the proposed
+method has a 25 convergence rate. With the infeasibility restoration, IPOPT greatly outperforms the proposed method at the cost of more iterations to solve
+feasibility sub-problems. In terms of iterations to converge, the proposed method greatly outperforms IPOPT, while the time consumed in each iteration is
+three times higher, due to the increasing number of variables.
+Convergence in 500 Iterations
+Iters. to Convergence
+Time per Iteration (sec)
+(wo infeasibility restoration)
+wo function evaluation
+RIPM (MRB)
+IPOPT (q Rn)
+obstacle. Thus, the proposed method will have constraints for
+the i th link as:
+(xi xobs)2  (yi yobs)2 r2
+For generalized coordinates formulation, forward kinematics
+is required to map the joint angle q Rn to the task space.
+We initialize the trajectory via linear interpolation of joint
+space in both cases. As the manipulator is fully actuated, we
+can warm start the trajectory with feasible primal solutions by
+computing the constrained force and the input torque through
+inverse dynamics. In all cases, we consider a fixed target
+pose with a random initial pose and a fixed obstacle and
+target pose. The convergence rates are shown in Table III. As
+IPOPT admits advanced features like infeasibility restoration
+that is not applied in this method, we list the results of IPOPT
+with and wo this feature for fair comparison. We find that
+our method outperforms IPOPT wo infeasibility restoration
+in terms of convergence rate and number of iterations to
+converge. With infeasibility restoration, the performance of
+IPOPT improves at the cost of more iterations to converge.
+Fig. 5: Trajectories optimization for drone traversing complex environments considering general nonlinear constraints.
+Fig. 6: Average time to evaluate the zeroth-, first-, and second-order derivative
+of rigid body dynamics w.r.t. the DOF of a kinematic chain with one branch.
+The proposed formulation scales linearly w.r.t. the DOF.
+For both cases, we consider tol  1e6 as the termination
+condition.
+IX. LIMITATIONS AND DISCUSSIONS
+Increasing number of variables: The proposed method
+considers all the degrees of freedom of the rigid body, thus
+making the KKT system multiple times larger than the version
+in the generalized coordinates. Thus, the trade-off between the
+number of iterations and computational time in each iteration
+should be carefully investigated. First-order Riemannian op-
+timization  can be considered in future work to bypass
+the need to solve the expensive Newton steps. The discrete
+null space mechanics [7072] can also be applied to eliminate
+the constrained force, while the null space of the Jacobians of
+constraints needs to be carefully computed.
+Guarantees on global optimality: The proposed method is
+based on local gradients. As a result, global optimality is not
+guaranteed. Conducting optimization landscape analysis is also
+challenging due to the nonconvex nature of motion planning
+problems. However, we note that SO(3)R3 is constrained by
+polynomial quality, thus can be seamlessly integrated with the
+globally optimal motion planning framework using moment
+relaxations [28, 73, 74].
+Holonomic constraints: The proposed method only con-
+siders the holonomic constraints, while it does not incorpo-
+rate more complicated structures, such as complementarity
+zero dynamics . As the RIPM is a general framework for
+constrained optimization, we plan to include these constraints
+by taking these special structures into consideration [4, 76, 77].
+Code optimization: The proposed RIPM is implemented
+in MATLAB and does not fully replicate all the features of
+IPOPT . As we do not include the advanced features, such
+as inertial correction, second-order correction, and infeasibility
+is crucial to include these features to improve the performance
+of the proposed solver further.
+X. CONCLUSIONS
+In this work, we, for the first time, applied the constrained
+Riemannian optimization to the paradigm of direct trajectory
+structure of rotation groups. We first model the multi-body
+dynamics on matrix Lie groups using the Lie group varia-
+tional integrator. Then we derive the closed-form Riemannian
+derivative and apply the line-search Riemannian Interior Point
+Method to conduct trajectory optimization. We demonstrate
+that the complexity in the derivative evaluation and Newton
+steps is linear w.r.t. both the system DOF and the planning
+horizon. We also show that the proposed method outperforms
+the conventional methods by an order of magnitude in chal-
+lenging robotics tasks.
+ACKNOWLEDGMENTS
+W. Clark, R. Vasudevan, and M. Ghaffari were supported by
+AFOSR MURI FA9550-23-1-0400. The authors thank the area
+chairs and anonymous reviewers for the constructive feedback
+and in-depth review.
+APPENDIX A
+DERIVATION OF SECOND-ORDER RETRACTION OF
+KINEMATIC CHAIN
+Consider the vectorized kinematic chain (38):
+log ( Y 1X1X2    Xn1Xn)  log ( Y 1).
+Denote Xi,j  XiXi1    Xj when i j and Xi1,i  I,
+we have the identity using the property of adjoint action:
+exp (t) Xi,j  Xi,j( X1
+Fig. 7: Illustration of the Hessian of the Lagrangian and Jacobians of the rigid body dynamics of the manipulator example. The block diagonal structure shows
+that the KKT system scales linearly w.r.t. the planning horizon. The planning horizon is 40 steps for the manipulator task using full dynamics.
+The perturbed kinematic chain becomes:
+Y 1 X1 exp (t1)    Xn1 exp (tn1) Xn exp (tn)
+Y 1 X1 exp (t1)
+Xn1 Xn exp (t Ad
+Y 1 X1 exp (t1)    Xn2
+Xn1 Xn( X1
+n1 exp (tn2) Xn1 Xn)
+exp (t Ad
+Y 1 X1 exp (t1)    Xn2 Xn1 Xn exp (t Ad
+exp (t Ad
+Y 1 X1,n exp (t Ad
+exp (t Ad
+Then we proceed to apply the BCH formula to obtain the
+second-order retraction:
+repeated
+application
+second-order retraction as:
+TABLE IV: Part of hyper-parameters in Algorithm 1.
+Parameter
+Notation
+Maximal iteration
+Maximal iteration in line search
+Tolerance to KKT of Problem 2
+Linear decaying rate of
+Superlinear decaying rate of
+Minimal fraction to boundary
+Barrier problem cost progress
+Minimal infeasibility
+Progress of barrier cost
+Progress of feasibility
+Decaying rate for line search
+We note that the derivation does not involve the Jacobian of
+the matrix logarithmic map due to the shift of the operating
+point by Y .
+APPENDIX B
+IMPLEMENTATION DETAILS OF RIPM
+We consider the following parameters shown in Table IV to
+implement the RIPM in Algorithm 1.
+REFERENCES
+Charles R Hargraves and Stephen W Paris. Direct trajectory
+optimization using nonlinear programming and collocation.
+Journal of guidance, control, and dynamics, 10(4):338342,
+John T Betts.
+Survey of numerical methods for trajectory
+optimization. Journal of guidance, control, and dynamics, 21
+Michael Posa, Cecilia Cantu, and Russ Tedrake.
+A direct
+method for trajectory optimization of rigid bodies through
+contact. International Journal of Robotics Research, 33(1):69
+Ayonga Hereid and Aaron D Ames.
+optimization and simulation toolkit.
+In Proceedings of the
+IEEERSJ International Conference on Intelligent Robots and
+Francesco Bullo and Richard M Murray. Tracking for fully actu-
+ated mechanical systems: a geometric framework. Automatica,
+John M. Lee. Smooth Manifolds, pages 129. Springer New
+Jan Brdigam and Zachary Manchester. Linear-time variational
+integrators in maximal coordinates. In International Workshop
+on the Algorithmic Foundations of Robotics, pages 194209.
+Uro V Kalabic, Rohit Gupta, Stefano Di Cairano, Anthony M
+MPC on manifolds with
+an application to the control of spacecraft attitude on SO(3).
+Jerrold E Marsden and Tudor S Ratiu. Introduction to mechanics
+and symmetry. 1998.
+Anthony M Bloch. Nonholonomic mechanics. In Nonholonomic
+mechanics and control, pages 207276. Springer, 2003.
+Nicolas Boumal.
+An introduction to optimization on smooth
+manifolds. Cambridge University Press, 2023.
+Christian Forster, Luca Carlone, Frank Dellaert, and Davide
+Scaramuzza. On-manifold preintegration for real-time visual
+inertial odometry. IEEE Transactions on Robotics, 33(1):121,
+William Clark, Maani Ghaffari, and Anthony Bloch.
+parametric continuous sensor registration. Journal of Machine
+Learning Research, 22(271):150, 2021.
+David M Rosen, Luca Carlone, Afonso S Bandeira, and John J
+Leonard. SE-Sync: A certifiably correct algorithm for synchro-
+nization over the special euclidean group. International Journal
+of Robotics Research, 38(2-3):95125, 2019.
+Haoyu Han and Heng Yang.
+Building rome with convex
+optimization. arXiv preprint arXiv:2502.04640, 2025.
+Francesco Bullo and Andrew D Lewis. Geometric control of
+mechanical systems: modeling, analysis, and design for simple
+mechanical control systems, volume 49. Springer, 2019.
+Nathan D Ratliff, Jan Issac, Daniel Kappler, Stan Birchfield,
+and Dieter Fox. Riemannian motion policies. arXiv preprint
+Luis Sentis and Oussama Khatib.
+Synthesis of whole-body
+behaviors through hierarchical control of behavioral primitives.
+International Journal of Humanoid Robotics, 2(04):505518,
+Oussama Khatib. A unified approach for motion and force con-
+trol of robot manipulators: The operational space formulation.
+IEEE Journal on Robotics and Automation, 3(1):4353, 1987.
+Shubham Singh, Ryan P. Russell, and Patrick M. Wensing.
+On second-order derivatives of rigid-body dynamics: Theory
+and implementation. IEEE Transactions on Robotics, 40:2233
+Roy Featherstone. Rigid body dynamics algorithms. Springer,
+Roy Featherstone.
+The calculation of robot dynamics using
+articulated-body inertias.
+International Journal of Robotics
+Frank C Park, James E Bobrow, and Scott R Ploen.
+group formulation of robot dynamics. International Journal of
+Robotics Research, 14(6):609618, 1995.
+Sigrid Leyendecker, Jerrold E Marsden, and Michael Or-
+Variational integrators for constrained dynamical sys-
+ZAMM-Journal of Applied Mathematics and Mechan-
+icsZeitschrift fr Angewandte Mathematik und Mechanik: Ap-
+plied Mathematics and Mechanics, 88(9):677708, 2008.
+A. Howell Taylor, Simon Le Cleach, Zico Kolter, Mac Schwa-
+for robotics. arXiv preprint arXiv:2203.00806, 2022.
+Jerrold E Marsden and Matthew West. Discrete mechanics and
+variational integrators. Acta Numerica, 10:357514, 2001.
+Taeyoung Lee, N Harris McClamroch, and Melvin Leok. A Lie
+group variational integrator for the attitude dynamics of a rigid
+body with applications to the 3D pendulum. In Proceedings
+of IEEE Conference on Control Applications, pages 962967.
+Sangli Teng, Ashkan Jasour, Ram Vasudevan, and Maani Ghaf-
+fari. Convex geometric motion planning of multi-body systems
+on Lie groups via variational integrators and sparse moment
+relaxation. International Journal of Robotics Research, page
+Matt Zucker, Nathan Ratliff, Anca D Dragan, Mihail Pivtoraiko,
+Matthew Klingensmith, Christopher M Dellin, J Andrew Bag-
+nian optimization for motion planning. International Journal of
+Robotics Research, 32(9-10):11641193, 2013.
+John Schulman, Yan Duan, Jonathan Ho, Alex Lee, Ibrahim
+and Pieter Abbeel.
+Motion planning with sequential convex
+optimization and convex collision checking.
+International
+Journal of Robotics Research, 33(9):12511270, 2014.
+Zachary Manchester, Neel Doshi, Robert J Wood, and Scott
+Kuindersma.
+Contact-implicit trajectory optimization using
+variational integrators. International Journal of Robotics Re-
+Dayi E Dong, Henry P Berger, and Ian Abraham.
+Optimal Ergodic Search. In Proceedings of Robotics: Science
+and Systems, Daegu, Republic of Korea, July 2023.
+Zhongyu Li, Jun Zeng, Shuxiao Chen, and Koushil Sreenath.
+Autonomous navigation of underactuated bipedal robots in
+height-constrained environments.
+International Journal of
+Robotics Research, 42(8):565585, 2023.
+Andreas Wchter and Lorenz T Biegler. On the implementation
+of an interior-point filter line-search algorithm for large-scale
+nonlinear programming. Mathematical programming, 106:25
+Philip E Gill, Walter Murray, and Michael A Saunders. SNOPT:
+An SQP algorithm for large-scale constrained optimization.
+SIAM review, 47(1):99131, 2005.
+Donghyun Kim, Jared Di Carlo, Benjamin Katz, Gerardo Bledt,
+and Sangbae Kim. Highly dynamic quadruped locomotion via
+whole-body impulse control and model predictive control. arXiv
+preprint arXiv:1909.06586, 2019.
+Yanran Ding, Abhishek Pandala, Chuanzheng Li, Young-Ha
+control for dynamic motions in quadrupeds. IEEE Transactions
+Ayush Agrawal, Shuxiao Chen, Akshara Rai, and Koushil
+Sreenath.
+Vision-aided dynamic quadrupedal locomotion on
+discrete terrain using motion libraries. In Proceedings of the
+IEEE International Conference on Robotics and Automation,
+pages 47084714. IEEE, 2022.
+Sangli Teng, Dianhao Chen, William Clark, and Maani Ghaffari.
+An error-state model predictive control on connected matrix
+Lie groups for legged robot control.
+In Proceedings of the
+IEEERSJ International Conference on Intelligent Robots and
+Ruben Grandia, Fabian Jenelten, Shaohui Yang, Farbod Farshid-
+model-predictive control. IEEE Transactions on Robotics, 39
+Mark W Mueller, Markus Hehn, and Raffaello DAndrea. A
+computationally efficient algorithm for state-to-state quadro-
+copter trajectory generation and feasibility verification.
+Proceedings of the IEEERSJ International Conference on In-
+telligent Robots and Systems, pages 34803486. IEEE, 2013.
+George I Boutselis and Evangelos Theodorou.
+Discrete-time
+differential dynamic programming on Lie groups: Derivation,
+convergence analysis, and numerical results. IEEE Transactions
+on Automatic Control, 66(10):46364651, 2020.
+Oliver Junge, Jerrold E Marsden, and Sina Ober-Blbaum.
+Discrete mechanics and optimal control.
+IFAC Proceedings
+Marin B Kobilarov and Jerrold E Marsden. Discrete geometric
+optimal control on Lie groups. IEEE Transactions on Robotics,
+Mingyang Wang, Qianhao Wang, Ze Wang, Yuman Gao, Jing-
+ping Wang, Can Cui, Yuan Li, Ziming Ding, Kaiwei Wang,
+Chao Xu, et al. Unlocking aerobatic potential of quadcopters:
+Autonomous freestyle flight generation and execution. Science
+Bart Vandereycken. Low-rank matrix completion by Rieman-
+nian optimization. SIAM Journal on Optimization, 23(2):1214
+Jie Wang and Liangbing Hu.
+Solving low-rank semidef-
+inite programs via manifold optimization.
+arXiv preprint
+Samuel Burer and Renato DC Monteiro.
+A nonlinear pro-
+gramming algorithm for solving semidefinite programs via low-
+rank factorization. Mathematical programming, 95(2):329357,
+Sangli Teng, Ashkan Jasour, Ram Vasudevan, and Maani Ghaf-
+fari Jadidi. Convex Geometric Motion Planning on Lie Groups
+via Moment Relaxation. In Proceedings of the Robotics: Science
+and Systems Conference, Daegu, Republic of Korea, July 2023.
+Sangli Teng, William Clark, Anthony Bloch, Ram Vasudevan,
+and Maani Ghaffari.
+Lie algebraic cost function design for
+control on Lie groups. In Proceedings of the IEEE Conference
+on Decision and Control, pages 18671874. IEEE, 2022.
+Junwoo Jang, Sangli Teng, and Maani Ghaffari. Convex geomet-
+ric trajectory tracking using lie algebraic mpc for autonomous
+marine vehicles. IEEE Robotics and Automation Letters, 8(12):
+Anton Schiela and Julian Ortiz.
+An SQP method for equal-
+ity constrained optimization on manifolds.
+arXiv preprint
+Mitsuaki Obara, Takayuki Okuno, and Akiko Takeda. Sequen-
+tial quadratic optimization for nonlinear optimization problems
+on Riemannian manifolds. SIAM Journal on Optimization, 32
+Yuya Yamakawa and Hiroyuki Sato.
+Sequential optimality
+conditions for nonlinear optimization on Riemannian manifolds
+and a globally convergent augmented Lagrangian method. Com-
+putational Optimization and Applications, 81(2):397421, 2022.
+Changshuo Liu and Nicolas Boumal. Simple algorithms for op-
+timization on Riemannian manifolds with constraints. Applied
+Mathematics  Optimization, 82(3):949981, 2020.
+Zhijian Lai and Akiko Yoshise.
+Riemannian interior point
+methods for constrained optimization on manifolds. Journal of
+Optimization Theory and Applications, 201(1):433469, 2024.
+Loring W Tu. Differential Geometry. Springer Cham, 2017.
+John Milnor. Curvatures of left invariant metrics on Lie groups.
+Advances in Mathematics, 21(3):293329, 1976.
+Jerrold E Marsden, Sergey Pekarsky, and Steve Shkoller. Dis-
+crete Euler-Poincar and Lie-Poisson equations. Nonlinearity,
+Nicolas Boumal, Bamdev Mishra, P-A Absil, and Rodolphe
+Sepulchre.
+manifolds. The Journal of Machine Learning Research, 15(1):
+Wei Hong Yang, Lei-Hong Zhang, and Ruyi Song. Optimality
+conditions for the nonlinear programming problems on Rieman-
+nian manifolds. Pacific Journal of Optimization, 10(2):415434,
+Stephen J Wright. Numerical optimization, 2006.
+Taeyoung Lee, Melvin Leok, and N Harris McClamroch. Ge-
+ometric tracking control of a quadrotor uav on SE(3).
+Proceedings of the IEEE Conference on Decision and Control,
+pages 54205425. IEEE, 2010.
+Joel AE Andersson, Joris Gillis, Greg Horn, James B Rawlings,
+and Moritz Diehl. CasADi: a software framework for nonlinear
+optimization and optimal control. Mathematical Programming
+J. Lfberg. Yalmip : A toolbox for modeling and optimization
+in matlab. In In Proceedings of the CACSD Conference, Taipei,
+Jean B Lasserre. Global optimization with polynomials and the
+problem of moments.
+SIAM Journal on optimization, 11(3):
+Jean Bernard Lasserre. An introduction to polynomial and semi-
+algebraic optimization, volume 52. Cambridge University Press,
+Alexandre Amice, Hongkai Dai, Peter Werner, Annan Zhang,
+and Russ Tedrake. Finding and optimizing certified, collision-
+free regions in configuration space for robot manipulators.
+In International Workshop on the Algorithmic Foundations of
+Yuwei Wu, Igor Spasojevic, Pratik Chaudhari, and Vijay Kumar.
+Towards optimizing a convex cover of collision-free space for
+trajectory generation. IEEE Robotics and Automation Letters,
+Peter Betsch. The discrete null space method for the energy
+consistent integration of constrained mechanical systems: Part
+chanics and Engineering, 194(50-52):51595190, 2005.
+Peter Betsch and Sigrid Leyendecker. The discrete null space
+method for the energy consistent integration of constrained
+mechanical systems. part ii: Multibody dynamics. International
+journal for numerical methods in engineering, 67(4):499552,
+Sigrid Leyendecker, Sina Ober-Blbaum, Jerrold E Marsden,
+and Michael Ortiz.
+Discrete mechanics and optimal control
+for constrained systems.
+Optimal Control Applications and
+Shucheng Kang, Xiaoyang Xu, Jay Sarva, Ling Liang, and Heng
+Yang. Fast and certifiable trajectory optimization. arXiv preprint
+Heng Yang, Ling Liang, Luca Carlone, and Kim-Chuan Toh. An
+inexact projected gradient method with rounding and lifting by
+nonlinear programming for solving rank-one semidefinite relax-
+ation of polynomial optimization. Mathematical Programming,
+pages 164, 2022.
+Eric R Westervelt, Jessy W Grizzle, and Daniel E Koditschek.
+Hybrid zero dynamics of planar biped walkers. IEEE transac-
+tions on automatic control, 48(1):4256, 2003.
+Marin Kobilarov, Jerrold E Marsden, and Gaurav S Sukhatme.
+Geometric discretization of nonholonomic systems with sym-
+metries. Discrete and Continuous Dynamical Systems Series S,
+Taylor A Howell, Kevin Tracy, Simon Le Cleach, and Zachary
+Manchester. CALIPSO: A differentiable solver for trajectory
+optimization with conic and complementarity constraints.
+The International Symposium of Robotics Research, pages 504
+521. Springer, 2022.

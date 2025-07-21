@@ -1,0 +1,1370 @@
+=== PDF文件: DRO Doppler-Aware Direct Radar Odometry with Gyroscope.pdf ===
+=== 时间: 2025-07-21 13:44:24.686392 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Cedric Le Gentil, Leonardo Brizi, Daniil Lisus, Xinyuan Qiao, Giorgio Grisetti and Timothy D. Barfoot
+Autonomous Space Robotics Lab
+University of Toronto Institute for Aerospace Studies (UTIAS), Toronto, Ontario, Canada
+Department of Computer, Control, and Management Engineering Antonio Ruberti
+Sapienza University of Rome
+AbstractA renaissance in radar-based sensing for mobile
+robotic applications is underway. Compared to cameras or lidars,
+millimetre-wave radars have the ability to see through thin
+heavy rain, fog, snow, and dust. In this paper, we propose a novel
+SE(2) odometry approach for spinning frequency-modulated
+continuous-wave radars. Our method performs scan-to-local-map
+registration of the incoming radar data in a direct manner
+using all the radar intensity information without the need for
+feature or point cloud extraction. The method performs locally
+continuous trajectory estimation and accounts for both motion
+and Doppler distortion of the radar scans. If the radar possesses a
+specific frequency modulation pattern that makes radial Doppler
+velocities observable, an additional Doppler-based constraint is
+formulated to improve the velocity estimate and enable odome-
+try in geometrically feature-deprived scenarios (e.g., featureless
+tunnels). Our method has been validated on over 250 km of on-
+road data sourced from public datasets (Boreas and MulRan)
+and collected using our automotive platform. With the aid of a
+an average relative translation error of 0.26 on the Boreas
+leaderboard. When using data with the appropriate Doppler-
+enabling frequency modulation pattern, the translation error is
+reduced to 0.18 in similar environments. We also benchmarked
+our algorithm using 1.5 hours of data collected with a mobile
+robot in off-road environments with various levels of structure
+to demonstrate its versatility. Our real-time implementation is
+publicly available:
+I. INTRODUCTION
+From air traffic control to weather forecasting via marine
+During the early days of mobile robotics, radars were used to
+detect specific landmarks and perform Simultaneous Locali-
+sation And Mapping (SLAM) . While the advent of lidar
+technologies and the ubiquity of cameras drove the state esti-
+mation research community away from radar sensing , we
+are currently experiencing a new wave of interest toward this
+modality . This interest is partly driven by the robustness
+of radars with respect to adversarial weather conditions. In this
+and benchmark its performance across different datasets in
+both automotive and off-road robotic scenarios as shown in
+The working principle of radar sensing consists of emitting
+radio waves and analyzing the signal returned through various
+reflections of the waves from objects present in the environ-
+Estimate
+Groundtruth
+Sequence Start
+Estimate
+Groundtruth
+Sequence Start
+This paper presents a Direct Radar Odometry (DRO) method
+that provides state-of-the-art performance in a wide range of environments
+including unstructured ones (right) and geometrically degenerated ones such
+as featureless tunnels (left).
+ment to collect geometric information about the surroundings.
+This work leverages data from millimeter wave (mmWave)
+radars that use electromagnetic waves with a length scale that
+is in the order of magnitude of one millimetre. Waves in
+such frequency bands can penetrate through plastic, textiles,
+radar allows the system to sense its environment in a wide
+range of conditions, even under intensely adverse weather
+conditions such as fog, rain, and snow. Like any wave, the
+radar-emitted signals are subject to the Doppler effect when
+the relative velocity between the system and part of its
+environment is not zero. Thus, when using specific frequency
+patterns and processing, radar data can allow for the extraction
+of Doppler-based radial velocity information. These benefits
+represent a competitive advantage of radars compared to other
+proposed odometry method accounts for the Doppler-based
+distortion of the radar data and can integrate a Doppler-
+specific velocity constraint in its optimization, allowing it
+to robustly perform odometry even in geometrically feature-
+deprived environments, such as featureless tunnels (see Fig. 1
+(left)).
+Two types of radar sensors are typically used in robotics
+In this work, we focus on spinning radars, as they provide
+a 360Field-of-View (FoV) that contains dense intensity
+information from up to several hundred meters away. This
+makes spinning radar enticing for navigational tasks such as
+the entire surroundings is required for robustness and safety.
+The most common spinning-radar-odometry approaches use
+the dense intensity information to extract a set of points or
+features [21, 3, 17, 9, 14, 47, 54]. These approaches work
+of-the-art (SOTA) [3, 46], but they require computationally
+costly data association, critical parameter tuning, and they
+ultimately discard a large amount of the gathered data in favour
+of sparse representations. Methods that have used the entire
+scan directly for odometry have done scan-to-scan correlation
+matching on the intensity image
+, sometimes requiring
+pre-processing using a deep learning network [10, 62]. How-
+and Doppler distortion of the radar data, and discretize the
+relative transform search space to lower the computational
+cost. Additionally, the need for a learned processing compo-
+nent limits the transferability of these approaches to different
+environments.
+In this work, we present the first Direct Radar Odometry
+(DRO) framework that accounts for the continuous motion
+and Doppler distortion of the incoming data in a principled
+way. It can be aided by a yaw-axis gyroscope and does not
+rely on deep-learning techniques or hand-tuned discretization
+parameters. As demonstrated on more than 250 km of data,
+it is applicable to a wide range of environments. With the
+appropriate radar emission pattern, it can also perform in
+geometrically challenging scenarios that generally lead to
+degenerated state estimates. The main contributions are as
+1) The formulation of the first direct radar registra-
+tion method that accounts for continuous motion and
+Doppler-based distortion in a gradient-based optimiza-
+tion that does not discretize the search space.
+2) A novel way to leverage the Doppler effect for velocity
+estimation from spinning radar without assuming that
+consecutive radar beams correspond to the same objects.
+3) Our method is capable of SOTA radar-odometry perfor-
+mance when used with a gyroscope.
+4) A real-time GPU-based implementation. 1
+II. RELATED WORK
+A radar odometry system [37, 1, 61, 20], like other odom-
+etry systems, aims to estimate the ego-motion of the sensor,
+in this case, a radar, thus determining the trajectory of the
+platform on which the sensor is mounted. The motion esti-
+mation process typically involves formulating an optimization
+and an environment model that maximizes the probability
+of observing the measured data. This principle is known as
+maximum-likelihood estimation.
+In the last decade, radar odometry has been dominated by
+indirect approaches , which rely on selecting salient points
+or features from radar measurements. Early works, such as
+, started by leveraging computer vision approaches, such
+as SIFT  features, from radar Cartesian images, while
+more recent state-of-the-art methods, such as CFEAR ,
+select points based on each individual azimuths of a radar
+signal. There exist two main categories for feature extrac-
+tion methods : signal-based and spatial-based extractors.
+Signal-based methods identify points by applying thresholds
+to individual azimuths in the radar signal. A well-known ex-
+ample is the Constant False Alarm Rate (CFAR) method ,
+which processes each azimuth of a radar scan using a sliding
+window. The power readings within the window are used to
+calculate a detection threshold. Many variants of CFAR exist
+[51, 57, 33, 65, 63, 60, 11]. Another signal-based extractor,
+a static threshold along each azimuth. In contrast, spatial-
+based extractors rely on extracting features and descriptors
+from radar scans transformed into Cartesian images, some of
+those leverage computer vision algorithms, such as ORB
+or SIFT .
+Indirect odometry systems, extracting points from the radar
+is one of the most critical building blocks of these systems.
+Burnett et al.  introduced motion-compensated RANSAC
+to ensure robust association. Subsequently, they developed
+matching within the ESGVI  batch state estimation frame-
+work. In CFEAR , the authors extract the surface points
+and demonstrate that the point-to-line and point-to-distribution
+perform better than point-to-point, as these metrics mitigate the
+problem of erroneous associations between individual points.
+After an initial scan filtering step, Kung et al.  extract
+sets of local Gaussian distributions and perform point-to-
+distribution registration. Finally, some other systems exploit
+data-driven approaches to downscale noisy point contributions
+in the optimization problem  or to select others suitable
+for the data association .
+association. While this kind of method has been well studied
+for lidar [23, 25, 35] and monocular odometry [28, 30, 36,
+somewhat limited and methods are slower than feature-based
+methods. Barnes et al.  proposed a brute-force approach
+that samples and selects rotations to maximize the dense
+correlation between radar scans. Similarly, Checchin et al.
+and Park et al.  addressed the need for sampling by
+decoupling rotation and translation. They utilized the Fourier-
+Mellin Transform, maximizing phase correlation between log-
+polar and Cartesian images to estimate rotation and translation,
+respectively. A coarse-to-fine phase correlation refinement on
+Cartesian images was then applied to improve the translation
+estimate. While Barnes et al.  achieved remarkable per-
+formance in odometry estimation, their method suffered from
+high computational complexity. To address this, Weston et al.
+replaced the brute-force rotation search with an FFT-based
+of slightly lower accuracy. Overall, existing direct methods
+either decouple the estimation of rotation and translation
+or sub-sample the problem within a discrete search space.
+These strategies can result in susceptibility to local minima
+and poor scalability across different resolutions. In contrast,
+our approach optimizes the locally continuous SE(2) radar
+trajectory without discretizing the search space.
+For both direct and indirect methods, motion distortion can
+significantly degrade system performance. In the literature,
+this issue has been addressed using continuous-time trajectory
+cameras . This work applies similar concepts to radar
+data while also correcting Doppler distortion in a continuous-
+time optimization. The Doppler information channel provides
+valuable additional data that can be leveraged for odometry
+and ego-motion estimation. Several works have explored its
+integration with different models and estimation techniques
+to enhance motion estimation accuracy. Kellner et al.
+demonstrated that automotive radar, combined with an Ack-
+ermann vehicle model, can estimate ego-motion by fitting
+least-squares to stationary point Doppler velocities identified
+via RANSAC. In , a gyroscope is used to alleviate the
+need for an Ackermann platform. Galeote-Luque et al.
+extended this by using Doppler measurements for 3D odom-
+etry with RANSAC and a kinematic model. Kubelka et al.
+showed that integrating high-quality Doppler data with
+an IMU outperforms ICP in feature-deprived environments,
+and Lisus et al.  implemented a continuous-time approach
+with a white-noise-on-acceleration prior. In , the authors
+extend the deep-learning-based preprocessing from  and
+trained an additional network for per-scan velocity regression.
+In contrast, our model-based approach does not require any
+training data and does not suffer from any generalization
+III. BACKGROUND
+A. Gaussian process regression
+Gaussian Process (GP) regression  is a probabilistic,
+non-parametric interpolation method. Let us consider a sig-
+nal h(x), with x RD, modeled with a GP h(x)
+GP (0, k (x, x)). The function k (x, x) is the so-called co-
+variance kernel that characterizes the covariance between two
+instances of h (at x and x). Given noisy samples yi
+h(x)  , with  N (0, ) and i  (1,    , N), GP
+regression aims at inferring the signal h and its variance at
+any new input location x. The definition of a GP corresponds
+to the following multivariate normal distribution:
+k (x, x)
+Frequency
+Sawtooth modulation
+Triangular modulation
+Velocity
+Slope -s
+up-chirp
+down-chirp
+Impact of different frequency modulation patterns (top) and Doppler
+effect on the data collected with spinning FMCW radars (bottom).
+where kxX  (kXx)
+k (x, x1)
+k (x, xN)
+conditioning (1) with respect to the noisy observations we
+obtain the inference of h at xas
+h(x)  kxX
+k (x, x) kxX
+B. Radar data and Doppler effect
+Let us consider the type of radars commonly used in
+the automotive and robotic industries: Frequency-Modulated
+Continuous-Wave (FMCW) radars. As their name suggests,
+these radars are continuously emitting frequency-modulated
+electromagnetic waves. Thus, instead of directly measuring the
+time between the emission and reception of waves, the distance
+to an electromagnetic reflector corresponds to a frequency
+difference f between the signal transmitted and received. For
+the sake of simplicity, the following explanation will consider
+a single reflector at a certain distance r from the radar. In
+many range bins along the emission beam.
+Considering linear modulation of the frequency with a slope
+s as shown in Fig. 2, the distance r between the radar and
+reflector is
+where c is the speed of light, and the divider 2 accounts
+for the fact that f represents twice the distance r due
+to the time for the wave to reach the reflector and return.
+This relationship is only true (r  r) if the relative velocity
+between the sensor and the reflector is null. In the presence
+of relative motion, the measured f is impacted by the
+Doppler effect that compresses or expands the electromagnetic
+the shift corresponding to the waves travelling time, and
+fd the Doppler-induced frequency shift. This shift fd is
+proportional to the signal frequency
+t and the velocity along
+the emission beam, denoted radial velocity u, as
+perturbed by the Doppler effect
+r  rd(u).
+When considering a frequency modulation with a sawtooth
+pattern and multiple measurements of the same reflector, we
+cannot dissociate ft and fd from f. However, if we use
+a triangle pattern consisting of a succession of up-chirps and
+down-chirps as illustrated in Fig. 2, two measurements of the
+same reflector allow for the recovery of the radial velocity:
+where the components in ft cancel out resulting in
+r  rr 2uc
+In reality, FMCW radars do not only expect one return
+per beam but collect reflectivity information through a wide
+range of discrete ranges through a fast-Fourier transform of
+the received signal. Thus, the data from such radars can be
+interpreted as intensityreflectivity images, in which rows cor-
+respond to different beam azimuths and columns to different
+ranges. Fig. 2 illustrates the effect of the Doppler effect on
+FMCW data. The data collected with a moving radar using
+a triangular pattern presents an alternating shift between each
+row of the scans, while all the rows are shifted according to
+the sign of the radial velocity for sawtooth radars. Depending
+on the radar model, the modulation pattern can be changed
+or not in the firmware. Thus, not all spinning FMCW radars
+enable the extraction of Doppler-based velocities.
+IV. METHOD
+The proposed method addresses the issue of radar odometry
+optionally aided by a gyroscope. The main concept is the direct
+use of FMCW intensity data without any point cloud or feature
+A. Problem statement and overview
+Let us consider a 2D mmWave FMCW spinning radar and
+a rigidly mounted gyroscope. Without loss of generality, the
+extrinsic calibration (rotation matrix) between the two sensors
+is assumed to be known and will not appear in the following
+derivations. The gyroscope provides measurements i, at times
+of the radar. The radar data is assumed to be collected in
+scans covering the 360field-of-view. Each scan contains
+information collected from N beams, each associated with
+an azimuth n and timestamp tn, and each beam consists of
+the electromagnetic reflection intensity nm at M different
+ranges rm. Accordingly, a radar scan can be interpreted as a
+polar intensity image or a set of tuples {n, rm, nm}.
+The rotation, position, and velocity of the radar reference
+frame with respect to an Earth-fixed frame are described with
+continuous functions t R 7Rt
+W SO(2), pt
+W R2, respectively. The details of the various motion
+models used to obtain Rt
+W from a finite set
+of state variables S will be discussed in Section IV-D. The
+proposed method aims to estimate the state variables S, thus
+the sensors trajectory, during the collection time of the last
+radar scan using the radar intensity data and optionally the
+angular velocity from the gyroscope. The estimation is done
+with the numerical optimization of a combination of objective
+functions as
+S argmax
+with O an objective function that relates to the direct
+registration of the radar intensity data (cf., Section IV-B, and
+Od to the Doppler effect (cf., Section IV-C). Fig. 3 provides
+an overview of the proposed method. As detailed later in
+this section, both O and Od can be interpreted as cross-
+correlation scores between different parts of the present and
+past radar data.
+B. Direct intensity objective function
+This objective function is inspired by direct methods in
+traditional monocular state estimation. The goal is to estimate
+the continuous pose of the sensor to registeralign the last
+radar scan with past radar data. In this work, we opted for a
+local map that is updated on-the-fly as a way to combine
+past radar scans into a single image representation of the
+sensors environment with intensity in Cartesian coordinates
+(as opposed to raw radar data in polar coordinates). The
+motivation for using a local map instead of solely the last
+radar scan is the higher robustness to outliers such as moving
+vehicles or multipath echoes.
+1) Direct registration: Let us assume the availability of an
+image-like local map M of the sensors environment expressed
+in the radars reference frame at time t1. The rows and columns
+of M image correspond to discrete Cartesian coordinates. The
+function B(M, x, y) allows querying the local map intensity
+for any x and y R with bilinear interpolation.
+To compute the direct registration objective between the
+incoming radar scan and the local map M, we need to correct
+for the Doppler effect and the motion of the radar as
+with rn the Doppler-induced shift (7) as a function of the
+body-centric velocity and the beam azimuth:
+The sign  is defined by the chirp direction for the azimuth
+n. Please note that this objective function accounts for the
+Doppler effect but does not require an FMCW radar with
+a triangular pattern. Once the radar scan is corrected using
+the current estimate of the trajectory, the objective function is
+simply the cross-correlation score,
+nmB(M, xnm, ynm),
+between the corrected scan and the local map.
+SE(2) continuous trajectory
+2D spinning radar image
+Yaw gyroscope
+GP infill: up-chirp and
+down-chirp image inference
+(Fig. 4)
+Orientation
+preintegration
+Continuous trajectory optimisation:
+Doppler-based
+velocity constraint
+Direct intensity
+registration
+Local map update
+Local map
+Undistorted scan
+Overview diagram of the proposed direct radar odometry method. To leverage the Doppler-based velocity constraint, the radar must use a triangular
+frequency modulation pattern. Note that O accounts for motion and Doppler-induced distortion.
+2) On-the-fly local map: The proposed local map consists
+of an image-like representation of the past radar data using a
+per-pixel low-pass filter to update M with the last radar scan
+and the corresponding state estimate. Concretely, given the
+convergence of the optimization problem (8), the radar scan
+is corrected to the first timestamp of the following scan in
+Cartesian coordinates (using (9) replacing Rtn
+t1 and ptn
+tN1 and ptn
+converted into an image-structure I M with the help of bilinear
+interpolation. Then the local map update is
+M (1 )M  I M,
+with  [0, 1] a user-defined parameter (  0.1 in our
+implementation). Note that after receiving the very first radar
+C. Doppler-based objective function
+As presented in Section III-B, an FMCW radar using a
+triangular modulation pattern (alternating up-chirp and down-
+chirp for each collected beam) allows for observability of
+the radial velocity along that beam if the consecutive beams
+observe the same part of the environment. Unfortunately, this
+is not quite true in the context of mobile radar sensing, since
+the vehicle and the radar dish move in between consecutively
+recorded returns. We propose to split the incoming radar
+scan into two image-like structures based on chirp direction
+and use GP regression (2) to infill the missing rows in
+both images. This is illustrated in Fig. 4. We denote the up-
+chirp and down-chirp infilled images as I {n, rm,
+and I {n, rm,
+nm}, respectively. Thanks to the GP
+regression step, the part of the environment observed in each
+row of I, be it observed or interpolated, is the same as in
+the corresponding row of I.
+We show in Fig. 5 that when the sensors are static, both
+Iand Ioverlap well. However, the Doppler shift is clearly
+visible in the difference between Iand Iwhen the sensors
+move. The objective function Od aims to constrain the esti-
+mated velocity v(t) using Iand I. First, we must compute
+the range shift, with (10), between each row of the two
+images as a function of the sensor velocity. Then, we define
+the function L(I, n, r) that queries the intensity value of
+Ifor any value of r R using linear interpolation for each of
+the images row. The objective function is a cross-correlation
+score between Iand the Doppler-rectified version of I:
+nmL(I, n, rm  rn).
+The objective function Od is maximised when the body-
+centric velocity estimate R(tn)v(tn) corresponds to the
+actual velocity of the sensor.
+D. Motion models
+In this section, we present different ways to obtain the
+continuous trajectory functions Rt
+W from the
+state variables S. As Rt
+W is in SO(2), the rotation can easily
+be represented with a simple rotation angle (t) as
+cos((t))
+sin((t))
+sin((t))
+cos((t))
+with Rt1
+W being the starting rotation obtained from the state
+estimate of the previous radar scan. We introduce two different
+models to obtain (t) in Subsections IV-D1, and IV-D2.
+Regarding the translation and velocity, we use a simple con-
+stant body-centric velocity model in Subsection IV-D3. For
+state variables, and vb the body-centric velocity.
+1) Constant angular velocity: In the absence of a gyro-
+constant angular velocity  for the duration of any radar
+scan with (t)  (t t1). Therefore, the state variable is
+2) Gyro preintegration: Inspired by , when using a
+defined as a function of the angular rate measurements. To
+account for the frequency discrepancy between the radar
+azimuths and the gyroscope measurements, it leverages con-
+tinuous preintegration concepts drawn from  and . For
+the sake of simplicity and lightweight computation, we use a
+simple piece-wise linear model
+(t)  (ti)  (i1  i)(t ti)
+2(ti1 ti)
+i(t ti),
+Raw radar data
+GP-inferred image I
+GP-inferred image I
+Illustration of the proposed infilling. The raw Doppler distorted radar data (left) is split between up and down-chirp azimuths. Gaussian Process (GP)
+regression is used to interpolate every second azimuth (middle two, the interpolated portion is in grey). Both Iand Ivirtually observe the same geometry
+without assuming that two consecutive azimuths of the raw data observe the same part of the environment (right, with blue positive and red negative).
+Raw radar scan
+Up-image I(filtered)
+Difference II
+Illustration of the GP-based infill highlighting the Doppler effect on
+radar data collected with a triangular frequency modulation pattern (the blue
+arrow is the sensor velocity).
+with i  i b, t [ti, ti1], We decided not to include the
+gyroscope bias b in the estimated state. In our experiments,
+biases range from 5e5 to 4e3 corresponding to a
+maximum of 0.057drift over the 250 ms of a scan. With
+the typical 0.9radar angular resolution, the signal-to-noise
+ratio is too high to enable robust bias estimation in a frame-
+to-frame approach like ours. This is especially true as the
+proposed objective functions are not probabilistic, thus imped-
+ing the integration of additional residualsobjective functions
+from other modalities and the probabilistic priorprevious
+knowledge of the bias. Accordingly, when using a gyroscope,
+the rotational state is empty SR  . However, we use a
+separate online bias estimation strategy based on a simple yet
+effective heuristic: when the vehicles velocity is zero, so is
+the angular rate. Accordingly, the bias estimate is initialized by
+averaging the first Q raw gyroscope measurements collected
+when the velocity estimate is under 5 cms. Then it is updated
+with a low-pass filter whenever the velocity estimate is under
+3) Constant body-centric velocity: This model assumes a
+constant body-centric velocity vb R2 during any radar scan.
+The velocity in the global frame is vt
+W vb. The position
+with pt1
+W the position resulting from the state estimation during
+the previous radar scan. The integral in (16) is computed
+analytically when using the constant angular velocity assump-
+tion. Otherwise, when using a gyroscope, it is numerically
+preintegrated using a piece-wise linear model similar to (15)
+upon each of the matrix elements.
+V. EXPERIMENTS
+A. Implementation
+The proposed method has been implemented in Python
+using PyTorch for matrix and algebra operations. Accordingly,
+it can easily be run on either a GPU or a CPU. Note that
+we have implemented (8) with analytical Jacobians and our
+solver without relying on PyTorchs automatic differentiation
+and integrated solvers. When using a gyroscope and the
+Doppler-based velocity constraints, our method converges in
+13.5 iterations on average.
+1) Gaussian process regression: GP regression is known
+to suffer cubic computational complexity due to the matrix
+inversion in (2). With around 2 million points in each radar
+the grid-pattern (image-like) nature of both the radar data
+and the inference locations in the proposed GP-based infill
+step. By only considering the data in a U  V neighbourhood
+around each inference location, kxX
+1 can be
+precomputed and the multiplication with y is a simple con-
+volution operation. Accordingly, with a GPU implementation,
+the inference of Iand Iis extremely efficient.
+Similarly to , each row of the GP-inferred image is
+independently filtered to attenuate multipath and specular
+noise. First, the intensity standard deviation is computed and
+any range bin with a value inferior to twice the deviation
+is nullified. Then the intensity values are normalized so
+that the maximum value equals one. Per-azimuth Gaussian
+blur is applied to smooth the discontinuities introduced in
+the previous steps. Finally, each intensity value is cubed to
+augment contrast.
+2) Optimisation: The optimization problem (8) is solved
+with a gradient ascent algorithm with an update step
+S S  c (Od  O)
+(Od  O),
+Raw radar scan
+Difference II
+Vehicles in the opposite lane
+Vehicles in the same lane
+On-board camera view
+Skyway ground view
+Illustration of a challenging situation with a line of vehicles coming
+the other way while driving over a skyway (very few static elements visible
+in the radar data).
+where is the gradient operator, and c is a constant equal to
+0.1 at the start of the optimization and halved for every non-
+ascending step. Note that the objective functions are element-
+wise products of intensity values. Thus, the computations
+linked to intensity values that are equal to zero do not
+contribute to the optimization problem and can be omitted
+to lower the computational burden.
+3) Robust weighting: The proposed objective functions Od
+and O are generally robust to outliers such as moving
+vehicles and specular noise. However, in very rare occasions (2
+frames among 42k in our automotive experiments), a very high
+proportion of consistent outliers can lead to erroneous state
+estimates. A typical example is illustrated in Fig. 6 when the
+sensing platform is moving over a bridgeskyway with a very
+small amount of static reflectors in the surroundings, and a line
+of vehicles comes the other way. It can make the velocity esti-
+mate suddenly jump unrealistically. Such scenarios are easily
+detected with a simple threshold on the sensors acceleration
+from one scan estimate to the next. When detected, we re-run
+the optimization weighting the objective functions O and Od
+nmnm(, , ),
+with   d or . Intuitively, the weighting  acts as an
+outlier-rejection mechanism by down-weighting the objective
+components that are too dissimilar in terms of intensity.
+4) Velocity bias in Doppler constraint: Similarly to ,
+we have empirically observed a velocity bias when performing
+Doppler-only velocity estimation. This bias mostly concerns
+the lateral velocity of the sensing platform. We believe this
+bias is partly explained by the disparity between the actual
+measurement process and the simple measurement model that
+assumes the information contained in a row of the radar
+data corresponds to a single azimuthtimestamp: in reality,
+the radars scanning pattern is continuous. Thus, every mea-
+surement from a row could correspond to a different azimuth
+and timestamp. We think that the motion models inaccuracy
+leads to a velocity bias that appears as environment-dependent
+due to the ignored correlation between the data range and
+azimuthtimestamp. The authors of  addressed this issue by
+fitting a linear model to the velocity error using held-out data
+with accurate velocity ground-truth. Then, the linear model is
+used to correct the velocity estimates directly. In this work,
+we propose to leverage the non-slip kinematics constraint to
+estimate and compensate for the lateral component of the
+velocity bias online without a calibration phase.
+Using the angular rate and the extrinsic calibration between
+the radar and the vehicles rear axle, the velocity estimated
+based solely on the Doppler-based constraint Od is projected
+into the axle reference frame. The y component is projected
+back to the radar frame to update a low-pass filter that tracks
+the lateral velocity bias. The filters output is then used to
+correct the radial velocities when computing the shifts (10) for
+Doppler distortion correction. This estimation and correction
+process is only applied when Od is part of the optimization
+problem (8). It is important to note that this mechanism
+does not strictly enforce the non-slip constraint thanks to the
+low-pass filter. Accordingly, the vehicle can be subject to
+momentary side slips without altering the state estimates.
+B. Metrics
+To benchmark our algorithm, we use well-established met-
+rics in the odometry literature. For datasets with ground-truth
+are adopted. Succinctly, for one pose estimate, the estimated
+trajectory is aligned with the ground-truth. Then, after a certain
+distance travelled from the aligned poses (segments varying
+from 100 to 800 m), the estimated and ground-truth poses are
+used to compute position and orientation errors relative to the
+segment lengths. This process is repeated every 5 poses of the
+estimated trajectory and the results are reported as the average
+relative errors in  and 100 m. In the absence of ground-
+truth orientation, we adapted the Relative Position Error (RPE)
+introduced in  to SE(2) trajectories. It corresponds to the
+position Root Mean Squared Error (RMSE) between aligned
+segments of the ground-truth and the estimated trajectory. The
+length of segments [50 m, 100 m, 150 m, 200 m]. Similarly to
+the KITTI metric, we display the RMSE error as a percentage
+of the segment lengths.
+C. Doppler-enabled automotive odometry
+In this section, we provide a detailed analysis of our
+methods performance on a dataset collected with our auto-
+motive sensing platform. Note that the radar used in this set
+of experiments uses a triangular frequency modulation pattern,
+thus enabling the use of the Doppler-based velocity constraints
+Od in (8).
+1) Dataset description: The goal of this set-up is to repli-
+cate experiments from . To do so, we have collected
+data with an automotive platform equipped with a Navtech
+RAS6 radar, a Silicon Sensing DMU41 Inertial Measurement
+Unit (IMU), a Velodyne Alpha Prime lidar, and an accurate
+Applanix RTK-GNSSINS solution for ground-truth with post-
+processing. All the sensors have been accurately synchronized.
+The data used for benchmarking has been collected repeatedly
+four times along four routes (16 sequences in total) displaying
+an increasing level of difficulty: Suburbs, Highway, Tunnel,
+and Skyway. The first two environments provide a relatively
+large amount of geometric constraints via the presence of many
+buildings and other human-made structures in the vehicles
+surroundings. In Tunnel and Skyway, the geometric features
+are either degenerate (not constraining all the movements
+axes) or close to nonexistent, respectively. In these scenarios,
+only Doppler-induced information can lead to usable odometry
+performances. The skyway scenario is especially challenging
+as for a couple of kilometres the radar does not observe any
+significant static features except for sparse lamp posts and
+weak returns from the side barriers (the radar is mounted
+on the top of the vehicle and the barriers are relatively
+barriers). Accordingly, the ratio of moving to static elements
+in the radars FoV is very high. The length and velocity
+characteristics of each sequence type are given in Table I
+along with the results discussed later in Section V-C3. Fig. 1
+(left) shows our collection vehicle while recording a Tunnel
+sequence.
+2) Baselines: To benchmark the proposed algorithm, we
+have replicated four baselines from  and , three based
+on radar data and one on lidar. The first baseline, denoted
+available teach and repeat framework . It consists of an
+ICP-based continuous-time scan registration using point clouds
+extracted from the raw radar data. The trajectory estimates
+are computed via a sliding window optimization based on a
+continuous-time GP state representation. Note that the velocity
+estimates are used to compensate for the Doppler-induced shift
+of the radar points. The second baseline is DG and replicates
+the work from  on per-azimuth radial velocity extraction,
+followed by a RANSAC-based outlier rejection and robust
+optimization. With the constant-velocity assumption, it allows
+for the estimation of the vehicles velocity for each radar
+scan. Combined with the gyroscopes angular rate, it enables
+association-free radar odometry, even in geometrically feature-
+deprived environments. Despite not extracting any point cloud
+out of the radar data, one can consider the radial velocity as
+features extracted in a front-end before an optimization-
+based state estimation step. Third is CT-RDG, the integration
+of the per-scan velocity estimates from  and the gyroscope
+measurements within CT-R. Finally, the lidar baseline denoted
+CT-LG consists of the continuous-time ICP from  with
+additional gyroscope constraints. The various parameters of
+the baseline, as well as the radar-specific value of , have
+been tuned using an extra sequence of each type.
+3) Results: Table I shows the average odometry error
+(KITTI metrics) obtained with each baseline and our algorithm
+in the four environments. While a thorough ablation study is
+conducted in the following subsection, here, we consider three
+variations of DRO that all rely on the gyroscope integration
+for the orientation estimation. The first variant, denoted DRO-
+estimate the linear dynamics of the system. The second one,
+O. Note that DRO-G still leverages Doppler compensation of
+the radar data as part of O. Ultimately, DRO-GD combines
+both Od and O as presented in (8).
+radar methods. While the performance gap between DRO-GD
+and DRO-G is minimal in the well-structured suburban envi-
+challenging. The best radar baseline, CT-RDG, shows errors
+around twice as large as ours throughout all the sequences
+When considering Doppler-only approaches, DG  and
+DRO-D perform similarly in Suburbs and Highway. In the
+more challenging environments, DRO-D displays a noticeable
+advantage. All these observations suggest that the direct nature
+of the proposed approach (considering all the radar informa-
+tion in a single optimization without any feature extraction)
+and our novel GP-based infill for Doppler data provide a
+greater level of robustness. Without the Doppler-based velocity
+challenging scenarios, similar to CT-R. Despite not completely
+failing on all the Tunnel sequences (3 out of 4 runs present a
+translation error under 2.5), the Doppler-compensation that
+happens in O is not sufficient for robust estimation in feature-
+deprived environments. Only the lidar baseline outperforms
+DRO-G in some feature-dense environments (Suburbs). How-
+(Tunnel and Skyway) while DRO-GD keeps a similar level of
+performance.
+Visualizations of the raw data, velocity estimate and local
+map are provided in the supplementary materials. Fig. 7 pro-
+vides a sample of the estimated trajectories for each sequence
+type. It is interesting to note that despite relatively similar
+KITTI metrics, CT-RDG and DRO-DG result in fairly different
+truth. Part of the explanation is that the KITTI metrics only
+consider segments up to 800 m where the small orientation
+drift of CT-RDG has a weak impact on the position at the end
+of each segment. However, along the full trajectory length,
+the orientation drift leads to large position errors that are
+visually noticeable. This observation supports the fact that
+for kilometre-long odometry, the direct integration of the
+gyroscope data can provide better orientation estimates than
+SOTA odometry.
+4) Ablation study: We have conducted a thorough ablation
+study to determine which of the presented mechanisms impacts
+the algorithms accuracy the most. Due to the extremely
+AVERAGE RELATIVE POSE ACCURACY OF THE PROPOSED METHOD AND SEVERAL BASELINES ON OUR DATASET (BEST RADAR-BASED METHOD IN BOLD).
+Sequence type (length, avg.  max. vel.)
+DRO-D (ours)
+DRO-G (ours)
+Suburbs (4  7.9 km, 8.1  18.6 ms)
+Highway (4  9.3 km, 11.1  27.0 ms)
+Tunnel (4  1.9 km, 8.9  28.2 ms)
+KITTI odometry metric reported as XX  YY with XX [] and YY [100 m] the translation and orientation errors, respectively.
+Groundtruth
+Sequence Start
+Sequence End
+Groundtruth
+Sequence Start
+Sequence End
+Groundtruth
+Sequence Start
+Sequence End
+Groundtruth
+Sequence Start
+Sequence End
+(a) Suburbs
+(b) Highway
+(c) Tunnel
+(d) Skyway
+Trajectory estimate samples for the different sequence types.
+TABLE II
+POSE ACCURACY ABLATION STUDY: EACH ROW CORRESPONDS TO A
+MARGINAL DIFFERENCE WITH DRO-GD.
+Vel. er.
+DRO-GD (ours)
+No gyr. bias
+No vel. bias
+No local map
+No gyroscope
+KITTI odometry metric reported as XX  YY with XX []
+and YY [100 m] the trans. and rot. errors, respectively.
+Avg RMSE
+challenging nature of the Skyway sequences, we have chosen
+to leave them out of this study, as other factors, such as
+the high proportion of outliers, can have a greater impact
+on the results. Table (II) shows the relative pose error of
+the proposed DRO-GD when various elements are removed
+from the pipeline. For the no local map row, DRO-GD
+is run replacing the proposed local map updated on the fly
+with simply the last motion and Doppler-corrected scan. As
+performance degradation, leading to accuracy slightly better
+than CT-R in Table I (also without a gyroscope) for feature-
+dense environments. Estimating the systems orientation in a
+continuous manner using only radar data is challenging due to
+the low angular resolution of the sensor (0.9) and the beam
+width (1.8), even when leveraging a motion prior like CT-
+R. Interestingly, in more challenging scenarios like the Tunnel
+as for CT-R thanks to the proposed Doppler-based velocity
+constraint. Regardless, the velocity RMSE is not significantly
+impacted by the absence of a gyroscope. As for the other
+In Fig. 8 we study the sensitivity of DRO-GD with respect
+to the  parameter used in the local map update. One can
+see that the methods accuracy is not very sensitive to . We
+also analyze the estimated side velocity bias and empirical
+evidence that, given the assumption made in our formulation, it
+depends on the observed environment in Appendix B. Overall,
+this ablation study demonstrates that the proposed direct radar
+registration is sound and robust.
+D. Public automotive benchmarks
+We have benchmarked the proposed method against state-
+of-the-art frameworks over the Boreas and MulRan datasets.
+In both cases, the radar uses a sawtooth modulation pattern.
+Doppler-based objective function Od.
+2For the gyroscope-less operation, we correct the estimated state with an
+angular velocity bias calibrated using held-off data (0.034s for Suburbs
+and Highway, and 0.057s for Tunnel). We have also applied the robust
+weighting when the change in orientation between consecutive scans is not
+realistic. Without the bias correction, we obtain relative translation errors of
+1.37, 1.61, and 3.67 for Suburbs, Highway, and Tunnel, respectively.
+Mean translation error []
+Sensitivity analysis of DRO-GD with respect to the local map update
+parameter .
+1) Boreas dataset: The Boreas dataset  was collected
+by driving a vehicle equipped with a sensor suite composed
+of a 3D lidar, a 2D spinning radar (sawtooth pattern), a front-
+facing camera, and an RTK-GNSSINS solution for ground-
+truthing. The dataset consists of 44 sequences collected over
+one year along more than 350 km of roads in Toronto, Canada.
+ditions ranging from clear summer sky to heavy snow and
+rain. A specificity of Boreas is that most sequences follow a
+unique route in a suburban environment, allowing one to test
+an algorithms robustness with respect to changing conditions.
+The Boreas dataset also offers a leaderboard for odometry
+benchmarking that leverages 13 of the sequences above. Note
+that the GNSSINS ground-truth is not publicly available for
+these sequences.
+After testing our algorithm on 6 sequences with ground-
+G. Our algorithm significantly outperforms all the other
+methods. We have reported the four best radar-based meth-
+ods in Table III. The core principle of CFEAR  and
+STEAM-RIO  is similar as both methods extract a
+point cloud from the incoming radar data before performing
+registration to multiple previous scans. A difference is that
+CFEAR first performs motion distortion correction based on
+the previous estimate and uses point-to-distribution residuals,
+while STEAM-RIO leverages a GP motion prior, point-to-
+point constraints and IMU data. CFEAR  builds atop
+CFEAR by embedding the use of the IMU and some semantic
+information.
+Our results confirm the ability of DRO-G to provide state-
+of-the-art performances without requiring a radar with a trian-
+gular modulation pattern and Od as long as the environment
+contains sufficient geometric cues. In Appendix A, we provide
+a table that details the error obtained for each of the 13
+sequences. As expected, there seems to be no correlation
+between the weather conditions and the translation error. An
+interesting observation is that the orientation estimates of
+DRO-G using solely the gyroscope integration outperform
+the other inertial-aided methods. This means that the radar
+constraints in CFEAR and STEAM-RIO play a negative
+role on the orientation estimates.
+2) MulRan dataset: The MulRan dataset  has been
+recorded with a lidar, 2D spinning radar, and an IMU mounted
+atop a car while driving in 4 different locations in Daejeon
+TABLE III
+BOREAS DATASET SE(2) ODOMETRY LEADERBOARD.
+Trans. err. []
+Rot. err. [100m]
+DRO-G (ours)
+STEAM-RIO
+and Sejong, South Korea. This dataset originally targeted
+the task of place recognition, but the availability of a 6-
+DoF trajectory ground-truth also enables the benchmarking
+of odometry and SLAM algorithms. However, unlike in the
+previous experiments, the ground-truth is not obtained with
+an RTK-GNSS but via the optimization of a pose graph that
+leverages wheel odometry, an optical-fibre gyroscope, and a
+VRS-GPS. Additionally, the quality of the IMU is significantly
+lower than in the Boreas and our automotive datasets.
+Table IV shows the KITTI odometry errors of the proposed
+method and variations of CFEAR as reported in . As
+introduced in the previous subsection, CFEAR relies on a scan-
+to-local-keyframes registration. C-FEAR-3 and C-FEAR-3-50
+refer to  using a different number of past keyframes in the
+registration process: 4 and 50, respectively. The table shows
+the ability of DRO-G to outperform SOTA methods even with
+a low quality IMU. The level of rotational accuracy highlights
+the soundness of the proposed integration-only orientation and
+reiterates the observation from the Boreas leaderboard that
+radar data can have a detrimental impact on the systems
+rotation estimate compared to pure integration and a simplistic
+bias estimation strategy.
+significantly larger with MulRan data than with the Boreas
+dataset. We believe that the nature of the ground-truth gen-
+eration process leads to noisier poses, but also that extrinsic
+calibration and synchronization are suboptimal. For example,
+we observed that the difference between consecutive IMU
+data timestamps presents a variation of 35 around the
+nominal period of 10 ms and that there is a constant offset
+with respect to the other sensors. In our experiments, we
+corrected the IMU synchronization by removing 50ms to each
+inertial timestamp of all sequences. We also adjusted the radar
+heading by 0.172(without the heading correction DRO-G
+leads to errors of 1.46 and 0.38100m). For completeness,
+without the gyroscope bias estimation, we obtain errors of
+6.00 and 1.57100m on average. Due to the lower quality
+of the dataset, we believe no strong conclusion can be drawn
+from this experiment other than the demonstration that DRO-
+G does not require a high-end gyroscope to perform at the
+level of SOTA methods.
+E. Off-road navigation
+To demonstrate the versatility of the proposed method, we
+collected a series of radar-inertial data sequences with an off-
+road mobile robot.
+TABLE IV
+AVERAGE ERROR PER SEQUENCE TYPE OF THE MULRAN DATASET.
+Sequences
+CFEAR-3-50
+DRO-G (ours)
+Riverside
+KITTI odometry metric reported as XX  YY with XX []
+and YY [100 m] the translation and orientation errors, respectively.
+1) Dataset description: Our off-road dataset comprises 16
+test sequences divided into four locations ranging progres-
+sively from highly structured to unstructured environments.
+The robots maximum velocity is approximately 1.2 ms. The
+sensor suite comprises a Navtech RAS3 radar and an Ouster
+lidar with its embedded IMU. The robot is driven over the
+same loop three or four times for each environment. The
+easiest one, Parking, takes place in a parking lot with many
+artificial geometric features such as buildings, fences, and
+parked cars. The second location Industrial takes place around
+a large industrial building with part of the trajectory going
+over a grass patch. This environment contains a combination
+of geometric structures (fences and buildings) and sparse open
+areas (trees and bushes) at the back of the industrial building.
+For the third trajectory, Grass, the robot moves over a grass
+field and occasionally can observe a metallic fence. The last
+and most challenging environment, Woods, is entirely off-road
+in the woods. Fig. 1 (right) shows our Clearpath Warthog robot
+within the Woods environment.
+2) Baseline: In this experiment, we benchmark DRO-G
+against a version of CT-R  with additional inertial con-
+straints as in . We denote this ICP-based baseline as
+CT-RG. For each CT-RG run, the gyroscope measurements
+have been corrected with a constant bias estimated from five
+seconds of data where the robot is static. CT-RGs parameters
+have been tuned using held-out Parking sequences.
+3) Results: We show the RPE obtained with and without
+gyroscope bias estimation in Table V. In structured environ-
+ments (Parking and Industrial), both the direct and point-
+cloud-based methods perform similarly. The discrepancy be-
+tween the two methods increases when dealing with more
+challenging environments. Overall, DRO-G maintains a sat-
+isfactory level of accuracy across all scenarios, demonstrating
+that the level of structure of the environment does not seem
+to impact the accuracy significantly. It also shows that direct
+radar registration is robust to the nature of the environment
+without requiring any tedious parameter tuning. Fig. 9 provides
+a visualization of estimated trajectories in each environment.
+Table V and Fig. 9 also show the efficacy of the proposed
+gyroscope bias estimation (DRO-G no-bias-est. vs DRO-G).
+Unlike the automotive scenario, where the gyroscope bias is
+nearly negligible, the lower quality of the lidars IMU has a
+significant impact on the results if the bias is not accounted
+for. Both methods perform poorly without any bias correction.
+CT-RG no-bias-cor.
+DRO-G no-bias-est.
+Groundtruth
+Sequence Start
+CT-RG no-bias-cor.
+DRO-G no-bias-est.
+Groundtruth
+Sequence Start
+CT-RG no-bias-cor.
+DRO-G no-bias-est.
+Groundtruth
+Sequence Start
+CT-RG no-bias-cor.
+DRO-G no-bias-est.
+Groundtruth
+Sequence Start
+(a) Parking
+(b) Industrial
+(c) Grass
+(d) Woods
+Visualization of trajectory estimates in the off-road scenarios (aligned with the ground-truth for visualization using the first 20 of the trajectory).
+AVERAGE RPE IN VARIOUS ENVIRONMENTS SPANNING OVER DIFFERENT
+LEVELS OF STRUCTURE.
+Sequence type
+no-bias-est
+no-bias-est.
+Parking (4  368 m)
+Industrial (4  390 m)
+Grass (4  175 m)
+Woods (4  421 m)
+Relative position error as a percentage [] of the distance travelled.
+F. Computation time
+All the experiments in this paper were performed using
+a laptop equipped with an Intel i7-13850HX CPU and an
+Nvidia RTX 5000 Mobile GPU. On our automotive dataset,
+the computation of DRO-GD took on average 89 ms per radar
+frame using the GPU. This is far below the real-time limit
+of 250 ms (4 Hz radar). When considering solely the Doppler-
+based velocity objective function, DRO-D required only 34 ms
+per scan. For comparison, we also changed the target device to
+CPU in Pytorch. We obtained averages of 738 ms and 59 ms
+for DRO-GD and DRO-D, respectively. On the Boreas and
+MulRan datasets the GPU computations needed 102 ms and
+95 ms per scan, respectively. The off-road experiments were
+the ones that required the most computation time with 134 ms
+per frame. To summarise, all our experiments have run in
+real-time. However, the current implementation is somewhat
+function and motion models. We believe that specializing the
+code and leveraging a compiled programming language would
+lead to significant improvement in the proposed methods
+efficiency especially for CPU-based operations.
+VI. LIMITATIONS
+roscope data as the orientation is obtained via direct integration
+of the angular velocity. We demonstrated that it was sufficient
+to obtain SOTA performance in both automotive and off-road
+scenarios with high-quality and low-quality IMUs. However,
+significant degradation of the inertial data (saturation, long
+have a catastrophic impact on the estimated state. On a similar
+quires the vehiclerobot to be static occasionally. Further work
+is needed to introduce a principled approach to gyroscope bias
+estimation in DRO.
+Our method and experiments focused on spinning FMCW
+radars. Thus, our findings are limited to this particular type of
+sensor. However, we believe that DRO applies to other radar
+types (e.g. phased-arrays) both in 2D and 3D given a sufficient
+FoV and access to the intensity returns (unfortunately most
+off-the-shelf automotive radars do not provide this informa-
+tion). A practical limitation of using 3D data is the potential
+computational load increase if the radar provides much more
+information than the radars used in this work.
+VII. CONCLUSION
+We have introduced DRO: a direct method for radar-based
+odometry aided by a gyroscope. Unlike most of the top-
+performing methods in the literature, DRO does not extract
+point clouds or features in the incoming radar scans but
+directly leverages the intensity information of the data to
+perform scan-to-local-map registration. The orientation is ob-
+tained by integrating the gyroscope measurements, and the
+body-centric velocity is estimated via the maximization of one
+or two objective functions depending on the radars frequency
+modulation. With a triangular emission pattern, the Doppler-
+induced shifts in the data make the radial velocities observable,
+thus enabling odometry in geometrically challenging environ-
+ments such as featureless tunnels. Regardless of the radars
+signal shape, DRO is the first direct method that accounts
+in a principled way for both the Doppler-induced and motion
+distortion of the radar data in the estimation process. The real-
+time GPU-based implementation of the proposed method was
+shown to outperform existing methods on public benchmarks
+and datasets we have collected both in automotive and off-
+road environments. Future works include the integration of a
+principled way to estimate the gyroscope bias and perform
+SLAM by estimating the full trajectory and including loop-
+closure constraints.
+ACKNOWLEDGMENTS
+This paper was partially supported by an Ontario Research
+Fund - Research Excellence grant. The authors would like
+to thank Aoran Jiao for his help in collecting the off-road
+datasets.
+REFERENCES
+Nader J. Abu-Alrub and Nathir A. Rawashdeh. Radar
+odometry for autonomous ground vehicles: A survey of
+methods and datasets. IEEE Trans. on Intelligent Vehicles
+Daniel Adolfsson, Martin Magnusson, Anas Alhashimi,
+Achim J. Lilienthal, and Henrik Andreasson.
+radarodometry - conservative filtering for efficient and
+accurate radar odometry.
+In Proc. of the IEEERSJ
+Intl. Conf. on Intelligent Robots and Systems (IROS),
+Daniel Adolfsson, Martin Magnusson, Anas Alhashimi,
+Achim J. Lilienthal, and Henrik Andreasson. Lidar-level
+localization with radar? the cfear approach to accurate,
+environments. IEEE Trans. on Robotics (TRO), 39(2):
+Roberto Aldera, Daniele De Martini, Matthew Gadd,
+and Paul Newman. Fast radar motion estimation with
+a learnt focus of attention using weak supervision. In
+Proc. of the IEEE Intl. Conf. on Robotics  Automation
+(ICRA), pages 11901196, 2019.
+Sean Anderson and Timothy D Barfoot.
+Ransac for
+motion-distorted 3d visual sensors.
+In Proc. of the
+IEEERSJ Intl. Conf. on Intelligent Robots and Systems
+(IROS), pages 20932099. IEEE, 2013.
+Sean Anderson and Timothy D. Barfoot.
+Full steam
+batch continuous-time trajectory estimation on se(3).
+In Proc. of the IEEERSJ Intl. Conf. on Intelligent
+Robots and Systems (IROS), pages 157164, 2015. doi:
+Sean Anderson, Timothy D. Barfoot, Chi Hay Tong, and
+Simo Sarkka. Batch nonlinear continuous-time trajectory
+estimation as exactly sparse gaussian process regression.
+Autonomous Robots, 39(3):221238, 2015. ISSN 0929-
+Timothy D Barfoot, James R Forbes, and David J Yoon.
+Exactly sparse gaussian variational inference with appli-
+cation to derivative-free batch nonlinear state estimation.
+Intl. Journal of Robotics Research (IJRR), 39(13):1473
+Dan Barnes and Ingmar Posner. Under the radar: Learn-
+ing to predict robust keypoints for odometry estimation
+and metric localisation in radar. In Proc. of the IEEE
+Intl. Conf. on Robotics  Automation (ICRA), 2020.
+Dan Barnes, Rob Weston, and Ingmar Posner. Masking
+by Moving: Learning Distraction-Free Radar Odometry
+from Pose Information. In Conference on Robot Learning
+(CoRL), 2019. URL
+S. Blake.
+Os-cfar theory for multiple targets and
+nonuniform clutter.
+IEEE Trans. on Aerospace and
+Electronic Systems (T-AES), 24(6):785790, 1988. doi:
+Michael Bosse and Robert Zlot. Map matching and data
+association for large-scale two-dimensional laser scan-
+based slam. Intl. Journal of Robotics Research (IJRR),
+K. Burnett, Angela P. Schoellig, and Timothy D. Barfoot.
+Do we need to compensate for motion distortion and
+doppler effects in spinning radar navigation?
+Robotics and Automation Letters (RA-L), 6(2):771778,
+Keenan Burnett, David J Yoon, Angela P Schoellig, and
+Timothy D Barfoot. Radar Odometry Combining Prob-
+abilistic Estimation and Unsupervised Feature Learning.
+In Proc. of Robotics: Science and Systems (RSS), 2021.
+Keenan Burnett, Yuchen Wu, David J Yoon, Angela P
+Radar to Replace Lidar in All-weather Mapping and
+Localization?
+IEEE Robotics and Automation Letters
+Keenan Burnett, David J Yoon, Yuchen Wu, Andrew Z
+season autonomous driving dataset.
+Intl. Journal of
+Robotics Research (IJRR), 42(1-2):3342, 2023.
+Keenan Burnett, Angela P. Schoellig, and Timothy D.
+Barfoot. Continuous-time radar-inertial and lidar-inertial
+odometry using a gaussian process motion prior. IEEE
+Trans. on Robotics (TRO), 2024.
+C. Cadena, L. Carlone, H. Carrillo, Y. Latif, D. Scara-
+and future of simultaneous localization and mapping:
+Towards the robust-perception age.
+IEEE Trans. on
+Jonas Callmer, David Tornqvist, Fredrik Gustafsson,
+Henrik Svensson, and Pelle Carlbom.
+Radar slam us-
+ing visual features.
+EURASIP Journal on Advances
+in Signal Processing, 2011, 12 2011.
+Sarah H. Cen and Paul Newman.
+Precise ego-motion
+estimation with millimeter-wave radar under diverse
+and challenging conditions.
+In Proc. of the IEEE
+Intl. Conf. on Robotics  Automation (ICRA), pages
+Sarah H. Cen and Paul Newman. Radar-only ego-motion
+estimation in difficult settings via graph matching.
+Proc. of the IEEE Intl. Conf. on Robotics  Automation
+(ICRA), pages 298304, 2019. doi: 10.1109ICRA.2019.
+Paul Checchin, Franck Gerossier, Christophe Blanc,
+Roland Chapuis, and Laurent Trassoudaine. Radar scan
+matching slam using the fourier-mellin transform.
+Springer Tracts in Advanced Robotics, volume 62, pages
+Bartolomeo Della Corte, Igor Bogoslavskyi, C. Stachniss,
+and Giorgio Grisetti. A general framework for flexible
+multi-cue photometric point cloud registration. Proc. of
+the IEEE Intl. Conf. on Robotics  Automation (ICRA),
+pages 18, 2017.
+Amael Delaunoy and Marc Pollefeys.
+Photometric
+bundle adjustment for dense multi-view 3d modeling.
+In Proc. of the IEEE Conf. on Computer Vision and
+Pattern Recognition (CVPR), pages 14861493, 2014.
+Leonardo
+In Proc. of the
+Intelligent
+Systems (IROS), pages 1104711054, 2022.
+M.W.M.G. Dissanayake, P. Newman, S. Clark, H.F.
+taneous localization and map building (slam) problem.
+IEEE Trans. on Robotics and Automation, 17(3):229
+Jakob Engel, Vladlen Koltun, and Daniel Cremers. Direct
+sparse odometry. IEEE Trans. on Pattern Analysis and
+Machine Intelligence (TPAMI), PP, 2016. doi: 10.1109
+Jakob J. Engel, Thomas Schops, and Daniel Cre-
+mers. Lsd-slam: Large-scale direct monocular slam. In
+Proc. of the Europ. Conf. on Computer Vision (ECCV),
+Harold M. Finn. Adaptive detection mode with threshold
+control as a function of spatially sampled clutter level
+estimates. Rca Rev., 29:414465, 1968. URL
+semanticscholar.orgCorpusID:208092087.
+Christian Forster, Matia Pizzoli, and Davide Scara-
+muzza. Svo: Fast semi-direct monocular visual odom-
+Proc. of the IEEE Intl. Conf. on Robotics
+Automation (ICRA), pages 1522, 2014.
+URL https:
+api.semanticscholar.orgCorpusID:206850490.
+Paul Furgale, Chi Hay Tong, Timothy D. Barfoot, and
+Gabe Sibley. Continuous-time batch trajectory estimation
+using temporal basis functions. Intl. Journal of Robotics
+Research (IJRR), 34(14):16881710, 2015.
+Andres Galeote-Luque, Vladimir Kubelka, Martin Mag-
+Jimenez.
+Doppler-only single-scan 3d vehicle odome-
+In Proc. of the IEEE Intl. Conf. on Robotics
+Automation (ICRA), pages 1370313709, 2024.
+P.P. Gandhi and S.A. Kassam. Analysis of cfar proces-
+sors in nonhomogeneous background. IEEE Trans. on
+Aerospace and Electronic Systems (T-AES), 24(4):427
+Reza Ghabcheloo and Shadman Siddiqui.
+Complete
+odometry estimation of a vehicle using single automotive
+radar and a gyroscope. In Mediterranean Conference on
+Control and Automation (MED), pages 855860, 2018.
+Luca Giammarino, Emanuele Giacomini, Leonardo Brizi,
+Omar Salem, and Giorgio Grisetti. Photometric lidar and
+rgb-d bundle adjustment. IEEE Robotics and Automation
+Letters (RA-L), PP:18, 07 2023.
+Mona Gridseth and Timothy Barfoot. Towards direct lo-
+calization for visual teach and repeat. In 16th Conference
+on Computer and Robot Vision (CRV), pages 97104,
+Kyle Harlow, Hyesu Jang, Timothy D. Barfoot, Ayoung
+Survey on recent mmwave radar applications in robotics.
+IEEE Trans. on Robotics (TRO), 40:45444560, 2024.
+Johan Hedborg, Per-Erik Forssen, Michael Felsberg,
+and Erik Ringaby.
+Rolling shutter bundle adjustment.
+Proc. of the IEEE Conf. on Computer Vision and Pattern
+Recognition (CVPR), pages 14341441, 2012.
+Dominik Kellner, Michael Barjenbruch, Jens Klappstein,
+Jurgen Dickmann, and Klaus Dietmayer. Instantaneous
+ego-motion estimation using doppler radar. In Intl. IEEE
+Intelligent Transportation Systems Conference (ITSC),
+Giseop Kim, Yeong Sang Park, Younghun Cho, Jinyong
+dataset for urban place recognition.
+In Proc. of the
+IEEE Intl. Conf. on Robotics  Automation (ICRA),
+Vladimir Kubelka, Emil Fritz, and Martin Magnusson.
+Do we need scan-matching in radar odometry?
+Proc. of the IEEE Intl. Conf. on Robotics  Automa-
+tion (ICRA), pages 1371013716, 2024. doi: 10.1109
+Pou-Chun Kung, C. Wang, and Wen-Chieh Lin.
+normal distribution transform-based radar odometry de-
+signed for scanning and automotive radars.
+Proc. of
+Robotics
+Automation
+semanticscholar.orgCorpusID:232233173.
+Cedric Le Gentil and Teresa Vidal-Calleja.
+Continu-
+ous latent state preintegration for inertial-aided systems.
+Intl. Journal of Robotics Research (IJRR), 42(10):874
+Cedric Le Gentil, Teresa Vidal-Calleja, and Shoudong
+Huang. Gaussian process preintegration for inertial-aided
+state estimation. IEEE Robotics and Automation Letters
+Cedric Le Gentil, Raphael Falque, and Teresa Vidal-
+Calleja.
+Real-time truly-coupled lidar-inertial motion
+correction and spatiotemporal dynamic object detection.
+In Proc. of the IEEERSJ Intl. Conf. on Intelligent Robots
+and Systems (IROS), pages 1256512572, 2024.
+Siru Li, Yushuai Chen, Ziyang Hong, and Liang Hu.
+ICRA Workshop, Radar in Robotics: Resilience from
+Signal to Navigation, 2024.
+Hyungtae Lim, Kawon Han, Gunhee Shin, Giseop
+Outlier-robust Radar Odometry.
+In Proc. of the
+IEEE Intl. Conf. on Robotics  Automation (ICRA),
+Daniil Lisus, Johann Laconte, Keenan Burnett, and
+Tim D. Barfoot.
+Pointing the way: Refining radar-
+lidar localization using learned icp weights.
+Daniil Lisus, Keenan Burnett, David J. Yoon, Richard
+doppler velocity measurements useful for spinning radar
+odometry?
+IEEE Robotics and Automation Letters
+David G. Lowe. Distinctive image features from scale-
+invariant keypoints.
+Intl. Journal of Computer Vi-
+Jose Machado Fernandez, Norelys Mojena-Hernandez,
+and Jesus Bacallao Vidal. Evaluation of cfar detectors
+performance. ITECKNE Innovacion e Investigacion en
+Yeong Sang Park, Young-Sik Shin, and Ayoung Kim.
+In Proc. of the IEEE Intl. Conf. on Robotics  Au-
+tomation (ICRA), pages 26172623, 2020. doi: 10.1109
+Elliot Preston-Krebs, Daniil Lisus, and Timothy Barfoot.
+The finer points: A systematic comparison of point-
+cloud extractors for radar odometry.
+arXiv preprint
+Xinyuan Qiao, Alexander Krawciw, Sven Lilge, and
+Timothy D Barfoot. Radar teach and repeat: Architecture
+and initial field testing. arXiv preprint arXiv:2409.10491,
+C E Rasmussen and C K I Williams. Gaussian Processes
+for Machine Learning. The MIT Press, 2006.
+Fraser Rennie, David Williams, Paul Newman, and
+Daniele De Martini.
+Doppler-Aware Odometry from
+FMCW Scanning Radar. In Intl. IEEE Intelligent Trans-
+portation Systems Conference (ITSC), pages 51265132,
+Hermann Rohling. Radar cfar thresholding in clutter and
+multiple target situations. IEEE Trans. on Aerospace and
+Electronic Systems (T-AES), AES-19(4):608621, 1983.
+Ethan Rublee, Vincent Rabaud, Kurt Konolige, and Gary
+Bradski.
+In Proc. of the IEEE Intl. Conf. on Computer Vision
+(ICCV), pages 25642571, 2011.
+Omar Ashraf Ahmed Khairy Salem, Emanuele Giaco-
+gio Grisetti. Enhancing lidar performance: Robust de-
+skewing exclusively relying on range measurements. In
+AIxIA 2023 - Advances in Artificial Intelligence, Berlin,
+M.E. Smith and P. K. Varshney. Vi-cfar: a novel cfar
+algorithm based on data variability. Proceedings of the
+1997 IEEE National Radar Conference, pages 263268,
+Arthur Venon, Yohan Dupuis, Pascal Vasseur, and Pierre
+Merriaux. Millimeter wave fmcw radars for perception,
+recognition and localization in automotive applications:
+A survey. IEEE Trans. on Intelligent Vehicles (T-IV), 7:
+Rob Weston, Matthew Gadd, Daniele De Martini, Paul
+translational invariance of the fourier transform for ef-
+ficient and accurate radar odometry.
+In Proc. of the
+IEEE Intl. Conf. on Robotics  Automation (ICRA),
+Renli Zhang, Weixing Sheng, and Xiaofeng Ma.
+proved switching cfar detector for non-homogeneous
+environments. Signal Processing, page 3548, 2013. doi:
+Zichao Zhang and Davide Scaramuzza.
+A tutorial
+on quantitative trajectory evaluation for visual(-inertial)
+odometry.
+In Proc. of the IEEERSJ Intl. Conf. on
+Intelligent Robots and Systems (IROS), 2018.
+Lei Zhao, Weixian Liu, Xin Wu, and Jeffrey S Fu. A
+novel approach for cfar processors design. In Proceed-
+ings of the 2001 IEEE Radar Conference, pages 284288.
+APPENDIX A
+RESULTS DETAILS ON BOREAS DATASET
+This appendix presents the detailed results obtained on the
+13 sequences of the Boreas dataset leaderboard in Table VI.
+TABLE VI
+PER-SEQUENCE ERRORS OF DRO-G ON THE BOERAS DATASET
+LEADERBOARD.
+Sequence
+conditions
+Rot. err.
+: Overcast, : Snow coverage, : High snow coverage
+: Snowing, : Sun, !: Rain, : Dusk, : Night
+APPENDIX B
+LATERAL VELOCITY BIAS ESTIMATE
+This appendix discusses the lateral velocity bias estimation
+introduced in Section V-A4. Fig. 10 presents the lateral veloc-
+ity estimates obtained across the different sequences used in
+Section V-C. The value of the bias is shown as a function of the
+vehicles position along the trajectory. Note that the Highway
+Lat. vel. bias [ms]
+Lat. vel. bias [ms]
+Highway - One way
+Lat. vel. bias [ms]
+Highway - Return
+Lat. vel. bias [ms]
+Tunnel - One way
+Lat. vel. bias [ms]
+Tunnel - Return
+Distance travelled []
+Lat. vel. bias [ms]
+Fig. 10.
+Lateral velocity bias estimate obtained by running DRO-GD on
+our automotive dataset. The bias is expressed as a function of the distance
+travelled in the sequence.
+and Tunnel sequences are split into two plots as they have
+been collected separately in one direction and the other. As
+one can see, there is a clear correlation between the location
+of the vehicle and the value of the velocity bias estimate. This
+observation supports our hypothesis that the Doppler-based
+velocity bias is impacted by the structure of the environment.
+Note that the extrinsic calibration between the radar and the
+vehicle rear axle has been thoroughly verified, and thus, the
+miscalibration hypothesis has been discarded. Further work
+will be required to obtain a deeper characterization of this
+bias and a clearer understanding of the physical phenomenon
+behind it.

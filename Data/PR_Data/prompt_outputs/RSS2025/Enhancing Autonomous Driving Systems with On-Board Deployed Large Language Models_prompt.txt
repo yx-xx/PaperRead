@@ -1,0 +1,1077 @@
+=== PDF文件: Enhancing Autonomous Driving Systems with On-Board Deployed Large Language Models.pdf ===
+=== 时间: 2025-07-21 13:47:44.361165 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，要中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Enhancing Autonomous Driving Systems with
+On-Board Deployed Large Language Models
+Nicolas Baumann,, Cheng Hu, Paviththiren Sivasothilingam, Haotong Qin, Lei Xie, Michele Magno, Luca Benini
+Center for Project-Based Learning, ETH Zurich, Switzerland
+Integrated Systems Laboratory, ETH Zurich, Switzerland
+Department of Control Science and Engineering, Zhejiang University, China
+Is the Robot
+behaving as the
+Human wants?
+DecisionxLLM
+Robot Data
+s.t. the MPC
+behaves as
+"I want you to drive
+smoothly!"
+Fig. 1: Schematic overview of the proposed Large Language Model (LLM)-enhanced Autonomous Driving Systems (ADS). The
+LLM enables natural language-based Human Machine Interaction (HMI), with a DecisionxLLM stage analyzing robotic state
+information to ensure alignment with human preferences. If misalignment is detected, DecisionxLLM instructs the MPCxLLM
+stage to adjust the cost J(x, u, q) and constraint (X, U) parameters x, u, q of a low-level Model Predictive Controller (MPC)
+managed by a LLM.
+AbstractNeural Networks (NNs) trained through supervised
+in real-world driving due to the intractability of exhaustive
+datasets covering all edge-cases, making knowledge-driven ap-
+driving behavior, a suitable complement to data-driven meth-
+ods. This work proposes a hybrid architecture combining low-
+level Model Predictive Controller (MPC) with locally deployed
+Large Language Models (LLMs) to enhance decision-making and
+Human Machine Interaction (HMI). The DecisionxLLM module
+evaluates robotic state information against natural language
+instructions to ensure adherence to desired driving behavior.
+The MPCxLLM module then adjusts MPC parameters based
+on LLM-generated insights, achieving control adaptability while
+preserving the safety and constraint guarantees of traditional
+MPC systems. Further, to enable efcient on-board deployment
+and to eliminate dependency on cloud connectivity, we shift
+processing to the on-board computing platform: We propose an
+approach that exploits Retrieval Augmented Generation (RAG),
+Low Rank Adaptation (LoRA) ne-tuning, and quantization.
+Experimental results demonstrate that these enhancements yield
+signicant improvements in reasoning accuracy by up to 10.45,
+control adaptability by as much as 52.2, and up to 10.5
+increase in computational efciency (tokenss), validating the
+proposed frameworks practicality for real-time deployment even
+on down-scaled robotic platforms. This work bridges high-level
+decision-making with low-level control adaptability, offering a
+synergistic framework for knowledge-driven and adaptive Au-
+tonomous Driving Systems (ADS).
+I. INTRODUCTION
+In the early 2010s [5, 22], it was widely anticipated by ex-
+perts that research in ADS would soon lead to the widespread
+adoption of fully autonomous vehicles, fundamentally trans-
+forming the automotive sector. However, progress toward full
+autonomy proved more challenging than initially predicted.
+Before the adoption of Machine Learning (ML), many
+autonomous driving systems were primarily addressed using
+classical robotic algorithms for perception, planning, and con-
+heuristics and parameter tuning. With the advent of ML and
+especially NNs, the ability to implicitly learn heuristics and
+improve robustness against parameter sensitivity was demon-
+strated [21, 32]. Consequently, efforts were directed towards
+substituting individual components of the See-Think-Act cycle
+with NNs or bypassing the cycle entirely through end-to-
+end learning paradigms, such as Reinforcement Learning (RL)
+Nowadays data-driven ML approaches remain the predom-
+inant methodology in ADS
+[7, 13]. However, despite the
+considerable progress achieved through these approaches, full
+autonomy remains elusive. ML systems inherently rely on
+extensive amounts of training data to generalize effectively, but
+edge-case scenarios are typically underrepresented in datasets.
+little or no relevant data exists [6, 16, 25].
+These limitations suggest that driving is not solely a
+data-driven problem but partially relies on knowledge-driven
+reasoning . For example, when encountering anomalous
+trained on such examples , whereas human drivers rely
+on common sense and situational reasoning to handle these
+situations effectively . Furthermore, the simulation or
+synthetic generation of every possible peculiar road scenario
+is intractable, highlighting the necessity for knowledge-driven
+methodologies in ADS.
+In recent years, signicant advancements have been made
+in LLMs, which represent the closest approximation to ar-
+ticial knowledge systems to date [1, 2, 3]. While LLMs
+have demonstrated their capabilities in robotic tasks such as
+manipulation and scene understanding [11, 28], their adoption
+in the ADS domain remains relatively limited especially
+because existing robotic embodied Articial Intelligence (AI)
+systems predominantly depend on cloud-based models, such as
+GPT4 . However, reliance on cloud infrastructure introduces
+concerns regarding latency, connection stability, security, and
+privacy [9, 23, 27]. As a result, local deployment of LLMs
+on robotic platforms emerges as a more robust and secure
+alternative for ADS.
+Concerns persist regarding the deployment of LLMs for
+critical tasks, given their susceptibility to hallucinations .
+Within this work, their integration into every facet of au-
+tonomous driving is neither suggested nor advisable. Instead,
+emphasis is placed on leveraging their knowledge-driven rea-
+soning capabilities in specic scenarios where their strengths
+are most applicable.
+to the classical See-Think-Act cycle while incorporating a
+locally deployed, knowledge-based LLM. The architecture
+in this work is designed to enable LLMs to support HMI,
+evaluation has been performed on a 1:10 scaled autonomous
+car platform . The underlying controller operates based on
+a low-level MPC, ensuring safety through constraint satis-
+faction. A DecisionxLLM module monitors robotic state data
+sampled over recent time intervals, analyzing adherence to
+user instructions. If discrepancies are detected, the MPCxLLM
+stage interacts with the MPC controller, adjusting cost function
+weights and constraints as needed. This approach facilitates
+seamless HMI while maintaining the safety and reliability
+inherent in MPC-based systems. The proposed framework
+allows switching between LLMs; for instance, GPT4o could
+be utilized for tasks requiring extensive cloud-based resources,
+while local LLMs such as Qwen2.5-7b can be deployed
+depending on connectivity constraints and other operational
+requirements.
+To summarize, the contributions of this work are as follows:
+I Knowledge-based Decision Making: A framework is
+proposed for leveraging LLMs to interpret robotic data
+conditioned on human desired driving behavior, en-
+abling decision-making based on behavioral adherence.
+By implementing the proposed RAG and LoRA ne-
+tuning techniques, decision-making accuracy is improved
+by up to 10.45 on local LLMs. Open-source code:
+github.comForzaETHLLMxRobot.
+II Human-Machine Interaction: Adherence is identied in
+relation to human prompts, enabling natural language-
+based HMI through dynamic adjustments of cost and
+constraint parameters in the low-level MPC controller.
+This approach enables an increase in control adaptability
+by up to 52.2.
+III Embodied AI on the Edge: The proposed framework
+avoids reliance on cloud services by deploying LLMs
+locally on embedded platforms, such as the Jetson Orin
+security on computationally constrained devices. By em-
+ploying Q5km quantization and the llama.cpp infer-
+ence engine, up to a 10.5-fold increase in computational
+efciency (tokenss) can be achieved on embedded On-
+Board Computers (OBCs).
+II. RELATED WORK
+This section reviews relevant work on the use of LLMs
+for robotic control (Section II-A) and decision-making (Sec-
+tion II-B), concluding with a contextual summary (Sec-
+tion II-C).
+A. LLMs and Robot Control
+Recent studies highlight that direct control of robotic actu-
+ators by LLMs is unsuitable due to their lack of training data
+on actuator-level commands, incompatibility with real-time
+control frequencies, and limited suitability for classical control
+paradigms . Instead, approaches such as [20, 24, 31]
+emphasize the role of reward functions as intermediaries,
+enabling interaction between LLMs and low-level controllers
+like MPC. Here, the LLM interacts with the cost function
+and system constraints, allowing for interpretable and exible
+control adaptation.
+Building on this, Ismail et al.  propose using an LLM to
+generate objective functions and constraints for manipulation
+tasks based on human prompts. This architecture combines the
+adaptability of LLMs with the safety and constraint guarantees
+of classical MPC controllers.
+of reward functions within LLM-RL interactions. Instead of
+focusing on cost functions and constraints as in [20, 31], the
+LLM iteratively designs reward functions and domain ran-
+domization strategies during the training of an RL locomotion
+effective Sim-to-Real policies .
+effective at interpreting and adjusting reward functions and
+constraints rather than acting as low-level controllers. This
+approach combines the interpretability and exibility of LLMs
+with the safety guarantees of traditional controllers. However,
+existing solutions depend on cloud-based GPT4 models, in-
+troducing concerns regarding privacy, latency, and internet
+reliability [9, 23, 27]. Additionally, these approaches limit
+the LLMs role to adapting the behavior of the low-level
+controller rather than actively participating in any decision-
+making processes.
+B. Robotic Decision Making with LLMs
+Wen et al.  propose the DiLU framework, which utilizes
+an LLM for decision-making in autonomous driving. DiLU
+incorporates three core components: a reasoning module that
+interprets the current driving scenario and generates high-level
+decisions based on previous outcomes, and a memory module
+that accumulates experiences from previous interactions. This
+architecture enables DiLU to integrate reasoning with iterative
+While DiLU demonstrates reasoning and adaptability capa-
+its applicability to continuous control tasks common in real-
+world robotics. Furthermore, it relies on cloud-based GPT4
+[9, 23, 27]. Lastly, the framework has only been validated
+in simulation within a simple highway lane-switching RL
+environment. It remains to be seen whether this approach can
+generalize effectively to physical robotic systems operating in
+real-world conditions.
+C. Summary of LLMs and Robotics
+As summarized in Table I, existing works like Yu et al.
+and Ismail et al.  focus on manipulation and locomotion
+ing robotic reasoning. DiLU explores LLM-based decision-
+making for autonomous driving but is limited to a discrete
+action space in a simulated highway lane-switching environ-
+control tasks. Additionally, these approaches depend on cloud-
+based GPT4, posing challenges with latency, privacy, and
+connectivity [9, 23, 27].
+In contrast, our proposed approach emphasizes local edge
+deployment of the LLM, and decision-making in a continuous
+action space on a physical robotic car, directly grounded on
+robotic sensor data.
+Related Work
+Decision
+Controls
+Ismail et al.
+Manipulation
+Yu et al.
+Locomotion
+Ma et al.
+Locomotion
+Wen et al.
+TABLE I: Comparison of related work integrating LLMs with
+control inuence, and LLM models used.  denotes cloud
+dependency.
+III. METHODOLOGY
+This section describes the hardware and robotic platform
+used for onboard LLM processing in Section III-A. Sec-
+tion III-B describes how the decision-making module Deci-
+sionxLLM utilizes robotic data for reasoning and integrates
+with the overall stack. Finally, Section III-C explains the inter-
+action between the LLM and the controller within MPCxLLM,
+including the MPC formulation.
+A. Robotic System and Computational Hardware
+In this work, the robotic platform of Figure 2, along with its
+autonomy algorithms as detailed in the open-source F1TENTH
+autonomy stack , is employed. The autonomy stack has
+been extended with the integration of a kinematic MPC
+positional state information is represented in the Frenet co-
+ordinate frame, where the s coordinate indicates longitudinal
+progress along a global trajectory, and the d coordinate denotes
+lateral deviation from that trajectory, following the conventions
+A key hardware component is the Jetson Orin AGX serving
+as the OBC. This OBC incorporates a 2048-core NVIDIA
+Ampere architecture Graphics Processing Unit (GPU) with
+64 Tensor Cores, delivering 275 TOPS, and is utilized for
+LLM inference. Additionally, the Central Processing Unit
+(CPU), a 12-core Arm Cortex-A78AE, is responsible for
+running the autonomy stack, including the MPC. The OBC
+is equipped with 64GB of shared Random Access Memory
+(RAM), providing ample memory for computational tasks.
+Onboard Computational Unit
+Power Board
+LiPo Battery
+VESC with IMU
+Fig. 2: The 1:10 scaled robotic platform, utilizing the Jetson
+Orin AGX as the OBC for executing computations related to
+the locally deployed LLM and the ADS autonomy stack.
+In this work, GPT4o is utilized via the OpenAI API
+as a cloud-based upper baseline, while two locally deployable
+3B parameter LLM, and Qwen2.5-7b-Instruct2, a 7B parameter
+were intentionally selected to validate the robustness and
+adaptability of the proposed framework, demonstrating its
+effectiveness across diverse architectures and parameter scales.
+B. DecisionxLLM  Decision Making with Robotic Data
+The decision-making mechanism of DecisionxLLM, shown
+in Figure 3, enables dynamic evaluation of robotic data against
+desired driving behavior expressed through natural language
+prompts. The system processes a brief temporal snapshot (e.g.,
+2 seconds) of the robots state, including position, velocity, and
+proximity to environmental boundaries.
+Given this robotic data and a human-dened driving be-
+havior prompt, the LLM assesses whether the robot adheres
+to the specied behavior. For example, if a passenger in an
+autonomous taxi requests a smoother ride due to discomfort,
+the LLM could infer a reduction in lateral acceleration and
+prioritize gentle maneuvers, enhancing overall user experience
+through natural language HMI.
+"Safe Driving!"
+DecisionxLLM
+Robot Data
+a) Instruction: "Reduce the
+oscillations and keep a keep
+a safer distance to the
+Human Prompt
+Given the robotdata, is the car adhering to the
+desired humanbehavior? Decide on the two actions:
+a) Suggest behavior change
+Fig. 3: Diagram illustrating the decision-making process of
+the LLM, where it evaluates robot data conditioned on a
+desired driving behavior based on a human prompt. The LLM
+determines whether the behavior aligns with expectations or
+suggests necessary adjustments.
+The RAG module within the DecisionxLLM architecture,
+inspired by , optionally enhances the system by enabling
+memory modules to enrich the prompt with relevant context.
+This includes safety-critical and robot-specic information,
+such as nominal operating ranges (e.g., speed limits, distance
+thresholds). This capability allows human users to dene
+custom safety and preference proles while signicantly im-
+proving the LLMs decision-making abilities by augmenting
+robot-specic constraints into the prompt. This augmentation
+is particularly valuable on computationally constrained embed-
+ded OBCs, as the performance improvement comes without
+having to employ larger compute heavy LLMs. An example
+of the decision RAG is provided in Appendix C, Listing 3.
+If the DecisionxLLM determines that the robot behavior
+aligns with the desired behavior, no further action is taken.
+concise adjustment instruction in natural language, specifying
+how the behavior should be corrected. This instruction seam-
+lessly integrates with the MPCxLLM module, where it serves
+as input to dynamically adjust relevant parameters, ensuring
+alignment with the desired behavior.
+C. MPCxLLM  Controller Interaction
+The interaction between the MPCxLLM controller and the
+This integration enables an LLM, aware of the MPC formula-
+tion and its adjustable parameters, to interface with the low-
+level controller. As a result, task exibility is achieved through
+natural language-based HMI, while the MPC ensures safety
+and constraint satisfaction at the low level.
+from the control frequency of the MPC. Operating at a higher
+abstraction level, the LLM intermittently adjusts the MPC
+parameters without interfering with the MPC xed-frequency
+control loop. This ensures control stability and safety, while
+the LLM focuses on task-level adaptations.
+"More clearance
+to the lanes"
+Fig. 4: Illustration of the MPCxLLM architecture: a natural
+language instruction serves as input, optionally enhanced by
+a RAG, processed by the LLM, and nally parsed to extract
+relevant parameters, which are then transmitted to the MPC
+via Robot Operating System (ROS) dynamic recongure.
+Similar to the RAG module described in Section III-B, an
+optional RAG can be integrated here. Given the computational
+constraints of the OBC and the limited size of the locally de-
+ployed LLM, the RAG can signicantly improve performance
+by enriching prompts with context-specic hints tailored for
+the MPC. An example of such a MPC RAG memory is
+provided in Appendix B, Listing 2. It is worth noting that
+the RAG module is optional and can be disabled, as evaluated
+in Table III.
+The MPC is based on a kinematic model, with its cost
+function primarily designed to ensure accurate tracking of the
+given trajectory and velocity.
+1) Kinematic Model:
+s  v cos()
+1 r(s) n,
+n  v sin(),
+r(s)  v cos()
+1 r(s) n.
+where r indicates the curvature of the reference trajectory. L
+is the distance from the front axle to the rear axle. s denotes
+the distance traveled along the reference trajectory, and n is
+the lateral deviation from this trajectory.  represents the
+heading angle error.  denotes the steering angle and v is
+the velocity. The incremental model is utilized to smooth
+the control inputs. Consequently, the state of the model is
+comprised of the following ve variables:
+The input variables include the steering angle difference
+and the longitudinal acceleration a:
+2) MPC Formulation:
+ukikJ(x, u, q)
+kik  qv  (vkik vref)2
+kik  ukikqR  qn  n2
+qv  (vkNk vref)2  q  2
+xk1ik  f(xkik, ukik)
+xkik X, ukik U
+where N is the prediction horizon. qn, q, qv are state weight
+parameters. qR represents the weight matrix for the control
+inputs. Its diagonal elements respectively indicate the penalties
+on the difference of the steering angle and the longitudinal
+the sets of constraints for the states and inputs, respectively.
+Among them, the velocity v and the steering angle  are each
+limited in magnitude. The vehicles lateral error is constrained
+within the road boundaries, and an online tuning parameter
+is introduced as a boundary ination factor to ensure the
+vehicles driving safety. The steering angle difference and the
+longitudinal acceleration are also limited in their respective
+ranges. To simplify the expression of the optimization prob-
+vehicles kinematic model is not explicitly included in the
+formulation.
+and inputs U, and the boundary ination , can all be treated as
+adjustable parameters for the LLM to tune so that the vehicle
+can exhibit the desired behavior.
+D. LoRA Finetuning of the LLMs
+While GPT4o together with robot or task-specic RAG have
+shown to be zero-shot capable, small LLMs which would
+be locally deployable perform signicantly worse than the
+large cloud-bound GPT4o and thus have to be LoRA ne-
+tuned with synthetic data derived from GPT4o. Although the
+correctness of the synthetic data is not formally guaranteed,
+observed response quality was deemed high enough for LoRA
+ne-tuning on smaller LLMs. Hence, netuning via Parameter
+Efcient Fine-Tuning (PEFT) methods, particularly LoRA
+, is employed. LoRA can reduce the number of trainable
+parameters by thousands of times and the GPU memory
+requirement by up to threefold, signicantly simplifying the
+netuning process . For LoRA-based PEFT, the unsloth
+framework is utilized . Training utilizes synthetic datasets
+generated by zero-shot prompting GPT-4o  across each
+I Synthetic Data for DecisionxLLM: GPT4o generates
+state summaries using randomized parameters derived
+from the decision-RAG, detailed in Listing 3. By lever-
+aging randomized nominal operation ranges and thresh-
+olds (e.g., speed ranges, critical distances to boundaries,
+etc.), GPT4o synthesizes robot state representations and
+identies deviations from expected behavior according to
+the RAG. These randomized parameters encourage the
+local LLM to focus more emphasis on the decision-RAG
+hints. This enhances the robots ability to ground its
+decision-making process in the provided hints, facilitating
+customization of safety and preference proles by the
+user. More information in Appendix A.
+II Synthetic Data for MPCxLLM: GPT4o generates data
+using randomized parameters in a base MPC formulation
+(Listing 1). The model adapts these parameters to enforce
+specic driving behaviors while providing brief justi-
+cations. This dataset enables LoRA to learn interactions
+between MPC elements, with training data designed to
+be out-of-distribution due to the parameter randomization
+and an altered MPC formulation being employed during
+inference. More information in Appendix A.
+Post-training quantization is applied to enhance inference
+speed and efciency by converting the netuned LLMs into
+the Q5km GGUF format. This compression reduces both
+memory usage and computational demands, enabling notably
+faster inference when utilizing the llama.cpp inference en-
+gine [8, 14] on the resource-constrained OBC, as demonstrated
+in Table IV.
+This combined approach ensures efcient training, opti-
+mized inference, and enhanced onboard decision-making ca-
+pabilities for both MPCxLLM and DecisionxLLM modules.
+IV. RESULTS
+This section presents the experimental setup, along with
+qualitative and quantitative results of the DecisionxLLM mod-
+uless ability to assess whether the vehicle adheres to in-
+structed driving behaviors based on robotic state information
+in Section IV-A. Next, the controller adaptability through
+MPCxLLM is evaluated in Section IV-B. Finally, the compu-
+tational performance of the edge-deployed LLM is evaluated
+on the resource-constrained OBC in Section IV-D.
+A. Reasoning on Robotic Observations
+Bubble 1 illustrates a qualitative example of the Deci-
+sionxLLM output. The humanprompt instructs the system
+to Drive normally. The LLM evaluates the robot state
+against this directive, leveraging optional raghints that
+provide contextual information, such as for example nominal
+vehicle speed and safe distances from track boundaries. De-
+tailed raghints are provided in Listing 3.
+In this scenario, the raghints dene normal driving
+as minimal lateral oscillations, safe clearance from boundaries,
+and sufcient speed. The LLM identies anomalies within the
+robot state: signicant lateral oscillations, proximity to the
+right wall at 0.1 m, and a low speed of 1 m s1. Based on
+these observations, the module concludes that the state does
+not conform to the human directive of driving normally.
+struction for the MPCxLLM module to correct these issues,
+enhancing interpretability and ensuring alignment with the
+desired driving behavior.
+Bubble 1a: DecisionxLLM  Human Instruction
+Drive normally!
+Bubble 1b: DecisionxLLM  Prompt
+The human wants to: humanprompt.
+The data has been sampled for 2.0 seconds in 4
+samples.
+distance to left wall: 1, 1, 1, 1
+distance to right wall: 0.1, 0.1, 0.1, 0.1
+raghints.
+Check if the car is doing what the human wants.
+Choose one of the following actions to command the
+a) Continue behavior
+b) Change behavior: instruction
+Bubble 1c: DecisionxLLM  Response
+The car is driving with s-speeds close to 1.0 ms,
+which is below the normal driving speed range of
+5-7 ms. The d-coordinate oscillates between positive
+and negative values, indicating oscillation around the
+racing line. The d-speed is high, exceeding 0.5 ms,
+which is not normal. The car is not crashed, facing the
+humans desired driving style of drive normally.
+to a normal range of 5-7 ms, reduce the oscillation
+in d-coordinate, and move closer to the centerline to
+increase safety.
+On a quantitative note, the DecisionxLLM module is eval-
+uated based on its ability to determine whether a robotic
+state adheres to the humans desired driving behavior. A
+dataset containing 200 sets of robot states was curated and
+labeled according to 8 example human prompts, allowing for
+quantitative evaluation. Example prompts include:
+I Drive faster than 3 ms!
+II Normal driving on the racing line.
+III Reverse the car!
+These prompts were selected for their suitability to pro-
+grammatically classify the robot states based on the predened
+driving characteristics listed above. The LLM performs a bi-
+nary classication over 1600 robot state samples, to determine
+adherence conditioned on a desired driving behavior. More
+information on the denition of decision-making accuracy in
+Appendix C.
+Accuracy []
+Phi3-mini
+Phi3-mini
+Phi3-mini
+Phi3-mini
+TABLE II: Decision-making accuracy across various LLMs,
+illustrating the impact of quantization, LoRA ne-tuning, and
+RAG on the performance of the DecisionxLLM module in
+evaluating whether a robotic state aligns with desired driving
+behavior. Higher accuracy values indicate improved adherence
+to the specied driving characteristics. ? indicates that this is
+proprietary knowledge, not known to the public.
+Table II demonstrates the performance of the DecisionxLLM
+module in determining whether a robotic state adheres to
+the desired human driving behavior. All performance im-
+provements are stated in absolute percentage points. The
+results indicate that the inclusion of RAG consistently en-
+hances model performance across all tested LLMs, with
+an average improvement of 7.35 (GPT4oPhi3Qwen2.5
+10.86.544.72). Fine-tuning locally deployable LLMs
+via GPT4o distillation, as detailed in Section III-D, further im-
+proves model accuracy by an average of 4.38 (Phi3Qwen2.5
+3.914.85). Lastly, quantization, which is essential for
+deployment on computationally constrained OBCs, does not
+substantially degrade decision-making performance, maintain-
+ing accuracy within a margin of 1.02 relative to full-
+precision models (Phi3Qwen2.5  2.35-0.3).
+In summary, the proposed system effectively reasons
+over robotic state information conditioned on human driv-
+ing instructions, beneting from RAG, LoRA ne-tuning
+(Phi3Qwen2.5  10.459.57), and demonstrating re-
+silience to the effects of model quantization for local deploy-
+ment. Further, comparing the two local LLMs, Qwen2.5-7b
+consistently outperforms Phi3-mini-3.8b across all settings,
+making it the preferred choice. That said, GPT4o achieves the
+highest performance overall, and the frameworks exibility
+enables its use in scenarios where dependency on cloud
+connectivity is warranted.
+While Table II presents the average decision-making ac-
+curacy on the custom dataset, Table V provides a detailed
+breakdown across sub-categories and additional highly con-
+temporary LLMs, including a DeepSeek R1 distilled Qwen2.5-
+7b model .
+B. MPCxLLM  Control Adaptability
+The MPCxLLM module is evaluated, in a closed-loop sim-
+ulation environment of the open-source F1TENTH autonomy
+time efciency and access to ground-truth data.
+The LLM governs interaction scenarios to enable the com-
+putation of quantiable Root Mean Square Error (RMSE)
+metrics. We assess changes in closed-loop behavior relative
+to the default MPC formulation outlined in Section III-C1,
+using the following criteria:
+I Centerline: RMSE of the distance from the centerline,
+denoted as EC[m]. Instruction prompt: Drive as far away
+from the walls as possible!
+II Reference Velocity: RMSE deviation from a human-
+provided reference velocity, denoted as EV [ms1]. In-
+struction prompt: Follow the reference velocity of 1.25
+ms as closely as possible!
+III Reversing: RMSE deviation from a negative reference
+velocity specied by the human, denoted as ER[ms1].
+Instruction prompt: Drive the track in reverse at -1 ms!
+IV Smooth Driving: RMSE of acceleration deviating from
+0 ms2, denoted as ES[ms2]. Instruction prompt: Re-
+duce jerkyness!
+Bubble 2a: MPCxLLM  Instruction
+Reverse the car!
+Bubble 2b: MPCxLLM  Prompt
+Adapt the tuneable parameters of the MPC so that the
+car achieves the following: instruction.
+This is the MPC formulation: basememory.
+Make use of these memories: ragmemories.
+Return format:
+newmpcparams  {param1: newvalue1,
+Bubble 2c: MPCxLLM  Response
+newmpcparams
+{qv: 0.1, qn:
+achieve the goal of driving the track in reverse at -1.0
+ms. The minimum and maximum velocities (vmin
+and vmax) are set to -1 and -1, respectively, to
+ensure the velocity is at -1.0 ms.
+It is important to note that while the evaluation scenarios
+presented here are specically designed to ensure the compu-
+tation of quantiable metrics, such as RMSE, the MPCxLLM
+module is capable of processing and responding to a wide
+range of other natural language instructions. The chosen sce-
+narios are simply representative examples where measurable
+outcomes  like centerline deviation, velocity tracking, and
+smooth driving  allow for clear and reproducible analysis.
+are not limited to these examples and can extend to other
+instructions.
+Table III demonstrates the controller adaptability through
+the evaluated LLMs. The MPC baseline, represents the dif-
+ferent RMSEs adherences with default parameters, tuned for
+nominal operation of the vehicle. All percentage improvements
+are reported in absolute percentage points. The results show
+that the inclusion of RAG generally improves instruction
+adherence for locally deployable LLMs (Phi3-mini, Qwen2.5)
+by approximately 40, although performance without RAG
+can be negligible or even detrimental. GPT4o cannot be
+deployed via LoRA ne-tuning and is therefore excluded. For
+locally deployable models, LoRA ne-tuning offers an addi-
+tional 1520 improvement over RAG-only setups. Hence,
+in terms of controller adaptability, both RAG and LoRA
+demonstrate a 45.1 and 52.2 (for Phi3-mini and Qwen2.5
+respectively) improvement over the nominal MPC baseline.
+1-6 performance
+drop but is essential for achieving acceptable computational
+performance on the OBC, as detailed in Section IV-D. Note
+that the numerical values should be interpreted with caution,
+as the closed-loop experiment is not deterministic, since it
+depends on the MPCs adherence quality and the specic
+map used in the open-source simulation environment ,
+hence the relative improvement should be regarded. From the
+local LLMs, Table III shows that Qwen2.5-7b consistently
+outperforms Phi3-mini-3.8b in terms of controller adaptability.
+Bubble 2 illustrates a qualitative result of the MPCxLLM
+module. The input instruction is passed to the LLM, where the
+prompt demonstrates how the LLM is guided by the instruction
+and optionally enriched by the MPCxLLM RAG. Finally, the
+modules output displays a new set of MPC cost and constraint
+parameters that are subsequently parsed and transmitted to the
+MPC as a ROS dynamic recongurable parameter.
+C. Physical Robot
+Multiple qualitative examples of the proposed framework
+operating on the physical robot are shown in Figure 5. In
+Figure 5a, the human instructs the robot to increase its
+distance from the wall. The before image illustrates how close
+the robot was initially driving to the wall, while the after
+image demonstrates a much safer clearance achieved through
+adjustments made by the MPCxLLM module. The MPCxLLM
+was prompted with: Drive further away from the wall.
+Figure 5b showcases the DecisionxLLM and MPCxLLM
+modules combined, by detecting a crash and subsequently
+instructing the robot to reverse and then safely resume its
+EV [ms1]
+Improve []
+MPC (baseline)
+Phi3-mini
+Phi3-mini
+Phi3-mini
+Phi3-mini
+TABLE III: Quantitative Comparison of LLM congurations with MPC. Performance metrics include deviation from the
+centerline (EC[m]), reference velocity (EV [ms1]), reversing accuracy (ER[ms1]), and driving smoothness (ES[ms2]),
+with percentage improvements shown relative to the MPC baseline. The average improvement column summarizes overall
+performance across all metrics.  indicates an average over completed runs, excluding N.C. (Not Completed). ? indicates that
+this is proprietary knowledge, not known to the public.
+More clearance to wall.
+(a) Prompt: Drive further away from the wall.
+Crashed!
+Reverse to racing line.
+Back on the racing line.
+Drive normally!
+Continue behaviour.
+(b) Prompt: Drive normally!
+Fig. 5: Visualization of physical robot behaviors: (a) increasing clearance from walls, (b) recovering from a crash scenario.
+All experiments were performed utilizing the edge-deployed Qwen2.5-7b LLM.
+path. The DecisionxLLM module is instructed by the human
+is shown in Bubble 3. More qualitative experiments on the
+physical robot are depicted in Appendix D.
+D. Computation
+Given the need for efcient hardware utilization in au-
+tonomous driving scenarios and the necessity for real-time
+and discussed in Table IV for the locally deployable Phi3-mini-
+3.8b and Qwen2.5-7b. The same input prompt was used for
+all compute evaluations and performed 60 times sequentially.
+For the framework based on Phi3, when deployed on RTX
+3090 hardware using FP16, the model with 3.8 billion param-
+eters achieves a token output rate of 25.23 tokens per second
+and utilizes 4.3 GB of memory. In contrast, when quantized
+to Q5km, the memory usage decreases to 3.9 GB, and
+the throughput speed signicantly increases to 148.36 tokens
+per second. On the computationally constrained Jetson Orin
+performance with an inference time of 4.80 seconds for 154
+tokens. For the framework based on Qwen, the outcome is
+similar. On the RTX 3090, when the model is quantized to
+time decreases signicantly to 0.91 seconds, approximately
+20 of the time required for FP16. On the Jetson Orin,
+the Q5km conguration increases the throughput to about
+10.5 compared to the FP16, at 22.12 tokens per second.
+The inference time is lowered to 5.52 seconds, less than 20
+of that of the FP16. These results highlight the substantial
+efciency gains achievable through post-training quantization,
+enabling the deployment of our LLMs-based framework in
+computationally constrained hardware while maintaining real-
+time capabilities on robotic platforms.
+V. CONCLUSION
+This work introduces a hybrid architecture that enables the
+integration of low-level MPC and edge-deployed LLMs to
+LLM Quant Param Mem Tokens Tokenss Latency [s]
+Qwen FP16
+Qwen FP16
+TABLE IV: Comparison of computational performance for
+locally deployable models, Phi3-mini-3.8b and Qwen2.5-7b.
+The LLMs were deployed on both an RTX 3090 GPU and the
+Jetson Orin AGX robotic OBC. FP16 denotes full-precision
+implemented via the llama.cpp inference engine. The num-
+ber of tokens denotes the output tokens generated for the given
+inference. The average inference latency with the standard
+deviation is denoted with t, t respectively.
+enhance robotic decision-making and HMI through natural
+language in ADS. It offers the exibility to choose between
+different LLMs based on operational requirements such as
+cloud connectivity, privacy considerations, and latency con-
+straints. This approach bridges the gap between high-level
+reasoning and low-level control adaptability.
+On locally deployed LLMs, the DecisionxLLM module
+demonstrates up to 10.45 improvement in reasoning ac-
+curacy when augmented with RAG and LoRA ne-tuning.
+The MPCxLLM module showcases controller adaptability,
+achieving up to a 52 improvement in controller adaptabil-
+MPC parameters to achieve exible robotic behaviors while
+maintaining safety and constraint satisfaction through MPC
+systems.
+embodied AI locally on embedded platforms, highlighting the
+importance of quantization in enabling real-time performance.
+Through post-training quantization, a 10.5 improvement in
+throughput are achieved for the Qwen2.5-7b model on the
+Jetson Orin AGX OBC, allowing for efcient deployment of
+LLMs on resource-constrained hardware.
+VI. LIMITATIONS
+One limitation of this approach is the relatively slow
+decision-making and controller adaptation process, which may
+fail to capture subtle (or high-frequency) behavioral nuances
+in the robotic state. Additionally, the reliance on text-based
+LLMs constrains the reasoning capabilities to state-based
+information alone. In contrast, multimodal LLMs could sig-
+nicantly enhance performance by incorporating visual data,
+enabling richer and more context-aware reasoning. However,
+the computational constraints of the embedded OBC neces-
+sitated the use of standard LLMs as an initial step. Future
+work may address these constraints by exploring efcient
+deployment strategies for multimodal models on resource-
+limited hardware and investigating their reasoning capabilities.
+occasionally introduce reasoning errors and inconsistencies
+in controller adaptability, highlighting areas for improvement
+by retraining with a larger amount of distillation data. The
+proposed framework should therefore be viewed as a potential
+approach to integrating knowledge into ADS.
+ACKNOWLEDGMENTS
+This work is funded in part by the dAIEDGE project
+supported by the EU Horizon Europe research and innovation
+programme under Grant Agreement Number: 101120726.
+REFERENCES
+Marah Abdin, Jyoti Aneja, Hany Awadalla, Ahmed
+Phi-3 technical report: A highly capable lan-
+guage model locally on your phone.
+arXiv preprint
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang,
+Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei
+Qwen technical report.
+arXiv preprint
+Nicolas Baumann, Edoardo Ghignone, Jonas Kuhne,
+Niklas Bastuck, Jonathan Becker, Nadine Imholz, To-
+bias Kranzlin, Tian Yi Lim, Michael Lotscher, Luca
+tonomous head-to-head racing on fully commercial off-
+the-shelf hardware. Journal of Field Robotics, 2024.
+Christian Berger and Bernhard Rumpe. Engineering au-
+tonomous driving software. Experience from the DARPA
+Urban Challenge, pages 243271, 2012.
+Jan-Aike Bolte, Andreas Bar, Daniel Lipinski, and Tim
+Fingscheidt.
+Towards corner case detection for au-
+tonomous driving.
+In 2019 IEEE Intelligent vehicles
+symposium (IV), pages 438445. IEEE, 2019.
+Holger Caesar, Varun Bankiti, Alex H Lang, Sourabh
+Yu Pan, Giancarlo Baldan, and Oscar Beijbom. nuscenes:
+A multimodal dataset for autonomous driving. In Pro-
+ceedings of the IEEECVF conference on computer vision
+and pattern recognition, pages 1162111631, 2020.
+Arnav Chavan, Raghav Magazine, Shubham Kushwaha,
+Merouane Debbah, and Deepak Gupta. Faster and lighter
+arXiv preprint arXiv:2402.01799, 2024.
+Jiasi Chen and Xukan Ran.
+Deep learning with edge
+Michael Han Daniel Han and Unsloth team.
+2023. URL
+Jiafei Duan, Wentao Yuan, Wilbert Pumacay, Yi Ru
+robots using vision-language models.
+arXiv preprint
+Florian Fuchs, Yunlong Song, Elia Kaufmann, Davide
+in gran turismo sport using deep reinforcement learning.
+IEEE Robotics and Automation Letters, 6(3):42574264,
+Andreas Geiger, Philip Lenz, Christoph Stiller, and
+Raquel Urtasun. Vision meets robotics: The kitti dataset.
+The International Journal of Robotics Research, 32(11):
+Gerganov
+Ope-Source
+Contributors.
+Llama.cpp, 2023.
+llama.cpp.
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song,
+Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma,
+Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing
+reasoning capability in llms via reinforcement learning.
+arXiv preprint arXiv:2501.12948, 2025.
+Florian Heidecker, Jasmin Breitenstein, Kevin Rosch,
+Jonas Lohdenk, Maarten Bieshaar, Christoph Stiller,
+Tim Fingscheidt, and Bernhard Sick.
+An application-
+driven conceptualization of corner cases for perception
+in highly automated driving. In 2021 IEEE Intelligent
+Vehicles Symposium (IV), pages 644651. IEEE, 2021.
+Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-
+models. arXiv preprint arXiv:2106.09685, 2021.
+Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong,
+Zhangyin Feng, Haotian Wang, Qianglong Chen, Weihua
+A survey on
+hallucination in large language models: Principles, taxon-
+on Information Systems, 2023.
+Aaron Hurst, Adam Lerer, Adam P Goucher, Adam
+Akila Welihinda, Alan Hayes, Alec Radford, et al. Gpt-
+4o system card. arXiv preprint arXiv:2410.21276, 2024.
+Seif Ismail, Antonio Arbues, Ryan Cotterell, Rene
+language architecture for optimal control in robotics.
+arXiv preprint arXiv:2403.10762, 2024.
+Learning
+quadrupedal locomotion over challenging terrain.
+ence Robotics, 5(47):eabc5986, 2020.
+scirobotics.abc5986.
+abs10.1126scirobotics.abc5986.
+Jesse Levinson, Jake Askeland, Jan Becker, Jennifer
+autonomous driving: Systems and algorithms. In 2011
+IEEE intelligent vehicles symposium (IV), pages 163
+Zhenyan Lu, Xiang Li, Dongqi Cai, Rongjie Yi, Fang-
+ming Liu, Xiwen Zhang, Nicholas D Lane, and Mengwei
+Xu. Small language models: Survey, measurements, and
+insights. arXiv preprint arXiv:2409.15790, 2024.
+Yecheng Jason Ma, William Liang, Guanzhi Wang, De-
+An Huang, Osbert Bastani, Dinesh Jayaraman, Yuke Zhu,
+Linxi Fan, and Anima Anandkumar.
+level reward design via coding large language models.
+arXiv preprint arXiv:2310.12931, 2023.
+Marco Pavone.
+Decision making and control with
+llms. Lecture presented at NVIDIA GTC 2024, 2024.
+gtc24-s62855. Accessed: 2024-07-02.
+Roland Siegwart, Illah R. Nourbakhsh, and Davide Scara-
+muzza. Introduction to Autonomous Mobile Robots. The
+MIT Press, 2nd edition, 2011. ISBN 0262015358.
+Tushar Prasanna Swaminathan, Christopher Silver, and
+Thangarajah Akilan. Benchmarking deep learning mod-
+els on nvidia jetson nano for real-time systems: An em-
+pirical investigation. arXiv preprint arXiv:2406.17749,
+Tai Wang, Xiaohan Mao, Chenming Zhu, Runsen Xu,
+Ruiyuan Lyu, Peisen Li, Xiao Chen, Wenwei Zhang,
+Kai Chen, Tianfan Xue, et al. Embodiedscan: A holistic
+multi-modal 3d perception suite towards embodied ai. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 1975719767,
+Licheng Wen, Daocheng Fu, Xin Li, Xinyu Cai, Tao
+and Yu Qiao.
+autonomous driving with large language models. arXiv
+preprint arXiv:2309.16292, 2023.
+Peter R Wurman, Samuel Barrett, Kenta Kawamoto,
+James MacGlashan, Kaushik Subramanian, Thomas J
+turismo drivers with deep reinforcement learning. Nature,
+Wenhao Yu, Nimrod Gileadi, Chuyuan Fu, Sean Kir-
+Tien Lewis Chiang, Tom Erez, Leonard Hasenclever, Jan
+synthesis. arXiv preprint arXiv:2306.08647, 2023.
+Baha Zarrouki, Verena Klos, Nikolas Heppner, Simon
+varying mpc for autonomous vehicle guidance: a deep
+reinforcement learning approach.
+In 2021 European
+Control Conference (ECC), pages 119125. IEEE, 2021.
+APPENDIX A
+LORA FINE-TUNING EXAMPLES
+For DecisionxLLM, we generate synthetic data via a two-stage process. First, in simulation, the vehicle collects diverse
+states (e.g., centerline tracking, reversing, unsafe maneuvers). These states are input to GPT4o, with prompts enriched by a
+RAG context (Listing 3) that injects robot-specic details (e.g., speed ranges, safe distances). Parameter values are randomized
+programmatically to avoid overtting, ensuring diversity in the synthetic dataset. GPT4o then produces behavior descriptions
+based on queries such as: The human wants to: Drive Safely. Check if this state: robotstate adheres to the
+command. Additional context: RAGinfo. Decide: (a) Yes, (b) No, adjust behavior. This yields 626 state-prompt response
+pairs for DecisionxLLM ne-tuning.
+For MPCxLLM, GPT4o is prompted with the human instruction (e.g., Do not exceed speeds of 10 kmh.),
+basememory (Listing 1), and RAGmemories (Listing 2). Programmatic randomization of the numeric inputs prevents
+APPENDIX B
+ADDITIONAL MPC INFORMATION
+The baseline MPC parameters within Table III have been set to ensure nominal tracking of the racing line in the
+simulation environment, which are the default parameters visible in Listing 1. Hence, in the controller adaptability experiment
+Section IV-B, the MPCxLLM module was tasked to adapt the nominal behavior (e.g., from tracking the racing line to Reverse
+the car!) as described in Section IV-B  thus yielding a quantitative and measurable alteration of the nominal (baseline)
+MPC behavior.
+The base memory of Listing 1 within the MPCxLLM prompt Bubble 2 serves as a predened knowledge foundation for
+mapping high-level natural language instructions into precise MPC parameters. It encodes the cost structure, tuneable parameters,
+and safety constraints essential for dynamic control adjustments. Each parameter is strictly dened with names, valid ranges,
+and default values that are dened as ROS dynamic recongure parameters.
+Cost expression with adjustable weights:
+model.costexprextcost  (
+weightqn  n2
+weightqalpha  alpha2
+weightqv  (v - Vtarget)2
+weightqac  derv2
+weightddelta  derDelta2
+u.T  R  u
+Tuneable cost weights and constraints (USE EXACT NAMES, DO NOT CREATE NEW ONES!):
+qv 0, 2, 10  Velocity weight: minimizes speed tracking error
+qn 0, 100, 20  Lateral weight: minimizes deviation from the track
+qalpha 0, 100, 7  Heading weight: minimizes orientation error
+qac 0, 1, 0.01  Acceleration weight: penalizes high acceleration
+qddelta 0, 100, 0.1  Steering weight: penalizes fast steering changes
+alatmax 0, 20, 10  Max lateral acceleration: limits side force
+amin -20, 0, -5  Min acceleration: lower acceleration bound
+amax 0, 20, 5  Max acceleration: upper acceleration bound
+vmin -2, 5, 1  Min velocity: lower speed bound
+vmax -1, 10, 5  Max velocity: upper speed bound
+tracksafetymargin 0, 1.0, 0.45  Safety margin: increases track boundary margin
+Listing 1: MPCxLLM Base Memory
+Listing 2 shows the MPCxLLM RAG memories establish context-specic mappings between natural language instructions and
+corresponding MPC parameter adjustments. Each memory entry provides guidance on how parameters from the basememory
+inuence the MPC, resembling simplied driving school instructions, akin to . These memory entries are modular and can
+be combined to address more complex scenarios. The RAG mechanism ensures effective retrieval by performing similarity
+matching between the user instruction and scenario descriptions.
+Memory Entry 0:
+To force going forwards vmin should be positive. If you want it to be able to reverse, then set vmin to
+negative.
+MPC Action:
+mpcparams  {
+Memory Entry 1:
+Always have vmax be higher than vmin.
+MPC Action:
+mpcparams  {
+Memory Entry 10:
+To minimize the lateral acceleration and jerk, set alatmax to a low value and amin and amax close to
+zero. If you want to drive more aggressive, then set alatmax to a higher value.
+MPC Action:
+mpcparams  {
+Listing 2: MPCxLLM RAG Memories
+APPENDIX C
+ADDITIONAL DECISION-MAKING INFORMATION
+Decision accuracy was evaluated using a dataset of 200 state samples (using a different state-dataset as the LoRA ne-tuning
+data), yielding 1600 state-command pairs across 8 driving commands Section IV-A. Each state corresponds to a command
+(e.g., Drive faster than 3 ms.). The DecisionxLLM module performs binary classication to determine if the robots state
+meets the command (Figure 1 or Figure 3). Adherence is veried computationally; for instance, for Reverse the car!,
+the system checks if the velocity is negative. Accuracy is measured as the percentage of correctly classied state-command pairs.
+Listing 3 is an excerpt is from the DecisionxLLM RAG entries. The RAG enhances the humanprompt by augmenting it
+with context retrieved through similarity searches across various hints. The top-k most relevant hints are selected to enrich the
+supplying DecisionxLLM with updated operational constraints.
+If the d-speed is above than 0.5ms is high.
+Unless specified differently by the human, the car is usually driving at speeds between 5 and 7ms.
+If the distance to a wall is smaller than 0.4m, the car is close to that wall.
+A d-coordinate above 0.3m is considered not to be on the racing line.
+The car is oscillating if the d-coordinate oscillates between positive and negative values exceeding a
+magnitude of 0.3 metres.
+Hint 10:
+Oscillations in d-coordinate under 0.3m or d-speed under 0.5ms are negligible.
+Listing 3: DecisionxLLM RAG Memories
+APPENDIX D
+CRASH RECOVERY OUTPUT EXAMPLES ON THE PHYSICAL ROBOT
+Bubble 3 captures the chat log from the experiment detailed in Figure 5b. The robot begins in a crashed state, facing a wall.
+The DecisionxLLM identies this condition and adjusts the MPC to initiate a reversing maneuver. Once the robot successfully
+reverses out of the crash, it resumes normal driving along the track. This log presents the LLM output generated during the
+Bubble 3a: DecisionxLLM  Instruction
+Drive normally!
+Bubble 3b: DecisionxLLM  Prompt
+The human wants to: Drive normally!
+The data has been sampled for 2.0 seconds in 5 samples.
+distance to left wall: 2.953, 2.954, 2.954, 2.955, 2.955
+distance to right wall: 0.149, 0.148, 0.148, 0.147, 0.147
+Here are some guides to help you reason: raghints.
+Check if the car is doing what the human wants. Choose one of the following actions to command the car:
+a) Continue behavior
+b) Change behavior: instruction
+Bubble 3c: DecisionxLLM  Response
+The car is facing a crash and is reversing, which is not the normal driving behavior. The car should be facing
+forward and driving at a normal speed. The s-speed is close to 0ms, indicating the car is stopped, and the d-speed is
+a crash. Reversing is necessary to get the car back on the racing line and back to normal driving.
+Change behavior: Reverse the car to get back on the racing line.
+Bubble 3d: MPCxLLM  Response
+newmpcparams
+{qv: 0.5, qn: 50.0, qalpha: 5.0, qac: 0.01, qddelta:
+0.1, alatmax: 10.0, amin: -5.0, amax: 5.0, vmin: -2.0, vmax: -1.0,
+Human Narration
+The car was stuck in the wall. The DecisionxLLM stage made the correct decision, albeit a reasoning error on stating
+that the d-speed is high, but this did not change the overall decision-making. Then the MPCxLLM stage correctly adapts
+the MPC to induce reversing behavior.
+Bubble 3e: DecisionxLLM  Prompt
+The human wants to: Drive normally!
+The data has been sampled for 2.0 seconds in 5 samples.
+distance to left wall: 2.956, 2.955, 2.955, 2.955, 2.956
+distance to right wall: 0.146, 0.147, 0.147, 0.147, 0.146
+Here are some guides to help you reason: raghints.
+Check if the car is doing what it needs to ensure recovery. Choose one of the following actions to command the car:
+a) Continue behavior
+b) Change behavior: instruction
+Bubble 3f: DecisionxLLM  Response
+The car has crashed and is reversing, so it should continue to reverse until it is safe to proceed. The cars speed
+is very low, indicating it is stopped, and it is close to the right wall. Therefore, the car should reverse slowly to get
+back on the racing line.
+Continue behavior
+Human Narration
+Even though reversing behavior was already induced, the state was sampled while the car was still crashed into the
+wall. Hence the decision of continuing the reversing behavior is correct.
+Bubble 3g: DecisionxLLM  Prompt
+The human wants to: Drive normally!
+The data has been sampled for 2.0 seconds in 5 samples.
+distance to left wall: 0.372, 0.379, 0.386, 0.393, 0.391
+distance to right wall: 2.82, 2.846, 2.839, 2.832, 2.834
+Here are some guides to help you reason: raghints.
+Check if the car is doing what the human wants. Choose one of the following actions to command the car:
+a) Continue behavior
+b) Change behavior: instruction
+Bubble 3h: DecisionxLLM  Response
+The car is reversing, which is not the normal driving behavior. The car should be facing forward to maintain normal
+driving. Therefore, the action should be to stop the car from reversing and resume normal driving.
+Change behavior: Stop reversing and resume normal driving.
+Bubble 3j: MPCxLLM  Response
+newmpcparams
+{vmin: 1.5, vmax: 1.5, qn: 100, qalpha: 100, qac:
+0.01, qddelta: 0.1, alatmax: 10, amin: -5, amax: 5}
+Human Narration
+It is correctly detected that the car is no longer crashed and should now drive forwards again. The MPC parameters
+are then again adjusted to do so.
+A. Velocity Adherence on the Physical Robot
+Fig. 6 illustrates the robots ability to respond to human commands effectively by adjusting its velocity to remain within a
+specic range. This experiment is performed on the physicial robot using the edge-deployed Qwen2.5 model. Upon receiving
+the instruction to maintain a target velocity window, the robot promptly modies its speed, demonstrating precise control and
+adaptability. This behavior highlights the systems capability to monitor and regulate its performance, ensuring that the velocity
+consistently stays within the designated limits.
+DecisionxLLM
+"Keep the velocity between
+1.5ms and 2ms!"
+Fig. 6: Illustration of the robots velocity behavior before and after (at 30s) the human prompts the LLM: Drive at speeds
+between 1.5 and 2.0 ms.
+APPENDIX E
+EXTENDED DECISION-MAKING RESULTS
+Table V extends Table II by presenting the performance of various LLMs across individual decision-making test cases, with
+the average accuracy reported in the nal column. Additionally, this table includes evaluations of contemporary models such
+as Phi4-14b3, Gemma2-9b4, and DeepSeek R1-distilled Qwen2.5-7b5. These models represent state-of-the-art architectures at
+the time of this submission. However, due to time constraints, the quantization and Q5km GGUF inference pipeline could
+not be implemented.
+of Qwen2.5-7b-R1distill, the extended Chain of Thought (CoT) reasoning process  renders them infeasible for closed-loop
+MPC and simulation experiments. As a result, only decision-making results are presented here.
+A key observation from the results is that, with and without RAG, Qwen2.5-7b-R1distill demonstrates a signicant
+performance boost over its non-R1-distilled counterpart of the same parameter count. The  symbol denotes instances where
+the LLM was occasionally cut off during evaluation  despite doubling the maximum token limit to 1024  directly leading
+to incorrect decision scores. This issue stems from the computational overhead associated with R1 CoT reasoning, resulting in
+a signicantly higher number of output tokens and consequently longer inference and evaluation times. This means, that given
+more time, the performance values would probably be even higher.
+particularly intriguing, as the LoRA ne-tuning was based on Supervised Fine-Tuning (SFT) using GPT-4o data, suggesting a
+potential degradation in reasoning capability rather than improvement and that the LoRA tuning step could perhaps be improved
+by utilizing R1 generated data for SFT. Further, it is to note, that once LoRA tuned on GPT4o data, the LLM now again learns
+to be concise and is no longer cut-off, however this comes at the cost of reasoning accuracy performance.
+Centerline
+Close Wall
+Oscillating
+Racingline
+Reversed
+Avg. Accuracy
+Phi3-mini
+Phi4-14b
+Gemma2-9b
+Qwen2.5-7b
+Qwen2.5-7b-R1distil
+Phi3-mini
+Phi4-14b
+Gemma2-9b
+Qwen2.5-7b
+Qwen2.5-7b-R1distil
+Phi3-mini
+Phi4-14b
+Gemma2-9b
+Qwen2.5-7b
+Qwen2.5-7b-R1distil
+Phi3-mini
+Qwen2.5-7b
+TABLE V: Extended performance evaluation of Table II showcasing the single decision making test cases and additional LLMs.
+Accuracy units are reported in . ? denotes proprietary information.  denotes that the evaluation was occasionally clipped to
+the max tokens set to 1024 per inference, which might indicate that a higher score could potentially have been achieved with
+more time.

@@ -1,0 +1,1136 @@
+=== PDF文件: Flow Matching Ergodic Coverage.pdf ===
+=== 时间: 2025-07-21 14:46:28.868170 ===
+
+请从以下论文内容中，按如下JSON格式严格输出（所有字段都要有，关键词字段请只输出一个中文关键词，一个中文关键词，一个中文关键词）：
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Flow Matching Ergodic Coverage
+Max Muchen Sun, Allison Pinosky, Todd Murphey
+Center for Robotics and Biosystems, Northwestern University, Evanston, IL 60208
+Project website:
+AbstractErgodic coverage effectively generates exploratory
+behaviors for embodied agents by aligning the spatial distribution
+of the agents trajectory with a target distribution, where the
+difference between these two distributions is measured by the
+ergodic metric. However, existing ergodic coverage methods are
+constrained by the limited set of ergodic metrics available for con-
+trol synthesis, fundamentally limiting their performance. In this
+based on flow matching, a technique widely used in generative
+inference for efficient and scalable sampling. We formally derive
+the flow matching problem for ergodic coverage and show that
+it is equivalent to a linear quadratic regulator problem with a
+closed-form solution. Our formulation enables alternative ergodic
+metrics from generative inference that overcome the limitations of
+existing ones. These metrics were previously infeasible for control
+synthesis but can now be supported with no computational
+overhead. Specifically, flow matching with the Stein variational
+gradient flow enables control synthesis directly over the score
+function of the target distribution, improving robustness to the
+unnormalized distributions; on the other hand, flow matching
+with the Sinkhorn divergence flow enables an optimal transport-
+based ergodic metric, improving coverage performance on non-
+smooth distributions with irregular supports. We validate the
+improved performance and competitive computational efficiency
+of our method through comprehensive numerical benchmarks
+and across different nonlinear dynamics. We further demonstrate
+the practicality of our method through a series of drawing and
+erasing tasks on a Franka robot.
+I. INTRODUCTION
+Many robotic tasks, such as search and rescue , wildlife
+generate motions to explore spatial distributions like thermal
+Exploration over distributions is challenging, as robots must
+prioritize high-density regions while also investigating lower-
+density areas. To address the long-horizon and non-myopic na-
+ture of exploration tasks, ergodic coverage generates optimized
+trajectories whose spatial distribution aligns with the target
+of coverage that is crucial for exploration tasks. Over the past
+tile sensing [2, 3], learning from demonstrations [23, 45, 48],
+shared control [12, 13], and embodied active learning [40, 42].
+Ergodic coverage solves an optimization problem that min-
+imizes the ergodic metric, which measures the difference
+between the empirical spatial distribution of the trajectory
+and the target distribution , while respecting the agents
+dynamic constraints. Existing methods are often based on stan-
+dard trajectory optimization techniques, such as projection-
+based methods  and augmented Lagrange multiplier meth-
+ods . However, to be compatible with standard trajectory
+optimization methods, the ergodic metric, even though it
+evaluates the difference between distributions, must be defined
+over trajectories. It must also be explicitly formulated and
+differentiated as runtime cost function. As a result, existing
+ergodic metrics, such as the most commonly used Fourier
+ergodic metric  and recently developed kernel-based met-
+rics [17, 48], need to be derived specifically to meet this
+requirement. On the other hand, commonly used statistical
+measures in machine learning, such as Kullback-Leibler diver-
+gence and optimal transport metrics, are infeasible as the er-
+godic metric for control synthesis using the standard trajectory
+optimization methods. This limitation fundamentally restricts
+the performance of existing ergodic coverage methods.
+From a different perspective, ergodic coverage can also be
+viewed as a sampling process: generating ergodic trajecto-
+ries resembles sampling from the target distribution, where
+the samples are constrained spatially and temporally under
+the embodied agents dynamics. Recently, continuous flow-
+based sampling approaches, such as score function-based
+sampling [29, 47] and continuous normalizing flows ,
+have gained significant attention due to their accuracy and
+computational efficiency, as well as their compatibility with
+a wide range of statistical discrepancy measures, such as
+the Kullback-Leibler (KL) divergence  and optimal trans-
+port metrics . Furthermore, the flow matching method
+from Lipman et al.  enables scalable and efficient opti-
+mization of a parameterized flow model based on a reference
+eling [41, 49].
+In this work, we bring the advantages of flow-based sam-
+pling and flow matching to ergodic coverage to overcome the
+limitations of existing ergodic metrics and trajectory optimiza-
+tion methods. Our main contributions are twofold:
+1) We formally derive the flow matching problem from Lip-
+man et al.  for ergodic coverage and show that it is
+equivalent to a linear quadratic regulator (LQR) problem.
+This theoretical result leads to a closed-form iterative
+optimization algorithm for generating ergodic trajectories
+with a reference flow from existing flow-based sampling
+methods (see Fig. 1).
+2) We derive three reference flows for ergodic coverage: the
+standard Fourier ergodic metric , the Stein variational
+gradient flow , and the Sinkhorn divergence flow .
+Update Samples
+Current Samples
+Target Distribution
+Final Trajectory
+Flow Matching
+Current Trajectory
+Target Distribution
+Flow-based generative inference
+(Ours) Flow matching ergodic coverage
+Construct Flow
+Final Samples
+(Repeat)
+Construct Flow
+(Repeat)
+Fig. 1: Similarity between flow-based generative inference and flow matching ergodic coverage.
+We show that our method is compatible with the standard
+ergodic metric and enables alternative ergodic metrics
+previously infeasible for control synthesis without com-
+putational overhead. Compared to state-of-the-art meth-
+ergodic coverage over unnormalized distributions and
+distributions with irregular supports.
+a series of drawing and erasing tasks similar to [30, 6]. The
+code of our implementations and videos of the experiments can
+be found at our project website:
+lqr-flow-matching.
+II. PRELIMINARIES AND RELATED WORK
+A. Notation
+We denote an n-dimensional search space as X Rn. The
+trajectory of the agent is defined as a mapping s : [0, T] 7X,
+where T is the time horizon of the trajectory. The trajectory
+is governed by the agents dynamics, s(t)  f(s(t), u(t)),
+with u(t) U Rm as the control. The probability density
+function of the target distribution is denoted as q : X 7R
+We denote the space of all probability distributions over the
+domain X as P.
+B. Overiew of ergodic coverage
+The goal of ergodic coverage is to match the spatial distri-
+bution of the robot trajectory s(t) with the target distribution
+q(x). The spatial distribution of a trajectory is defined by
+extending the definition of empirical distribution.
+Definition 1 (Trajectory empirical distribution). Given a tra-
+jectory s(t), the associated empirical distribution is:
+p[s](x)  1
+(x s(t))dt,
+where (x) is a Dirac delta function with the following inner
+product property:
+(xs)f(x)dx  f(s), s X, f C(X),
+the set C(X) contains all continuous functions over X.
+Note that the Dirac delta function (x) is often heuristically
+represented as a point-wise mapping:
+, if x  0,
+But the Dirac delta function is formally a generalized function
+(also called a distribution) that is not defined as a point-wise
+mapping but based on the inner product property shown in
+Definition 2 (Ergodic system [38, 52]). A dynamic system s(t)
+is ergodic with respect to q(x) if and only if:
+g(x)dp[s](x)
+g(x)dq(x), g C(X).
+Lemma 1. A necessary condition for Definition 2 is:
+T p[s](x)  q(x), x X.
+Definition 3 (Discrepancy measure). A discrepancy measure
+0 is a non-negative functional, such that
+D(p(x), q(x))  0 if and only if p(x)  q(x), x X.
+Definition 4 (Ergodic metric). Given a discrepancy measure
+0 is defined as:
+E(s(t), q(x))  D(p[s](x), q(x)).
+Lemma 2. Based on Lemma 1, a necessary condition for
+Definition 2 is:
+T E(s(t), q(x))  0.
+Note that an exact ergodic system exists only at the limit of
+infinite time horizon. In practice, however, ergodic coverage
+approximately synthesizes an ergodic system with finite time
+horizon T through the following optimization problem.
+Definition 5 (Ergodic coverage).
+u(t) arg min
+E(s(t), q(x)),
+s.t. s(t)  s0
+0 f(s(t), u(t))dt, t[0, T].
+Solving (8) is not easy for two main reasons. First, many com-
+monly used discrepancy measures, such as the KL-divergence,
+are computationally intractable to evaluate and optimize di-
+rectly. This issue is further complicated by the fact that p[s]
+is an empirical distributionwhere the Dirac delta function
+cannot be evaluated numericallyand the target distribution
+q(x) in practice is often represented not as a standard prob-
+ability density function, but instead in other forms such as
+unnormalized utility functions, samples, or discrete density
+grids. Second, optimization of the ergodic metric must respect
+the dynamics constraints of the system, and system dynamics
+can be highly nonlinear in practice, which introduces extra
+computational challenges.
+In the next section, we will review existing ergodic metrics
+and the corresponding control synthesis methods, focusing on
+how they address these challenges and their limitations.
+C. Review of existing ergodic coverage methods
+distance using Fourier basis functions, which we name the
+Fourier ergodic metric. This formula offers a computationally
+tractable approximation of the ergodic metric for numerical
+optimization by truncating a finite number of Fourier basis
+functions. A closed-form model predictive control formula
+with an infinitesimally small planning horizon is proposed to
+approximate a solution to the constrained trajectory optimiza-
+tion problem. However, this method does not generate optimal
+ergodic coverage trajectories with a fixed time horizon, which
+is crucial for practical applications [10, 48].
+Alternative trajectory optimization methods have been used
+to optimize the Fourier ergodic metric over long horizons.
+A projection-based trajectory optimization algorithm is intro-
+duced by Miller and Murphey , and a method based on
+augmented Lagrange multiplier, which can incorporate other
+constraints such as time-optimality and collision avoidance, is
+proposed by Dong et al. . In , a hybrid system-based
+model predictive control algorithm is introduced with longer
+planning horizons, which can be extended for multi-agent
+systems . In , the evaluation of the Fourier ergodic met-
+ric is further accelerated through tensor-train decomposition,
+especially for applications in high-dimensional spaces. Lastly,
+it is worth noting that ergodic coverage does not have a unique
+optimal solution, as there exist multiple or even an infinite
+number of optimal trajectories with a given ergodic metric. To
+address this unique property of ergodic coverage, a variational
+inference-based trajectory optimization framework is proposed
+in Lee et al.  using the Stein variational gradient descent
+algorithm.
+On the other hand, several alternative metrics other than
+the Fourier ergodic metric have been proposed. A kernel-
+ized ergodic metric is proposed by , which approximates
+the L2 distance between distributions under mild regularity
+conditions and can be optimized through a projection-based
+algorithm similar to . The kernel ergodic metric has a
+better scalability compared to the Fourier ergodic metric,
+and it can be extended to Lie groups. In , maximum
+mean discrepancy (MMD), a statistical measure formulated in
+the reproducing kernel Hilbert space for two-sample tests, is
+proposed as the ergodic metric. The MMD metric only requires
+samples from the target distribution instead of probability
+density functions and can also be extended to Lie groups.
+Trajectory optimization for the MMD-based metric can be
+solved using the same augmented Lagrange multiplier-based
+method in . Lastly, an alternative metric is introduced
+in  using heat equation, which leads to a better balance
+between global and local exploration compared to the Fourier
+ergodic metric, and has been applied to multi-robot aerial
+survey  and tactile sensor-based coverage . However,
+the trajectory optimization problem is solved through a similar
+model predictive control formula with an infinitesimally small
+time horizon as in . Thus, the resulting trajectories do not
+generate optimal ergodic coverage performance with a fixed
+time horizon.
+D. Flow-based sampling
+[Overview] Consider the problem of sampling from a target
+distribution q(x), while only having access to samples {xi}
+from an initial distribution p0(x). One intuition might be to
+find the optimal transformation (x) : X 7X, such that
+the transformed samples {(xi)} match the statistics of the
+target distribution q(x).
+as a time-dependent transformation (, x) through a time-
+dependent vector field g(, x) as:
+where (, x) is called a flow and g(, x) is the flow vector
+field. The flow creates a probability density path p(, x)
+governed by the FokkerPlanck equation :
+Given the set of samples {x
+i} from the initial distribution
+p0(x), the flow also creates a path xi() for each sample:
+d xi()  g(, xi()), xi()  x
+the optimal flow vector field to transform the initial distribution
+p0 toward the target distribution q(x).
+Definition 6 (Flow-based sampling).
+g(, x)  arg min
+T D(p(), q),
+where D is a discrepancy measure between distributions.
+[Related work] Instead of directly solving (12), most existing
+flow-based sampling methods construct the flow vector field
+as a descent direction of the discrepancy measure D(p, q), in
+which case the transformation of the distribution is equivalent
+gradient descent in the space of probabilistic measures. The
+Stein variational gradient descent (SVGD) algorithm [28, 29]
+constructs the Stein variational gradient flow as the steepest
+descent direction of the KL-divergence in a reproducing kernel
+Hilbert space. Another widely used family of flow-based
+sampling methods is based on Wasserstein gradient flows,
+which originate from the seminal work of Jordan et al. .
+Wasserstein gradient flows construct the steepest descent direc-
+tion using the Wasserstein metric, where the discrepancy mea-
+sure D(p, q) can be specified as optimal transport (OT)
+recently the Sinkhorn divergence , which interpolates
+between MMD and OT metrics .
+E. Flow matching
+The flow vector field can also be modeled as a parametric
+function approximator (e.g., neural networks), which leads
+to the continuous normalizing flows (CNFs) framework .
+requires numerical simulation of the flow dynamics, which can
+be prohibitively expensive. To address this issue, flow match-
+ing is proposed by Lipman et al.  as a computationally
+efficient optimization paradigm for CNFs.
+Given a dataset {xi} as the samples from the target distri-
+bution q(x), the overall goal of CNFs is to learn to generate
+novel samples from q(x) by transforming samples {xi} from
+an initial distribution p0(x), often specified as a Gaussian
+distribution. The flow matching framework optimizes a pa-
+rameterized flow vector field g(, x; ) through the following
+optimization problem (equation 5, ).
+Definition 7 (Flow matching).
+where p(, x) is a probability density path toward the target
+distribution q(x) under the reference flow vector field h(, x).
+The reference flow can be constructed using methods from
+flow-based sampling, with examples including the probability
+flow ODE based on the score function  or optimal transport
+metrics .
+The flexibility of flow-based sample generation combined
+with the computation efficiency of flow matching has emerged
+as a powerful framework for generative inference, with appli-
+cations in image generation [41, 49], protein structure genera-
+tion [19, 21], computer vision , trajectory prediction ,
+and robot policy learning .
+III. FLOW MATCHING ERGODIC COVERAGE
+A. Problem formulation
+Given a dynamic system f(s(t), u(t)) with initial condition
+are two temporal variables: the system time t[0, T] is the
+associated with dynamic system (e.g., the time variable for
+simulating the system trajectory s(t)), and the flow time
+[0, T ] is the time associated with the evolution of the
+entire control sequence (e.g., the time variable in flow-based
+sampling). The flow dynamics of the control sequence path
+u(, t) at any system time t is defined as:
+We name v(, t) the control sequence flow as it describes the
+evolution of the control at any system time t across the flow
+time . The control sequence path u(, t) generates a system
+trajectory path s(, t), which is defined at any system time t
+s(, t)s0
+We further define the empirical distribution path p[s](, x)
+based on the system trajectory path (15):
+(x s(, t))dt.
+Similar to (10), the flow dynamics of p[s](, x) is governed
+where z(, x) is the empirical distribution flow. It is the
+flow vector field of the empirical distribution path p[s](, x),
+induced by the control sequence flow v(, t) under the dy-
+namics constraints of (15). We now define flow-based ergodic
+coverage based on flow-based sampling (12).
+Definition 8 (Flow-based ergodic coverage).
+v(, t)  arg min
+T D(p[s](, x), q(x)),
+Algorithm 1 Flow matching ergodic coverage
+while not converged do
+Simulate s(, t) from s0 and u(, t) with  fixed
+Evaluate the reference flow h(, s(, t)) at
+Solve (24) for v(, t)
+end while
+return s(, t) and u(, t)
+s.t. s(, t)s0
+f(s(, t), u(, t))dt,
+d u(, t)v(, t).
+Lemma 3. The solution of flow-based ergodic coverage (18)
+at T is the solution of standard ergodic coverage (6).
+the system trajectory path s(, t) and the control sequence
+path u(, t), the above optimization problem cannot be solved
+directly. Instead, we formulate a flow matching problem for
+ergodic coverage based on (13).
+Definition 9 (Flow matching ergodic coverage).
+v(, t)  arg min
+where h(, x) is a reference flow vector field that generates a
+probability density path toward q(x) from p[s](, x).
+The reference flow can be constructed the same way as
+in existing flow-based sampling methods and we will specify
+three reference flows in Section III-C.
+The intuition behind the flow matching ergodic coverage
+formulation (20) is to find the optimal control sequence flow
+v(, t) such that the induced empirical distribution flow z(, x)
+closely match the reference flow h(, x) at any flow time ,
+thus generating a path of the trajectory empirical distribution
+toward the target distribution. However, to solve the flow
+matching problem, we still need to derive the relationship
+between the control sequence flow v(, t) and the induced em-
+pirical distribution flow z(, x) under the dynamics constraints
+(19). In the next section, we will show that z(, x) and v(, x)
+are governed by a linear dynamic system. Therefore, (20) is
+equivalent to a linear quadratic regulator (LQR) problem
+which we name linear quadratic flow matchingthat can be
+solved in closed-form at any flow time .
+B. Linear quadratic flow matching
+We start the derivation of the linear quadratic flow matching
+problem by substituting the definition of p[s](, x) into the flow
+matching objective (20):
+Ep[s](,x)h(, x) z(, x)2
+(xs(, t))dt
+h(, x) z(, x)2dx
+(xs(, t))h(, x) z(, x)2dx
+h(, s(t)) z(, s(t))2dt
+h(, t) z(, t)2dt.
+We now derive the system time dynamics of z(, t) under
+the control sequence flow v(, t) at any flow time . As defined
+in (17), z(, x) is the flow vector field of p[s](, x), since the
+probability density path p[s](, x) is an empirical distribution
+path (16) over the system trajectory path s(, t) (15), we have
+the following based on (11):
+by the dynamics shown in (15) and the control sequence path
+u(, t) is governed by the ODE shown in (14). Therefore, with
+a sufficiently small perturbation >0 at a fixed , we have:
+from which1 we have the dynamics of z(, t) as:
+z(, t)  d
+s(, t)z(, t), u(, t)v(, t)
+s(, t)z(, t), u(, t)v(, t)
+A(, t)z(, t)  B(, t)v(, t)dt,
+sf(s(, t), u(, t)),
+uf(s(, t), u(, t)).
+From (23), we can see that the system time dynamics of
+z(, t) and v(, t) are governed by a time-varying linear
+system at a fixed flow time , which is the linearization of the
+system dynamics f(s(t), u(t)). We can now define the linear
+quadratic flow (LQ) matching problem based on this result.
+Definition 10 (Linear quadratic flow matching). At any flow
+v(, t)  arg min
+h(, t)z(, t)2
+Qv(, t)2
+1Note that there is no perturbation on the initial state s0 since it is fixed.
+Kernel Bandwidth: 0.0001
+Kernel Bandwidth: 0.001
+Kernel Bandwidth: 0.01
+Kernel Bandwidth: 0.1
+Fig. 2: The bandwidth of the RBF kernel in Stein variational gradient flow affects the resulting ergodic trajectories. Overly
+small bandwidth could cause the mode collapse issue while overly large bandwidth could also lead to under-exploration.
+s.t. z(, t)
+where Q and R are regularization matrices.
+The LQ flow matching problem (24) follows the standard
+linear quadratic regulator formula; thus, it is convex and
+can be solved in closed-form by solving the continuous-
+time Riccati equation . To generate an ergodic coverage
+solved at a given flow time  (starting from 0) to generate
+the optimal control sequence flow v(, t), from which we
+can forward simulate the control sequence path u(, t) using
+Eulers method:
+where  and  are the integration step size for the flow time
+and the control sequence path, respectively. We summarize
+the overall process in Algorithm 1. Note that the projection-
+based trajectory optimization method from  also solves
+an LQR problem in each iteration, but the LQR formulation
+in  is different from ours (24) and must be analytically
+derived for a specific ergodic metric, while our linear quadratic
+flow matching formula is compatible with any reference flow
+without adaptation. Lastly, some flow specifications, such as
+in continuous normalizing flows, require a finite terminal flow
+time T , while others, such as Stein variational gradient flows,
+converge as T . The latter case reduces the dependency
+on explicit integration of the flow time , which improves the
+numerical stability. In the next section, we will provide three
+specifications for the reference flow, none of which requires a
+finite flow time range T .
+C. Specifications of reference flows
+We first derive the reference flow for the widely used Fourier
+ergodic metric from Mathew and Mezic . We then specify
+the reference flow using the Stein variational gradient flow
+and Sinkhorn divergence flow .
+[Fourier ergodic metric flow]
+Without loss of generality,
+we define the normalized Fourier basis function over a n-
+dimensional rectangular space S[0, L1]    [0, Ln]:
+fk(x)  1
+k  [k1,    , kn] K Nn
+and hk is the normalization term such that the norm of each
+basis function is 1. The Fourier ergodic metric is defined based
+on the Sobolev distance between two distributions:
+k(pk qk)2,
+pkp(x), fk(x), qkq(x), fk(x), k(1  k)n1
+We can substitute p(x) as the trajectory empirical distribution
+p[s](, x), which leads to the following based on the inner
+product property of the Dirac delta function:
+pk()  p[s](, x), fk(x) 1
+fk(s(, t))dt.
+ergodic metric as a Wasserstein gradient flow:
+h(, x)  d
+pD(p[s](, x), q(x))
+2k(pk() qk)fk(x)
+2k(pk() qk)  d
+dxfk(x).
+Note that, the reference flow for the Fourier ergodic metric
+can be evaluated in closed-form.
+[Stein variational gradient flow]
+The Stein variational
+gradient flows optimizes the KL-divergence between p[s](, x)
+and the target distribution q(x):
+DKL(p[s](, x), q(x))  Ep[s](,x)
+p[s](, x)
+It is defined as:
+h(, x)  Ep[s](,x) [Aqk(x, x)] ,
+where k(x, x) is a kernel function2 and A is the Stein
+2It is often specified as a radial basis function (RBF) in practice.
+Entropy Regularization: 0.001
+Elapsed TimeIter: 0.0074 s
+Entropy Regularization: 0.01
+Elapsed TimeIter: 0.0063 s
+Entropy Regularization: 0.1
+Elapsed TimeIter: 0.0051 s
+Entropy Regularization: 1.0
+Elapsed TimeIter: 0.0042 s
+Fig. 3: The entropy regularization weight  in Sinkhorn divergence (35) affects the resulting ergodic trajectories. Smaller values
+make the divergence closer to the Wasserstein distance, improving coverage performance at the cost of slower computation .
+operator  defined as:
+Aqk(x, x)  k(x, x) d
+dx log q(x)  d
+dxk(x, x).
+The Stein reference flow only requires access to the derivative
+of the log-likelihood function of the target distributionalso
+called the score function of the target distribution. Further-
+Ep[s](,x) [Aqk(x, x)]  1
+Aqk(x, s(, t))dt.
+In Liu and Wang , it is shown that the Stein variational
+gradient flow is the steepest descent direction for the KL-
+divergence between p[s](, x) and q(x) in a reproducing kernel
+Hilbert space.
+The key advantage of the Stein variational gradient flow is
+of the log-likelihood of the target distribution. The evaluation
+of score function does not require the target distribution to
+have a normalized or even non-negative density function.
+This property has been shown to significantly improve the
+numerical stability of generative models in Song et al. .
+godic coverage as in practice, where the target distributions are
+often unnormalized utility functions, such as from Gaussian
+processes regression [3, 25]. On the other hand, similar to
+Stein variational gradient descent SVDG), the choice of kernel
+function parameters affects the resulting ergodic trajectories.
+As shown in Fig. 2, in the case of a radial basis kernel
+collapse issue commonly seen in SVGD [55, 25] and an overly
+large bandwidth could result in trajectories that under explore
+regions with high density. Instead of hand-tuning the kernel
+Wang  for radial basis kernel functions (See Section 5
+method is to replace the standard Fourier ergodic metric to
+optimize a single trajectory. At the same time, Stein variational
+inference is also applied to ergodic coverage to generate
+multiple optimal trajectories under the Fourier ergodic metric
+in Lee et al. .
+[Sinkhorn divergence flow]
+The Sinkhorn divergence is a
+discrepancy measure based on the entropic regularized optimal
+transport distance OT(p, q) between two distributions:
+OT(p, q) min
+KL((x, x)p(x)q(x)),
+(x, x)dx  p(x) and
+(x, x)dx  q(x),
+where the transport plan (x, x) is a joint probability distri-
+function3. The entropic regularized OT distance suffers from
+entropic biasthe minima of OT(p, q) is not 0 with >0.
+The Sinkhorn divergence  removes the entropic bias:
+D(p, q)  OT(p, q) 1
+2OT(p, p) 1
+2OT(q, q).
+While evaluating the Sinkhorn divergence directly over
+continuous probability density functions is computationally
+the distributions using the Sinkhorn algorithm , which is
+an iterative algorithm based on matrix scaling. Furthermore,
+since all the calculations of the Sinkhorn algorithm are differ-
+uated over a batch of samples using auto-differentiation .
+For flow matching ergodic coverage, we can discretize the
+system trajectory path s(, t) at discrete system time steps
+{ti}. At a given flow time  and a set of samples {x
+i} from the
+target distribution q(x), we can directly evaluate the reference
+flow h(, x) at all the discrete system time steps in a batch:
+{h(, ti)}i  AutoDiff{s(,ti)}i
+{s(, ti)}i, {x
+We refer the readers to  for more details on the calculation
+of the Sinkhorn divergence and the Sinkhorn algorithm. In
+our experiments, we use the Geomloss package from  to
+efficiently evaluate the Sinkhorn divergence and the associated
+3It is often specified as the Lp distance between x and x in practice.
+FM(Ours)
+Lagrange
+Projection
+Elapsed time (s)
+FM(Ours)
+Lagrange
+Projection
+Fig. 4: Results for Benchmark Q1. Quantitative (left) and qualitative (right) results for the comparison between our method
+with existing trajectory optimization methods for the Fourier ergodic metric. Our method consistently reaches the same desired
+level of ergodicity with less time. The white line in the violin plot is the median of the results, and the black dot in the
+trajectory plot is the initial position.
+As an optimal transport metric, the Wasserstein distance is
+particularly sensitive to the deformation of the distributions
+ularly advantageous with non-smooth target distributions with
+local geometric features, such as distributions with irregular
+supports. On the other hand, the entropy regularization term
+in (35) affects the resulting ergodic trajectories. As shown in
+Fig. 3, smaller values of entropy regularization make Sinkhorn
+divergence closer to the Wasserstein distance, improving the
+coverage performance at the cost of slower computation .
+IV. NUMERICAL BENCHMARK
+A. Overview
+We aim to answer the following four questions in our
+numerical benchmarks:
+ing framework perform compared to existing trajectory
+optimization methods in terms of ergodic coverage results
+and numerical efficiency?
+flow matching framework improve the robustness of
+ergodic coverage when facing inaccurately normalized
+target distributions?
+matching framework improve the ergodic coverage results
+over non-smooth target distributions?
+linear or nonlinear dynamics?
+of each reference flow?
+B. Baseline selection and implementation details
+For Q1, we compare our method to two Fourier-based
+ergodic trajectory optimization methods: the projection-based
+trajectory optimization method from Miller and Murphey
+and the augmented Lagrange multiplier-based method
+from . For Q2, we use the Fourier ergodic metric and
+the kernelized ergodic metric from Sun et al. , since both
+metrics and the Stein variational gradient flow require access to
+the probability density function of the target distribution. For
+the non-smooth distributions in Q3, we use the Fourier ergodic
+metric and the maximum mean discrepancy (MMD)-based
+ergodic metric from Hughes et al. ; the Fourier ergodic
+metric can be calculated over discretized target distribution
+representations (e.g., images), and the MMD-based metric is
+designed for sample-based distribution representations.
+The computation related to the Fourier ergodic metric is im-
+plemented in Python using the JAX package for acceleration.
+We implement the continuous-time Riccati equation solver
+for the linear quadratic flow matching problem (24) in C
+with Python interface, same as the projection-based trajectory
+optimization algorithm. We use the JAX-based implementation
+from Dong et al.  for the augmented Lagrange multiplier-
+based trajectory optimization method. The computation related
+to Sinkhorn divergence is implemented in Python using the
+Geomloss package from Genevay et al. . The code of
+our implementation will be released on the project website:
+C. Experiment results for Q1
+[Benchmark Q1 design]
+We randomly generate a tri-
+modal Gaussian mixture distribution and the initial posi-
+tion in each trial, and benchmark our flow matching frame-
+work (FM) alongside projection-based trajectory optimization
+(Projection) and augmented Lagrange multiplier-based trajec-
+tory optimization (Lagrange) over 100 trials. We set a desired
+value of the Fourier ergodic metric 0.005, and measure the
+wall clock time required for each method to reach the desired
+level of ergodicity (in seconds). We use second-order point
+mass dynamics for all the tests.
+[Q1 results]
+The statistics of the elapsed times for all the
+methods across the 100 randomized trials are shown in Fig. 4
+(left). The results show that our flow matching framework
+consistently reaches the desired level of ergodicity in less time.
+In Fig. 4 (right), we also show qualitative comparisons of the
+ergodic trajectories generated by each method over the same
+target distribution and under the same initial condition.
+D. Experiment results for Q2
+We answer Q2 with two numerical benchmarks (Q2.A and
+Q2.B). Details of benchmark design and results are as follow.
+Ergodicity (lower is better)
+FMStein(Ours)
+Fig. 5: Benchmark Q2.A. Quantitative (left) and qualitative (right) results show that our method is more accurate and consistent
+under normalization errors compared to SOTA methods. The white line in the violin plot is the median of the results, and the
+black dot in the trajectory plot is the initial position.
+Collected Positve Signals (higher is better)
+FMStein(Ours)
+Positive Signal
+Negative Signal
+Fig. 6: Benchmark Q2.B. Quantitative (left) and qualitative (right) results show that our method is consistently collects more
+positive life signals compared to SOTA methods with unnormalized target distributions. The white line in the violin plot is the
+median of the results, and the black dot in the trajectory plot is the initial position.
+[Benchmark Q2.A design] We follow the same randomiza-
+tion process in Q1. In addition, we randomly scale the target
+distribution between 0.1 and 10.0 to introduce normalization
+errors. We use our method with the Stein variational gradient
+flow (FM-Stein) and compare it with the Fourier ergodic
+metric optimized (Fourier) and the kernelized ergodic metric
+optimized (Kernel), all three of which require access to the
+probability density function of the target distribution. We
+optimize the Fourier ergodic metric using the augmented
+Lagrange multiplier-based method from Dong et al.
+and the kernelized ergodic metric using the projection-based
+trajectory optimization method from Sun et al. , as these
+implementations yield the best empirical results and thus
+better demonstrate the properties of each ergodic metric. Each
+method is allowed to optimize for up to 0.5s wall clock
+time in each trial, and we report the Fourier ergodic metric
+with respect to the correctly normalized target distribution
+for the converged trajectory. We use second-order point mass
+dynamics for all the tests.
+[Q2.A results]
+The statistics of the ergodic metric at con-
+vergence for each method are shown in Fig. 5 (left). The
+results show that the ergodic metric value that our method
+converges to is, on average, one order of magnitude lower
+than the two baselines, despite the inaccurately normalized
+target distributions and all within the same amount of wall
+clock time. Compared to the Fourier metric, our method is also
+more consistent across the 100 trials. A qualitative comparison
+between the trajectories is also shown in Fig. 5 (right). The
+results show that both baselines fail to sufficiently explore the
+target distribution under normalization error, while our method
+successfully generates an accurate coverage trajectory.
+[Benchmark Q2.B design]
+We test the three methods in
+Benchmark Q2.A in a simulated search and rescue (SAS)
+benchmark. Given a search space, we assume there are un-
+known regions within the space that emit positive life signals.
+A set of prior negative and positive life signals are sparsely
+sampled across the search space, the target distribution is the
+likelihood of measuring positive life signal across the search
+space computed using Gaussian processes (GPs) from the prior
+The task of the benchmark is to explore the space to collect
+positive life signals given the GP estimation. We model the
+robot dynamics as a second-order differential-drive system.
+We conduct 100 test trials with randomized prior measurement
+and robot initial state.
+[Q2.B results]
+The statistics of the number of positive
+life signals collected by each method are shown in Fig. 6
+(left), where our method consistently collect more positive life
+signals compared to the two baseline SOTA methods. Further-
+representative trial are shown in Fig. 6 (right). These results
+show the advantage of the Stein variational gradient flow in
+practical applications, where unnormalized target distributions
+negatively affect the performance of existing ergodic coverage
+FMSinkhorn (Ours)
+Fig. 7: Qualitative results for Q3.A. Our method better captures the non-smooth geometry of the target distributions by
+leveraging the Sinkhorn divergence flow.
+FMSinkhorn(Ours)
+Fig. 8: Qualitative results for Q3.B. The target distribution is shown in white color. Compared to MMD and Fourier ergodic
+which are commonly seen in real-world exploration problems.
+FMSinkhorn
+Coverage error (lower is better)
+Fig. 9: Quantitative results for Q3.A. Our method consis-
+tently reaches lower coverage errors compared to the baselines.
+The white line in the violin plot is the median of the results.
+methods but does not affect our flow matching method.
+E. Experiment results for Q3
+We answer Q3 with two numerical benchmarks (Q3.A and
+Q3.B). Details of benchmark design and results are as follow.
+[Benchmark Q3.A design] We choose 10 open source stock
+icons as the non-smooth target distributions (shown in Fig. 7)
+and conduct 10 trials with randomized initial positions on
+each icon for all the methods tested (100 trials in total).
+FMSinkhorn
+Coverage error (lower is better)
+Fig. 10: Quantitative results for Q3.B. Our method consis-
+tently reaches lower coverage errors compared to the baselines.
+The white line in the violin plot is the median of the results.
+We use our method with the Sinkhorn divergence flow (FM-
+Sinkhorn) and compare it to the same Fourier ergodic metric
+baseline from Benchmark Q3 (Fourier) and the maximum
+mean discrepancy metric optimized using the same augmented
+Lagrange multiplier-based method  (MMD). The target
+distribution is represented as discrete grids for Fourier and
+discrete samples (drawn using rejection sampling) for FM-
+Sinkhorn and MMD. Since the target distributions are non-
+smooth uniform distributions, we measure the coverage error
+Point Mass
+(First-Order)
+Point Mass
+(Second-Order)
+Di-Drive
+(First-Order)
+Di-Drive
+(Second-Order)
+Dubins Car
+(First-Order)
+Dubins Car
+(Second-Order)
+Fig. 11: Results for Q4. Our method generates comparable ergodic coverage trajectories across six different dynamics.
+Ergodic Coverage with 3D Aircraft Dynamics
+(FM-Stein)
+(FM-Sinkhorn)
+Fig. 12: Results for Q4. Qualitative results with 3D aircraft
+dynamics using both the Stein variational gradient flow and
+Sinkhorn divergence flow.
+using the trajectory uniformity metric in Mathew and Mezic
+(equation 4). We use second-order point mass dynamics
+for all the tests.
+[Q3.A results]
+In Fig. 7, we qualitatively show trajectories
+for each method across the 10 tested target distributions.
+Our method better captures the non-smooth geometry of the
+target distributions by leveraging the Sinkhorn divergence flow,
+which is a known advantage of optimal transport metrics .
+The quantitative results are shown in Fig. 9. On average, our
+method has a coverage error of 0.001, which is two times
+lower than MMD (0.0028) and Fourier (0.0023).
+[Benchmark Q3.B design]
+We further test the methods
+from Benchmark Q3.A using the NASA Mars Water Resource
+Maps (MWR)4 as the target distribution. We model the robot
+dynamics as a second-order differential-drive system. We
+conduct 100 test trials with randomized robot initial state
+and evaluate the coverage error using the same metric from
+Benchmark Q3.A.
+[Q3.B results] In Fig. 8, we qualitatively show the trajectories
+from a representative trial. Quantitative results are shown in
+Fig. 10. Different from the target distributions in Benchmark
+Q3.A, the target distributions from the Mars Water Resource
+Maps has irregular and discontinuous supports, which are com-
+mon in real-world exploration tasks and create extra challenges
+Trajectory Horizon (Time Steps)
+Elapsed Time Per Iteration (s)
+Time Complexity of Three Reference Flows
+FM-Fourier
+FM-Stein
+FM-Sinkhorn
+Fig. 13: Results for Q5. Elapsed time of solving the linear
+quadratic flow matching problem across different trajectory
+horizons with all three reference flows.
+for ergodic coverage. From the results, we can see that ergodic
+coverage based on MMD is particularly affected by such target
+flow consistently produces the best coverage trajectories across
+the benchmark trials, demonstrating the advantage of optimal
+transport-based ergodic metric in practical applications.
+F. Experiment results for Q4
+We specify the target distribution as a trimodal Gaussian
+mixture model and use our method with the Stein variational
+gradient flow. We fix the initial position of the robot and test
+our method with six different dynamics: first and second-order
+point mass dynamics, first and second-order differential drive
+The results are qualitatively shown in Fig. 11, which show
+that our method generates comparable coverage trajectories
+across different linear and nonlinear dynamics.
+erage tasks with the 3D aircraft dynamics from Lee et al.
+. Results from both the Stein variational gradient flow
+and Sinkhorn divergence flow are shown in Fig. 12 and are
+included in our project website.
+Planned Trajectories
+Final Drawings
+Fig. 14: Drawing task. Planned object drawing trajectories (left), an example time sequence (middle), and final robot drawings
+(right). See videos on project website:
+G. Experiment results for Q5
+We evaluate the elapsed time of solving the linear quadratic
+flow matching problem (24) across different trajectory time
+horizons (100 to 1000 time steps) for all three reference flows.
+From the results shown in Fig. 13, we can see the flow
+matching formula exhibits a linear time complexity for all
+three reference flows. Furthermore, flow matching with the
+Fourier ergodic metric flow has near identical computation
+time with the Stein variational gradient flow. While flow
+matching with Sinkhorn divergence flow takes longer time,
+it is still sufficient for real-time trajectory optimization.
+V. HARDWARE DEMONSTRATIONS
+We demonstrate the effectiveness of our method on a Franka
+Emika Panda robot for a series of drawing and erasing tasks.
+For both tasks, we use the Sinkhorn divergence flow to
+generate ergodic coverage trajectories over five open source
+stock icons as the target distributions. For the drawing task
+(see Fig. 14), the robot end-effector is equipped with a dry-
+erase marker, which is used to draw the desired trajectories on
+a whiteboard. For the erasing task (see Fig. 15), we manually
+fill in regions of the whiteboard corresponding to the desired
+objects and attach an eraser to the robots end-effector. For
+both hardware tasks, the trajectories are pre-planned in the x-
+y plane using double-integrator point mass dynamics and are
+executed open-loop. The robot controller operates at 3 Hz for
+drawing and 6 Hz for erasing.
+In Fig. 14, we qualitatively show that all planned drawing
+trajectories were feasible for the robot to execute. The Final
+drawings (right) closely resemble the planned trajectories
+(left). In Fig. 15, we qualitatively show that the robot suc-
+cessfully erased all filled object drawings. We further conduct
+closed-loop erasing experiments with the onboard camera of
+the robot providing image feedback, where new drawings are
+added during erasing. Videos of both the open-loop and closed-
+loop hardware demonstrations can be found on the project
+VI. LIMITATIONS
+The proposed flow matching framework focuses on tra-
+jectory optimization, aiming to generate the most ergodic
+trajectory within a fixed time horizon. In contrast, feedback
+control-based ergodic coverage methods [20, 45, 6] offer
+improved computational efficiency and robustness to runtime
+parable coverage . The Fourier ergodic metric enables
+online model predictive control while still guaranteeing the
+asymptotic convergence [31, 32], such that the robot can
+rapidly react to unknown perturbations during the task (e.g.,
+noisy odometry readings) while still maintaining good cover-
+age performance. However, it is unclear if a model predictive
+control variant of the flow matching formula has a similar
+asymptotic convergence guarantee for the Stein variational
+gradient flow or the Sinkhorn divergence flow. As a result,
+all the experiments in this work are based on long-horizon
+trajectory optimization, which generates a reference trajectory
+prior to the task, and the control actions for the robot during
+runtime are generated through a lower-level tracking-based
+controller. While the flow matching method has sufficient
+computational efficiency to replan during runtime, the lack of
+a model predictive control or feedback control formula with
+asymptotic convergence guarantees remains a limitation of this
+In addition, there are limitations for the two alternative
+ergodic metrics introduced in this work. Despite the ability to
+generate ergodic trajectories over unnormalized distributions
+using the Stein variational gradient flow, the score function in
+(32) cannot be computed in closed-form if the target distri-
+bution is represented as samples. While there exist techniques
+such as score matching [46, 51] to estimate the score function
+from data, the optimization cannot be conducted in real-time,
+Filled Drawings
+Fig. 15: Erasing task. Initial filled object drawings to be erased (left), an example time sequence (middle), and final result
+for each erased object (right). See videos on project website:
+and the estimated score function can be inaccurate in regions
+with low sample density . Furthermore, while the kernel
+function improves computational efficiency and flexibility, the
+kernel function only provides local correlation between the
+states; thus, it could lead to sub-optimal performance over
+spatially disconnected target distributions, which is a common
+issue in Stein variational gradient flows . On the other
+tational cost associated with evaluating the optimal transport
+distancethe computation increases linearly with the number
+of samples from the target distribution , which could have
+a larger impact as the size of search space increases.
+trajectory optimization frameworks in ergodic coverage [33,
+10], such analysis is currently lacking for our flow matching-
+based ergodic coverage framework. As a result, the step size
+need be manually tuned in practice.
+VII. CONCLUSIONS
+In this work, we introduce a novel optimization paradigm
+for ergodic coverage based on flow matching. Our method
+enables alternative ergodic metrics previously infeasible for
+control synthesis to overcome the limitations of existing met-
+rics with no computational overhead. We show that using
+the Stein variational gradient flow improves the robustness
+of ergodic coverage on unnormalized target distributions, and
+using the Sinkhorn divergence flow improves the ergodic
+coverage performance over non-smooth distributions with ir-
+regular supports. We further validate the effectiveness of our
+method through hardware demonstrations on a Franka robot.
+Our work provides a new perspective for bridging statistical
+inference and the decision-making of embodied agents, where
+the motion of the agents serves as a dynamically-constrained
+inferred posterior. While this work focuses on two specific
+methods to construct the flow, recent advances in flow-based
+inference and generative models suggest that the methods
+in this paper can be paired with any statistical inference
+framework that admits flow-based inference, providing oppor-
+tunities for advances in embodied intelligence. The coupling
+between statistical inference and motion synthesis in our work
+could further enable the integration of ergodic coverage as a
+behavior characterization framework, which extends the con-
+ventional notion of trajectory tracking to distribution tracking,
+into learning-based methods for motion synthesis or policy
+representations.
+ACKNOWLEDGMENTS
+This work is supported by ARO grant W911NF-19-1-0233
+and W911NF-22-1-0286. The views expressed are the authors
+and not necessarily those of the funders.
+REFERENCES
+Ian Abraham and Todd D. Murphey.
+Decentralized
+Ergodic Control: Distribution-Driven Sensing and Ex-
+ploration for Multiagent Systems.
+IEEE Robotics and
+Automation Letters, 3(4):29872994, 2018.
+Ian Abraham, Ahalya Prabhakar, Mitra J. Z. Hartmann,
+and Todd D. Murphey. Ergodic Exploration Using Binary
+Sensing for Nonparametric Shape Estimation.
+Robotics and Automation Letters, 2(2):827834, 2017.
+Ian Abraham, Anastasia Mavrommati, and Todd Mur-
+phey. Data-Driven Measurement Models for Active Lo-
+calization in Sparse Environments. In Robotics: Science
+and Systems XIV. 2018.
+Luigi Ambrosio, Nicola Gigli, and Giuseppe Savare.
+Gradient Flows: In Metric Spaces and in the Space
+of Probability Measures. Springer Science  Business
+Michael Arbel, Anna Korba, Adil SALIM, and Arthur
+Gretton. Maximum Mean Discrepancy Gradient Flow.
+In Advances in Neural Information Processing Systems,
+volume 32. 2019.
+Cem Bilaloglu, Tobias Low, and Sylvain Calinon. Tactile
+Ergodic Coverage on Curved Surfaces. IEEE Transac-
+tions on Robotics, pages 115, 2025.
+Ricky T. Q. Chen, Yulia Rubanova, Jesse Bettencourt,
+and David K Duvenaud.
+Neural Ordinary Differential
+Equations. In Advances in Neural Information Process-
+ing Systems, volume 31. 2018.
+ing Robotic Manipulation Policies from Point Clouds
+with Conditional Flow Matching. In 8th Annual Con-
+ference on Robot Learning, 2024.
+Marco Cuturi.
+Sinkhorn Distances: Lightspeed Com-
+putation of Optimal Transport. In Advances in Neural
+Information Processing Systems, volume 26. 2013.
+Dayi Ethan Dong, Henry Berger, and Ian Abraham.
+Time-optimal ergodic search: Multiscale coverage in
+minimum time. The International Journal of Robotics
+Jean Feydy, Thibault Sejourne, Francois-Xavier Vialard,
+Shun-ichi Amari, Alain Trouve, and Gabriel Peyre. In-
+terpolating between Optimal Transport and MMD using
+Sinkhorn Divergences.
+In Proceedings of the Twenty-
+Second International Conference on Artificial Intelli-
+gence and Statistics, pages 26812690. 2019.
+Kathleen Fitzsimons and Todd D. Murphey.
+Shared Control: Closing the Loop on pHRI Based on
+Information Encoded in Motion. J. Hum.-Robot Interact.,
+Kathleen Fitzsimons, Aleksandra Kalinowska, Julius P
+control for training through forceful interaction.
+International Journal of Robotics Research, 39(9):1138
+Aude Genevay, Gabriel Peyre, and Marco Cuturi. Learn-
+ing Generative Models with Sinkhorn Divergences. In
+Proceedings of the Twenty-First International Conference
+on Artificial Intelligence and Statistics, pages 1608
+Aude Genevay, Lenac Chizat, Francis Bach, Marco Cu-
+Divergences.
+In Proceedings of the Twenty-Second
+International Conference on Artificial Intelligence and
+John Hauser. A Projection Operator Approach to the Op-
+timization of Trajectory Functionals. IFAC Proceedings
+Christian Hughes, Houston Warren, Darrick Lee, Fabio
+tion on Generalized Domains Using Maximum Mean
+Christian Hughes, Houston Warren, Darrick Lee, Fabio
+tion on Generalized Domains Using Maximum Mean
+Guillaume Huguet, James Vuckovic, Kilian FATRAS,
+Eric Thibodeau-Laufer, Pablo Lemos, Riashat Islam,
+Cheng-Hao Liu, Jarrid Rector-Brooks, Tara Akhound-
+Joey Bose. Sequence-Augmented SE(3)-Flow Matching
+For Conditional Protein Generation. In The Thirty-eighth
+Annual Conference on Neural Information Processing
+Stefan Ivic, Bojan Crnkovic, and Igor Mezic. Ergodicity-
+Based Cooperative Multiagent Area Coverage via a Po-
+tential Field. IEEE Transactions on Cybernetics, 47(8):
+Bowen Jing, Bonnie Berger, and Tommi Jaakkola. Al-
+phaFold Meets Flow Matching for Generating Protein
+Ensembles. In NeurIPS 2023 Generative AI and Biology
+(GenBio) Workshop, 2023.
+Richard Jordan, David Kinderlehrer, and Felix Otto. The
+Variational Formulation of the FokkerPlanck Equation.
+SIAM Journal on Mathematical Analysis, 29(1):117,
+Aleksandra Kalinowska, Ahalya Prabhakar, Kathleen
+Ergodic imitation:
+Learning from what to do and what not to do.
+2021 IEEE International Conference on Robotics and
+Automation (ICRA), pages 36483654, 2021.
+Luka Lanca, Karlo Jakac, and Stefan Ivic. Model pre-
+dictive altitude and velocity control in ergodic potential
+field directed multi-UAV search, 2024. arXiv:2401.02899
+Darrick Lee, Cameron Lerch, Fabio Ramos, and Ian
+Abraham. Stein Variational Ergodic Search. In Robotics:
+Science and Systems XX. 2024.
+Sir M. J. Lighthill. An Introduction to Fourier Analysis
+and Generalised Functions. Cambridge University Press,
+Yaron Lipman, Ricky T. Q. Chen, Heli Ben-Hamu,
+Maximilian Nickel, and Matthew Le.
+Flow Matching
+for Generative Modeling. In The Eleventh International
+Conference on Learning Representations, 2022.
+Qiang Liu. Stein Variational Gradient Descent as Gradi-
+ent Flow. In Advances in Neural Information Processing
+Qiang Liu and Dilin Wang. Stein Variational Gradient
+In Advances in Neural Information Processing
+Tobias Low, Jeremy Maceiras, and Sylvain Calinon.
+Robotics and Automation Letters, 7(4):1172811734,
+George Mathew and Igor Mezic. Metrics for ergodicity
+and design of ergodic dynamics for multi-agent systems.
+Physica D: Nonlinear Phenomena, 240(4-5):432442,
+Anastasia Mavrommati, Emmanouil Tzorakoleftherakis,
+Ian Abraham, and Todd D. Murphey.
+Real-Time
+Area Coverage and Target Localization Using Receding-
+Horizon Ergodic Exploration.
+IEEE Transactions on
+Lauren M. Miller and Todd D. Murphey.
+Trajectory
+optimization for continuous ergodic exploration on the
+motion group SE(2).
+In 52nd IEEE Conference on
+Decision and Control, pages 45174522, 2013.
+Lauren M. Miller and Todd D. Murphey.
+Trajectory
+optimization for continuous ergodic exploration. In 2013
+American Control Conference, pages 41964201, 2013.
+Lauren M. Miller, Yonatan Silverman, Malcolm A.
+Distributed Information. IEEE Transactions on Robotics,
+R.R. Murphy.
+Human-robot interaction in rescue
+robotics.
+IEEE Transactions on Systems, Man, and
+Joe Norby, Sean Wang, Hairong Wang, Shane Deng,
+Nick Jones, Akshit Mishra, Catherine Pavlov, Hannah
+Lowry. Path to autonomous soil sampling and analysis
+by ground-based robots. Journal of Environmental Man-
+Karl E. Petersen. Ergodic Theory. Cambridge University
+Gabriel Peyre and Marco Cuturi. Computational Optimal
+tions and Trends in Machine Learning, 11(5-6):355
+Allison Pinosky and Todd D. Murphey. Embodied Active
+Learning of Generative Sensor-Object Models, 2024.
+Aram-Alexandre Pooladian, Heli Ben-Hamu, Carles
+Ricky T. Q. Chen. Multisample Flow Matching: Straight-
+ening Flows with Minibatch Couplings. In Proceedings
+of the 40th International Conference on Machine Learn-
+Ahalya Prabhakar and Todd Murphey. Mechanical intelli-
+gence for learning embodied sensor-object relationships.
+Nature Communications, 13(1):4108, 2022.
+Ahalya Prabhakar, Ian Abraham, Annalisa Taylor, Milli-
+cent Schlafly, Katarina Popovic, Giovani Diniz, Brendan
+Murphey.
+Ergodic Specifications for Flexible Swarm
+In Robotics: Science and Systems XVI. 2020.
+Kunal Shah, Grant Ballard, Annie Schmidt, and Mac
+Schwager. Multidrone aerial surveys of penguin colonies
+in Antarctica. Science Robotics, 5(47):eabc3000, 2020.
+Suhan Shetty, Joao Silverio, and Sylvain Calinon. Er-
+godic Exploration Using Tensor Train: Applications in
+Insertion Tasks. IEEE Transactions on Robotics, 38(2):
+Yang Song, Sahaj Garg, Jiaxin Shi, and Stefano Ermon.
+Sliced Score Matching: A Scalable Approach to Density
+and Score Estimation.
+In Proceedings of The 35th
+Uncertainty in Artificial Intelligence Conference, pages
+Yang Song, Jascha Sohl-Dickstein, Diederik P. Kingma,
+Abhishek Kumar, Stefano Ermon, and Ben Poole. Score-
+Based Generative Modeling through Stochastic Differen-
+tial Equations. In International Conference on Learning
+Max Muchen Sun, Ayush Gaggar, Pete Trautman, and
+Todd Murphey. Fast Ergodic Search With Kernel Func-
+IEEE Transactions on Robotics, 41:18411860,
+Alexander Tong, Kilian Fatras, Nikolay Malkin, Guil-
+laume Huguet, Yanlei Zhang, Jarrid Rector-Brooks, Guy
+flow-based generative models with minibatch optimal
+transport. Transactions on Machine Learning Research,
+Villani.
+of Grundlehren der mathematischen Wissenschaften.
+Pascal Vincent. A Connection Between Score Matching
+and Denoising Autoencoders. Neural Computation, 23
+Peter Walters.
+An Introduction to Ergodic Theory.
+Springer Science  Business Media, 2000.
+Guandao Yang, Xun Huang, Zekun Hao, Ming-Yu Liu,
+Serge Belongie, and Bharath Hariharan. PointFlow: 3D
+Point Cloud Generation With Continuous Normalizing
+Flows. In Proceedings of the IEEECVF International
+Conference on Computer Vision (ICCV), 2019.
+Sean Ye and Matthew C. Gombolay. Efficient Trajec-
+tory Forecasting and Generation with Conditional Flow
+Matching. In 2024 IEEERSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 2816
+Jingwei Zhuo, Chang Liu, Jiaxin Shi, Jun Zhu, Ning
+Gradient Descent. In Proceedings of the 35th Interna-
+tional Conference on Machine Learning, pages 6018
