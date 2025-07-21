@@ -29,7 +29,7 @@ def main():
     pdf_files = get_pdf_files(processed_files=processed_files)
 
     # 创建进度条
-    progress_bar = tqdm(pdf_files, desc="PaperRead处理论文")
+    progress_bar = tqdm(pdf_files, desc="PaperReader处理论文")
 
     for idx, pdf_path in enumerate(progress_bar, 1):
         file_name = os.path.basename(pdf_path)
@@ -58,7 +58,6 @@ def main():
             analysis["PDF文件名称"] = file_name
 
             ########### 阶段3：写入结果 ###########
-            progress_bar.set_description(f"[{idx}/{len(pdf_files)}] 写入: {file_name[:30]}")
             append_result_to_excel(analysis)
             print(Fore.GREEN + f"\n已完成，结果已保存到 {os.path.abspath(OUTPUT_EXCEL)}" + Style.RESET_ALL, flush=True)
         except Exception as e:
