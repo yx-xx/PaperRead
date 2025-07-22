@@ -1,5 +1,5 @@
 === PDF文件: Dexonomy Synthesizing All Dexterous Grasp Types in a Grasp Taxonomy.pdf ===
-=== 时间: 2025-07-22 09:42:51.838123 ===
+=== 时间: 2025-07-22 10:00:29.221876 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -180,4 +180,424 @@ ical methods [6, 7, 25, 8] can only synthesize limited grasp
 thesize some simple grasp types, e.g. warping fingers around
 the object, and typically have high randomness and cannot
 specify a desired type. Some work on functional dexterous
-grasping [23, 48, 1, 52, 61] t
+grasping [23, 48, 1, 52, 61] tackles more complex, human-
+like grasp types, but is often limited to axis-aligned objects
+with similar geometries, hindering scalability. In contrast, our
+method can synthesize all 33 grasp types without assumptions
+about the object, requiring only one template per grasp type.
+C. Data Collection for Learning-based Grasp Synthesis
+Learning-based dexterous grasp synthesis [53, 51, 50] is
+often built on generative models such as CVAE, diffusion
+observation and be deployed in the real world, their per-
+formance is highly dependent on the quality of the training
+dataset. To build dexterous grasp datasets, several approaches
+are explored, including teleoperation [38, 11, 56], transferring
+grasps from human hands [3, 37, 30, 5, 55, 10], and rein-
+forcement learning (RL) [59, 46, 13]. Our work also presents a
+possible approach for scaling up grasp data collection, because
+our method requires less human effort than teleoperation,
+avoids the morphological gap seen with human hands, and
+is often more efficient than RL.
+D. Physics Simulation for Robotic Grasping
+Rigid-body physics simulators, such as Isaac PhysX ,
+or perform RL for dexterous hands. However, prior work
+rarely uses simulators for local refinement of the hand pose to
+improve contact with the object. Most prior work [24, 47, 8, 7]
+develops custom energy functions and optimizers to refine
+hand-object contact, but they often lead to centimeter-level
+penetrations and require careful hyperparameter tuning. In
+achieving submillimeter-level contact convergence with mini-
+mal parameter tuning in different experiment settings. This is
+made possible by MuJoCos highly optimized framework and
+its second-order Newton optimizer.
+III. PRELIMINARY OF GRASP QUALITY METRIC
+In this section, we summarize a unified formulation of grasp
+quality metrics widely used in recent work [27, 47, 51, 7].
+While prior work focuses on their own formulations, our
+summary provides a cohesive view across them. Although our
+pipeline does not directly optimize this metricunlike prior
+analytical methodsit plays an important role in several stages
+of our pipeline, such as post-filtering (Sections IV-B and IV-C)
+and the contact-aware control strategy (Section IV-D).
+We assume that the object O is grasped by a robot hand
+with m contact points. For each contact i, let pi R3 denote
+the contact position, ni R3 the inward-pointing surface unit
+satisfying ni  di  ci. The Coulomb friction cone Fi and
+the contact Jacobian Jo,i for the object at contact i are defined
+as follows:
+xi R3  0 xi,1 1, x2
+where  is the friction coefficient. The friction cone Fi
+represents all feasible contact forces at contact i, and Jo,i
+maps a contact force xi to a wrench wi  JT
+To balance an external wrench g R6 (e.g., object gravity),
+the optimal contact forces {fi}m
+i1 are obtained by solving the
+following quadratic program (QP):
+(f1, ..., fm)  arg min
+where  is a hyperparameter enforcing a minimum total nor-
+mal force to avoid trivial solutions. To reduce computational
+converting the problem into a linearly-constrained quadratic
+program (LCQP) that can be efficiently solved .
+where a lower e indicates a more stable or robust grasp.
+The formulation in Eq. 3 is intuitive for testing one external
+wrench on the object. However, to test force-closure grasps,
+we typically need to consider six orthogonal gravities . This
+requires solving the LCQP six times for each grasp and thus is
+inefficient. The energy function used in DexGraspNet [27, 47]
+assumes equal contact forces and zero friction, simplifying
+the problem by setting fi  [1, 0, 0] and g  0. While this
+approach eliminates the need for optimization and is extremely
+providing a better balance between computational cost and
+accuracy. Therefore, in this paper, we adopt the variation
+proposed by  as the grasp quality metric.
+Fig. 2: The pipeline of Dexonomy. (1) Grasp Template Library initially requires one human-annotated template. (2) Lightweight
+Global Alignment stage samples and optimizes the object poses in parallel on a GPU, to match the contact points and normals
+of the selected grasp templates. (3) Simulation-based Local Refinement stage adjusts the hand pose to improve hand-object
+contacts. (4) Simulation Validation tests force-closure grasps using our proposed contact-aware control strategy. (5) New
+templates are constructed from successful grasps and added to the Grasp Template Library, used in the following iterations.
+IV. GRASP SYNTHESIS METHOD
+In this section, we present our proposed dexterous grasp
+synthesis pipeline, with an overview shown in Figure 2.
+A. Grasp Template Definition
+A grasp template consists of several components: the hand
+joint configuration q Rq, hand contact points ph
+corresponding normals nh
+i R3, and the link name for each
+contact point (i  1, 2, . . . , m). Our algorithm requires a single
+human-annotated grasp template for each hand and grasp type
+as initialization.
+B. Lightweight Global Alignment of Object Pose
+In this stage, we simultaneously sample and optimize the
+object pose to align with the selected templates hand contacts
+while keeping the hand pose fixed. The optimization variable
+is the objects transformation, parameterized by its (optional)
+scale so R, rotation Ro S3, and translation to R3.
+Before optimization, we begin with dense sampling. First, a
+random grasp template is selected from the Grasp Template Li-
+on the object is chosen. The object is initialized by aligning
+the sampled hand and object contacts, where contact points
+are matched and the contact normal directions are set opposite.
+The objects scale and in-plane rotation perpendicular to the
+normal direction are randomly sampled. Our pipeline supports
+parallelizing massive samples of different contacts, objects,
+and grasp templates on a single GPU.
+During each optimization iteration, each hand contact point
+i calculates the nearest point po
+i on the objects surface using
+the differentiable library Warp . To penalize the mismatch
+between hand and object contacts, we optimize the object pose
+by minimizing the following energy function:
+where kp and kn are hyperparameters. There is no other energy
+used for optimization except Eq. 7.
+After optimization, results are filtered using four criteria.
+ensure a good match between hand and object contacts. Sec-
+collision skeletons parameterized by line segments (details in
+Appendix A). Third, the object contact quality, as measured
+by Eq. 6, must exceed a threshold. Finally, we apply a process
+similar to farthest point sampling to filter out duplicate object
+Our design, using only one energy during optimization
+and leaving other checks for post-filtering, provides several
+advantages. First, it reduces computational costs, enabling
+maximized parallelization to benefit from dense sampling to
+avoid local optimum traps. Second, it reduces sensitivity to
+C. Simulation-based Local Refinement of Hand Pose
+In this stage, the object is fixed, and the hand pose is locally
+refined to improve the hand-object contact. A virtual force fi is
+needed at each hand point ph
+i toward the corresponding nearest
+object point po
+i . To apply these virtual forces in MuJoCo,
+they are transferred to the hands joint torque via simplified
+transposed Jacobian control:
+fi  kf(ph
+where kf is a hyperparameter and JT
+of the hand contact Jacobian that maps force vectors from the
+world to joint coordinates.
+While Eq. 8 is a simplified control strategy with many as-
+sumptions (e.g., no dynamics or gravity; joint torques mapped
+from each contact force are independent and additive), it serves
+Sim.Real
+Grasp Types
+Force Closure
+Data Type
+DexGraspNet
+IsaacGym
+Grasp pose
+Optimization
+Teleoperation
+Multiple
+Fingertip
+Optimization
+Dexonomy (Ours)
+31 types
+Samplingopt.
+TABLE I: Dexterous Grasp Dataset Comparison. Our large-scale dataset aims to support the study of data-driven methods
+for type-aware grasp synthesis.
+our need for synthesizing contact-rich grasps in simulation.
+This is easy to implement and theoretically works for other
+physics simulators. Eq. 8 is iteratively applied for 200 steps,
+where po
+i is fixed in the world frame to avoid drift, while ph
+fixed in the hand link frame (and moves in the world frame).
+To ensure the hand remains strictly penetration-free with
+respect to the object, we apply a 1mm contact margin in Mu-
+JoComeaning the hand is repelled if it comes within 1mm of
+the object surface. Since MuJoCo reliably resolves penetration
+at the millimeter scale, the resulting contact distance between
+the hand and the object typically falls within the range of
+[0, 2mm]. This behavior motivates our use of a 2mm contact
+distance to the object is less than 2mm.
+After optimization, we filter the results based on three
+criteria. First, there should be no penetration between the hand
+and the object, measured using collision meshes. Second, those
+fingers with at least one annotated contact are required to
+be in contact with the object. This prevents the synthesized
+grasps from deviating significantly from the initial template.
+a threshold, which is needed again because the final contact
+points may slightly differ from the ones in the previous stage.
+D. Simulation Validation with Contact-Aware Control
+To validate the synthesized grasps in MuJoCo, the hand
+should squeeze to hold the object stably, controlled by a
+control signal of joint torques. Our contact-aware control
+strategy first calculates the desired forces on each contact using
+Eq. 3 where g  0, and then converts these forces into joint
+torques using the same transposed Jacobian control as in Eq. 8.
+The g is set to zero to reduce computational cost and
+standardize the control signals across different external forces.
+Despite the resultant force of all contacts being approximately
+Given the large strength of the normal force (i.e., around
+1 10N in our experiment for a 100g object), constrained
+by Eq. 5, there is typically sufficient room for friction to
+considered to succeed only if the object remains stable under
+all six orthogonal external forces for 2 seconds in simulation.
+E. Construction of New Grasp Templates
+Once a grasp successfully passes the simulation validation,
+a new grasp template is constructed and added to the template
+library. The joint configuration of the new template is taken
+from the successful grasp, while the contact information (i.e.,
+Fig. 3: Dexonomy Dataset Visualization. Each color corre-
+sponds to a different grasp type.
+points and normals) is updated only if an actual contact is
+detected near the original contact on the same hand link. This
+strategy prevents the new templates contact information from
+deviating too much from the original. Newly added templates
+can be randomly selected during the global alignment stage in
+subsequent iterations of the whole pipeline.
+V. DEXONOMY DATASET
+Using our proposed grasp synthesis pipeline, we construct
+a large-scale dataset for Shadow hand covering 31 grasp types
+from the GRASP taxonomy . This dataset is designed
+to support research on data-driven methods for type-aware
+grasp synthesis. Two grasp types in the taxonomy, Distal
+Type (19) and Tripod Variation (21), are excluded due
+to their specificity to object categories, namely scissors and
+As shown in Table I, our dataset comprises 10.7k object
+objects are normalized such that the diagonal of their axis-
+aligned bounding box is 2 meters, with scales ranging between
+[0.05, 0.2]. Only successful grasps are retained, resulting in
+9.5M data points. The entire dataset was synthesized in less
+than 3 days on a server with 8 NVIDIA RTX 3090 GPUs.
+Additional statistics are provided in Table IV and Appendix B.
+Each data point includes three key poses:
+Grasp pose, obtained via local refinement (Section IV-C).
+Pre-grasp pose for collision-free motion planning, gen-
+erated after the grasp pose by enforcing a 2cm contact
+margin in MuJoCopushing the hand away if it is within
+2cm of the object.
+Squeeze pose, derived from the control signal used
+for simulation validation (Section IV-D), to apply force
+through hand-object contacts.
+Normalizing Flow
+Grasp-type
+codebook
+Single-view
+point cloud
+Grasp pose,
+probability
+Condition
+Pregrasp pose,
+three hand qpos
+Random sample in a
+base distribution
+Fig. 4: Type-Conditional Grasp Generative Model. Without
+the grasp-type codebook in the red dashed box, the model
+becomes type-unconditional and is similar to BODex .
+These poses provide the minimal requirements for generating a
+complete grasping trajectory (including reaching and squeez-
+ing) and are compatible with diverse robot arms and initial
+hand configurations.
+VI. TYPE-CONDITIONAL GRASP GENERATIVE MODEL
+To generate grasps from partial observations for real-
+world deployment, data-driven methods are essential. Al-
+though learning is not the main focus of this paper, we present
+a simple model as an initial try. The model architecture,
+illustrated in Figure 4, is similar to previous work [60, 7],
+with the key difference being the grasp-type codebook added
+as a conditional input to specify a grasp type.
+The input to the model consists of a single-view object
+point cloud and a type feature f i
+t selected from the grasp-
+type codebook. The point cloud is encoded into a feature fv
+using a Sparse3DConv network with MinkowskiEngine .
+This vision feature fv, along with the type feature ft, are
+concatenated to form a conditional feature fc. Conditioned on
+a base distribution to a grasp pose Rg and Tg, and calculates
+a probability p indicating the pose quality. The predicted grasp
+pose is then concatenated with fc and passed through an MLP
+to predict a pre-grasp pose Rp, Tp, and three hand qpos
+respectively. The whole model is trained end-to-end and the
+type feature f i
+t is also optimizable.
+VII. EXPERIMENT
+A. Evaluation Metrics
+The following metrics are used for a comprehensive evalu-
+ation of the synthesis pipeline and grasp quality. All distances
+are measured using collision meshes in MuJoCo.
+Grasp Success Rate (GSR) (unit: ): The percentage of
+successful grasps relative to the attempt number. For our
+by the global alignment stage. A grasp succeeds only if it
+resists six external forces in MuJoCo and does not have
+severe penetrations (> 1 cm), since the penetration may cause
+simulation failure and prevent the object from moving. The
+object mass is 100g, and the success criteria for the object
+pose are 5cm and 15.
+Object Success Rate (OSR) (unit: ): The percentage of
+objects that have at least one successful grasp. If the object
+scales are fixed, as in Sections VII-B and VII-E, different
+scales of the same object are treated as separate objects.
+Speed (S) (unit: second1): The maximum number of
+attempts completed per second on a server with 8 NVIDIA
+RTX 3090 GPUs and 2 Intel Xeon Platinum 8255C CPUs
+(48 cores, 96 threads). We report the time running on a server
+because our method utilizes both GPUs and CPUs. This metric
+excludes simulation validation.
+Contact Link Number (CLN): The number of hand links
+whose distance to the object surface is within 2 mm.
+Contact Distance Consistency (CDC) (unit: mm): The
+delta between the maximum and minimum signed distances
+across all fingers. This metric quantifies the variation in contact
+distance across different fingers and is invariant to penetration.
+Penetration Depth (PD) (unit: mm): The maximum inter-
+section distance between the hand and object for each grasp.
+Self-Penetration Depth (SPD) (unit: mm): The maximum
+self-intersection distance among different hand links.
+Diversity (D) (unit: ): The proportion of total variance
+explained by the first principal component in PCA, computed
+as the ratio of the first eigenvalue to the sum of all eigenvalues.
+PCA is performed on data points that include grasp translation
+angles qg.
+B. Type-Unaware Grasp Synthesis
+1) Comparison with analytical methods: Four open-source
+baselines are compared: DexGraspNet , FRoGGeR ,
+Experiment settings. Most of the settings follow the bench-
+mark provided by BODex , with some modifications on the
+object set to increase difficulty. The Allegro hand is used, as it
+is the only hand type supported by all baselines. 5697 object
+assets from DexGraspNet are used, with six scales applied to
+each normalized object: 0.05, 0.08, 0.11, 0.14, 0.17, and 0.20.
+Although our method supports optimizing object scales, we
+fix the object scale to ensure a fair comparison. The attempt
+number for each method is set to 20, and we manually annotate
+two grasp templates, each with 10 attempts.
+Quantitative result analysis. As shown in Table II, our
+method achieves the highest grasp success rate and best perfor-
+mance on contact and penetration. Our speed is slightly lower
+than that of BODex, as their pipeline is highly optimized for
+version. Detailed time analysis of our pipeline is available in
+Appendix F. Our diversity is somewhat lower, as we use only
+two initial templates and our hand refinement stage makes
+only local adjustments. However, the overall diversity of our
+Dexonomy dataset is much better, as reported in Table IV.
+The success rates of baselines are lower than those reported
+in BODex , primarily because our objects have a higher
+mass (100g vs. 30g), a larger scale range ([0.05, 0.2] vs.
+[0.06, 0.12]), and more diverse shapes (5697 instances vs.
+CDC (mm)
+SPD (mm)
+DexGraspNet
+SpringGrasp
+TABLE II: Comparison with Type-Unaware Grasp Synthesis Baselines for Allegro Hand. Most baselines, except
+Fig. 5: Visualization of Type-Unaware Grasps. Our method
+synthesizes human-like and stable grasps, even for objects with
+complex geometries (e.g., object scales  0.11, 0.17, and 0.20).
+2397). More details about the performance drop of baselines
+are provided in Appendix C.
+Visualization analysis. Figure 5 illustrates the initial hand
+pose and some synthesized grasps for each method. Our
+method consistently synthesizes human-like and stable grasps,
+even for objects with complex geometries (e.g., for scales
+0.11, 0.17, and 0.20). Notably, the synthesized grasp for
+template 1 and object scale 0.05 requires high precision and is
+challenging for previous methods. Furthermore, the grasp for
+template 2 and object scale 0.14 shows a much larger thumb-
+to-other-tip distance than the initial human-annotated template,
+demonstrating our methods ability to adjust hand joint angles
+across a large range.
+For baseline methods, DexGraspNet  shows high un-
+points. While it occasionally generates good grasps (e.g.,
+for scales 0.08 and 0.14), it often results in twisted fingers
+DGN object
+Objaverse
+TABLE III: A Harder Benchmark for Fingertip Grasp Syn-
+thesis. This benchmark uses smaller friction coefficients and
+more diverse objects, and our method consistently outperforms
+the baseline. DGN indicates DexGraspNet.
+(e.g., for scales 0.17 and 0.20) or large thumb-to-object
+distance (e.g., for scale 0.05). FRoGGeR  performs well
+on simple objects but almost always fails on objects with
+complex geometries. It also tends to generate grasps with
+different contact normals for each fingertip (e.g., for scales
+0.05 and 0.08), an issue encouraged by many previous force
+closure metrics. SpringGrasp  suffers from severe pene-
+tration and inconsistent contact distances, especially for the
+thumb. Additionally, their grasps lack diversity, and their
+thumb joint frequently exceeds the feasible range, which is
+not executable in both MuJoCo and the real world. Although
+BODex  demonstrates high success rates in simulation, their
+synthesized grasps rarely involve finger bending, resulting in
+unnatural poses.
+2) Comparison using a harder benchmark: The benchmark
+in Table II uses large friction coefficients and many simple
+to synthesize very high-quality grasps in more complex sce-
+narios. To address this, we introduce a more challenging
+benchmark by reducing the tangential and torsional friction
+coefficients from 0.6 and 0.02 to 0.3 and 0.002, respectively,
+and randomly selecting 5000 additional objects from Obja-
+verse  for testing. To mitigate the increased difficulty,
+we allow each method more attempts per object (from 20 to
+100). We compare only with BODex, as other baselines exhibit
+significantly lower success rates and slower speeds.
+As shown in Table III, our method significantly outperforms
+BODex. Notably, our method achieves an object success
+rate exceeding 94, successfully grasping nearly all scaled
+objects. This highlights our methods stronger generalizability
+to complex in-the-wild objects. Additionally, our grasp success
+rate continues to improve with more attempts, benefiting
+from continuous updates to our template repository, whereas
+the performance of BODex remains unchanged. This further
+demonstrates the adaptability of our approach.
+Fig. 6: Comparison with Functional Grasp Transfer Base-
+lines. Our grasps involve more contact points without any
+Intermediate
+Precision
+TABLE IV: Statistics of Grasp Synthesis for the GRASP
+Taxonomy. The success rate is lower than fingertip grasps
+because many flexible grasp types are suitable only for specific
+C. Type-Aware Grasp Synthesis
+1) Comparison with functional grasp transfer baselines:
+lines for comparison, as existing methods either do not support
+robotic hands (e.g., Oakink ) or have not made their
+code publicly available (e.g., LHFG  and CCFG ).
+using figures from their papers. As shown in Figure 6, previous
+baselines mainly use fingertips to grasp the object, particularly
+for scissors. In contrast, our method achieves significantly
+more contact points (approximately 10 links in contact for
+scissors and 7 for mugs), resulting in more stable and human-
+like grasps. Additionally, CCFGs grasps show noticeable
+maximum penetration of around 1 cm in their paper. In
+2) Statistics analysis of our pipeline: In the absence of a
+suitable baseline for comparison, we provide some quantitative
+results in Table IV, which were gathered while synthesizing
+our Dexonomy dataset in Section V. The grasp types are cat-
+egorized into three large groups, namely power, intermediate,
+and precision grasps, according to the G

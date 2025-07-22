@@ -1,5 +1,5 @@
 === PDF文件: A Probabilistic Measure of Multi-Robot Connectivity and Ergodic Optimal Control.pdf ===
-=== 时间: 2025-07-22 09:42:10.240553 ===
+=== 时间: 2025-07-22 09:59:26.946853 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -183,4 +183,437 @@ nance approaches involve discrete task planning [25, 34] or
 sampling-based methods [17, 18], which are challenging to
 integrate with gradient-based trajectory optimization for er-
 godic search since the optimization objective (i.e., the ergodic
-metric) is defined over the entire trajectory
+metric) is defined over the entire trajectory. Additionally,
+ergodic trajectory planning studies the statistical behaviors of
+dynamical systems in the long run, and investigating inter-
+robot connectivity based on the statistical behaviors of the
+dynamical systems may provide a new planning framework
+to intelligently balance between connectivity maintenance and
+ergodicity of the system in the long run.
+III. PRELIMINARIES
+A. Notations
+the workspace for all robots, where L R is the bound for
+the -th dimension of the workspace W. Let w W represent
+a point (location) in the workspace. Let t [0, T] denote the
+time variable, where T R represents the planning time
+horizon. Let IN  {1, 2,    , N} represent the set of robots,
+and superscripts such as i, j on variables denote the associated
+robot. Additionally, let R  {(i, j)  i, j IN, i  j} denote
+the set of enumerated robot pairs.
+Each robot i IN has a state xi(t) X, control input
+ui(t) U, and location qi(t) W, where X Rn and
+U Rm denote the state space and control space, respectively.
+and q(t)  (q1(t),    , qN(t)) WN  W      W denote
+the joint state, joint control, and joint location column vectors,
+respectively. Finally, let x(t)  f(x(t), u(t)) denote the joint
+dynamics of all robots. For notational simplicity, x, u, and q
+represent the entire trajectories over [0, T] in this paper.
+B. Ergodic Metric
+Let (w) : W R
+0 denote a time-invariant probabil-
+ity distribution function such that
+W (w)dw  1, which
+describes the information density at each location across the
+workspace W. Based on the trajectory qi, the time-averaged
+statistics for robot i IN is defined as follows .
+ci(w)  c(w, qi)  1
+(w qi(t))dt
+where (w) is the Dirac delta function such that (0)
+and (w)  0, w  0, satisfying
+R (w)dw  1. Note that
+W ci(w)dw  1 as qi(t) W, t [0, T].
+With (w) and ci(w), the ergodic metric (ergodicity) for all
+robots is defined as the difference between the time-averaged
+statistics of all the robots and the information distribution map
+in the Fourier coefficient space as follows .
+Fk(qi(t))dt
+(w)Fk(w)dw
+k and k are the Fourier coefficients of ci(w) and (w),
+respectively. k  (k1,    , k) K is the frequency vector of
+the Fourier coefficients, and K N represents a selected
+set of frequencies in practical computation. Besides, Fk(w)
+is the cosine basis function with the
+normalization term hk [7, 30, 35]. k  (1k 2
+is the weight of each Fourier coefficient.
+(c) 2D Finite Time Trajectory
+(d) Statistic ci(wi)
+(e) Statistic cj(wj)
+(f) ci(wi)  cj(wj)
+(a) Trajectory qi
+with t Domain
+(b) Trajectory qj
+with t Domain
+Fig. 2. Visualization of the connection probability. (a)-(b): The trajectories
+qi(t), qj(t) of robots i, j with time t represented as the z-axis. (c): The
+top-down view of the trajectories of robots i, j. (d)-(e): The corresponding
+time-averaged statistics ci and cj represented as heatmaps. (f): The joint
+distribution heatmap (ci  cj).
+IV. PROBABILISTIC MEASURE OF CONNECTIVITY
+This section first defines the concepts related to the new
+probabilistic measure of connectivity between a pair of robots,
+and then discusses the intuition behind the measure.
+A. Connection Probability
+We define the connection area S(w) R for a location
+w W as follows. Robot j is connected with robot i at time t
+if robot js location qj(t) lies within robot is connection area
+S(qi(t)) (i.e., qj(t) S(qi(t))). In this paper, we assume the
+connectivity between robots is bidirectional:
+Assumption 1 (Bidirectional Connectivity).
+If qj(t) S(qi(t)), then qi(t) S(qj(t)).
+An example choice of S(w) that satisfies the bidirectional
+connectivity assumption is a circular region centered at w with
+a fixed radius that remains constant across all robots (Fig. 2).
+a trajectory qi, describes the percentage of time that qi stays at
+a location wi W within the time horizon T. When T goes
+to infinity, ci(wi) describes the spatial distribution of robot i
+in the workspace. Specifically, let
+(wi)  lim
+T ci(wi)  lim
+(wi qi(t))dt
+denote the spatial distribution of robot i over an infinite time
+location wi over an infinite time horizon.
+Leveraging the spatial distributions of two robots, we can
+infer the likelihood that the two robots are connected within
+the infinite time horizon. We introduce a probabilistic measure
+of connectivity between any pair of robots (i, j) R as:
+Definition 1 (Connection Probability (CP)). Let P(qi, qj)
+denote the connection probability:
+P(qi, qj)
+(wj)dwjdwi (4)
+The trajectories qi and qj are independent since each robot has
+its own control and dynamics. As a result, the spatial distri-
+butions ci(wi) and cj(wj) of robots i, j are also independent
+from each other. Note that
+(wj)dwjdwi
+(wj) represents the joint prob-
+ability density of robots i and j being at locations wi and
+wj respectively (not necessarily at the same time instant).
+all possible locations wi W and wj S(wi), measuring the
+probability that robot j lies within robot is connection area
+S(qi(ti)) at any time ti over the infinite time horizon [0, ).
+Theorem 1. Given the Assumption 1, the connection proba-
+bility is symmetric, i.e., P(qi, qj)  P(qj, qi).
+Proof. The proof is provided in Appendix A-A.
+B. Finite Time Formulation
+It is noted that Eq. (4) provides a meaningful probabilistic
+interpretation when T approaches infinity (as opposed to a
+finite T). When T approaches infinity, ci
+characterizes the
+spatial distribution of robot i, while P(qi, qj) quantifies the
+connection probability between robots i and j.2 However,
+planning over an infinite time horizon is impractical in real-
+world applications. Hence, we introduce a finite-time approx-
+imation of Eq. (4) as:
+Definition 2 (Finite-Time Approximation). Let Pc(qi, qj; 0, T)
+denote the finite-time approximated connection probability
+(FCP), where the subscript c in Pc stands for connection.
+Pc(qi, qj; 0, T)
+ci(wi)cj(wj)dwjdwi
+(wi qi(ti))dti
+(wj qj(tj))dtj
+(wi qi(ti))
+(wj qj(tj))dwjdwi
+(qi(ti), qj(tj))dtjdti
+2Although the connection between robots requires them to be at specific
+locations at the same time, the connection probability focuses on their
+spatial distributions while relaxing the temporal simultaneity requirement. It
+is investigated in our experiments in Sec. VII-D how this relaxation affects
+the connection establishment in practice. We also derive the formulation
+considering simultaneity in Sec. VII-E for comparison.
+where the Connection Indicator Function (CIF) (wi, wj) :
+W  W {0, 1} is defined as:
+(wi, wj)
+wj S(wi)
+otherwise
+The transition from Eq. (5a) to (5b) is explained in the next
+paragraph. Here, Pc(qi, qj; 0, T) [0, 1]. Specifically, for
+and Pc(qi, qj; 0, T)  1 if (qi(ti), qj(tj))  1. For example,
+when robot i stays at a stationary location qi W, i.e.,
+[0, T], then Pc(qi, qj; 0, T)
+qj(tj) S(qi), tj [0, T].
+To bridge the transition from Eq. (5a) to (5b), we define
+the CIF (6). For any given time points ti, tj [0, T], we can
+rewrite the internal double integral in Eq. (5a) as follows:
+(wi qi(ti))(wj qj(tj))dwjdwi
+(wi qi(ti))
+(wj qj(tj))dwjdwi
+if qj(tj) S(qi(ti))
+otherwise
+By the properties of the Dirac delta function (w), the inner
+integral over wj Wi evaluates to 1 if qj(tj) S(wi), and 0
+otherwise. The outer integral over wi W is equal to 1 only
+when wi  qi(ti). Therefore, the entire expression evaluates
+to 1 if qj(tj) S(qi(ti)), and 0 otherwise.
+C. Sub-Period Formulation
+Instead of considering the whole planning horizon [0, T],
+sometimes it is useful to evaluate the connection probability
+within a sub-period of the planning horizon. Let [t0, tf]
+[0, T] denote a sub-period of the planning time horizon. Sim-
+ilar to Eq. (5), we can then define the connection probability
+within this sub-period [t0, tf] as:
+Pc(qi, qj; t0, tf)
+(tf t0)2
+(qi(ti), qj(tj))dtjdti
+As we will see later, to maintain connectivity over a sub-period
+[t0, tf], we can either maximize Eq. (8) as an objective or
+enforce it to exceed a user-specified threshold as a constraint.
+With this sub-period formulation, the intermittent connec-
+tivity requirement can be formulated as follows. We divide
+the time horizon [0, T] into Np N consecutive sub-periods,
+where each period p Ip  {1, . . . , Np} is defined by its start
+and end time tp, tp [0, T]. Here, the adjacent sub-periods
+are consecutive, i.e., tp  tp1. For each sub-period p, we
+constrain its connection probability to be greater than a user-
+defined threshold, thereby ensuring a minimum connection
+probability among robots over the entire time horizon. The
+relationship between the connection probability and the actual
+connection status among the robots is discussed in Sec. VII.
+V. OPTIMAL CONTROL AND OPTIMALITY CONDITIONS
+A. Problem Formulation
+Using the ergodicity (2) and the sub-period connection
+probability (8), we formulate the multi-robot ergodic search
+with connection maintenance (MEC) problem as follows.
+Definition 3 (MEC Problem).
+rEE(, q)
+2uT (t)R(t)u(t)dt
+x  f(x, u)
+Pc(qi, qj; tp, tp) c, (i, j) R, p Ip
+qi(t) qj(t)2 a, (i, j) R, t [0, T]
+and the control cost, with a hyper-parameter rE R defining
+the weight of the ergodicity, and a positive definite matrix
+R(t) RNmNm, t [0, T] defining the weight of the
+represent the constraints on the robot dynamics, initial state,
+sub-period connection probability, and collision avoidance,
+initial state and constraint thresholds. Note that when the
+sub-period number Np  1, constraint (9d) is represented as
+Pc(qi, qj; 0, T) c.
+Remark 1. In Eq. (9d), we impose a constraint on the
+connection probability for all pairs of robots, i.e., (i, j) R,
+to ensure strict pairwise connectivity. Furthermore, in some
+specific pairs of robots, as determined by a predefined con-
+nection graph topology [18, 23], e.g., (i, j) {(1, 2)} R.
+B. Optimality Conditions
+To derive the first-order necessary (local) optimality con-
+dition for the MEC problem 3, we first define the Lagrange
+function. When the Lagrange function takes the standard Bolza
+obtain the optimality condition. However, there are two main
+challenges in the formulation of the Lagrange function:
+The ergodicity term E(, q) in (9a) contains a quadratic
+term defined over the entire trajectories over the time
+horizon [0, T] of all robots, rather than just at the terminal
+address this, we can reformulate E(, q) as a terminal
+term by introducing an auxiliary system state [7, 9, 30].
+The connection probability constraint (9d) is defined over
+each sub-period p without a stage-wise form, making it
+incompatible with the stage cost structure of the Bolza
+form. This can be resolved by reformulating the connec-
+tion probability constraint as stage-wise constraints by
+introducing the instantaneous connection probability.
+With these reformulations, we can express the Lagrange func-
+tion of MEC problem 3 in the Bolza form, allowing us to apply
+the Pontryagin principle to derive the first-order necessary
+conditions that characterize a locally optimal solution.
+1) Reformulation of Ergodicity: By introducing an auxil-
+iary system state, we can reformulate the ergodicity term in
+(9a) of the MEC problem into the following terminal form.
+Definition 4 (Terminal Form of Ergodicity). Let s(t)
+RK denote the auxiliary
+system state [7, 9, 30], where each element s(t) is defined
+as sk(t)
+0 Fk(qi())d tk, then the ergod-
+icity (2) can be expressed as:
+2sT (T)QKs(T)
+with initial condition s(0)  0 and the following differential
+s(t)  g(x(t))  1
+F(qi(t))
+T 2 diag(0,    , kK) RKK represents a
+diagonal matrix constructed from the given elements. Addi-
+denotes the Fourier coefficient
+vector corresponding to the information distribution (w).
+F0(w),    , FkK(w)
+represents the
+vector of basis functions. Note that the summation P
+is evaluated component-wise across the elements of F(w). To
+simplify the subsequent presentation, we introduce the notation
+g(x(t)) to represent the right-hand side expression of Eq. (11).
+2) Instantaneous Connection Probability: For sub-period p,
+we evaluate the connection probability Pc(qi, qj; tp, tp) by
+integrating the CIF (6) over the interval [tp, tp], where the CIF
+is a function characterizing the robots trajectories. At any time
+instant t [tp, tp], the instantaneous connection probability
+can be formulated as follows3.
+Pc(qi, qj, t; tp, tp)
+(qi(t), qj(tj))dtj
+To facilitate the construction of the Lagrange function, we
+can reformulate the connection probability constraint (9d) into
+an equivalent stage-wise form:
+Pc(qi, qj, t; tp, tp)
+(i, j) R, p Ip
+3) Lagrange Function: The Lagrange function for the MEC
+problem 3 is formulated as:
+L(x, s, u, x, s, c, a)  rE
+2 sT (T)QKs(T)
+l(x, u, t)  rcT
+c (t)c(x, u, t)  raT
+a (t)a(x, u, t)
+x (t)(f(x(t), u(t)) x(t))  T
+s (t)(g(x(t)) s(t))
+where x(t) RNn, s(t) RK, c(t) RR 0, a(t)
+RR 0 are the Lagrange multipliers corresponding to
+3If t [tp, tp], the instantaneous connection probability equals zero.
+constraints (9b, 11, 9d, 9e), respectively. The coefficients
+that c(t) is piecewise constant over each sub-period, i.e.,
+c 0 for t [tp, tp], p Ip, because (9d)
+constrains the connection probability over each sub-period
+rather than at any specific time t. The component functions
+in the Lagrange function (14) are defined as:
+l(x, u, t)  1
+2u(t)T R(t)u(t)
+c(x, u, t)
+Pc(qi, qj, t; tp, tp)
+a(x, u, t)
+qi(t) qj(t)2  a
+where l(x, u, t) R denotes the stage cost, c(x, u, t) RR
+denotes the stage-wise connection probability constraints vec-
+tor for (9d) over any sub-period p in which time t lies,
+and a(x, u, t) RR represents the collision avoidance
+constraints vector for (9e), all evaluated at time t [0, T].
+For brevity, we define (t)  (c(t), a(t)) and I(x, u, t)
+(rcc(x, u, t), raa(x, u, t)) (or simply I(t)) as the concatenated
+vectors of multipliers and inequality constraints, respectively.
+4) Hamiltonian: Based on the Lagrange function (14), the
+Hamiltonian of the MEC problem at time t is defined as:
+H(x, s, u, x, s, , t)  l(x, u, t)  T (t)I(x, u, t)
+x (t)f(x(t), u(t))  T
+s (t)g(x(t))
+Theorem 2 (Necessary Optimality Condition). For a locally
+optimal control law u and the resulting state trajectory x, the
+following conditions must be satisfied:
+x  xH  f(x, u) with x(0)  x0
+s  sH  g(x) with s(0)  0
+s  sH  0
+2 sT (T)QKs(T)
+rEQKs(T)
+u(t)  arg min
+u(t)UN H(   , t), t [0, T]
+Proof. Pontryagins minimum principle  provides the nec-
+essary conditions for a trajectory to be optimal, which consist
+of the state equations with initial conditions (Eq. (17a) for
+x and Eq. (17b) for s), the costate equations with terminal
+conditions (Eq. (17c) for x and Eq. (17d) for s), and the
+inequality multiplier equation Eq. (17e). The optimal control
+input can be obtained by minimizing the Hamiltonian (16)
+within the control space UN, which yields Eq. (17f). The proof
+is provided in Appendix A-B.
+VI. NUMERICAL APPROACH
+The robot dynamics (9b) and inequality constraints I(t)
+introduce nonlinearity into the optimization problem. While
+the optimality condition (17) provides a theoretical foundation,
+directly solving for the optimal control law remains compu-
+tationally challenging. Therefore, we propose iterative-MEC
+(IMEC), an iterative optimization approach that numerically
+solves the MEC problem 3 based on the derivation of (17).
+IMEC first converts the MEC problem to the form consisting
+of the augmented cost and robot dynamics constraint using the
+augmented Lagrangian method (ALM) in Sec. VI-A [37, 38].
+linearize the cost and dynamics to define a sub-problem in each
+iteration (Sec. VI-B), and iteratively solves the sub-problem
+using the Linear Quadratic Regulator (LQR) for trajectory
+optimization [8, 38] (Sec. VI-C). Additionally, a technique to
+avoid gradient vanishing is introduced in Sec. VI-D.
+A. Augmented Lagrangian Problem
+1) Augmented Cost: In Sec. V-B4, we formulate the Hamil-
+tonian (16) based on the Lagrange function (14). The optimal
+control law is obtained by minimizing the Hamiltonian as
+in (17f). To improve convergence and handle inequality con-
+straints more robustly, in addition to the corresponding multi-
+plier terms in Eq. (14), we add a penalty term for inequality
+constraints following the ALM [37, 38]. Let lI(x, u, t), with
+penalty coefficient r R, denote the augmented term at time
+t containing the multipliers and penalty terms for the integral
+and stage-wise constraints (9d) and (9e). Besides, based on
+the constraint violation, the multiplier (t)  (c(t), a(t))
+can be updated in each iteration using [37, 38]:
+rcc(x, u, t)dt
+a(t) max {0, a(t)  r  raa(x, u, t)}
+During optimization, constraints I(t), t [0, T] are incor-
+porated into the cost (optimization objective). Therefore, the
+augmented MEC problem is formulated as:
+s.t. (9b), (9c) where
+J(x, u)  rEE(, q)
+l(x, u, t)  lI(x, u, t)dt
+B. Linearization
+1) Dynamics Linearization: Let x(t), u(t), t [0, T] de-
+note the linearized trajectory. The linearized robot dynamics
+about Eq. (9b) is formulated as follows:
+x(t)  A(t)x(t)  B(t)u(t) with
+A(t)  f(x, u)
+(x(t),u(t))
+, B(t)  f(x, u)
+(x(t),u(t))
+where x(t)  x(t) x(t) and u(t)  u(t) u(t) denote
+the state and control deviations with respect to x(t) and u(t),
+respectively. Here, A(t) and B(t) represent the corresponding
+state and control matrices.
+2) Cost Linearization: We aim to determine appropriate
+deviations x and u that ensure the cost (19b) decreases.
+mization objective is defined as (ignoring higher-order terms):
+J (x, u)  J(x  x, u  u) J(x, u)
+The corresponding terms are formulated as follows:
+l(x, u, t)  lI(x, u, t)
+lx(t)  lIx(t)dt
+rEsT (T)QK
+F(qi(t))
+lx(t)  lIx(t)dt
+sT (T)QK
+F(qi(t))
+lx(t)  lIx(t)
+lu(t)  lIu(t)dt
+uT (t)R(t)
+Note that QK is a symmetric matrix, i.e., QT
+With the introduced variables (t) and (t) in Eq. (22, 24),
+the optimization objective in (21) can be reformulated as:
+J (x, u)
+T (t)x(t)  T (t)u(t)dt
+C. Iterative Optimization
+1) Define the LQR Problem: Given the state and control
+trajectories x and u, we can derive the linear formulation of
+the objective (21) and linear robot dynamics (20). In each
+2xT (t)Q(t)x(t)  1
+2uT (t)R(t)u(t)dt
+x(t)  A(t)x(t)  B(t)u(t)
+where objective (26a) contains both linear and quadratic terms
+with cost matrices Q(t) RNnNn, R(t) RNmNm.
+Eq. (26b) represents the linearized dynamics, and Eq. (26c)
+ensures the state trajectory starts from x0, satisfying initial
+condition (9c). This is a typical optimal control problem that
+can be solved using Linear Quadratic Regulator (LQR) .
+Algorithm 1 Iterative-MEC
+Refer to Tab. I for other parameters.
+u Using LQR to solve Problem (26) with
+initial guess x  0, u  0
+Using line search to get the ideal step size
+Update control trajectory
+x forward roll-out with control u under dynamics
+if J(x, u) J(x, u)  then
+Update the multiplier (t)
+See (18)
+Increase the penalty r  r  r
+Decrease
+if Meet the termination criteria then
+Return state and control trajectory x, u
+Update linearized trajectory
+2) Iterative Solving Approach: Alg. 1 outlines the iterative
+solving approach. First, we initialize the multiplier using Eq.
+(18) to identify active constraints in I(t), t [0, T] (Line 1).
+Note that the linearization trajectory x is derived from the roll-
+out process based on the given initial control trajectory u and
+the initial state x0. Then, based on current trajectories x, u, we
+linearize Problem (19) and apply LQR to solve Problem (26),
+obtaining control deviations u (Line 3). Next, we employ line
+search to find a control u that decreases the objective (19b)
+(Lines 4-5). The multiplier or penalty coefficient is updated
+based on the convergence conditions (Lines 7-11). Finally,
+we return the state and control trajectories x and u when
+the termination criteria are satisfied. Otherwise, the current
+state and control x, u ar

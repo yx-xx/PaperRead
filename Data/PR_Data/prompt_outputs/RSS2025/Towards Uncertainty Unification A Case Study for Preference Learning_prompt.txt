@@ -1,5 +1,5 @@
 === PDF文件: Towards Uncertainty Unification A Case Study for Preference Learning.pdf ===
-=== 时间: 2025-07-22 09:42:49.762742 ===
+=== 时间: 2025-07-22 10:00:25.205872 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -194,4 +194,422 @@ learning as the task of learning a reward function from a
 set of comparison pairs with known preference relationships,
 formally defined in Section III-A1. In the context of reinforce-
 ment learning (RL), preference learning can be seen as a gener-
-alization of in
+alization of inverse reinforcement learning (IRL), wherein the
+goal is to infer a reward function based on human feedback.
+Several approaches have been proposed in preference learn-
+ing. Sadigh et al.  represented the reward function as a
+weighted sum of features, updating the weights using Bayesian
+inference from human preferences. Nevertheless, this linear
+feature assumption limits the generalizability of the model.
+Chu and Ghahramani  employed Gaussian processes (GPs)
+to model reward functions, capturing nonlinearity. However,
+this approach lacked a strategy for generating next preference
+query. Later works, such as Byk et al.  and Byk
+et al. , addressed this limitation by integrating predictive
+I prefer 20C than 18C
+and Im very confident!
+Do you prefer 18C or 20C,
+and how confident are you?
+Human Preference Uncertainty Model
+Uncertainty-weighted GMM
+User-specic
+Uncertainty
+Calibration
+Very condent:
+Very uncertain:
+Temperature (C)
+Reward value
+Reward value dierence
+Choice probability
+Temperature (C)
+GMM weight
+Temperature (C)
+Reward value
+Temperature (C)
+Reward value
+Temperature (C)
+Reward value
+Overview of UUPL. Imagine a robot inferring a users preferred room temperature. For each query, we collect the users preference with the
+associated uncertainty level. To begin, a calibration process (blue box) interprets the users definitions of confident and uncertain, ensuring these subjective
+assessments are accurately quantified with uncertainty factors u. Then, we construct the human preference uncertainty model as a probit model using Gaussian
+uncertainty level, enhancing its interpretability. Through this approach, UUPL effectively integrates human uncertainty into both the GP mean and variance,
+achieving comprehensive uncertainty unification, and thus provides a more accurate, interpretable, and user-aligned learning result (rightmost picture).
+entropy to guide query selection, leveraging information gain
+principles as proposed by Houlsby et al. . Despite these
+man uncertainty. Some studies have explored weak preference
+modeling for human uncertainty. For example, Wilde et al.
+used continuous-scale preference feedback to weight
+linear feature models, and Cao et al.  incorporated weak
+and equal preference options into deep neural network-based
+frameworks. However, these preference learning approaches
+focus solely on human uncertainty without considering robot
+of uncertainty unresolved. We bridge this gap by unifying
+uncertainties from both human and robot to achieve better
+preference learning results.
+III. PROBLEM FORMULATION AND METHODS
+In this section, we begin by formulating the problem of
+preference learning and uncertainty unification. Then we de-
+scribe how we model human uncertainty, providing an intuitive
+explanation of the approach. Finally, we introduce the GP
+framework for preference learning, and detail our uncertainty
+unification techniques with the calibration process.
+A. Problem Formulation
+1) Preference Learning: Given: (1) A sample space O such
+that the instances Oi O are any comparable data type
+(e.g., trajectory, state, object, . . . ), (2) a feature extraction
+xi  (Oi), xi Rn, and (3) a human internal reward
+function R(Oi) : O R assigning each instance a real value.
+The goal of preference learning is to learn a function f(xi) :
+Rn R to approximate R(Oi) from N pairs of comparison
+data X  {(x(1)
+N )} and the
+corresponding human choices C  {C1, C2, . . . , CN}, where
+Ci  {x(1)
+i } if R(O(1)
+), and vice versa.
+i } denotes feature x(1)
+is preferred over feature
+preferred over option O(2)
+. In later sections, we use O and
+R(O) for models from human perspective, x and f(x) for
+models from robot perspective.
+2) Uncertainty Unification: In general, when an HRI task
+say an algorithm f is uncertainty unified if it utilized both uH
+and uR, i.e. f(X, uH, uR)  y, where X, y are the original
+model input and output for the HRI task. This formulation
+is fundamentally different from uncertainty-aware algorithms
+expressed as f(X, uR)  y, which takes only robot uncer-
+tainty without considering human uncertainty [27, 28]. The
+intuition behind uncertainty unification is inspired by human-
+human interactions, where individuals often infer each others
+confidence or uncertainty through verbal and non-verbal cues,
+using this information to guide joint decisions [29, 30].
+to model and mimic such communication, integrating both
+human and robot uncertainties into decision-making processes.
+B. Human Preference Uncertainty Modeling
+To achieve uncertainty unification in preference learning,
+it is essential to model the human uncertainty behind their
+choices. Given a query with two options {O(1), O(2)}, in
+addition to collecting human choice C, we also collect the
+human uncertainty level l and get the corresponding human
+uncertainty factor ul regarding this choice. In this work,
+we categorize human uncertainty levels into four discrete
+4 (very uncertain)}. These levels reflect the perceived similar-
+ity between O(1) and O(2). For instance, very uncertain im-
+plies that the options are nearly indistinguishable, while very
+confident indicates a strong preference. The uncertainty factor
+ul maps human uncertainty level to robot model parameters,
+and is further introduced in Section III-C5. To represent the
+probability of a human choosing O(1) with uncertainty level l,
+we introduce a reward uncertainty residual r N(0, (ul)2):
+P(O(1) being chosen)
+Intuition behind our human preference uncertainty modeling.
+The x-axis represents the reward residual R(O(1)) R(O(2)), while the y-
+axis indicates the probability of selecting O(1). For a given query (marked by
+the red dashed line), confident human choices (low uncertainty level l  small
+u) correspond to high probabilities, represented by the intersection between
+the red dashed line and the green CDF with u  0.1. Conversely, uncertain
+human choices (high l  large u) lower the modeled probability, as shown by
+the intersection between the red dashed line and the yellow CDF with u  3.
+where  is the cumulative distribution function (CDF) of the
+standard normal distribution. The model is shown as the left
+part of the purple box in Fig. 2.
+Fig. 3 further illustrates the relationship between the re-
+ward residual R(O(1)) R(O(2)) and the choice probabil-
+ity P(O(1)being chosen) with multiple human uncertainty u
+(modeled as the Gaussian variance ). The more the human
+is uncertain, the less likely O(1) is chosen, as explained in the
+caption of Fig. 3.
+C. Gaussian Process for UUPL
+GPs are employed to model the human reward function,
+with their predictive variance serving as an indicator of un-
+certainty. In the context of preference learning, GPs estimate
+the uncertainty of the reward function across the entire feature
+uncertainty model described above. We develop a generalized
+framework for preference learning, built upon the Gaussian
+processes methodology introduced by Chu and Ghahramani
+and Byk et al. , with these prior works emerging as
+special cases (i.e., zero human uncertainty) within our broader
+approach. In this section, we briefly introduce GPs, during
+which we emphasize how the human uncertainty is integrated
+into the framework to achieve unification. For more details on
+how GPs work in general, please refer to .
+1) Kernel: In a GP, the kernel k(x(1)
+i ) is a positive
+semi-definite function that defines the covariance between any
+two feature points. In this work, we choose the most common
+radial basis function (RBF) kernel which is defined as
+i )  ex(1)
+where  is a hyperparameter controlling kernels smoothness.
+2) Prior:
+the corresponding predicted reward values are denoted by
+N )]T . Assuming a
+zero mean for f, the prior is fully specified by the covariance
+matrix K, which is a 2N 2N matrix with the (ij)th element
+be the kernel k
+x(2(i mod 2))
+, x(2(j mod 2))
+. The prior can
+then be expressed as a multivariate Gaussian:
+2 efT K1f
+3) Likelihood: The likelihood function takes the form of
+human preference uncertainty model as introduced in Sec-
+tion III-B. To express it from the robots GP perspective, the
+likelihood for the ith comparison can be rewritten as
+i (li)x(2)
+i f(x(1)
+i ) f(x(2)
+N (lN )x(2)
+N )}, the likelihood for the dataset is the joint
+probability of observing each choice with reward f, which
+can be written as the product of individual likelihood
+i ) f(x(2)
+4) Posterior: Based on Bayes theorem, the posterior can
+be represented as
+P(fD)  P(f)P(Df)
+Since a closed-form solution for this posterior is not avail-
+able due to the existence of Gaussian CDFs in the likeli-
+the new Gaussian refers to the maximum a posteriori estimate,
+and the variance refers to the inverse Hessian of the negative
+log-likelihood with respect to reward f. Next, we focus on
+introducing the integration of human uncertainty into Laplace
+approximation framework.
+5) Posterior Mean Approximation: Let the approximated
+GP mean be fLap. Then, combining with Eq. 6, we have
+fLap  arg max
+i ) f(x(2)
+2f T K1f
+For more detailed derivation please refer to Appendix A.
+In Eq. 7, the first part is a summation of N monoton-
+ically increasing functions over differences of f, and the
+second term is a quadratic penalization over f. For sim-
+preference data is collected. Then f  [f(x(1)
+Relationship between Laplace posterior mean difference fLap
+and human uncertainty u. u1, u2, u3, u4 are determined by varying the
+posterior mean difference proportionally, ensuring the model taking human
+uncertainty and producing more accurate estimated posterior mean.
+R22. Let
+S(f)  ln
+2f T K1f.
+the difference of their internal reward function values of the
+be closer. To achieve this in Eq. 7, we need to find a set of
+ul  {u1, u2, u3, u4}, such that for each query (x(1)
+larger uli results in a smaller fLap  fLap(x(1)
+1 )fLap(x(2)
+which requires us to find the relationship between u and the
+posterior mean difference fLap.
+Since solving
+df S(f)  0 directly is intractable due to the
+Gaussian CDF , we approach it analytically by determining
+fLap against various u. Denote d as the monotonically
+decreasing part of fLap (i.e., where u 10), then we design
+ul  {u1, u2, u3, u4} to be the four percentage points of
+d(u) as shown in Fig. 4. When human uncertainty level l
+1 (very confident), u1 takes d1(dmax). When human uncer-
+tainty level l  2 (confident), u2 takes d1( 2
+3dmax). When hu-
+man uncertainty level l  3 (uncertain), u3 takes d1( 1
+u4 takes d1(1e 3). This mapping ensures that as human
+uncertainty l increases, the posterior mean difference between
+rewards fLap decreases proportionally, aligning with the
+intuition of uncertain preferences. The resulting posterior GP
+mean with different human uncertainty levels is shown as the
+right part of the purple box in Fig. 2.
+User-specific Uncertainty Calibration: Given individual
+differences in defining confident or uncertain, a fixed
+mapping from l to ul may be inadequate. Thus, we propose
+a calibration process to tailor ul values to individual users,
+by asking each user to describe a given reward function and
+customize their uncertainty factors from their answers. Specifi-
+collection process of M iterations: At iteration i, a feature pair
+i ) is sampled and the user is told to assume the func-
+tion values (fcalib(x(1)
+i ), fcalib(x(2)
+i )) reflect their internal re-
+ward values, i.e., fcalib(x(k)
+)  R(x(k)
+), k {1, 2}. Then the
+Algorithm 1: User-specific Uncertainty Calibration
+: fcalib; fLap(u) as in Fig 4; Xcalib with
+uniformly generated (x(1), x(2))
+1 Init listu1 [], listu2 [], listu3 [], listu4 []
+2 for (x(1)
+) in Xcalib do
+Collect user uncertainty level li
+listuli .add(fcalib(x(1)
+) fcalib(x(2)
+5 for l in {1, 2, 3, 4} do
+Get mean value
+calib avg(listul)
+Get quantile
+calibmin(fcalib)
+max(fcalib)min(fcalib)
+Get ul with the same quantile
+d the monotonically decreasing part of fLap
+ul d1(ql  dmax)
+user specifies their uncertainty level l, and the corresponding
+value difference fcalib  fcalib(x(1)
+i ) fcalib(x(2)
+i ) is saved
+together with their chosen uncertainty level li {1, 2, 3, 4}.
+After collecting M pairs of data, the mean value difference for
+each uncertainty level f
+calib and the corresponding quantiles
+calibmin(fcalib)
+max(fcalib)min(fcalib), l {1, 2, 3, 4} are calculated. We then
+Lap and further more the corresponding ul with the same
+quantile on the function as in Fig. 4. The pseudo-code for the
+calibration process is provided as Algorithm 1.
+6) Posterior Covariance Approximation: To approximate
+the GP covariance, we take the negative inverse Hessian of
+the logarithm of the un-normalized posterior with respect to
+f [23, 31, 32]. Let the approximated covariance be KLap, then
+KLap  ((ln P(Df)  ln P(f)))1
+where W is the negative Hessian of the log-likelihood, and
+K is the 2N  2N covariance matrix of N preference pairs.
+7) Uncertainty-unified Prediction: One benefit of GP is that
+it provides a closed-form solution for prediction. Suppose we
+have a test preference pair xt  (x(1)
+t ), let the predictive
+mean be t  [f(x(1)
+t )]T , and the covariance be
+, then we have:
+t K1fLap
+t  Kt kT
+t (W  K1)1kt
+where kt
+By integrating fLap, the predictive mean t in Eq. 9 has
+already taken human uncertainty into account, which can
+generate more accurate reward values. While for the predictive
+covariance t in Eq. 10 we introduce a Gaussian Mixture
+Model (GMM) based method to unify human uncertainty with
+robot uncertainty, as introduced below.
+Uncertainty-weighted
+Gaussian
+Model Un-
+der the uncertainty-unification setting, the GP covariance
+Cov(f(x(1)
+t )) should reflect both robot and human
+uncertainty for any test feature pair (x(1)
+t ). Robot
+uncertainty is expressed by the predictive covariance t
+as Eq. 10, and we design human uncertainty to be a
+GMM G built upon all the N (query, uncertainty) pairs
+N ), ulN )}.
+w(uli)N(x(1)
+t ; x(k)
+w(uli)N(x(2)
+t ; x(k)
+bijection
+{w1, w2, w3, w4} representing decreasing weights for increas-
+ing uncertainty level1. Then, we define the uncertainty-unified
+predictive covariance matrix
+or equivalently
+Var(f(x(m)
+))  G(x(m)
+Cov(f(x(1)
+t )1G(x(2)
+An example of uncertainty-weighted GMM G and the scaled
+predictive variance Var is shown in the red box in Fig. 2.
+uncertainty levels impact the variance of f(x(m)
+If many query points are observed near x(m)
+(i.e., large value
+for N(x(m)
+, 2)), then Var(f(x(m)
+)) should be scaled
+down; If the human has relatively low uncertainty level l (i.e.,
+high confidence) for the preferences, then x(m)
+should also
+reflect a relatively low uncertainty from the robots perspective
+(i.e., large value for w(uli)). Conversely, if the observed points
+are all far away from x(m)
+, or the human demonstrates high
+uncertainty (i.e., low confidence), then the uncertainty of the
+test point should also be high. We claim that this unified design
+provides a rational variance estimation that benefits both theo-
+retical acquisition functions (described in the next section) and
+practical applications in robotic experiments (Section IV-C).
+Variance analyses in Section IV-A2 and Fig. 5 further validate
+the effectiveness of uncertainty-weighted GMM.
+8) Acquisition Function: The acquisition function gener-
+ates a new data pair to query the user preference and uncer-
+tainty. Byk et al.  proposed an acquisition function that
+maximizes the query information gain and at the same time
+minimizes humans burden of answering the question .
+w2 > w3 > w4 > 0 and G(x(m)
+variance Var and covariance Cov. Let the next query be
+) and H be the information entropy, then:
+x arg max
+x(1),x(2) I(f; CQ, D)
+x(1),x(2) (H(CQ, D) EfP (fD)[H(CQ, f)]) (14)
+which can be further written as
+where h is the binary entropy function, g and m can be written
+g(x(1), x(2))  Var(f(x(1)))  Var(f(x(2)))
+2Cov(f(x(1)), f(x(2)))
+ln(2)(ul)2 exp
+ln(2)(ul)22g(x(1),x(2))
+where Var and Cov are defined in Eq. 13. For a more detailed
+derivation of such result, please refer to Byk et al. .
+It is important to emphasize that this acquisition function is
+designed to select the next query based on two key criteria:
+similar reward values and high variances. In traditional binary
+preference settings, users may struggle to make selections
+when presented with two options with similar rewards (e.g.,
+x(1) and x(2) in Fig. 1). By incorporating uncertainty, our
+approach improves the user experience by allowing users to
+express their confidence levels alongside their choices. This
+claim will be supported later in user study sections.
+the GP variance is further enriched by integrating human un-
+certainty. This enhances the representativeness of the selected
+query by maximizing information gain, taking into account the
+joint uncertainties of both humans and robots. For example,
+when faced with two queries observed the same number of
+times (i.e., identical robot uncertainty), our model prioritizes
+the one with higher human uncertainty, as it exhibits greater
+entropy. Intuitively, this means the robot is more likely to
+generate queries labeled as uncertain rather than confident,
+thereby focusing on grounding the uncertain areas. As a result,
+the proposed method selects more informative queries, which
+we hypothesize will accelerate the convergence of the GP
+model. This claim is validated in the experiment section.
+IV. EXPERIMENT
+The primary contribution of this work is demonstrating
+that uncertainty unification significantly enhances the perfor-
+mance of preference learning tasks. We conduct comprehen-
+sive experiments to validate the effectiveness of our method
+(UUPL) both quantitatively and qualitatively. First, we design
+three simulation experiments to illustrate the rationality of
+our uncertainty-unified framework, and analyze its accuracy
+compared to other baseline methods. Following, we present
+(b) Chu and Ghahramani
+(c) Benavoli and Azzimonti
+(d) Byk et al.
+(e) UUPL
+(a) Ground truth function
+Reward value
+Reward value
+Reward value
+Reward value
+Reward value
+Temperature (C)
+Temperature (C)
+Temperature (C)
+Temperature (C)
+Temperature (C)
+GP variance visualizations. The ground truth function and the learned GPs (mean  1.96std) of three baseline methods and UUPL are provided.
+The data comes from comparisons of 19C with all other integer temperatures, and the results showcase the rationality of our learned variance.
+an ablation study which investigates the contributions of indi-
+vidual components. Finally, we present three user studies to
+demonstrate the efficacy of UUPL, especially our user-specific
+uncertainty calibration (Section III-C5) in real-world settings,
+and analyze user feedback through Likert scale ratings.
+A. Simulation Experiments
+For simulation experiments, we design ground truth func-
+tions to simulate human reward functions and decide choices
+C with uncertainty levels l based on Eq. 1. The human
+uncertainty u  {u1, u2, u3, u4} is determined proportionally
+according to Section III-C5. Each experiment is repeated six
+1 and 2, N  100 for Simulation 3). In each iteration, C is
+generated from the relative function values, l is calculated from
+the function value differences, and finally, the GP is updated.
+We rec

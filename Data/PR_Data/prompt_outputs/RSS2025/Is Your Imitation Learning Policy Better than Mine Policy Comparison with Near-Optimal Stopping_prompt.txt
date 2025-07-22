@@ -1,5 +1,5 @@
 === PDF文件: Is Your Imitation Learning Policy Better than Mine Policy Comparison with Near-Optimal Stopping.pdf ===
-=== 时间: 2025-07-22 09:41:23.367270 ===
+=== 时间: 2025-07-22 09:58:31.277924 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -174,4 +174,552 @@ successfailure outcome z1,n corresponding to an i.i.d. draw
 from a Bernoulli random variable with mean p1, which is the
 true performance (success rate) of the policy 1 on the task:
 3Note that this is a standard assumption in statistical testing. A discussion of
-practical methods by which to approximately satisfy this c
+practical methods by which to approximately satisfy this condition in robotic
+evaluation is included in .
+baseline policy 0, we similarly denote the outcome of its nth
+trial as z0,n Ber(p0). For the sake of statistical analysis,
+we pair the outcomes of two policies by their indices in a
+vector Zn  (z0,n, z1,n). The policy comparison problem can
+be formalized in the sense of Neyman-Pearson (N-P) statistical
+novel policy 1 is no better than the baseline 0 and the
+alternative is that the novel policy is indeed better:
+Null Hypothesis H0 : p1 p0 (p0, p1) H0
+Alt. Hypothesis H1 : p1 > p0 (p0, p1) H1.
+Fig. 2: The policy comparison problem as a composite-
+vs-composite statistical test. The null hypothesis set (red)
+corresponds to the novel policy being worse (p1
+while the alternative hypothesis set (blue) corresponds to the
+novel policy being better (p1 > p0). The sets are each termed
+composite because they contain many elements. For any
+pair of policies, the truth corresponds to a single point; as
+(baseline success 45, novel policy success 55), while the
+black star corresponds to the null being true (baseline success
+As illustrated in Fig. 2, this amounts to a composite vs.
+composite statistical test . A hypothesis is termed simple
+if it is singleton, i.e., corresponds to a single data-generating
+distribution. For example, (p0, p1)  (0.3, 0.7) would be a
+simple hypothesis. If the hypothesis corresponds to multiple
+data-generating distributions, it is termed composite.
+The Type-I error rate (denoted ) of a statistical test cor-
+responds to the probability of falsely rejecting the null under
+the worst-case singleton element h0 of the null hypothesis set
+H0  that is, under the hardest-to-distinguish (p0, p1) H0.
+This type of error corresponds to falsely concluding that 1
+is better than 0 when it is not. The power of a test (denoted
+1) is the mixture probability of correctly rejecting the null
+when the alternative is true, under some measure on the set of
+alternatives4. The Type-II error  is the associated (mixture)
+probability of failing to reject the null when the alternative is
+true. This represents failing to conclude that 1 is better, when
+it is in fact better than 0.
+one-sided testing, the comparison problem naturally admits
+a bidirectional version allowing decisions for membership
+in either the alternative set (RejectNull) or the null set
+(AcceptNull). Note that the decision AcceptNull formally
+amounts to rejecting the null of a flipped version of Eq. (3).
+In all subsequent discussion we will implicitly utilize the bidi-
+rectional test, which will allow for the decision AcceptNull.
+III. PROBLEM FORMULATION
+We assume that a robot evaluator is tasked with distinguish-
+ing two policies via successive evaluations, resulting in the
+testing paradigm described in Section II. We also assume that
+the evaluator has pre-selected the desired significance level
+of the comparison and a maximum number of trials (for each
+policy) that they are willing or able to run: Nmax.
+controlled in statistical testing, i.e., upper-bounded at the
+evaluator-specified rate (0, 1). This represents a hard
+constraint (validity) that will be enforced in all subsequent
+testing procedures; a test is not feasible if it is not Type-I error
+controlling. The evaluators goal is to synthesize a decision
+rule that limits the Type-I Error to while maximizing power
+and minimizing the expected number of evaluation trials.
+We assume an underlying representation of the evaluation
+information collected thus far is available to the evalua-
+tor in a state xn  F(Z1, Z2, ..., Zn). Then, the evalua-
+tors procedure consists of deciding whether to Continue
+(gather another trial for each policy) or stop (and either
+AcceptNull or RejectNull). Given a decision set U
+{AcceptNull, Continue, RejectNull}, the problem is to find a
+state partition   u(x) to optimally balance minimizing the
+expected sample size and maintaining high power, conditioned
+on the Type-I Error rate constraint, as shown in Eq. (4):
+:X7U E(H1)[nstop  cNmax]
+0 nstop Nmax w.p. 1.
+This function is a multi-objective optimization which seeks to
+simultaneously minimize expected sample size and maximize
+power subject to the validity constraint. Informally, for any
+feasible terminal power 1 feasible
+Nmax (conditioned on Nmax, ,
+and the true underlying distribution, which we emphasize is
+unknown a priori), there is a value of c > 0 that effects
+a decision rule in Eq. (4) approximating a test controlling
+4For example, a minimax measure mimics the Type-I setting (e.g., the
+worst-case singleton h1 H1). However, due to the finite termination
+(p0, p0  ) for  > 0 sufficiently small such that the attainable power will
+only negligibly exceed random guessing. Therefore, in practice other measures
+must be used.
+feasible. For example, this framework recovers the batch
+problem as c (demanding maximal power), and imme-
+diate termination as c 05 (demanding minimal sample
+complexity). This objective will govern the methodology and
+analysis presented in the rest of the paper.
+IV. METHODOLOGY
+There are several important practical considerations to
+constructing a near-optimal solution to Eq. (4). We present
+the concrete challenges first, and then discuss the technical
+innovations that account for them. Throughout, we will lever-
+age significant mathematical structure in the testing problem.
+Where insightful or intuitive, this will be explained in situ.
+See Section X-F in the Supplement for additional details.
+A. State Representation
+at time n (i.e., after n evaluation trials have been performed
+for each policy) in a control-theoretic state representation;
+the evaluators decision can then be understood as a state-
+feedback decision rule. In selecting this representation, the
+first instance of mathematical structure is the membership of
+Bernoulli distributions in the univariate exponential family;
+such distributions have known sufficient statistics which rep-
+resent (informally) an optimal compression of the data for the
+purposes of testing and estimation . Thus, a natural (near-
+minimal) state representation is precisely the element-wise
+sufficient statistic for p0 and p1 respectively, augmented with
+a time state. For univariate exponential family distributions,
+the sufficient statistic is the sum of the observed data (i.e.,
+respective number of successful trials under 0 and 1); this
+makes the state representation a first-order discrete integrator,
+as shown in Eq. (5):
+xn1  xn  dn
+dn  (z0,n, z1,n, 1) (Ber(p0), Ber(p1), 1)
+Unlike in a typical control problem, we cannot actively guide
+the state trajectory; we are instead deciding when to stop
+based on the state trajectory. Concretely, the control involves
+partitioning the state space into stopping and continuation
+regions. In robotics, a similar set-theoretic notion arises in
+robust control and safe navigation, through the generation
+of invariant sets for dynamic systems (i.e., in reachability
+and barrier function-type methods [48, 2]), though those
+methods are primarily interested in nonstochastic uncertainty.
+finance utilize optimal stopping to set options prices under
+stochastic uncertainty .
+5For the latter case: without looking at any data, draw a random number
+uniformly on [0, 1]. If it is less than reject the null, otherwise fail to reject
+and terminate. This terminates at step 0 with probability 1, has power ,
+and is valid.
+B. Decision Regions
+In the sequential problem the state space partitions occur in
+X Reject Null
+, X Accept Null
+, X Continue
+At each time step, the sets jointly encode control decisions
+for every state. Intuitively, the larger the size of the rejection
+region X Reject Null
+(resp. X Accept Null
+), the smaller the number
+of expected trials needed to reject the null (resp. alternative),
+achieving a lower value of the stopping time component of
+Eq. (4). Focusing on X Reject Null
+in the following development6,
+our auxiliary objective is then to maximize the size of the set
+X Reject Null
+globally across all n {1,    , Nmax}. We take
+a probabilistic approach, allowing the states to reject with a
+probability less than 1. As we will see in Section IV-E, this
+yields an efficient optimization problem.
+In addition to the maximization, there are two core chal-
+lenges to synthesizing such a partition. First, the Type-I Error
+rate must be controlled. The decision to stop and reject the null
+hypothesis in a state xn incurs risk due to the probability that
+xn was reached under data generated from some (p0, p1) H0
+i.e., under the null hypothesis in Eq. (3). Thus, having a large
+X Reject Null
+risks violating Type-I Error rate control. Second,
+the temporal rate at which the risk is accrued must be set
+appropriately to encourage early stopping on easy instances
+(i.e., 1 significantly outperforms 0) without harming per-
+formance too much on harder instances (i.e., 1 and 0 are
+closely competing, which requires many trials to distinguish).
+We will first address Type-I Error control in Section IV-C, and
+the temporal risk accumulation in Section IV-D. The resulting
+tractable optimization problem is presented in Section IV-E.
+C. Type-I Error Control
+The composite nature of the null hypothesis (which contains
+all pairs H0  {(p0, p1) [0, 1]2  p0
+p1}) means that
+the decision-making problem can be thought of (informally)
+as analogous to distributionally robust control, where the un-
+certainty is over the particular worst-case (p0, p1) H0. Con-
+trolling the Type-I Error in policy comparison then amounts
+to controlling the Type-I Error uniformly (robustly) for all
+h H0. Suppose that some rejection region for the first n1
+steps has been obtained with accumulated risk n1, and we
+are interested in bounding the Type-I Error for n by some
+n > n1. Given the notion of stopping and continuation
+regions introduced in the previous section, this is expressed
+mathematically as:
+xn X Reject Null
+X Reject Null
+The dependence on the (probabilistic) rejection region for n1
+is made explicit in Eq. (7), reflecting the internal dynamic
+structure. For example, if some state xn1  (a, b, n 1)
+6As discussed in Section II, the case of rejecting the alternative and
+accepting the null can be considered by flipping p0 and p1.
+is rejected at n 1 with a non-zero probability, then the 1-
+step reachable states (e.g., (a  1, b, n)) under the dynamics
+Eq. (5) are less likely to be feasible at n. The presence
+of many (infinite) elements h in the set of null hypotheses
+H0 makes verification of Type-I Error control challenging a
+problems (noted in, for example, ) allow for efficient
+discretization procedures that preserve safety. Specifically, it
+suffices to consider a discrete set of the worst-case nulls
+1. Further details of this dis-
+cretization process is given in Section X-F2 in the Supplement.
+constraints. We can equivalently represent this set of con-
+straints as a linear inequality Pnwn n1, where wn is a
+vector representing the probability of rejecting the null in each
+state xn Xn  {(0, 0, n), (0, 1, n),    (Nmax, Nmax, n)}.
+Pn is a non-negative matrix of size (M, Xn) where each row
+represents the probability of reaching particular states under
+h(i)  (p(i), p(i)):
+(Pn)ij  Ph(i)
+n  X Reject Null
+where xj
+n is the jth (discrete) state in Xn. Given the rejection
+region from the previous time step n 1, we can accurately
+compute this probability Eq. (8) by forward-propagating the
+previous state occupancy distribution (Pn1)i according to the
+stochastic dynamics model Eq. (5) under h(i).
+D. Power Adaptivity to Varying Difficulty: Risk Budgets
+As discussed in Section IV-B, we must appropriately adjust
+the temporal rate of risk accumulation. To formally define this
+notion of risk, we introduce a non-negative scalar function
+f(n) for n {1,    , Nmax}, which determines the maximum
+allowable Type-I Error under any null hypothesis at each step
+n. We impose a constraint PNmax
+n0 f(n)  to globally bound
+the Type-I error by . This risk budget can be interpreted
+as encoding the evaluators competing objectives: to reject the
+null and stop the evaluation quickly in easier cases (front-
+loading the risk accumulation) against the desire to wait longer
+to achieve a significant decision in harder instances (delaying
+risk accumulation until more data is collected). Importantly,
+any risk budget f that is nonnegative everywhere and sums
+to some r [0, ] maintains Type-I error control at level
+. However, the shape of the risk budget will significantly
+influence the power of the resulting procedure, and thus
+represents an important component in solving (near-optimally)
+Eq. (4). With this said, in the following experiments we fix the
+risk budget to be uniform in order to focus on optimizing the
+decision regions (described in Section IV-E); to be explicit:
+this means the risk budget is f(n)
+Nmax for each scenario.
+This selection is heuristically reasonable, but leaves potential
+for further improvements in future work.
+Algorithm 1 STEP Decision-Rule Synthesis
+Nmax > 0, risk budget function f(n), type-I error
+limit (0, 1), number of approximation points M
+for n {1, ..., Nmax} do
+Pn Propagate(Pn1, n1, M)
+wn Opt(Pn, f)
+n Compress(wn)
+return   {1, . . . , Nmax}
+{STEP policy}
+E. Tractable Optimization
+Having specified the risk budget f(n), it is straightforward
+to verify that the Type-I Error control is achieved if the
+following constraint is satisfied for all n {1,    , Nmax}:
+Under this constraint, our objective is to maximize the size of
+the rejection region. We propose to solve the following series
+of optimization problems to tractably construct the rejection
+This objective encourages the rejection from as many states
+as possible, maximizing the size of X Reject Null
+. Furthermore,
+it implicitly rejects from states less likely to occur under any
+null hypothesis, which are cheaper in terms of accruing risk.
+The first constraint ensures that the Type-I error is controlled
+up to time n, as discussed in Section IV-C and Section IV-D.
+The second constraint is to enforce boundedness of rejection
+probabilities in [0, 1].
+The optimization problem Eq. (10) is a simple linear pro-
+gram that can be efficiently solved by a standard optimization
+software; it is a maximization of wn1 over the nonnega-
+tive orthant, subject to additional linear inequality constraints
+to control Type-I Error. Because each Pn depends on the
+corresponding n1, the optimization needs to be performed
+sequentially for each n in increasing order. Nevertheless, all
+the computation can be performed offline prior to running the
+actual policy evaluation. See Algorithm 1 for the decision-rule
+synthesis procedure. The fact that the optimization problems
+are sequentially solvable is owed to the isolation of the risk
+accumulation rate f(n) as a tunable parameter; otherwise, the
+rejection regions would be generally coupled across n and
+the optimization would be more challenging. Finally, we note
+in Algorithm 1 that the representation of the optimal policy
+can be compressed substantially from the vector wn to a set
+of connected sets n
+X Reject Null
+, X Accept Null
+, X Continue
+defined by their boundaries, due primarily to the general
+monotonicity of the optimal regions and the unimodality of
+the distribution of the test statistic.
+V. EXPERIMENTS
+The experiments are designed to investigate the following
+key aspects of effective evaluation:
+A. How does sequential testing compare with batch testing
+in terms of statistical validity (Type-1 Error)?
+B. What are the unique advantages of STEP in sequential
+comparison problems of varying difficulty?
+C. How sample efficient is STEP in practical policy com-
+parison settings?
+The experiments address these questions through extensive
+numerical validation on simulated successfailure data, as well
+as practical validation on both simulated rollouts and tasks on
+physical hardware.
+A. Baseline Procedures
+The baselines constitute the SOTA sequential analysis meth-
+ods described in Lai  and Lai and Zhang  (termed
+Lai) and the Safe, Anytime-Valid Inference (SAVI) method
+of Turner and Grunwald , which is specifically tailored to
+contingency table (i.e., policy comparison) problems (termed
+SAVI). Similar to STEP, Lai is a valid sequential method
+under a pre-determined Nmax and is asymptotically optimal
+as Nmax tends to infinity. The specific difference between
+these methods is that Lai makes the asymptotic assumption
+of normality of the empirical means. This allows for any
+distribution subject to the central limit theorem (CLT) to be
+analyzed tractably in the large-data regime, as the resulting
+optimal stopping PDE amounts to the solution of a reverse
+heat equation. STEP, by contrast, solves the exact PDE at the
+fundamental finite-sample resolution of the testing problem.
+As will be shown, the Lai procedure does best in difficult
+(i.e., requiring a lot of data) and symmetric (i.e., p0, p1 each
+near 0.5) test settings, as these best match the asymptotic
+approximation where the CLT approximation is well-matched
+to the exact distribution of the empirical means. SAVI, by
+validity for an arbitrarily large Nmax. In essence, SAVI proce-
+dures construct a test statistic subject to stochastic dynamics
+(the sequential incorporation of data) which possesses a high-
+probability stability certificate under any null data generating
+process. The stability in this case grants time-uniformity (in
+any null hypothesis, the probability of ever violating the
+certificate is bounded (by design) to be less than . In
+exchange for increased generality and robustness, however,
+SAVI methods inevitably sacrifice sample complexity in cases
+where a finite upper-bound to Nmax is determined by practical
+time and resource constraints that researchers are subject to.
+We emphasize that each existing method is widely applicable
+to practical testing problems beyond robotics, as is STEP.
+evaluation regime.
+(SPRT)  is run using the true singleton alternative and
+associated worst-case singleton null; this method represents
+a near-optimal procedure for easier problems where feasible
+methods quickly approach a terminal power close to 1 and
+still serves as a reasonable benchmark in harder problems.
+We emphasize that in practical cases, the Oracle method is
+infeasible to the evaluator; it is included to give a conservative
+estimate of the optimality gap of each method. Additional
+information about each baseline is included in Section VI.
+B. Numerical Simulation
+For evaluation, we discretize a grid over the space
+alternatives
+10-percentage
+set from zero by five points. There are forty-five re-
+alternatives
+ulated from (Ber(p0), Ber(p1)). In addition, 400 additional
+trajectories are generated under the worst-case null for each of
+the 45 alternatives, in order to verify the Type-I Error control.
+This evaluation data is shared across each methodology.
+The algorithms are first validated on multiple pairs of
+(Nmax, ). The ensuing numerical results will use the case
+Nmax  500,  0.05; similar figures for Nmax  100,
+0.05 are included in Section X-B in the Supplement. For
+each method, we compute for each of the 45 alternatives the
+following characteristics: (1) Type-I Error  the fraction of
+associated worst-case null trajectories which have incorrectly
+rejected the null; (2) Terminal Power  the fraction of alterna-
+tive trajectories which have correctly rejected the null by step
+Nmax; (3) Cumulative Power  a visualization of the fraction of
+alternative trajectories which have correctly rejected the null
+by step t for all t {0, 1, ..., Nmax}. Note that another natural
+evaluation metric, the expected time-to-decision (E[nstop]), can
+be derived from the cumulative power as the area between the
+curve and the constant y  1.
+1) How does sequential testing compare with batch testing
+in Type-I Error control?: We show the Type-1 Error control
+of each sequential method in Fig. 3, as well as a widely-
+used batch method (Barnards Test ) run in sequence. Each
+sequential method maintains Type-1 Error control; however,
+STEP is the most efficient at using the full risk budget (lightest
+blue), while Lai is weaker (more conservative) in the lower-
+variance regime and SAVI is weaker in general (darker blue).
+Using a batch method like Barnards Test in sequence, con-
+aforementioned p-hacking issue of the batch testing scheme. A
+rigorous batch evaluator, having chosen N, cannot adapt to the
+data as it arrives lest they invalidate a resulting conclusion. On
+the other hand, STEP provides a safety margin for continued
+testing with the maximum allowable sample size Nmax > N.
+2) What are the unique advantages of STEP in comparison
+problems of varying difficulty?:
+a) Terminal Power: We begin a more fine-grained com-
+parison of the efficiency of sequential procedures by presenting
+Fig. 3: False positive rate of four feasible methods (Barnard, SAVI, Lai, and Ours (STEP)) and the SPRT (Oracle method)
+for 400 simulated trajectories drawn from the respective worst-case null distributions for each of 45 alternatives (squares in
+color); Nmax  500 and  0.05. Note that naively utilizing a batch method in sequence leads to violation of Type-1 Error
+control (red). Additionally, note that SAVI and Lai struggle to utilize the full risk budget in finite Nmax (darker blue regions).
+Fig. 4: Terminal power of three feasible methods (SAVI, Lai, and Ours (STEP)) and the SPRT (Oracle method) for 5000
+simulated trajectories on each of 45 alternatives (squares in color); Nmax  500 and  0.05. Because Nmax is large, the
+terminal power is high for all but the most difficult cases; however, note that SAVI has significantly worse power in these
+difficult instances where p0 and p1 are closely competing. This is due to its inherent validity for arbitrary Nmax, which is
+unnecessary in modern robotics evaluation contexts and renders the methods conservative in harder instances.
+the terminal power (probability of deciding RejectNull by
+step Nmax) of all feasible methods and the Oracle SPRT in
+Fig. 4. This metric serves to illustrate a downside of SAVI:
+its inherent validity at arbitrarily large Nmax imposes strong
+finite-time costs. In this case, the terminal power when the
+true gap in policy performance is 10 percentage points is
+significantly lower than the Lai baseline and our STEP, which
+closely approximate the SPRT Oracle.
+b) Cumulative Power: We now demonstrate the down-
+side of the Lai baseline procedure as compared to our method
+through the cumulative power of the procedure. In Fig. 5
+(right), we illustrate the cumulative power on a hard evaluation
+case. This represents a second view of the observation pre-
+sented in the terminal power analysis: the Lai procedure and
+our STEP each significantly outperform the SAVI procedure in
+the small-gap regime. Conversely, in Fig. 5 (center), we illus-
+trate a difficult setting in which the Lai procedure struggles. In
+this setting the performance gap is again 10 percentage points,
+but the distribution is lower-variance and skewed as compared
+to that of Fig. 5 (right); as such, the Lai procedure cannot
+effectively adapt and our STEP significantly outperforms in
+terms of deciding more quickly for the alternative.
+C. How sample efficient is STEP in practical policy compar-
+ison settings?
+In addition to the numerical validation, we evaluate
+STEP through two sets of real-world robot evaluation ex-
+periments and a simulation experiment. In the first set of
+mance gaps to demonstrate the early-stopping capability of our
+approach. In the second set, we compared closely-competing
+policies to characterize necessary sample sizes for statistical
+validity when policy performance gaps become small. In the
+simulation experiment, we perform multi-task comparison of
+two SOTA imitation learning policies. See Section X-A in the
+Supplement for more details on the hardware experiments.
+1) Hardware Evaluation in the LargeMedium-Gap Regime:
+In this experiment, we consider two manipulation tasks for a
+bimanual Franka Emika Panda robot: FoldRedTowel (Fig. 9a)
+and CleanUpSpill (Fig. 9b and Fig. 9c). We trained single-
+task diffusion policies  on each task, with 300 human
+demonstrations for FoldRedTowel and 150 for CleanUpSpill,
+respectively. In addition to the RGB images, the policy re-
+ceives the proprioceptive states as additional observations.
+In FoldRedTowel, we compare two policy checkpoints from
+a single training run. The baseline policy 0 was trained for
+Fig. 5: Cumulative power of all feasible methods (Lai, SAVI, STEP (Ours)) and SPRT Oracle over 5000 trajectories in three
+evaluation settings of increasing difficulty; (p0, p1) for each setting title the respective figures. Nmax  500 and  0.05.
+The expected time-to-decision is the integral of the area above the cumulative power curve; therefore, curves higher and to the
+left are better (black arrow). (Left) For a gap of 30 percentage points, all methods demonstrate similar stopping times. (Center)
+For a gap of 10 percentage points in the low-variance regime (i.e., farther from 0.5), STEP significantly outperforms the Lai
+procedure and is better than SAVI. (Right) For a gap of 10 percentage points in the high-variance regime, SAVI struggles to
+maintain high power, and underperforms the other methods.
+10000 gradient steps with an AdamW  optimizer and
+achieved the action mean-squared error (MSE) of 1.61E-3 on
+the validation set. The other policy 1 continued the training
+for 70000 additional steps, yielding the validation action
+MSE of 1.35E-3. To evaluate each policy, five in-distribution
+(ID) initial conditions were chosen and repeated 10 times
+resemble the ones that appear in the training dataset. As shown
+in Table I (rows 1-3), the empirical gap in success rates
+was 36 percentage points (56 to 92 success), suggesting
+that 0 was under-trained. Each sequential method detected
+a significant difference at level  0.05 in 17  23 trials
+(apiece). That is, had the algorithms been active during col-
+for confirming the improvement of the later checkpoint over
+the former. Additionally, note that the Lai method and our
+STEP sequential procedures were each tuned for an Nmax of
+50 (row 1), 200 (row 2), and 500 (row 3) rollouts. In the latter
+two cases, additional rollouts could have been run up to 200
+or 500 per policy if the gap was smaller without compromising
+the validity of the decision.
+In CleanUpSpill, we compare the same policy on two
+different sets of initial conditions. The task is similar to the one
+originally presented by Xu et al. , which compares a set
+of ID initial conditions against the out-of-distribution (OOD)
+initial conditions. The ID set includes 10 initial conditions with
+a white towel and a short blue mug whereas the OOD set uses
+10 with a checkered towel with a tall cyan mug (each initial
+condition is repeated five times). As shown in Table I (rows
+46), the empirical gap of 52 percentage points was detected
+in 714 trials by all methods, though they were tuned (where
+applicable) to an Nmax up to thirty to seventy times larger;
+this demonstrates the significant reduction in sensitivity (from
+an evaluators standpoint) arising from setting Nmax versus
+choosing a batch size N. Furthermore, STEPs efficiency only
+minimally degrades when Nmax is increased from 200 (row
+5) to 500 (row 6). In this setting, any of the three sequential
+methods would have prevented the need for at least 70 of the
+100 total rollouts (35 of the 50 batch trials per policy).
+2) Hardware Evaluation in the Small-Gap Regime:
+We evaluate STEP on two open-source vision-language-
+action (VLA) models: Octo-Base , an action-chunking
+transformer-based diffusion policy, and OpenVLA , an
+autoregressive policy leveraging a pretrained large language
+model backbone. All experiments were conducted in a toy
+kitchen environment from the Bridge Data V2 dataset ,
+which is included in both policies training data. We consid-
+ered the task of placing a carrot on a plate (denoted Carro-
+evaluations investigated in [40, 27]. All policies were run on
+the Widow X 250S following the setup in .
+For this task, the initial placement of the carrot is uniformly
+sampled from three possible locations (left, center, or right)
+on the counter, and the plate is placed next to the sink (see
+Figure 9d). At the start of each trial, the robot joint angles are
+initialized such that the gripper is roughly aligned with the
+carrot initial position. The environment follows a categorical
+distribution with two outcomes: no object distractors or two
+object distractors. We consider two environment distributions:
+Env1 in which there are no distractors with probability 0.8
+and Env2 in which there are no distractors with probability
+0.6. Object distractors are sampled uniformly (without replace-
+ment) from the following object categories: orange, apple,
+green and blue sponges, brown and yellow cubes, eggplant,
+sampled uniformly without replacement from four possibili-
+the faucet. The distractors are physically placed according to
+a uniform (continuous) distribution within the selected region.
+STEP (Ours)
+FoldRedTowel
+FoldRedTowel
+FoldRedTowel
+CleanUpSpill
+CleanUpSpill
+CleanUpSpill
+CarrotOnPlate
+CarrotOnPlate
+SpoonOnTowel
+EggplantInBasket
+StackCube
+Multitask
+TABLE I: Empirical time-to-correct-decision for all hardware (top) and simulation (bottom) policy comparisons. The
+comparison type is described first; i is comparing two policies, Di
+The utilized Type-I Error and Nmax describe the constraints applied a priori by the evaluator (we underline to emphasize the
+change in Nmax for rows 1-3 and 4-6; observe that the sensitivity of the stopping times is very small). N Nmax represents
+the amount of data available for the statistical analysis. We report the terminal empirical success rates (after N trials) of each
+policy in each setting under pi (this information is not available to any feasible algorithm). We do not have truth labels on this
+data; however, in all cases, every method arrived at the same decision, including the Oracle SPRT which has a priori access
+to privileged information (p0, p1)N; this decision was Reject Null for all rows except the CarrotOnPlate tasks, which each
+returned Fail To Decide. We report the stopping times of all methods on the right of the table for every context; in all cases:
+lower is better. We put in bold any feasible method result that is near-optimal within ten trials (absolute) or 25 (relative) of
+the SPRT Oracle, which is not implementable by an evaluator. In the Multitask setting, we test p1 > p0 uniformly across the
+preceding three tasks. This stopping time is the sum by column of the stopping times for the three tasks. Our method saves
+the evaluator over 160 trials in uniform certification over these three tasks as compared to either feasible baseline.
+We sample 100 environment configurations each for three
+distribution Env1, and iii) Octo under distribution Env2. We
+then make the following comparisons with STEP: i) Octo
+(Env1) and Octo (Env2), and ii) Octo (Env1) and OpenVLA
+(Env1). In the first comparison (Table I, row 7), we test the
+effect of distribution shift in the probability of distractors
+being present. Here, the p0 corresponds to the perturbed
+distribution Octo (Env2), and p1 to the nominal distribution
+Octo (Env1). We find that, while there is an empirical gap
+(59 vs 68) at N  100, no method returns a significant
+result at  0.0

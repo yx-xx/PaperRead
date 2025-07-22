@@ -1,5 +1,5 @@
 === PDF文件: Doppler Correspondence Non-Iterative Scan Matching With Doppler Velocity-Based Correspondence.pdf ===
-=== 时间: 2025-07-22 09:42:19.999709 ===
+=== 时间: 2025-07-22 09:59:42.224765 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -186,4 +186,227 @@ addressing scenarios where the method may face challenges. In
 Section VI, Doppler Correspondence is integrated with ICP to
 compare its performance with ICP and DICP, demonstrating
 its potential applicability. Finally, Section VII provides the
-its potential for the field of 4D ranging sensor-
+its potential for the field of 4D ranging sensor-based odometry.
+III. METHODOLOGY
+A. Problem Definition
+ICP is a widely used method for point cloud registration,
+aiming to estimate the relative transformation between two
+consecutive scans. Let us consider two consecutive point cloud
+P and Q contain N and M points, respectively. Assume the
+sensor undergoes a rotation R SO(3) and a translation
+t R3 between scans. To estimate R and t, the three-
+step process is applied iteratively as below.
+1) Initialization: The initial predictions for the rotation R
+and translation t are set to I33 and
+respectively.
+2) Correspondence Estimation: Identify correspondences C
+by determining the closest points between the two point
+cloud scans.
+q  arg min
+p q2, p P
+where p and q R3.
+3) Optimization: Compute R and t that minimize the
+following loss function:
+(R, t)  arg min
+q (Rp  t)2.
+4) Update: Update the R, t and source point cloud P:
+p Rp  t,
+Correspondence Estimation, Optimization and Update are
+repeated until convergence is achieved, typically defined by a
+threshold on the change in the loss function q (R pt)2
+between iterations.
+on the spatial information of each point cloud. Relying only on
+the spatial information in Correspondence Estimation makes
+registration prone to degradation in environments with repetitive
+geometric structures [7, 15] or when consecutive scans fail to
+capture the same spatial points due to its sparse and noisy char-
+acteristics . To address these limitations, this study proposes
+Doppler Correspondence for the Correspondence Estimation,
+which is explained from the following in detail.
+B. Geometric Derivation of Doppler Correspondence
+Let us denote points pi P and qj Q are the true
+corresponding points, represented as:
+let vp,i and vq,j be the Doppler velocity of each point. Assuming
+PQ into radial
+(r) and tangential () components yields:
+Fig. 3: Two corresponding points across consecutive scans. The
+radial and tangential velocity components form the basis of our
+Doppler Correspondence derivation.
+RQ represent the radial and tangential compo-
+V is the average velocity over
+V p,r and
+are the radial and tangential velocities at point pi, respectively.
+Using the similarity condition POH QOR (i.e., side-
+angle-side similarity), the following proportional relationship
+Expanding this gives:
+Substituting
+OP  rp,i,
+OQ  rq,j,
+PR  vp,iT, and
+HQ  vq,jT, where rp,i and rq,j are the ranges of pi and
+qj respectively, and vp,i and vq,j are their respective Doppler
+Rearranging and simplifying the above equation yields:
+This can be expressed as:
+f(pi, vp,i)  g(qj, vq,j).
+Note that the above relationship, termed as Doppler Correspon-
+depends only on the information from point pi, while the right-
+hand side, g(qj, vq,j), depends only on the information from
+point qj. Furthermore, since there are no terms involving the t,
+this Doppler Correspondence is inherently invariant to transla-
+tion of the sensor. Moreover, unlike traditional correspondence
+that relies only on spatial (x, y, z) information, this method
+additionally utilizes Doppler information. This enables a more
+robust and reliable matching process in repetitive geometric
+rather than the spatial information from the environments.
+C. Kinematic Derivation of Doppler Correspondence
+Alternative to the previous geometric derivation of Doppler
+matrices and vectors. To establish Doppler Correspondence, we
+start with the kinematic relationship from [2, 25]:
+radial velocity computed relative to pi and qj, respectively,
+while each right-hand side corresponds to the Doppler velocity
+measured by the sensor. By clearing denominators, we obtain:
+(qj pi)  pi  vp,i T pi2,
+(qj pi)  qj  vq,j T qj2.
+Adding Eqs. (6) and (7) yields:
+(qj pi)  (qj  pi)  vp,i T pi2  vq,j T qj2.
+Since (qj pi)(qj pi)  qj2
+qj2  rq,j, where rp,i and rq,j are the ranges of pi and qj,
+Rearranging terms, we obtain the final form:
+which matches Eq. (2).
+D. Outlier Rejection
+A pair of points pi P and qj Q that satisfy Eq. (3)
+can be considered as a correspondence. However, ambiguity
+could arise when multiple candidate points, such as qj and its
+symmetric counterpart q
+j Q with respect to the sensor frame,
+satisfy Doppler Correspondence for a single pi. In this case, both
+points yield f(pi, vp,i)  g(qj, vq,j)  g(q
+Fig. 4(a).
+This occurs because g(qj, vq,j) is identical to g(q
+as the range and radial velocity of each point is the same
+j and vqj
+j). Such ambiguity can result in
+incorrect correspondence estimation. To address this issue, it
+is assumed that correctly matched points pi and qj lie within
+similar spatial regions between scans. This assumption enables
+the use of a distance-based rejection mechanism to filter out
+mismatched candidates, as shown in Fig. 4(b). Similar to the
+maximum correspondence distance used in , a threshold
+is applied to eliminate unlikely matches. Specifically, both the
+spatial distance dspatial  pi qj2 and the Doppler distance
+ddoppler  f(pi, vp,i) g(qj, vq,j) should satisfy:
+dspatial spatial
+ddoppler doppler.
+Any pair of points that significantly deviates from these con-
+straints is considered an outlier and is removed from the set of
+correspondences. By enforcing these thresholds, the impact of
+false correspondence estimation is mitigated.
+(a) Incorrect matching
+(b) Outlier rejection
+Fig. 4: (a) illustrates multiple candidates due to symmetry in
+range and Doppler velocity, and (b) shows that the distance-
+based outlier rejection method filters out mismatched pairs.
+E. Non-iterative Scan Matching Algorithm
+In this section, a simple registration method leveraging
+Doppler Correspondence is introduced. This method is designed
+to evaluate the feasibility of the proposed correspondence for
+odometry. The framework is intentionally designed to remain
+lightweight to isolate and emphasize the impact of the proposed
+Doppler Correspondence. To focus solely on demonstrating
+the effectiveness of this correspondence, techniques such as
+robust kernels and RANSAC are deliberately omitted from the
+algorithm. Further details are provided in Algorithm 1.
+The process begins by receiving two consecutive scans, P and
+is then performed to estimate correspondences. Unlike the
+conventional ICP explained in Algorithm 2, which relies on
+3D-based correspondence, our method operates on 1D-based
+correspondence. This could reduce computational complexity,
+even though f(pi, vp,i) and g(qj, vq,j) need to be calculated.
+While this approach may be slightly less accurate than 3D-based
+methods due to less information, it offers faster computations.
+[1, 7, 16, 17], which iteratively refine correspondences through
+multiple iterations, Algorithm 1 performs a direct correspon-
+dence estimation in a single step. This eliminates the iterative
+search process, significantly reducing the computational load,
+as illustrated in Fig. 1. Next section, the feasibility of Doppler
+Correspondence is validated by comparing the proposed method
+against ICP-based approaches.
+IV. EXPERIMENT AND DISCUSSION
+A. Dataset
+To evaluate the effectiveness of Doppler Correspondence for
+point cloud densities. The datasets include sparse 4D radar,
+semi-dense 4D radar, and dense 4D LiDAR point clouds. This
+diversity allows us to examine the performance of our approach
+across different sensing conditions.
+Algorithm 1 Non-Iterative Scan Matching Algorithm Based on
+Doppler Correspondence
+(spatial distance threshold), doppler (doppler distance thresh-
+Compute f(P), g(Q)
+Q FindClosest(f(P), g(Q))
+Masking Outliers:
+M P Q2 spatial and f(P) g(Q) doppler
+C P[M], Q[M]
+Predict Transformation:
+(p,q)C q (Rp  t)2
+return R, t
+Algorithm 2 Iterative Closest Point Algorithm
+(spatial distance threshold)
+while not converged do
+Q FindClosest(P, Q)
+Masking Outliers:
+M P Q2 spatial
+C P[M], Q[M]
+Predict Transformation:
+(p,q)C q (Rp  t)2
+P TransformSourcePoint(R, t, P)
+end while
+return R, t
+1) Sparse 4D Radar: The Campus dataset  is utilized to
+evaluate sparse 4D radar point clouds. The data were collected
+using a ZF FRGen21 4D radar sensor mounted on the front
+bumper of a vehicle. Each 4D radar scan generates a sparse
+and noisy point cloud, containing approximately 400 to 1,400
+points every 60 ms. The Campus dataset encompasses outdoor
+environments featuring trees, vehicles, and pedestrians. These
+diverse settings challenge methods to operate effectively under
+low-density radar point cloud conditions.
+2) Semi-Dense 4D Radar: The Loop 1 dataset from the
+NTU4DRadLM dataset  is used to evaluate semi-dense 4D
+radar. The data were collected using a car platform with an
+Oculii Eagle 4D radar, traversing the NTU campus main roads,
+resulting in a 6.95 km trajectory. The car moved at an average
+speed of 2530 kmh, and the 4D radar scans exhibit semi-
+dense point clouds with approximately 1,000 to 2,000 points
+per 80ms. The environment features a mix of structured and
+semi-structured regions.
+3) Dense 4D LiDAR: The Straight Wall, Curved Wall, and
+Baker-Barry Tunnel datasets from  are utilized to evaluate
+dense 4D LiDAR. The Straight Wall and Curved Wall datasets,
+generated in the CARLA simulator, simulate featureless envi-
+ronments by placing large parallel walls along the trajectory.
+These datasets provide an effective platform for evaluating
+odometry performance, particularly in environments with lim-
+ited geometric features and repetitive structures. The Baker-
+Barry Tunnel dataset was collected using an Aeva Aeries I
+FMCW 4D LiDAR sensor. The point clouds from 4D LiDAR
+are significantly denser than 4D radar data, containing approx-
+imately 40,000 to 120,000 points per 100ms, depending on the
+sequence.
+B. Experiment Setup
+The proposed method is evaluated by comparing its per-
+formance with established methods: point-to-point ICP and
+DICP . DICP is a novel algorithm that integrates Doppler ve-
+locity into the Optimization in the ICP framework. It enhances
+scan matching by jointly optimizing both the closest point term
+and additional constraints derived from the Doppler velocity
+of each point. These methods are tested in two conditions: No
+Seed and With Seed. In the No Seed category, no initial pose
+estimate is provided, whereas the With Seed category uses the
+estimated pose from the previous scan pair under a constant-
+velocity motion model assumption .
+For point-to-point ICP, the parameters are set to the following
+iteration defines the maximum number of optimization itera-
+tions. The method is considered converged when the change in
+error falls below the convergence threshold. The point clouds are
+uniformly downsampled at intervals determined by the down-
+sampl

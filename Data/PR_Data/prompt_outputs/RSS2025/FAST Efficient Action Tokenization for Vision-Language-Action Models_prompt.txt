@@ -1,5 +1,5 @@
 === PDF文件: FAST Efficient Action Tokenization for Vision-Language-Action Models.pdf ===
-=== 时间: 2025-07-22 09:41:35.385310 ===
+=== 时间: 2025-07-22 09:58:46.769154 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -195,4 +195,467 @@ based VLAs  across many tasks, while being significantly
 more compute efficient to train.
 Another set of related work explores vector-quantized action
 representations [42, 3, 51]. Such approaches train a vector-
-quantiz
+quantized encoder-decoder network, for which reconstruction
+quality can be sensitive to hyperparameter choices and struc-
+ture . We find that these methods perform well at coarse,
+low-fidelity reconstruction tasks, but fail on high-frequency
+tasks when fine-grained control is required. In comparison, our
+FAST tokenization scheme has few hyperparameters and can
+reconstruct actions with high precision while offering strong
+compression properties.
+III. PRELIMINARIES
+Problem formulation. Our goal is to train policies (a1:Ho)
+that map an observation o to a sequence of future robot
+actions a1:H. We assume that policies output an action
+chunk [72, 41], a sequence of H actions [15, 7, 72], which
+makes it easier to produce temporally-consistent actions and
+reduces compounding error. The goal of action tokenization is
+to define a mapping Ta : a1:H [T1, . . . , Tn] from a sequence
+of continuous actions a1:H, with dimensionality A, to a
+sequence of n discrete tokens T V from a vocabulary of
+size V. Note that the number of tokens n may differ between
+Fig. 3: Effect of sampling rate on prediction performance.
+We train a small autoregressive transformer model on a
+didactic interpolation task, in which the network must predict
+the black dashed curve given the four circles. We find that
+models trained with the binning tokenization approach used in
+prior VLAs [10, 40] produce increasingly poor predictions as
+we increase the sampling frequency of the underlying signal,
+due to strong correlation between consecutive tokens at high
+frequencies. Our FAST tokenization approach, based on the
+discrete cosine transform (DCT), addresses the problem and
+leads to high-quality predictions across all sampling rates.
+action sequences, just like sentences of the same length may
+be tokenized into a variable number of text tokens.
+Binning-based action tokenization. The most commonly
+used approach for action tokenization is a simple binning dis-
+cretization scheme [8, 10, 40, 75, 59]. For a given action a, this
+approach discretizes each dimension independently, dividing
+the range of values in the training dataset into N uniform
+dimensional actions a1:H, this tokenization scheme would be
+applied to each time step, resulting in a final token sequence
+frequency robot data, this tokenization scheme is sub-optimal:
+it can easily produce hundreds of tokens per action chunk,
+which make training challenging and lead to slow inference.
+IV. CASE STUDY: HOW DOES TOKENIZATION AFFECT
+VLA TRAINING?
+To illustrate the challenge of training autoregressive poli-
+cies with current action tokenization approaches, we start
+with a simple didactic example. We create a synthetic time-
+series dataset where the goal is to predict a cubic spline
+that interpolates four randomly-generated points (see Fig-
+ure 3, bottom). This toy problem reflects the challenge faced
+by policies trained on high-frequency action chunks, which
+must predict a sequence of continuous actions given some
+conditioning information. We tokenize the target sequences
+using the nave tokenization scheme employed in previous
+VLA policies, which discretizes each element in the sequence
+separately into one of 256 bins (see Section III). We then
+train a small, autoregressive transformer policy to predict the
+tokenized signal given the conditioning points. We repeat this
+experiment for different sampling rates of the target signal,
+from 25 to 800 timesteps per sequence, without changing
+the underlying dataset. This emulates training autoregressive
+policies on action data collected at different frequencies.
+The average prediction MSE of autoregressive models
+trained at different frequencies is shown in Figure 3, top
+(naive). We observe that the model with binning tokenization
+achieves good prediction performance (i.e., low MSE) for
+low sampling rates. But as the sampling rate increases, the
+prediction error steeply increases, until eventually the model
+simply copies the first action, as seen in the qualitative
+visualization in Figure 3, bottom left. Note that this issue
+cannot be attributed to the data itself: the complexity of the
+underlying data distribution does not change, and we would
+expect a model with the same capacity trained for the same
+number of steps to achieve comparable performance across all
+sampling rates. So what happened?
+To understand how the tokenization scheme impacts learn-
+ing performance, we need to look at the learning objective
+itself. Fundamentally, autoregressive models are trained to
+predict the next token, given all previous tokens. As such, their
+learning signal is proportional to the marginal information
+content of Ti given T1:i1. Crucially, when using the nave
+per-timestep tokenization scheme, this marginal information
+approaches zero as the control frequency of the training signal
+change per timestep decreases proportionally. This greatly
+slows down the rate of convergence during training and can
+make it challenging to fit complex, high-frequency datasets.
+For instance, OpenVLA worked well on the low-frequency
+BridgeV2 and RT-1 datasets, but has struggled to fit the higher-
+frequency DROID dataset . The result of our case study
+underlines the importance of designing better tokenization
+schemes for robot actions.
+V. EFFICIENT ACTION TOKENIZATION VIA TIME-SERIES
+COMPRESSION
+We saw in the previous section how redundancy in high-
+frequency action trajectories can lead to low marginal in-
+formation for each action token, and thereby poor training
+performance. To address this, we need a tokenization approach
+that compresses the highly redundant action signal into a
+smaller number of high-information tokens. In this section,
+we will first describe a simple approach for compressing
+continuous time series (V-A), then use it to design an action
+tokenization algorithm (Section V-B), and finally explain how
+we train a universal tokenizer for robot actions (Section V-C).
+A. Time-Series Compression via Discrete Cosine Transform
+There is a rich body of work on effectively compressing
+continuous time series, from approaches that compress signals
+after transforming them into the frequency domain [18, 1, 64]
+to learned compression approaches, e.g., based on vector
+quantization [62, 50]. One key takeaway of our work is that
+any sufficiently effective compression approach, when applied
+to the action targets, is suited to improve the training speed of
+VLA models. In practice, there are a few considerations that
+may still lead us to favor some compression algorithms over
+efficient is it at tokenizing and detokenizing actions.
+In this work, we use a compression algorithm based on
+the discrete cosine transform (DCT) . DCT is a frequency-
+space transform that represents a continuous signal as a sum
+of cosine elements of various frequencies. Low frequencies
+capture the overall shape of the signal, while high-frequency
+components reflect sharp jumps. DCT is a commonly used
+transformation for compression algorithms, e.g., for JPEG im-
+age compression , due to its simplicity and computational
+represent most of the information of an input signal in only
+a few coefficients. Signals can be compressed by omitting
+frequency components with low weights. Compared to learned
+compression approaches based on vector quantization, DCT-
+based compression is an analytical approach, thus extremely
+simple and fast.
+B. The FAST Tokenization Algorithm
+We use the discrete cosine transform to design FAST, a
+quick and effective tokenization approach for robot actions.
+We detail the steps from raw robot actions to action tokens
+in Figure 4. We first normalize the input actions, such that
+the 1st and 99th quantile of values in the training dataset for
+each action dimension maps to the range [1, . . . , 1]. This
+initial normalization step is useful to bring the data into a
+specified range and also makes tokenization of cross-embodied
+datasets with different action scales easier. We use quantiles
+to be robust to outlier actions which occasionally occur in
+large robot datasets. After the data is normalized, we apply the
+discrete cosine transform to each action dimension separately.
+To compress the DCT-converted signal we can simply omit
+insignificant coefficients, which we implement through a scale-
+and-round operation, where the scaling coefficient is a hyper-
+parameter that trades off between lossiness and compression
+rate of the tokenization operation.
+Normalized action chunk
+(first 2 dimensions displayed)
+Frequency components
+(first 2 dimensions displayed)
+Sparse frequency matrix (each dim  1 row)
+Low-frequency components first
+Compressed action tokens
+Encoding
+Discrete
+Transform
+Quantize
+Fig. 4: Overview of the FAST action tokenization pipeline. Given a normalized chunk of actions, we apply discrete cosine
+transform (DCT) to convert the signal to the frequency domain. We then quantize the DCT coefficients and use byte-pair
+encoding (BPE) to compress the flattened sequence of per-dimension DCT coefficients into the final action token sequence.
+See Section V-B for a detailed description.
+After the rounding operation, the DCT coefficient matrix
+is typically sparse, with most entries being zero and only a
+few significant coefficients remaining per action dimension. To
+actually realize the compression, we must convert this sparse
+matrix into a sequence of dense tokens. We flatten the matrix
+into a 1-dimensional vector of integers, interleaving action di-
+mensions by including all low-frequency components first, and
+train a byte pair encoding (BPE) tokenizer  to losslessly
+compress it into dense action tokens. The BPE step squashes
+the zero-valued components and merges frequently-occurring
+coefficient combinations across action dimensions. We choose
+BPE to compress the DCT matrix, since many efficient im-
+plementations exist and it can produce a fixed-size output
+vocabulary that can be easily integrated into the existing
+vocabulary of vision-language models for VLA training. Other
+lossless compression algorithms like Huffman coding  or
+Lempel-Ziv methods  (the algorithms underlying the gzip
+compression approach) could be used instead, but we leave
+this investigation for future work.
+Note that the order of flattening the AH DCT coefficient
+matrix prior to BPE encoding can have significant impact on
+policy training. There are two options: column-first flattening,
+i.e., concatenate the lowest-frequency components for each
+dimension first, or row-first flattening, i.e., concatenating all
+frequency components for a single action dimension first. We
+choose the former, since we find that predicting the low-
+frequency components, that characterize the overall shape of
+the output sequence, first during autoregressive prediction
+leads to more stable policy rollouts.
+All operations in our tokenization pipeline are easily invert-
+in reverse. The tokenizer has only two hyperparameters: the
+scale applied to the DCT coefficients before rounding, and the
+vocabulary size of the BPE compression step. We find that
+Algorithm 1 FAST Tokenizer
+procedure FASTTOKENIZER(a1:H)
+Compute DCT coefficients
+Quantize coefficients
+Flatten tokens
+BPE Training:
+TrainBPE(D : {[Tk]})
+return action tokens
+both parameters are not very sensitive, and we use the same
+values across all our single-dataset tokenization experiments
+(rounding scale 10, BPE vocabulary size 1024). This is in
+contrast to end-to-end learned compression modules that rely
+on vector quantization . Such networks are often tedious
+to train, and require careful dataset-specific hyperparameter
+selection to achieve good reconstruction [69, 50]. Our experi-
+ments show that our DCT-based tokenization approach trains
+higher-performing policies than VQ-based approaches, while
+being significantly simpler and easier to tune.
+We empirically demonstrate the benefits of our DCT-
+based tokenization in the toy example from Section IV.
+Figure 3 shows that training the autoregressive model on DCT-
+compressed target tokens achieves constantly low prediction
+error across a wide range of sampling frequencies. We provide
+a concise summary of our tokenization approach in Algo-
+rithm 1 and test the effectiveness of FAST tokenization on
+robot control problems in Section VI.
+C. A Universal Robot Action Tokenizer
+The only learned component of our tokenizer is the vo-
+cabulary of the BPE encoder, which needs to be trained for
+each new dataset that the tokenizer is being applied to. While
+this learning process is fast (typically only a few minutes),
+it adds additional friction to using FAST tokenization. Thus,
+we aim to train a universal action tokenizer, that can encode
+chunks of robot actions from any robot. To this end, we train a
+tokenizer using the pipeline described above on a large, cross-
+embodied robot action dataset, consisting of approximately
+one million 1-second action chunks from single-arm, bi-
+manual and mobile manipulation robots, with joint and end-
+effector control action spaces and various control frequencies.
+We provide a detailed breakdown of the data mixture used
+for training the universal tokenizer in Appendix A. Once
+as a black-box tokenizer on 1-second action sequences from
+any robot setup. Our experimental evaluation shows that it is
+competitive to tokenizers tuned for individual datasets.
+release. We release our pre-trained universal ac-
+convenient
+HuggingFace
+AutoProcessor class, that makes it easy to apply the
+tokenizer to any new robot action chunk in three lines of code:
+from transformers import AutoProcessor
+tokenizer  AutoProcessor.frompretrained(
+"<anonymous>fast",
+trustremotecodeTrue
+tokens  tokenizer(actionchunk)
+For best compression results, we recommend normalizing
+input actions to range [1, . . . , 1] via quantile normalization
+as described in Section V-B, and tokenizing 1-second action
+chunks at a time. Our module also makes it easy to train a
+new FAST tokenizer on a given dataset of action chunks:
+from transformers import AutoProcessor
+tokenizer  AutoProcessor.frompretrained(
+"<anonymous>fast",
+trustremotecodeTrue
+newtokenizer  tokenizer.fit(actiondataset)
+VI. EXPERIMENTS
+In our experiments, we test FAST with two VLA backbones:
+0  and OpenVLA . We compare FAST to alternative
+action tokenization schemes and ablate key design decisions.
+We then compare 0 models trained with FAST tokenization
+to the state-of-the-art 0 flow-matching (diffusion) VLA, and
+test the scaling of autoregressive VLA training with FAST to
+robot manipulation data.
+A. Experimental Setup
+implementation.
+different
+tokenization
+schemes for autoregressive VLA training with popular VLA
+Fig. 5: Evaluation environments. We test FAST across
+7 evaluation environments: 6 real-robot tasks and 1 simulation
+environment. The tasks are designed to test VLA performance
+on highly dexterous tasks, like folding cloths from a laundry
+basket (Laundry Folding), and generalization, e.g., zero-shot
+table-top manipulation in unseen environments (DROID).
+backbones. For most of our experiments, we use 0 ,
+a VLA based on PaliGemma-3B . We also test with
+least used tokens in the VLM vocabulary with the resulting
+action tokens, following prior VLAs [10, 40]. We fine-tune
+the VLA models for robot action prediction, without weight
+freezing. We provide more details on the policy training setup
+in Appendix C.
+Evaluation tasks. We develop a suite of 7 evaluation tasks
+(6 real robot, 1 simulated; see Figure 5), designed to test
+VLA performance on both, highly dexterous tasks like laundry
+manipulations 0-shot in unseen environments.
+suites. We measure average performance across Libero-
+Table bussing  (20 Hz): a UR5 single-arm robot needs
+to clean a table, sorting 12 objects into a trash bin (for
+trash) and a plastic container (for plates, bowls, cups and
+cutlery). The task requires precise grasping of various
+objects.
+T-Shirt folding  (50 Hz): a bi-manual ARX robot
+setup needs to fold various shirts on a stationary table
+top. At the beginning of the task, the shirts are placed
+flat on the table. Succeeding at the task requires precise
+grasps and movements to fold the shirt.
+Grocery bagging  (20 Hz): a UR5 single-arm robot
+needs to pack seven objects from a table into a grocery
+This task requires picking a diverse set of objects and
+carefully inserting them into the bag.
+Toast out of toaster  (50 Hz): a bimanual Trossen
+Viper-X robot needs to remove two slices of bread from
+a toaster and place them on a plate. This task requires
+precise grasping and placement of the bread slices.
+Laundry folding  (50 Hz): a bi-manual ARX robot
+needs to take shirts and shorts from a basket, flatten them
+on a table, fold and stack them. This is the most dexterous
+task we test. It requires precise grasps, dynamic motions
+to flatten the cloths, retrying and corrections when cloths
+got tangled up, and precise placements of the folded
+cloths on the existing stack of cloths. We report success
+rate on individual clothing items.
+Zero-shot DROID tabletop manipulation  (15 Hz):
+we test a policy trained on the full DROID dataset across
+various table-top manipulation tasks like picking and
+placing objects, wiping, opening and closing drawers etc.
+this is the first zero-shot evaluation of DROID policies
+in a completely unseen environment, without co-training
+or fine-tuning, simply by prompting a pre-trained model
+with natural language.
+We use grocery bagging, the toaster task, and laundry folding
+only to evaluate our most powerful, generalist VLA in Sec-
+tion VI-F. We provide additional details on training datasets
+and evaluation tasks in Appendix E.
+Comparisons. We test FAST, our DCT-based action tokeniza-
+tion approach, trained on each evaluation dataset individually,
+and FAST, our universal DCT-based action tokenizer, trained
+on a large dataset of 1M action sequences. Note that we
+trained the universal tokenizer on the most diverse real robot
+dataset we could assemble, which includes data from our real-
+robot evaluation tasks. We compare both tokenizers to the
+per-dimension binning scheme used by prior autoregressive
+VLAs like RT-2 , RT-2-X  and OpenVLA , dubbed
+nave tokenization. We apply the binning tokenization to each
+time step in the action chunk separately and then concatenate.
+tion without the need to train any separate model, we can
+consider an alternative compression scheme that instead trains
+a model to produce a quantized representation of the action
+chunk via FSQ , a simpler alternative to VQ-VAE .
+This tokenization strategy has been previously used to tokenize
+high-dimensional image data [50, 69], and can be viewed
+as an ablation of our compression-based approach, utilizing
+compressed representations but with a more complex learning-
+based alternative to our relatively simple DCT-based method.
+B. Comparing Action Tokenizers for VLA Training
+Dimension
+Frequency
+Avg. Token
+Compression
+BridgeV2
+Shirt Fold
+TABLE I: Comparison of the average token count per
+action chunk for nave tokenization and FAST. We use 1-
+second chunks in all datasets. With our method, each chunk
+requires many fewer tokens, particularly for high-frequency
+domains such as the T-shirt folding task, indicating that it is
+more effective at removing redundancy.
+We first provide a comparison of compression rates between
+our proposed FAST tokenizer and the nave binning scheme
+used in prior works in Table I. We use 1-second action chunks
+from datasets with various action dimensionalities and control
+frequencies. For both approaches we use the default hyper-
+see that FAST achieves a significant compression of the input
+action sequences across all datasets. The compression benefits
+are especially pronounced for datasets with high-frequency
+action data. Interestingly, FAST consistently generates roughly
+30 action tokens per chunk per robot arm (i.e., 60 tokens for
+the bi-manual setup) in each of the domains. This suggests that
+FAST finds a representation that approximates the complexity
+of the underlying action signal, and is largely independent of
+the frequency of the action data.
+We note that this compression is not entirely lossless,
+with a trade-off between compression ratio and reconstruction
+accuracy determined by the scale parameter  from Algo-
+rithm 1. Figures in Table I are at comparable reconstruction
+accuracy. Please see Figure 12 for plots showing the trade-off
+between compression and fidelity for each of the tokenizers
+we compare.
+tokenization approaches described in Section VI-A. We report
+results in Figure 6.
+prior works struggles to learn effective policies on high-
+frequency robot data. This is particularly apparent for the
+T-SHIRT FOLDING
+TABLE BUSSING
+Task Progress
+Task Progress
+Fig. 6: Comparison of policy performance using different tokenization approaches. We find that tokenization approaches
+that compress action targets (FAST, FSQ) lead to substantially more efficient training than the nave binning tokenization used
+in prior VLAs. Overall, we find that FAST leads to more effective policy training than FSQ, particularly on dexterous real-robot
+tasks. Our universal tokenizer, FAST, matches the performance of dataset-specific tokenizers. We report mean and 95 CI.
+Building 1
+Building 2
+Building 3
+Fig. 7: Evaluation environments of FAST policy trained
+on DROID . We find that the same policy checkpoint
+generalizes robustly, and performs various simple table-top
+tasks zero-shot across three test buildings.
+highest frequency tasks in our evaluations: Table Bussing
+(20Hz) and T-Shirt Folding (50Hz). On both tasks, policies
+trained with nave tokenization are unable to make progress
+on the task.
+In contrast, we find that compression-based tokenization
+leads to effective training. Comparing FAST to our FSQ
+on the dexterous, high-frequency tasks, despite being much
+simpler and requiring no separate neural network training.
+ful training of a strong generalist policy on the DROID
+Single Arm
+T-DROID Joint
+T-DROID EEF
+UMI on Legs
+Dexterous
+NYU Hand
+Berkeley Dex Arm
+Berkeley Dex Hand
+Humanoid
+Humanplus
+Open Television
+Compression Ratio
+(Naive  FAST)
+Fig. 8: Universal tokenizer. We test the compression rate
+achieved by our FAST tokenizer vs. nave tokenization across
+diverse robot datasets, unseen during tokenizer training. We
+find that FAST is effective across a wide range of robot
+in natural language. All prior works, including the original
+DROID paper  and OpenVLA , did not show zero-shot
+results and focused entirely on co-training or fine-tuning eval-
+uations instead. We demonstrate the generality of our DROID
+policy by testing it on various table-top manipulation tasks
+in environments across three university campuses (Figure 7).
+Out of the box, the policy can competently perform simple
+manipulation tasks, like picking and placing objects, opening
+and closing cupboards and turning on faucets, across a wide
+range of scenes and camera viewpoints. Even unsuccessful
+trials show sensible behavior, like approaching the handles of
+microwave and dish washer doors, even if ultimately failing
+to open them. We show success and failure videos on our
+website. While far from perfect, the level of generality and
+robustness of this policy substantially exceeds that of prior
+DROID policies.
+C. Universal Action Tokenizer
+In this section, we evaluate the performance of our universal
+action tokenizer, FAST, which we trained on 1M real robot
+action sequences (see Section V-C). To test the generality
+of the tokenizer, we assemble a diverse set of small testing
+datasets. This set spans a wide range of robot morphologies,
+action spaces, and control frequencies (see Figure 8, with a full
+list of datasets in Table III). Note that none of these datasets is
+part of the tokenizer training set. They thus test a scenario in
+which the tokenizer is applied to a completely new robot setup
+without recomputing the tokenization. We find that the FAST
+tokenizer achieves good compression performance across a
+wide range of robot datasets, reducing the number of action
+tokens by 2x across all datasets, and significantly more on
+We also test performance of the universal tokenizer for
+policy training, and report results alongside the per-dataset
+tokenizers in Figure 6. Across all tasks, the universal tok-
+enizer closely matches the performance of the dataset-specific
+FAST tokenizers, suggesting that the universal tokenizer can
+be used as a strong default for robot action tokenization.
+D. Ablation Studies
+We analyze two key aspects of our me

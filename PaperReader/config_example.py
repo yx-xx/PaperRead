@@ -20,9 +20,16 @@ PDF_FOLDER = "/home/yx_xx/myProject/论文/RSS2025/downloads"
 # SAVE_DIR = "Data/PR_Data/glm_outputs"
 SAVE_OP_DIR = "Data/PR_Data/glm_outputs/RSS2025"
 
+######### 论文prompt截断参数
+# 最大字数
+MAX_LENGTH = 70000
+# 截断比例
+PAPER_PERCENT = 0.7
+
+
 # 原始prompt保存路径
 # SAVE_DIR = "Data/PR_Data/glm_outputs"
-SAVE_PROMPT_DIR = "Data/PR_Data/prompt_outputs"
+SAVE_PROMPT_DIR = "Data/PR_Data/prompt_outputs/RSS2025"
 
 
 # 输出Excel文件名

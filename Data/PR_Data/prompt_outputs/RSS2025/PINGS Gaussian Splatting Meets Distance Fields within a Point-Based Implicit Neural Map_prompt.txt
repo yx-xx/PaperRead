@@ -1,5 +1,5 @@
 === PDF文件: PINGS Gaussian Splatting Meets Distance Fields within a Point-Based Implicit Neural Map.pdf ===
-=== 时间: 2025-07-22 09:42:54.595476 ===
+=== 时间: 2025-07-22 10:00:32.944717 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -184,4 +184,400 @@ directly from LiDAR measurements [10, 21, 78]. Direct depth
 measurements can further supervise depth rendering to im-
 prove geometric accuracy and convergence speed [25, 42].
 Our approach uniquely combines geometrically consistent
-2D Gaussian disks with a neural distance 
+2D Gaussian disks with a neural distance eld supervised
+by direct LiDAR measurements, enforcing mutual geometric
+consistency between the representations. This differs from GS-
+elds without mutual supervision.
+C. Large-Scale 3D Reconstruction
+This paper focuses on online large-scale 3D reconstruction.
+There have been numerous works for the scalable occupancy
+or distance eld mapping in the past decade, using efcient
+data structures such as an Octree [22, 93], voxel hashing [33,
+Scalable radiance eld mapping has also made signicant
+progress recently. For large scale scenes captured by aerial
+results using level-of-detail rendering and neural Gaussian
+compression. For driving scenes with short sequences contain-
+ing hundreds of images, both NeRF-based [54, 81] and 3DGS-
+based [9, 13, 19, 80, 90, 95] approaches have demonstrated
+high-delity ofine radiance eld reconstruction, enabling
+closed-loop autonomous driving simulation [9, 81].
+at ground level with thousands of images remains chal-
+lenging due to scene complexity and memory constraints.
+BlockNeRF  addresses this by dividing scenes into over-
+lapping blocks, training separate NeRFs per block, and consol-
+idating them during rendering. Similarly, SiLVR  employs
+a submap strategy for scalable NeRF mapping. For 3DGS,
+hierarchical 3DGS  introduces a level-of-detail hierarchy
+that enables real-time rendering of city-scale scenes. The
+aforementioned methods require time-consuming structure-
+from-motion preprocessing and ofine divide-and-conquer
+While there are several works on incremental mapping and
+SLAM with NeRF [49, 56, 60] or 3DGS [29, 42, 72, 96], they
+primarily focus on bounded indoor scenes and struggle with
+our target scenarios. Our proposed system enables incremental
+radiance and distance eld mapping at the scale of previous
+ofine methods [31, 61], while achieving globally consistent
+3D reconstruction through loop closure correction.
+III. OUR APPROACH
+Our approach, called PINGS, is a LiDAR-visual SLAM sys-
+tem that jointly builds globally consistent Gaussian splatting
+radiance elds and distance elds for large-scale scenes.
+Notation. In the following, we denote the transformation
+from coordinate frame A to frame B as TBA SE(3),
+such that point pB  TBApA, with rotation RBA SO(3)
+and translation tBA R3, where the rotation is also param-
+eterized by a unit quaternion q. At timestep t, each sensor
+frame St (LiDAR frame Lt or camera frame Ct) is related to
+the world frame W by pose TW St, with TW S0 xed as identity.
+We denote the rotation of a vector v R3 by a quaternion q
+as qvq1 and the multiplication of two quaternions as q1q2.
+Overview. We assume the robot is equipped with a LiDAR
+sensor and one or multiple cameras. At each timestep t, the
+input to our system is a LiDAR point cloud P  {p R3}
+and M camera images I  {Ii RHW 3  i  1, . . . , M}
+collected by the robot. We assume the calibration of the
+LiDAR and cameras to be known but allow for the imper-
+fect synchronization among the sensors. Our system aims to
+simultaneously estimate the LiDAR pose TW Lt while updating
+a point-based implicit neural map M, which models both a
+SDF and a radiance eld, as summarized in Fig. 2.
+A. Point-based Implicit Neural Map Representation
+We dene our point-based implicit neural map M as a set
+of neural points, given by:
+M  {mi  (xi, qi, f g
+where each neural point mi is dened in the world frame W
+by a position xi R3 and a quaternion qi R4 representing
+the orientation of its own coordinate frame. Each neural point
+stores the optimizable geometric feature vector f g
+and appearance feature vector f a
+i RFa. In addition, we
+keep track of each neural points creation timestep  c
+last update timestep  u
+to determine its active status and
+associate the neural point with the LiDAR pose TW L at the
+middle timestep i  ( c
+i )2between  c
+i and  u
+allowing direct map manipulation through pose updates.
+We maintain a voxel hashing  data structure V with a
+voxel resolution vp for fast neural point indexing and neighbor
+During incremental mapping, we dynamically update the
+neural point map based on point cloud measurements. For
+each newly measured point pW in the world frame, we check
+its corresponding voxel in V. If no active neural point exists
+in that voxel, we initialize a new neural point m with the
+position x  pW , an identity quaternion q  (1, 0, 0, 0), and
+the feature vectors f g  0, f a  0. Additionally, we dene a
+local map Ml centered at the current LiDAR position tW Lt,
+which contains all active neural points within radius rl. To
+avoid incorporating inconsistent historical observations caused
+by odometry drift, both map optimization and odometry esti-
+mation are operated only within this local map Ml. After the
+map optimization at each timestep, we reassign the local map
+Ml into the global map M.
+both the SDF (Sec. III-B) and the radiance eld (Sec. III-C).
+Neural point map
+Signed distance field
+GS radiance field
+Training data pool
+rasterization
+initialize
+operation flow
+gradient flow
+Fig. 2: Overview of PINGS: We take a stream of LiDAR point clouds P and camera images I as input. We initialize a neural point map
+M from P and maintain a training pool of SDF-labeled points Qp and recent images Qi. The map uses a voxel hashing structure V where
+each neural point stores geometric features f g and appearance features f a. These features are used to predict SDF values S(p) at an
+arbitrary position p and spawn Gaussian primitives G through MLP decoders. We compute three kind of losses: (1) Gaussian splatting loss
+Lgs comparing rendered images through differentiable rasterization and reference images in the training pool, (2) SDF loss Lsdf comparing
+predicted SDF and labels of the sampled points in the training pool, and (3) consistency loss Lcons to align the geometry of both representations.
+The losses are backpropagated to optimize the neural point features f g and f a. Meanwhile, we estimate LiDAR odometry by aligning the
+point cloud to current SDF and backpropagate Lgs to rene the camera poses. The nal outputs are LiDAR poses TW Lt, camera poses TW Ct,
+and a compact neural point map M representing both SDF and Gaussian splatting radiance elds, enabling various robotic applications.
+B. Neural Signed Distance Field
+For the modeling and online training of a continuous SDF
+using the neural points, we follow the same strategy as in
+PIN-SLAM  and present a recap in this section.
+We model the SDF value s at a query position p in the world
+frame W conditioned on its nearby neural points. For each
+neural point mj in the k-nearest neighborhood Np of p, we
+dene the relative coordinate dj  qj(pxj)q1
+denoting p
+in the local coordinate system of mj. Then, we feed the
+geometric feature vector f g
+j and the relative coordinate dj
+to a globally shared SDF decoder Dd to predict the SDF sj:
+sj  Dd(f g
+As shown in Fig. 3 (a), the predicted SDF values sj of the
+neighboring neural points at the query position p are then
+interpolated as the nal prediction s  S(p), given by:
+with the interpolation weights wj  p xj2.
+To optimize the neural SDF represented by the neural point
+geometric features {f g
+i1 and the SDF decoder Dd, we
+sample points along the LiDAR rays around the measured end
+points and in the free space. We take the projective signed
+distance along the ray as a pseudo SDF label for each sample
+point. For incremental learning, we maintain a training data
+pool Qp containing sampled points from recent scans, with a
+maximum capacity and bounded by a distance threshold from
+the current robot position. At each timestep, we sample from
+the training data pool in batches and predict the SDF value at
+the sample positions. The SDF training loss Lsdf is formulated
+as a weighted sum of the binary cross entropy loss term Lbce
+and the Eikonal loss term Leik, given by:
+Lsdf  bceLbce  eikLeik.
+The loss term Lbce applies a soft supervision on the SDF
+values by comparing the sigmoid activation of both the pre-
+dictions and the pseudo labels. The Eikonal loss term Leik
+regularizes the SDF gradients by enforcing the Eikonal con-
+1 for the sampled points. For more details regarding the SDF
+The incrementally built neural SDF map can then be used
+for LiDAR odometry estimation and surface mesh extraction.
+C. Neural Gaussian Splatting Radiance Field
+We use camera image streams I to construct a radiance
+eld by spawning Gaussian primitives from our neural point
+map M and optimizing M via differentiable rasterization.
+Neural Point-based Gaussian Spawning. Inspired by
+spawning Gaussian primitives, see Fig. 3 (b). For each neural
+point m lying within the current camera frustum, we spawn K
+Gaussian primitives by feeding its feature vectors (f g, f a)
+through globally shared MLP decoders. We parameterize each
+spawned Gaussian primitive g with its position  R3 in the
+world frame, rotation r R4 in the form of a unit quaternion,
+scale s R3, opacity  [1 , 1], and RGB color c [0 , 1]3.
+Neural point
+3D Gaussian ellipsoid
+Gaussian surfel with normal
+Fig. 3: Example of neural point-based SDF prediction, Gaussian primitives spawning, and the geometric consistency of PINGS: (a) SDF
+prediction at a query point through weighted interpolation of predictions from neighboring neural points. (b) Neural points spawning multiple
+Gaussian primitives to compose the radiance eld. (c) Example of an accurate SDF but geometrically inaccurate radiance eld with 3D
+Gaussian ellipsoids in regions with dense LiDAR coverage but sparse camera views, weak texture, or poor lighting. (d) Example of a
+geometrically accurate radiance eld but inaccurate SDF in regions with rich visual data but sparse LiDAR measurements. (e) Our solution:
+attening 3D Gaussian ellipsoids to surfels and enforcing geometric consistency by aligning surfel centers with the SDF zero-level set and
+aligning surfel normals with SDF gradients, resulting in accurate geometry for both elds.
+Each neural point spawns Gaussian primitives in its local
+coordinate frame dened by its position x and orientation q.
+The world-frame position i of each spawned primitive is:
+{i  qoiq1  x  oi Do(f g)}K
+where Do is the offset decoder that maps the geometric
+feature f g to a set of K local offsets {oi}K
+transformed into the world frame through quaternion rotation
+and translation. Likewise, the rotation ri of each spawned
+Gaussian primitive is predicted by the rotation decoder Dr
+and then rotated by quaternion q as:
+{ri  qri  ri Dr(f g)}K
+The scale decoder Ds predicts each primitives scale si as:
+i1  Ds(f g) .
+We predict opacity values  in the range [1, 1] and treat
+only Gaussian primitives with positive opacity as being valid.
+To adaptively control spatial density of Gaussian primitives
+based on viewing distance, we feed the geometric feature f g
+and the view distance v  x tW C2 into the opacity
+decoder D. This implicitly encourages the network to predict
+fewer valid Gaussians for distant points and more for nearby
+each Gaussian primitive is predicted as:
+i1  D(f g, v) .
+For view-dependent color prediction, we take a dif-
+approach
+spherical
+harmonics
+3DGS . We feed the appearance feature f a and the
+view direction dv  (x tW C)v to the color decoder Dc
+to predict the color ci of each Gaussian primitive, given by:
+i1  Dc(f a, q1dvq) ,
+where the view direction dv is also transformed into the local
+coordinate system of the neural point.
+Note that we treat position, rotation, scale, and opacity
+as geometric attributes of a Gaussian primitive, using the
+geometric feature f g for their prediction, while using the
+appearance feature f a to predict color.
+Gaussian Splatting Rasterization. We gather all the valid
+Gaussians primitives G  spawned at the current viewpoint:
+The distribution of each Gaussian primitive gi in the world
+frame is represented as:
+N(x; i, i)  exp
+where the covariance matrix i is reparameterized as:
+i  R(ri) S(si) S(si)R(ri),
+where R(ri) SO(3) is the rotation matrix derived from the
+quaternion ri and S(si)  diag(si) R33 is the diagonal
+scale matrix composed of the scale si on each axis.
+Using a tile-based rasterizer , we project the Gaussian
+primitives to the 2D image plane and sort them according to
+depth efciently. The projected Gaussian distribution is:
+(TCW ) ,
+where  and  are the projected mean and covariance,
+denotes the perspective projection, J is the Jacobian of the
+projective transformation, and W is the viewing transforma-
+tion deduced from current camera pose TW C. The rendered
+RGB image I at each pixel u is computed via alpha blending:
+where the weight wi of each of the depth-sorted Gaussian
+primitives G(u) covering pixel u is given by:
+wi  Tii , Ti
+where i is the projected opacity of the i-th Gaussian
+i) evaluated at pixel u with the projected mean
+and covariance
+Gaussian Surfels Training. To achieve accurate and multi-
+view consistent geometry, we adopt Gaussian Surfels , a
+state-of-the-art 2DGS representation , by attening 3D
+Gaussian ellipsoids into 2D disks (last dimension of scale
+sz  0). For each pixel u, we compute the surfel depth d (u)
+as the ray-disk intersection distance, and obtain the normal n
+as the third column of the rotation matrix R(r). Using alpha
+using the weights wi calculated in Eq. (15):
+widi (u) ,
+Given the training view with the RGB image bI and the
+sparse depth map bD projected from the LiDAR point cloud,
+we dene the Gaussian splatting loss Lgs combining the
+photometric rendering Lphoto, depth rendering Ldepth, and area
+regularization Larea terms, given by:
+Lgs  photoLphoto  depthLdepth  areaLarea,
+Lphoto  0.8  L1
+0.2  Lssim
+Ldepth  L1
+where L1 is the L1 loss, Lssim is the structural similarity
+index measure (SSIM) loss , sx
+i and sy
+i are the scales of
+the Gaussian surfel gi. The area loss term Larea encourages
+minimal overlap among the surfels covering the surface.
+To handle inaccurate camera poses resulting from imperfect
+LiDAR odometry and camera-LiDAR synchronization, we
+jointly optimize the camera poses on a manifold during radi-
+ance eld training . We also account for real-world lighting
+variations by optimizing per-frame exposure parameters .
+D. Joint Optimization with Geometric Consistency
+To enforce mutual alignment between the surfaces rep-
+resented by the SDF and Gaussian splatting radiance eld,
+we futhermore propose to jointly optimize the geometric
+consistency. This joint optimization helps resolve geometric
+ambiguities in the radiance eld through the direct surface
+description of SDF, while simultaneously rening SDFs ac-
+curacy in regions with sparse LiDAR measurements using the
+dense photometric cues and multi-view consistency from the
+radiance eld, see Fig. 3 (c), (d), and (e).
+For each sampled Gaussian surfel, we randomly sample
+points along its normal direction n from the center  with
+random offsets  U (max, max). We enforce geometric
+consistency between the SDF and Gaussian surfels through a
+two-part consistency loss Lcons, given by:
+Lcons  d
+S (i  ini) i ,
+1 S (i  ini)T ni
+S (i  ini)
+where Ld
+cons enforces SDF values to match sampled offsets via
+an L1 loss, and Lv
+cons aligns SDF gradients S at the sampled
+points with surfel normals n using cosine distance.
+We dene the total loss L given by the sum of the SDF loss
+Lsdf in Eq. (4), Gaussian splatting loss Lgs in Eq. (17), and
+the geometric consistency loss Lcons in Eq. (21):
+L  Lsdf  Lgs  Lcons.
+We jointly optimize the neural point features {f g
+decoder parameters, camera poses, and exposure correction
+parameters to minimize the total loss L.
+E. PINGS LiDAR-Visual SLAM System
+We devise a LiDAR-visual SLAM system called PINGS
+using the proposed map representation, built on top of the
+LiDAR-only PIN-SLAM  system. PINGS alternates be-
+tween two main steps: (i) mapping: incremental learning of
+the local neural point map Ml, which jointly models the SDF
+and Gaussian splatting radiance eld, and (ii) localization:
+odometry estimation using the learned SDF. In addition, loop
+closure detection and pose graph optimization run in parallel.
+We initialize PINGS with 600 iterations of SDF training
+using only the rst LiDAR scan. At subsequent timesteps, we
+jointly train the SDF and radiance eld for 100 iterations. To
+prevent catastrophic forgetting during incremental mapping,
+we freeze decoder parameters after 30 timesteps and only up-
+date neural point features. We found the decoders converge on
+learning the interpretation capability within these 30 frames.
+We maintain sliding window-like training pools Qp and Qi
+containing SDF-labeled sample points and image data whose
+view frustum overlaps with the local map Ml, respectively.
+Each training iteration samples one image from Qi and 8192
+points from Qp for optimization.
+We estimate LiDAR odometry by aligning each new scan
+to the SDFs zero level set using an efcient Gauss-Newton
+optimization  that requires only SDF values and gradients
+queried at source point locations, eliminating the need for
+explicit point correspondences. Initial camera poses are de-
+rived from the LiDAR odometry and extrinsic calibration, then
+rened via gradient descent during the radiance eld optimiza-
+tion to account for imperfect camera-LiDAR synchronization,
+as described in Sec. III-C.
+In line with PIN-SLAM, we detect loop closures using
+the layout and features of the local neural point map. We
+then conduct pose graph optimization to correct the drift of
+the LiDAR odometry and get globally consistent poses. We
+move the neural points along with their associated LiDAR
+frames to keep a globally consistent map. Suppose T is the
+pose correction matrix of LiDAR frame Li after pose graph
+each neural point associated with Li as:
+where q is the rotation part of T in the form of a
+quaternion. Since the positions, rotations, and colors of the
+spawned Gaussian primitives are predicted in the local frames
+of their anchor neural points, see Eq. (5), Eq. (6), and Eq. (9),
+they automatically transform with their anchor neural points,
+thus maintaining the global consistency of the radiance eld.
+PINGS aims to build static distance and radiance elds
+without artifacts from dynamic objects. Since measured points
+with large SDF values in stable free space likely correspond to
+dynamic objects , we identify neural points representing
+dynamic objects through SDF thresholding. We disable Gaus-
+sian primitive spawning for these points, effectively preventing
+dynamic objects from being rendered from the radiance eld.
+IV. EXPERIMENTAL EVALUATION
+The main focus of this paper is an approach for LiDAR-
+visual SLAM that unies Gaussian splatting radiance elds
+and signed distance elds by leveraging their mutual consis-
+tency within a point-based implicit neural map representation.
+We present our experiments to show the capabilities of our
+method called PINGS. The results of our experiments support
+our key claims, which are: (i) PINGS achieves better RGB
+and geometric rendering at novel views by constraining the
+Gaussian splatting radiance eld using the SDF; (ii) PINGS
+builds a more accurate SDF for more accurate localization
+and surface reconstruction by leveraging dense photometric
+cues from the radiance eld; (iii) PINGS enables large-scale
+globally consistent mapping with loop closures; (iv) PINGS
+builds a more compact map than previous methods for both
+radiance and distance elds.
+A. Experimental Setup
+1) Datasets: We evaluate PINGS on self-collected in-house
+car datasets and the Oxford Spires dataset . Our in-house
+car datasets were collected using a robot car equipped with
+four Basler Ace cameras providing 360visual coverage and
+an Ouster OS1-128 LiDAR (45vertical FOV, 128 beams)
+mounted horizontally, both operating at 10 Hz. We calibrate
+the LiDAR-camera system using the method proposed by
+Wiesmann et al.  and generate reference poses through
+ofine LiDAR bundle adjustment , incorporating RTK-
+GNSS data, point cloud alignment as well as constraints from
+precise geo-referenced terrestrial laser scans.
+We evaluate the SLAM localization accuracy and scalability
+of PINGS on two long sequences from our dataset: a 5 km se-
+quence with around 10,000 LiDAR scans and 40,000 images,
+and a second sequence which is a bit shorter. Both sequences
+traverse the same area in opposite directions on the same day.
+For better quantitative evaluation of the radiance eld mapping
+and 600 images each, as shown in Fig. 4. Having sequences
+captured in opposite driving directions and lane-level lateral
+displacement allows us to evaluate novel view rendering from
+substantially different viewpoints from the training views (out-
+of-sequence testing views), which is a critical capability for
+downstream tasks such as planning and simulation.
+We evaluate surface reconstruction accuracy on the Oxford
+Spires dataset , which provides a millimeter-accurate refer-
+ence map from a Leica RTC360 terrestrial laser scanner. The
+In-sequence trajectory
+Out-of-sequence trajectory
+Roundabout
+Residential Area
+Fig. 4: Visualization of the ve scenes from our in-house car dataset
+used for novel view rendering evaluation. For each scene, we show a
+birds eye view rendering from the radiance eld built by PINGS, with
+a detailed zoom-in of the Campus scene. The robot car traversed each
+area twice in opposite directions with lane-level lateral displacement.
+The black trajectory provided images for training (sampled) and in-
+sequence testing (unsampled), while the red trajectory pro

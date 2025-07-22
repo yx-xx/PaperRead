@@ -1,5 +1,5 @@
 === PDF文件: Robust Peg-in-Hole Assembly under Uncertainties via Compliant and Interactive Contact-Rich Manipulat.pdf ===
-=== 时间: 2025-07-22 09:43:05.392152 ===
+=== 时间: 2025-07-22 10:00:51.152199 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -192,4 +192,521 @@ enabled contact between the peg and the hole to eliminate
 uncertainty in insertion motions.
 C. Funnel-based Manipulation
 Mason  proposed the original concept of manipulation
-funnels to eliminate uncert
+funnels to eliminate uncertainties based on task mechanics
+and task-specic interaction. The importance of exploiting
+task mechanics to eliminate uncertainties is also revealed in
+concepts such as pre-image  and backprojections .
+Early works have applied funnel-based designs in manipula-
+tion tasks, including ball batting , part orienting [18, 17] and
+et al.  investigated funnel-based action primitives for in-
+hand manipulation through an empirical study. Canberk et al.
+proposes canonicalized-alignment as task mechanics to
+funnel the large space of possible cloth congurations into a
+The major challenges in developing funnel-based manipu-
+lation lie twofold: 1) formulating the general task mechanics
+for a given manipulation task and 2) dening task-specic
+interaction beyond hardware-associated control. To tackle the
+above challenges in real-world peg-in-hole tasks, we provide
+a general formulation of the task mechanics of peg-in-hole
+insertion and an object-centric interaction mechanism, which
+is not dependent on any specic hardware.
+III. PRELIMINARIES AND PROBLEM STATEMENT
+In this work, we consider the peg-in-hole assembly problem
+as inserting a peg into its matching hole on a planar board
+surface as illustrated in Fig. 2-(a). We aim to plan compliant
+motions of a manipulated peg that frequently makes and breaks
+contact with its task environment, rst to perceive the location
+of the matching hole on the task board and then insert the peg
+into it under tight clearance.
+A. Preliminaries
+1) Geometry of the Peg and Hole: The 3-dimensional (3-
+D) geometry of the hole is described in the hole reference
+frame {H}, as an intrusion of a 2-D polygonal base dened
+by an ordered sequence of vertices Vh  (v0
+R3 is the corresponding unordered set of the Vh. The intrusion
+is along the negative direction of the Z-axis of {H}. Vh
+denes a planar region Ah R3 on the XY -plane of {H}
+Ah  {(x, y, z) R3  fAh(x, y) 0 z  0}
+where fAh(x, y) is an implicit distance function to describe
+the boundary of Ah as fAh(x, y)  0 and its interior area as
+fAh(x, y) < 0, exterior area as fAh(x, y) > 0.
+The 3-D geometry of the peg is described in the peg
+reference frame {E}, as an extrusion of a 2-D polygon
+base Ve  (v0
+e ), ve R3, zve  0 on the XY -
+plane of {E}. Its corresponding unordered set is denoted as
+S(Ve)  n
+e} R3.The extrusion is along the positive
+direction of Z-axis of {E}, and Ve is considered approximated
+equal to Vh but dened in different frames.
+2) Task Environment: We specify the Cartesian world
+frame {O} attached to the task board, as its XY -plane is
+aligned with the board surface and its orthogonal Z-axis points
+outward the task board. The pose of the hole in the world
+frame is denoted as T{OH} SE(3). We describe the task
+Direction
+2-D polygonal base on the XY-plane of {H}
+Extrusion
+Direction
+Intrusion
+Direction
+Matching
+Task Formulation
+Fig. 2: (a) The peg-in-hole problem is considered as inserting
+a peg into its matching hole on a planar board (a randomly
+generated peg is adopted as the example). (b) An overview
+of the task formulation is presented, including the geometry
+representation of the peg, the hole, and the overall task
+environment.
+environment using a occupancy function  : R3 7[1, 0, 1],
+which is dened as follows:
+(x, y, z)
+z < 0 fT{OH}Ah(x, y) > 0
+z > 0 (z 0 fT{OH}Ah(x, y) < 0)
+Otherwise
+in which 1 denotes occupied by the task board, 0 denotes
+on the surface of the task board, and 1 denotes the free space.
+An initial area of interest Aboard R3 is specied on the
+XY -plane of {O} that guarantees T{OH}Ah Aboard.
+3) Compliant Interactions for the Peg: As the peg is in a
+prism-shaped geometry as dened in Sec. III-A1, we use the
+densely sampled points Pe  {pi
+i1 on the edges of
+the peg for collision checking (considered continuous along
+the lateral and base edges), in which pe  (x, y, z) is in the
+Cartesian coordinates of {E}. The sampled points are assumed
+to be rigidly attached to each other, as the entire point set
+undergoes the same rigid body transformation (rotation and
+translation). The pose of frame {E} with reference to frame
+{O} at time t is represented as xt  [p; r] R6, in which
+p R3 is the position vector and r R3 is the orientation
+represented with Euler angle. The target peg-in-hole state is
+denoted as x. The corresponding transformation matrix of
+xt is denoted as T{OE},t SE(3). An overview of the task
+environment with the manipulated peg is illustrated in Fig. 2-
+To enable safe contact between the peg and its task envi-
+desired state xd
+t R6 at time t. A wrench F R6 (consisting
+of 3-D force and torque) is applied to the peg by a Cartesian
+impedance controller as formulated:
+F  Kd(xd
+t xt) Dd xt
+in which Kd R66 is the diagonal stiffness matrix to
+decouple compliance in each degree of freedom, Dd R66
+is the damping matrix for movement stabilizing and xt R6
+is the velocity of {E} with reference to {O} at time t.
+An interaction command ct  (xt, xd
+t) at time t is dened
+by its starting state xt (considered steady as xt  0) and a
+desired state xd
+t. A compliant interaction xt1  (xt, xd
+between the peg and its task environment is an unknown but
+observable process  : R6  R6 7R6 from the starting state
+xt to the next steady state xt1, under the drive of xd
+t and the
+environmental constraints in the frame of {O}. Except for the
+virtually dened desired state xd
+xt1 during this process is constrained by its task environment
+as follows:
+po T{OE},t1Pe, (xpo, ypo, zpo)  1
+We do not explicitly predict or trace the trajectory of the peg
+during this process but only observe its steady state at xt and
+xt1. At the steady state xt1, any external contact wrench
+Fext R6 in frame {O} is balanced by the pose deviation as:
+Fext  Kd(xd
+while the velocity xt1  0 of the peg remains zero.
+We use the intersection point set Po,footprint,t R3 between
+the pegs edges and the XY -plane of {O} at the steady pose
+xt to describe the outcome of each interaction as:
+task board.
+B. Problem Statement
+We formulate the peg-in-hole assembly task as a progressive
+uncertainty elimination process in the state space of perception
+and execution. We aim to plan interactions ct  (xt, xd
+between the peg and its task environment to 1) iteratively re-
+duce the uncertainty of the perception result of the target hole
+and 2) nish the peg insertion under execution and perception
+uncertainty. An overview of the peg-in-hole assembly process
+is outlined in Alg. 1.
+Perception State Space: We use eT{OH} to denote the esti-
+mated state of the ground truth T{OH}. The estimation result
+at time t is represented with a probabilistic density function
+Pt( eT{OH}) bounded by a proposal region Xt SE(3), which
+is dened as follows:
+Pt( eT{OH})
+eT{OH} Xt
+eT{OH} Xt
+where Xt denotes the volume of region Xt.
+We aim to form a recursive sequence of proposal regions
+based on the outcomes Po,footprint,t of each interaction ct:
+X0 X1 X2    XT 1
+As Xt shrinks over steps, the expected spread of eT{OH}
+decreases and the uncertainty range of the perceived holes
+state is reduced.
+Execution Task Space: Let x R be the deviation
+between the steady state xt and the peg-in-hole state x. Based
+on the estimated state distribution of PT 1( eTOH), we aim to
+shrink x at each step of interaction ct to progressively reach
+the peg-in-hole conguration as follows:
+We consider a successful peg-in-hole assembly when x
+reaches zero.
+Algorithm 1 Peg-in-Hole Assembly
+geometry as Pe, world frame {O}
+Initialize time step for perception
+Reset time step for execution
+t InsertionPlanning(xt)
+xt1 ct(xt, xd
+IV. FUNNEL-BASED MANIPULATION PLANNING
+A manipulation funnel represents a convergence process by
+iterative contractions from a larger entrance to a smaller exit
+state space, ensured by task-specic interactions. A general
+funnel formulation is dened as Denition 4.1.
+Denition 4.1. Let S be a task-relevant space that could
+represent any system parameters. Given a target state s, we
+aim to nd subspaces Sin S so that after applying some
+state transition functions, denoted as  : S S, the resultant
+output space Sout S is guaranteed to be strictly smaller than
+the input space: Sin > Sout. If these conditions are satised
+, sSin and sSout, a tuple F  (Sin, , Sout) is called
+a manipulation funnel.
+We rst dene the task-specic interactions based on the
+task mechanics in Section IV-A. Then, we introduce the formal
+approach to construct manipulation funnels in perception state
+space (Section IV-B) and execution task space (Section IV-C).
+A. Task Mechanics and Interaction Primitives
+Funnel-based manipulation planning requires deep exploita-
+tion of the intrinsic task mechanics . As perception and
+physical uncertainties are inevitable , our key insight is
+forming an aligned corner between the inclined peg and the
+target hole to create contact constraints for undesired motion
+freedoms and progressively enter the allowed clearance (as
+illustrated in Fig. 3-(a)). A corner from the hole is dened
+by arbitrary vertex vcorner
+S(Vh) as the local angle vcorner
+formed by vcorner
+and its nearby edges from the interior side.
+In this paper, we use the case of vcorner
+<  for motion
+funnel construction. However, theoretically, it also applies to
+the case of vcorner
+>  as long as the local convexity exists.
+Alignment
+Compliant
+Insertion
+Corresponding
+X-axis of {O}
+Constant Contact
+Fig. 3: (a) The task mechanics of peg-in-hole insertion: rst,
+constant contact between the peg and the hole is formed;
+insertion motions. (b) A paired corner on the peg and hole:
+this local geometry enables the downstream iterative insertion
+process. (c) The inclined state is constrained by its supporting
+vertex pv, inclined angle  and rotation angle .
+Despite the trajectory being a dominant action representa-
+tion in manipulation planning, it is unsuitable for funnel-based
+manipulations as interactions with the task environment are
+allowed to alter the motion of the manipulator . Given the
+target corner vcorner
+of the hole, its corresponding vertex on the
+base of the peg is denoted as pv  vcorner
+S(Ve) Pe, as
+shown in Fig. 3-(b). To integrate the alignment mechanism as
+an inductive bias for interactions, the task-specic interaction
+tion 4.2.
+Denition 4.2. For a task-specic interaction cv
+state xt and desired state xd
+t is constrained by a common
+supporting vertex pv dened as follows:
+, zpo > zT{OE}pv
+Such a formulation ensures that the vertex pv on the peg base
+possesses the lowest value along the Z-axis of {O}, while the
+interaction process is unchanged as xt1  (xt, xd
+An inclined state is visualized in Fig. 3-(c). Let n represents
+the positive direction of Z-axis of {E} with reference to {O}
+at the inclined state, we use  as the inclined angle and  as
+XY-plane of {O}
+XY-plane of {O}
+Contact Point
+Intersection
+Partially
+inside the hole
+Completely
+outside the hole
+Compliant
+Interaction
+Compliant
+Interaction
+Fig. 4: The observation Po,footprint,t from cv
+t can be divided
+into binary categories, (a) contact point when Po,footprint,t  1
+or (b) intersection area when Po,footprint,t > 1, based on its
+cardinality.
+the rotation angle to dene n as follows:
+cos() cos()
+cos() sin()
+Interaction with inclined states is designed to identify and
+exploit its environmental contact constraints. Such a formu-
+lation offers several advantages: 1) when the peg engages
+with the task board from above (as illustrated in Fig. 4),
+the observation Po,footprint,t is divided into binary categories
+based on the cardinality of the set Po,footprint,t: whether it is
+a contact point or an intersection area between the peg and
+hole; 2) an inclined state relaxes the requirement for a peg to
+be partially entered into the hole ; 3) before an insertion
+task is nished (considered vertical w.r.t. the board surface
+plane), all peg states can be described as inclined states during
+the insertion process.
+B. Perception Manipulation Funnel
+The perception manipulation funnel aims to iteratively re-
+duce the proposal region Xt of the target holes distribution
+Pt( eT{OH}) through observation from each interaction. By
+strategically placing the supporting vertex pv of the desired
+state xd
+t beneath the XY -plane of {O}, we can intentionally
+capture the encountered contact constraints reected on the
+resulted steady state xt1. As illustrated in Fig. 4, after each
+an inequality constraint as dened in Denition 4.3 to limit
+the distribution of eT{OH}.
+Denition 4.3. An inequality constraint on the possible space
+of eT{OH} is dened as gt( eT{OH}) 0 based on the observa-
+tion Po,footprint,t, where gt( eT{OH}) is dened as:
+po Po,footprint,t,
+gt( eT{OH})
+T{OH}Ah(po), Po,footprint,t  1
+T{OH}Ah(po), Otherwise
+in which  is the cardinality of the set. For a potential holes
+state eT{OH}, any contact point (as Po,footprint,t  1) should
+be excluded from the holes area, while any intersection area
+(as Po,footprint,t > 1) should be fully contained by the holes
+The proposal region at t  0 is derived from the initial area
+of interest Aboard as follows:
+X0  { eT{OH}  eT{OH}Ah Aboard}
+The proposal region at step t is dened as:
+Xt  { eT{OH} X0 SE(3)  gi( eT{OH}) 0, i  1, 2, ..., t}
+which is updated at step t  1 with the new added constraint
+gt1( eT{OH}) 0 as:
+Xt1  Xt { eT{OH} SE(3)  gt1( eT{OH}) 0}
+Lemma 4.4. As dened in Eq. (15), the volume Xt of the
+feasible region Xt is monotonically decreasing (Xt1 Xt)
+over nonidentical interactions cv
+constraint set gt1( eT{OH}) 0 and {gt( eT{OH}) 0}
+{gt1( eT{OH}) 0} under nonidentical interactions, Xt is
+decreasing or stays the same when new constraints are added.
+As Xt shrinks over steps in Lemma 4.4, the expected spread
+of eT{OH} decreases, and the allowable state space of the target
+hole narrows.
+Lemma 4.5. The ground truth state of the hole is always
+included in the allowable state space as T{OH} Xt over
+interactions cv
+X0 and T{OH}
+{ eT{OH}
+gt( eT{OH}) 0}, thus proven T{OH} Xt as dened in
+Since the proposal region Xt1 Xt of the target hole
+is monotonically shrinking over interactions cv
+the target state T{OH} is guaranteed to be contained by Xt
+and Xt1, we introduce the perception manipulation funnel as
+dened in Theorem 4.6.
+Theorem 4.6. The process of proposal region shrinkage
+Xt1 Xt through compliant interactions cv
+t is a manipu-
+lation funnel in the perception state space.
+region Xt is shrinking and approaching T{OH} over random
+interactions cv
+funnel is established based on the general Denition 4.1
+duced to improve convergence efciency. An overview is
+outlined in Alg. 2. The probability distribution Pt( eT{OH}) of
+the target holes state is dened by Eq. 7 and the initial area
+for exploration Aboard is divided into grid points G  {gi
+i  1, 2, ..., N} where gi R3 on the XY -plane of {O}.
+During each interaction, number K of potential holes states
+is sampled as { eT{OH},i}K
+i1 Pt( eT{OH}). The probability
+Pin that g is included by the target hole is dened by:
+i1 h( eT{OH},i, g)
+h( eT{OH}, g)
+g eT{OH}Ah
+Otherwise
+Let H() represent the entropy of the given probabilistic
+density function. The expected entropy reduction is formulated
+H(g)  H(Pt( eT{OH})) E[H(Pt( eT{OH})  g)]
+where E[H(Pt( eT{OH})  g)] is the expected entropy after
+evaluating g. To maximize information gain, the desired state
+should spatially overlap with the selected grid point gG
+that maximizes H(g) for contact constraints identication:
+g arg max
+The convergence of the proposed entropy-based exploration is
+proven in Theorem 4.6.
+Algorithm 2 Entropy-based Interactive Perception
+gSelect grid point for interaction
+Xt1 ConstraintsUpdate(Po,footprint,t)
+C. Physical Manipulation Funnel
+The physical manipulation funnel aims to leverage envi-
+ronmental contacts as physical constraints in the execution
+task space to iteratively reduce x for peg-in-hole insertion.
+Based on the task mechanics as Fig. 3-(a), we consider a
+sequential process as 1) aligning an inclined state to its
+corresponding corner and 2) adjusting the aligned inclined
+state to insertion. All the states xt described in this section
+are considered inclined states, which are dened by pv, ,
+and  as introduced in Eq. (10) and (11). We describe
+the spatial relationship between the xt and x(the target
+peg-in-hole state) based on the Po,footprint,t and the target
+corner vcorner
+. Specically, Po,footprint,t forms a 2-D polygon
+as Vo,footprint,t
+corresponding area Ao,footprint,t R3 on the XY -plane of
+{O}. The state deviation x is dened based on Vo,footprint,t
+and vcorner
+as Denition 4.7.
+Denition 4.7. Given an inclined peg state xt with the lateral
+edge of the supporting vertex pv intersects with the XY -plane
+of {O}, we project its state as  : R6 7R4. We use the
+XY-plane of {O}
+Contact Constraints
+Initial State
+Initial State
+Region B
+Attraction Point
+Local Minimum
+Fig. 5: (a) The pegs state xt is projected as [vlateral; lateral]. (b) By setting the translation deviation between the desired state xd
+and the starting state xt only on the XY -plane of {O}, a 2-D potential energy eld is formulated. (c) The corner alignment
+process is formulated as aligning the point vt  vlateral to the corner vj  vcorner
+under the drive of the created potential energy
+vlateral R3 and the angle value lateral R of vlateral to
+describe the pose as (xt)  [vlateral; lateral], as illustrated in
+Fig. 5-(a). vlateral is the intersection point between the lateral
+edge of pv and the XY -plane of {O}, vlateral is the angle
+formed by vlateral and its nearby vertices in Vo,footprint,t. Given
+the target corner for alignment vcorner
+and its corresponding
+angle vcorner
+, the deviation x is transformed into s as
+translation deviation:v
+vlateral T{OH}vcorner
+inclined deviation:
+corner lateral
+where corner, lateral is the angle value of vcorner
+and vlateral
+respectively. x 0 is considered equal to s 0.
+Since the footprint fully contains the projection of the inter-
+section part beneath the board surface plane, the environmental
+constraints as dened in Eq. 4 are projected into the XY -plane
+of {O} as Ao,footprint,t T{OH}Ah.
+In the following, we describe the process of inclined corner
+alignment as v reaches zero and the process from inclined to
+insertion as  reaches zero. Since each degree of freedom in
+the Cartesian space of {O} is decoupled as Kd is a diagonal
+stiffness matrix, we aim to leverage the potential caused
+by translation deviation for corner alignment and rotational
+deviation for insertion based on Lemma 4.8.
+Lemma 4.8. Under the quasi-static assumption, the motion
+of the peg x is considered driven by a potential energy eld:
+2(xd x)Kd(xd x)
+Given an interaction cv
+t), the resulted steady
+pose xt1 automatically falls into its nearby local minimum
+energy under the non-penetration environmental constraints as
+U(xt) U(xt1) U(xd
+potential energy eld. Also, the peg cannot move to a higher
+energy state without external force.
+Inclined Corner Alignment: By constraining the deviation
+between the starting state xt and desired state xd
+t only as planar
+translation in the XY -plane of {O} (as illustrated in Fig. 5-
+(b)), the applied external force to the peg dened by Eq. (5)
+can be projected into the XY -plane as follows:
+The formulation of Fplanar
+can be rewritten into a potential
+energy eld based on the desired point vd R3 and any point
+v R3 on the XY -plane of {O} in a quadratic form:
+UXOY(v)  1
+2(vd v)Kd1:3,1:3(vd v)
+As illustrated in Fig. 5-(c12), for an angle formed by the target
+corner vertex vj  T{OH}vcorner
+and its nearby vertices, its
+edges are considered non-penetration walls in UXOY(v). Let
+vt be the position of vlateral at time t; we aim to leverage such
+constraints to shape the motion of vt to rest at vj under the
+drive of UXOY(v). Specically, our objective is to formulate a
+potential well to let vj be the local minimum in a potential
+energy eld so that vt tends to rest at vj without escaping. This
+process involves two fundamental requirements: 1) nding an
+area Awell to place the attraction point vd (dened by (xd
+and 2) nding the basin of attraction Abasin where all initial
+states vt inside it will eventually move to vj. Both Awell and
+Abasin should only condition on the non-penetration constraints
+from angle vivjvk.
+We start with a straightforward example of aligning a point
+vt to a determinate vertex vj in the small interior area of an
+angle vivjvk on the XY -plane of {O}. First, the formulation
+of Awell is dened in Lemma 4.9. Then, we introduce the
+formulation of Abasin in Lemma 4.10.
+Lemma 4.9. Area Awell R3 exist on the XY -plane of {O}
+and only condition on the angle vivjvk (as visualized in
+Fig. 5-(c1): Region A), for any desired point vd Awell, vj
+is always the local minimum state in the created basin of
+attraction Avd
+basin R3 (as visualized in Fig. 5-(c2): Region
+B). Awell is dened as:
+Awell  {v R3
+2 vivjv (3
+2 vivjvk)}
+while Avd
+basin is dened as:
+basin  {v R3  vivdv vivdvk vivjv vivjvk}
+represents the energy level of a quadratic-formed energy eld.
+As vd Awell, vt Avd
+thus proven vj is the local minimum state in Avd
+basin establish.
+Lemma 4.10. Area Abasin R3 exist on the XY -plane of
+{O} and only condition on the angle vivjvk (as visualized
+in Fig. 5-(c3): Region B). For any desired point vd Awell
+dened in Eq. (24), vj is always the local minimum state in
+Abasin. Abasin  {Avd
+basin  vd Awell} is dened as
+Abasin {v R3  vvivj
+when  vd vj vd Awell
+as Fenergy  UXOY(v). While  vd vj
+vt Abasin moves along with the force gradient and will
+get in contact with the non-penetration wall rst. As long as
+vt is in contact with the wall, the component of the energy
+gradient Fenergy that is normal to the wall is canceled out
+by the non-penetration constraint as illustrated in Fig. 5-(b2).
+Given the walls normal vector nwall at the contact point, the
+modied force gradient is derived as Ftotal  Fenergy Fwall
+UXOY(v)  (UXOY(v)  nwall)nwall. For any vt in contact
+with the wall, it performs physical gradient descent under force
+Ftotal and reaches the local minimum as the force gradient
+Ftotal  0 when nwall is on the same line of Fenergy. As proven
+in Lemma 4.9, the local minimum of energy eld is at vj, thus
+proven Abasin establish.
+Based on Awell and Abasin, the corner alignment process is
+introduced in Lemma 4.11 through potential well construction.
+Lemma 4.11. Under the condition that energy caused by
+translation deviation is signicantly larger than that caused
+by rotation deviation, by setting the desired state xd
+t with its
+projected vd Awell, any starting state xt with vt Abasin
+will automatically align with the target corner (as the lateral
+edge of pv intersects with vj at state xt1  (xt, xd
+the target corner creates a potential well with vj as its local
+minimum energy state, as proved in Lemma 4.9 and 4.10, xt1
+automatically rests at the local minimum state as vt1 vj.
+assumption
+determinate
+T{OH}vcorner
+and expand the potential well construction pro-
+cess on the probabilistic distribution of the target holes state
+P( eT{OH}), as outlined in Alg. 3. K states are sampled as
+{ eT{OH},i}K
+i1 P( eT{OH}) and the ground truth of T{OH}
+is assumed to be covered the samples. By calculating the
+intersection area of
+Abasin  {Abasin,i}k
+{Awell,i}K
+i1 over pose samples { eT{OH},i}K
+teed to nd a sub-area as e
+Awell T{OH}Awell and e
+T{OH}Abasin for potential well construction. Theoretically, the
+robustness of the corner alignment is conditioned on e
+Awell a

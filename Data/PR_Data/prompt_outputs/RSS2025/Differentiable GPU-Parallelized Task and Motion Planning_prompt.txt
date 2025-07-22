@@ -1,5 +1,5 @@
 === PDF文件: Differentiable GPU-Parallelized Task and Motion Planning.pdf ===
-=== 时间: 2025-07-22 09:42:47.638432 ===
+=== 时间: 2025-07-22 10:00:20.523370 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -199,4 +199,479 @@ grid management, and programming video game non-playable
 characters. We focus on solving TAMP problems.
 Let a TAMP problem be a tuple   A, s0, S, where
 A is a set of parametrized actions, s0 is the initial state,
-and Sis the set o
+and Sis the set of goal states. We represent states and
+actions using a PDDL-style (Planning Domain Definition
+Language)  action language, where states are comprised of
+Boolean variables corresponding to logical propositions. For
+o is currently at placement pose p. Each parametrized action
+a A accepts parameters xa  (x1, . . . , xn), which may
+include both discrete and continuous values, and consists of:
+Constraints (con) on its parameters, which must all be
+satisfied in order for the action to be valid in some state.
+We assume that the constraints are equality or inequality
+constraints on a differentiable real-valued function, de-
+noted as Jc for each constraint c con(a) in action a.
+Preconditions (pre), which must all be true for the action
+to be executed in a given state.
+Effects (eff), which describe propositions that become
+true or false after executing the action.
+Costs (cost) on the parameters, which we aim to reduce.
+For example, consider the Pick action in Listing 1 for
+grasping object o, with the grasp g, when at pose p, and
+corresponding robot configuration q. Its preconditions are
+1) HandEmpty()  the robots hand must be empty, 2)
+AtConf(q)  the robot must be at configuration q, and 3)
+AtPlacement(o, p)  object o must be at placement pose
+(a) cuTAMP with goal costs
+(b) Parallelized Sampling
+Fig. 5: Minimizing Distance between Objects. The state after
+executing the best particle. (a) cuTAMP achieves significantly
+lower cost compared to (b) parallelized sampling.
+p. As a result of executing the Pick action, AtGrasp(o, g)
+the robot holds object o with grasp g  is now true, but
+HandEmpty() and AtPlacement(o, p) are now false. To
+execute the action, we require that the kinematic constraint
+Kin(q, o, g, p) is satisfied (i.e., FK(q)  p  g where FK is
+forward kinematics), g is a valid grasp for object o as required
+by Grasp(o, g), and the grasp is Collision-Free (CFree) at
+configuration q required by CFreeHold(o, g, q). We provide
+additional MoveFree, MoveHold, and Place actions in
+Listing 1. The complete description of the constraints and
+actions considered may be found in Appendix A1.
+The objective of the TAMP system is to find a plan skeleton
+(a1, . . . , an), a sequence of actions, with valid parameter
+assignments {xa  a } such that when applied from
+the initial state s0, it produces a goal state s Swhile
+minimizing the overall cost.
+Running Example. Consider the following skeleton for
+placing object red on surface table, where constant con-
+tinuous parameters are bolded:
+[MoveFree(q0, q1, 1), Pick(red, g, p0, q1),
+MoveHold(red, g, q1, q2, 2), Place(red, g, p1, table, q2)].
+Parameters in a plan skeleton may be shared across actions.
+In order to Pick object red at configuration q1, the robot
+must first use MoveFree to move from its initial configura-
+tion q0 to q1. A key challenge in TAMP is that continuous
+constraints may restrict the set of viable plan skeletons. For
+causing CFreeHold in Pick to be false. This skeleton would
+admit no solutions as long as blue is at its initial placement.
+Goal Costs. In some tasks, the objective is to reach a
+state that additionally minimizes a cost function, such as the
+goal distance between objects (Figure 5). We support this
+by treating costs on the goal state as a dummy action with
+costs that are appended as the final action in candidate plan
+skeletons. In our example, this action for three objects is:
+MinimizeObjDist(o1, o2, o3 : obj, p1, p2, p3 : placement)
+AtPlacement(o2, p2),
+AtPlacement(o3, p3)]
+IV. CUTAMP OVERVIEW
+cuTAMP is a sequence-then-satisfy approach to TAMP :
+it first searches over plan skeletons and then searches over
+continuous action parameter values for each of the actions
+within that skeleton. Specifically, cuTAMP first generates
+a candidate skeleton and then uses massively parallelized
+differentiable optimization to solve the induced constraint
+satisfaction problem (CSP) (Section V). Since any particu-
+lar skeleton might induce a CSP with no feasible solution,
+cuTAMP backtracks to attempt different skeletons until it
+finds a feasible one. To ensure efficient optimization, cuTAMP
+invokes sampling methods to initialize a batch of particles,
+representing candidate continuous solutions to the CSP (Sec-
+tion VI). Finally, to minimize backtracking, cuTAMP derives
+a plan feasibility heuristic to guide the discrete search over
+skeletons (Section VII). In Section A2, we prove that cuTAMP
+is probabilistically complete.
+The cuTAMP algorithm is listed in Algorithm 1. In Stage
+which we perform using a forward best-first search that
+introduces new parameters for continuous variables whenever
+it expands a node in the search tree. For each skeleton i,
+it performs particle initialization to get a batch of particles
+Pi (Sec. VI), and computes the PLANHEURISTIC (Sec. VII).
+These candidate skeletons and particles are appended to a
+priority queue Q, which is ordered by the heuristic values.
+In Stage 2, it iteratively selects plan skeletons and their par-
+ticles from Q and optimizes the particles using differentiable
+optimization (Sec. V-B) until a stopping criterion is met (e.g.,
+time limit or number of steps). After optimizing the particles,
+it evaluates whether the overall stopping conditions have been
+a user-defined cost value. If the conditions are met, it returns
+all satisfying solutions. Otherwise, it recomputes the plan
+heuristic on the optimized particles and samples additional
+skeletons and particles to add to the priority queue.
+In the sections that follow, we discuss each component of
+cuTAMP in detail. At the core of our approach is our use of
+parallelized differentiable optimization for solving CSPs. We
+thus present this first in Section V. Like most optimization-
+based approaches, ours is sensitive to initialization. cuTAMP
+addresses this challenge with particle initialization strategies,
+which we present next in Section VI. Finally, we describe our
+approach for guiding the discrete search over plan skeletons,
+which leverages the particle initializations, in Section VII.
+V. PARALLELIZED CONSTRAINT SATISFACTION
+A candidate plan skeleton   (a1, . . . , an) induces a
+continuous Constraint Satisfaction Problem (CSP), where the
+goal is to assign values to the continuous parameters such that
+all the constraints across a , are satisfied. We denote the
+set of constraints across  as con()  S
+a con(a), and the
+cost functions as cost()  S
+a cost(a).
+A CSP can be visualized as a constraint network, where
+nodes represent variables and constraints, and edges connect
+variables via the constraints. Figure 6 depicts the constraint
+Algorithm 1 cuTAMP Algorithm
+skeletons
+Initialize priority queue
+Stage 1: Initialize plans and particles.
+i SEARCHPLANSKELETON()
+Pi INITIALIZEPARTICLES(i, Nb)
+Parallelized Sampling
+hi PLANHEURISTIC(i, Pi)
+PUSH(Q, (hi, i, Pi))
+Stage 2: Loop over skeletons and optimize.
+(h, , P) POP(Q)
+P OPTIMIZEPARTICLES(, P)
+Parallelized Optimization
+if ISGOALSATISFIED(, P) then
+for i  1, . . . , Ns do
+Sample additional plan skeletons.
+new SEARCHPLANSKELETON()
+Pnew INITIALIZEPARTICLES(new, Nb)
+hnew PLANHEURISTIC(new, Pnew)
+PUSH(Q, (hnew, new, Pnew))
+h PLANHEURISTIC(, P)
+PUSH(Q, (h, , P))
+Add back to queue
+network for the running example (Sec. III) for placing object
+red on surface table, where the free variables are q1, 1,
+{ Motion(q0, 1, q1), CFreeTraj(1), Kin(q1, red, g, p0),
+Grasp(red, g), CFreeHold(red, g, q1), Motion(q1, 2, q2),
+CFreeTrajHold(red, g, 2), Kin(q2, red, g, p1),
+StablePlace(red, p1, table)}, CFreePlace(red, p1) }.
+A. Constraint Satisfaction via Optimization
+We solve the CSP induced by skeleton  by reducing it to an
+unconstrained optimization problem involving the real-valued
+functions comprising each constraint and the cost functions
+across . Let a parameter particle x  (x1, x2, . . . , xNv)
+be an assignment to the Nv continuous variables in . For
+each constraint c con(), we denote its differentiable real-
+valued function as Jc and tolerance as c. A constraint c
+is satisfied if Jc(xparam(c)) c, where xparam(c) denotes
+the subset of parameters in x that are relevant to c. In our
+running example, the kinematics constraint Kin(q1, red, g,
+p0) performs forward kinematics on the robot configuration
+q1 and returns the pose error relative to the target pose p0  g
+for object red. A particle x is satisfying if it satisfies all the
+constraints in , and hence forms a valid solution to the CSP.
+Finding such a satisfying particle corresponds to solving the
+following mathematical program:
+c(xparam(c))
+subject to
+Jc(xparam(c)) c
+c con().
+Each plan skeleton induces a mathematical program, where
+the variables and costs are determined by the parameters,
+by relaxing the hard constraints into soft costs, enabling the
+use of unconstrained optimization. The objective function is a
+weighted sum of the costs from the hard constraints and the
+StablePlace
+CFreePlace
+CFreeHold
+Fig. 6: Example Constraint Network. Vari-
+ables (round nodes) are connected to each other
+via constraints (rectangular nodes). We omit
+CFreeTraj constraints for simplicity.
+CFreeHold
+(b) Robot Configuration Sampler
+(c) Trajectory Sampler
+(a) Grasp Sampler
+CFreeTraj
+Fig. 7: Example Sampling Networks. Samplers solve subgraphs of the
+constraint network (Fig. 6). Solid arrows indicate the input and output
+parameters for each sampler. Dotted arrows represent dependencies between
+the samplers, defining the order in which they can be composed.
+plan costs, which may be viewed as soft constraints:
+c  Jc(xparam(c))
+hard constraint costs
+c  c(xparam(c))
+soft action costs
+where c is the weight (constant penalty) for the corresponding
+constraint or cost c, which allows us to balance their influence
+during the optimization process. We can check whether a
+particle x satisfies the CSP by evaluating:
+Jc(xparam(c)) c.
+B. Parallelized Differentiable Optimization
+A key contribution of our work is to exploit parallelism
+to apply differentiable optimization and explore thousands of
+parameter particles simultaneously. We first denote a batch of
+Nb parameter particles as P  (x1, . . . , xNb). The objective
+in our unconstrained optimization problem is now to minimize
+the mean cost over all particles in P:
+Jbatch(P)  1
+Gradient-Based Optimization. We solve the unconstrained
+optimization problem in Equation 4 by iteratively updating
+the particles P using a gradient-based optimizer. At each
+optimization step, we compute the cost function across the
+batch of particles. Since the cost function is differentiable,
+we can compute the gradients of the cost with respect to
+the particles. These gradients are then used by Adam ,
+a stochastic first-order optimizer, to update the parameters
+within each particle. Our results in Section VIII demonstrate
+that this approach performs remarkably well even with simple
+unconstrained optimization using Adam; however, our ap-
+proach is compatible with more complex optimizers including
+augmented Lagrangians [41, 42, 43], coordinate descent ,
+and second-order optimizers . We repeat gradient-descent
+updates until a stopping criterion has been met, such as a
+maximum optimization time or finding a satisfying particle
+within the batch. We check whether a particle is satisfying by
+comparing whether the costs corresponding to the plan skele-
+tons constraints falls within the defined tolerances (Eq. 3).
+Parallelizing on GPUs. To efficiently optimize a batch of
+stacking the assignments of each continuous variable xi across
+the batch of Nb particles into a matrix Xi. For example,
+if xi R7 represents a 7-DOF robot configuration, then
+Xi RNb7. In order to compute the cost in Eq. 2 across
+batches of particles simultaneously, we implement vectorized
+versions of the cost functions using PyTorch . These
+cost functions are differentiable via automatic differentiation,
+allowing us to compute gradients in parallel. We also lever-
+age differentiable collision checkers and kinematics models
+within cuRobo , which include custom CUDA kernels
+for both the forward pass and gradient computations. We use
+the kinematics model to compute pose errors for kinematic
+constraints. Collision checking approximates the geometry of
+the robot and movable objects as spheres, enabling massively
+GPU-accelerated collision checking against static obstacles
+represented as oriented bounding boxes, meshes, or signed
+distance fields. We use these collision checkers, which provide
+informative and smooth gradients, in our cost functions for
+checking the collision-free and self-collision constraints. See
+Appendix Listing 2 for example cost functions in Python.
+VI. PARTICLE INITIALIZATION
+A key desideratum for solving the highly non-convex opti-
+mization problem presented above in Section V-B is avoiding
+local minima. Towards this, cuTAMP implements a novel
+strategy based on compositional sampling to initialize the
+particles P before optimization is run. One common strat-
+egy in optimization-based TAMP is to restart with random
+initializations when stuck in local minima . However, as
+we show in Section VIII, targeted initialization via conditional
+sampling skips the early stages of optimization that must move
+near the solution manifold. This allows us to jump straight to
+improving the particles according to the constraints jointly.
+Let a parallelized sampler be a function that takes one or
+more constraints, possibly involving different constraint types,
+as input and generates a batch of Nb assignments to the
+free parameters involved in those constraints. A conditional
+parallelized sampler accepts assignments for some of the free
+parameters as additional input. A samplers objective is to find
+assignments that satisfy its constraints; however, this is only
+possible when the constraints admit satisfying assignments.
+Our initialization strategy is to compose the generations of
+multiple samplers, where each sampler solves a subgraph of
+the constraint network. This provides an initialization for the
+entire batch of particles P, corresponding to Nb candidate
+solutions to the CSP. This composition forms a sampling
+network (also known as a computation graph), an orientation
+of the edges in a constraint network that transforms it into a
+directed acyclic graph (DAG) .
+Concrete Example. Consider again the plan skeleton from
+our running example in Section III, for which the constraint
+network is depicted in Figure 6. We outline our use of samplers
+to initialize particles for the first two actions in the skeleton:
+1) MoveFree(q0, q1, 1) and 2) Pick(red, g, p0, q1), where
+the free variables are q1, 1, g and q1. Similar to the approach
+1) A 6-DOF grasp sampler that takes the Grasp(red, g)
+constraint as input and generates grasps G in the object
+frame (Figure 7a).
+2) A conditional sampler for robot configurations that takes
+the grasp samples G and constraints Kin(q1, red, g,
+p0) and CFreeHold(red, g, q1) as input (Figure 7b).
+The sampler uses the parallelized inverse kinematics
+solver from cuRobo  to solve for 7-DOF joint
+positions Q1 RNb7 conditioned on the target end-
+effector poses derived from the grasps G.
+3) A conditional trajectory sampler for 1 that takes the
+configurations Q1 and the Motion(q0, 1, q1) and
+CFreeTraj(1) constraints as input (Figure 7c). The
+sampler could then linearly interpolate between the
+initial configuration q0 and Q1 or sample from a learned
+diffusion model .
+By composing these samples, we obtain an initialization for
+the entire batch of particles P which corresponds to Nb
+candidate solutions to the CSP.
+Reusing Samples across Skeletons. Constraint subgraphs
+are often shared across plan skeletons. To avoid duplicated
+reuse samples whenever we encounter a shared subgraph. This
+significantly decreases sampling time by avoiding repeated
+calls to samplers with the same parameters. In our running
+at its initial placement p0, Pick(red, gi, p0, qi), shares the
+subgraph in Figures 7a and 7b, corresponding to the grasp and
+robot configuration samplers.
+VII. APPROXIMATING PLAN SKELETON FEASIBILITY
+Now that we have discussed both particle initialization and
+optimization given a fixed plan skeleton, we turn to the final
+component of cuTAMP: searching over plan skeletons. A
+key challenge in sequence-then-satisfy approaches to TAMP
+is to avoid the refinement of plan skeletons with CSPs that
+are unsolvable, as this results in wasted computational effort.
+convex constraints is unsolvable is generally intractable. In
+sampling-based TAMP, the typical strategy is to sample up to
+a maximum budget and backtrack upon failure to explore the
+next skeleton. Our strategy in cuTAMP leverages the thousands
+of candidate solutions generated during particle initialization
+to estimate plan skeleton feasibility. We use this feasibility
+to determine the order in which we refine plan skeletons
+(PLANHEURISTIC in Algorithm 1).
+Recall that our parallelized samplers in Section VI attempt
+to solve constraint subgraphs (Figure 7). Proving that a
+subgraph is feasible requires the sampler to find just one
+counterexample out of the batch of Nb particles. Thus, if any
+constraints in a plan skeleton have zero satisfying particles,
+we can say it is likely to be infeasible as we scale Nb.
+We use this insight to derive a heuristic for the feasibility
+of a plan skeleton  with constraints con() and particles P:
+h(P, c),
+where h(P, c)
+if nsatisfying  0,
+nsatisfying
+otherwise.
+nsatisfying  Jc(Pparam(c)) c is the number of particles
+that satisfy constraint c (see Sec. V-A), penalty denotes a large
+negative penalty applied when no particle in the batch satisfies
+constraint c. Intuitively, H(, P) measures the average feasi-
+bility of constraints across the plan skeleton by counting the
+number of particles satisfying each constraint, and assigning a
+large penalty to constraints with no satisfying particles. This
+heuristic can be quickly evaluated on the GPU.
+Pruning Plan Skeletons with Failed Subgraphs. Particle
+initialization is relatively inexpensive when compared to dif-
+ferentiable optimization, but it still requires non-trivial com-
+putation per skeleton. TAMP problems involving many objects
+may admit hundreds or even thousands of plan skeletons, the
+majority of which may be infeasible. We seek to detect plan
+skeletons that have the same pattern of failure as previously
+unsuccessfully sampled plan skeletons.
+To achieve this, we first define a constraint to be likely
+unsatisfiable if it has zero satisfying particles after sampling.
+We collect such constraints and prune new skeletons from
+consideration by the task planner if their constraint networks
+contain the same unsatisfiable constraint subgraph. For exam-
+requiring it to use the stick to press the button. The kinematic
+constraint for pressing the blue button directly without the
+stick would always have zero satisfying particles. Thus, any
+plan skeleton that attempts to press the blue button directly
+can be pruned, as it is infeasible.
+Because it is generally intractable to prove constraint un-
+parameters involved in the failed constraint subgraphs. If we
+find a counterexample, i.e., at least one particle that satisfies
+the constraint, we add all corresponding pruned skeletons back
+to the search queue, as the constraint has been proven feasible.
+(a) Single Object Packing
+(b) Bookshelf with Obstacle
+Fig. 8: TAMP Problems with Obstructions. (a) Requires
+packing a square-shaped block. (b) Requires packing the blue
+and green books into a shelf with a red obstacle.
+VIII. EXPERIMENTAL EVALUATION.
+We evaluate cuTAMP on a range of simulated TAMP
+problems with varying levels of difficulty. These problems
+differ in the number of plan skeletons that are feasible, and the
+volume of the solution space due to the complex interaction
+between constraints. We conduct ablation studies on cuTAMP
+to analyze the impact of particle batch size, tuning of the cost
+and optimization-based  planners when run with a single
+particle (Nb  1):
+a) SAMPLING:
+Particles are continuously resampled
+without optimization via OPTIMIZEPARTICLES.
+b) OPTIMIZATION: Particles are initialized uniformly
+within bounds (e.g., joint limits) without sampling.
+Experimental Setup. For each approach, we run at least
+10 trials and report the coverage (i.e., success rate) along
+with the mean and 95 confidence interval across metrics
+including the number of satisfying particles and runtime to
+find a solution. Grasps are parametrized as top-down 4-DOF or
+6-DOF poses, while placements are only 4-DOF poses. Robot
+configurations correspond to 7-DOF joint positions. Grasps are
+always sampled and fixed, while placement poses and robot
+configurations are optimized. To evaluate the generality of cu-
+the same learning rates for Adam. The primary hyperparameter
+we vary is the particle batch size Nb, in order to investigate
+how increased parallelism affects performance.
+We defer motion generation until after solving for place-
+ments and robot configurations. While cuTAMP supports di-
+rectly jointly optimizing collision-free trajectories (Figure 10),
+we found that in practice it is more computationally efficient to
+optimize for collision-free start and end configurations and de-
+fer full motion planning until after optimization. Specifically,
+we iterate through satisfying particles until we find one that
+admits full motions in a semi-hierarchical fashion. We use the
+GPU-based motion planner within cuRobo . The timing
+information we present does not include this motion planning
+for each trajectory parameter and almost always succeeds for
+our distribution of problems. Additional experimental details
+Approach
+Coverage
+Satisfying
+Sol. Time (s)
+SAMPLING
+OPTIMIZATION
+TABLE I: Results on Single Object Packing. We ablate the
+particle batch size Nb, where Nb  1 is representative of
+serial approaches [7, 34]. The Satisfying metric measures
+the number of satisfying particles. The best solution time for
+each approach is bolded, and the overall best is highlighted.
+and full results can be found in Appendix A4.
+A. Solving TAMP Problems with Obstruction
+Single Object Packing (Figure 8a). The TAMP planner
+must find placement poses for the object that do not collide
+with the grey walls. Each method is given a 5 second budget
+for resampling or optimization. Table I shows that all methods
+successfully find solutions in at least some trials. Due to the
+short horizon of this problem, SAMPLING alone with a small
+batch size is sufficient to solve it. However, OPTIMIZATION
+with uniform random initialization performs poorly. Although
+increasing the batch size improves its performance, it remains
+14 slower than the other approaches to find satisfying solu-
+tions. This highlights the importance of particle initialization
+via conditional sampling to start near the solution manifold.
+Bookshelf Problem (Figure 8b). The robot can choose
+either to: 1) pack the books directly into the shelf without
+removing the red obstacle, or 2) first remove the obstacle
+before packing the books. The CSP induced by the first
+strategy is significantly more constrained, requiring increased
+sampling and optimization time to find a satisfying solution.
+We sample 6-DOF grasps in this problem, as they are required
+to ensure collision-free placements of the books.
+Our results are presented in Table II. We observe that the
+plan feasibility heuristic (Eq. 5) prioritizes skeletons that first
+move the obstacle out of the way, as they result in more
+satisfying solutions. Both variants of cuTAMP are over 45
+faster than SAMPLING to find a solution and achieve full
+coverage with much smaller batch sizes. Subgraph caching
+improves the runtime of cuTAMP by 28, as it speeds up
+particle initialization over skeletons. However, it can suffer
+from local minima with smaller batch sizes.
+B. Optimizing Goal Costs
+We consider minimizing the goal distance between four
+objects in a goal region (Figure 5). We compare SAMPLING
+against two versions of cuTAMP: one that explicitly optimizes
+the goal cost and one without. For each approach in Table III,
+Approach
+Coverage Opt. Plans Sol. Time (s)
+SAMPLING
+cuTAMP w.
+subgraph
+TABLE II: Results on Bookshelf. Opt. Plans metric mea-
+sures the number of plan skeletons that were optimized or re-
+sampled before a solution was found (Stage 2 of Algorithm 1).
+Approach
+Satisfying
+Best Cost
+SAMPLING
+TABLE III: Optimizing Goal Costs. We minimize the dis-
+tance between four objects and compare the best particle cost.
+is the weight applied to the goal cost during optimization.
+we allocate 10 seconds for optimization or resampling. Our re-
+sults dem

@@ -1,5 +1,5 @@
 === PDF文件: Learning Humanoid Standing-up Control across Diverse Postures.pdf ===
-=== 时间: 2025-07-22 09:42:22.651064 ===
+=== 时间: 2025-07-22 09:59:45.504015 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -205,4 +205,324 @@ cumulative reward (return) E[PT 1
 t0 trt] the agent receives
 during the whole T-length episode, where  [0, 1] is the
 discount factor. The expected return is estimated by a value
-function (critic) V. In t
+function (critic) V. In this paper, we adopt Proximal Policy
+Optimization (PPO; ) as our RL algorithm because of its
+stability and efficiency in large-scale parallel training.
+1) Observation Space: We hypothesize that the propri-
+oceptive states of robots provide sufficient information for
+standing-up control in our target environments. We thus in-
+clude the proprioceptive information read from robots In-
+ertial Measurement Unit (IMU) and joint encoders into the
+state st  [t, rt, qt, pt, pt, at1, ], where t is the angular
+velocity of robot base, rt and qt are the roll and pitch, pt
+and pt are positions and velocities of the joints, at1 is the
+last action, and  (0, 1] is a scalar that scale the output
+action. Given the contact-rich nature of the standing-up task,
+we implicitly enhance contact detection by feeding the policy
+with the previous five states .
+2) Action Space: We employ a PD controller for torque-
+based robot actuation. The action at represents the difference
+between the current and next-step joint positions, with the PD
+target computed as pd
+t  pt  at, where each dimension of
+at is constrained to [1, 1]. The action rescalar  restricts
+the action bounds to regulate the motion speed implicitly.
+This is essential to constrain the standing-up motion and will
+be discussed in later sections. The torque at timestep t is
+computed as:
+t  Kp  (pd
+t pt) Kd  pt,
+where Kp and Kd represent the stiffness and damping coef-
+ficients of the PD controller. The dimension of action space
+A corresponds to the number of robot actuators.
+IV. METHOD
+This section introduces HOST (Humanoid Standing-up
+Control), a reinforcement learning (RL)-based framework for
+learning humanoid robots to stand up across diverse postures,
+as summarized in Fig. 2. This control task is highly dynamic,
+tional RL approaches. We first outline the key challenges
+addressed in this work in Section IV-A, then describe the core
+components of the framework in the following sections.
+A. Key Challenges  Overview
+1) Reward Design  Optimization (Section IV-B): The
+standing-up task involves multiple motor skills: righting the
+stages is challenging without explicit stage separation [25, 19].
+We address this by dividing the task into three stages and
+activating corresponding reward functions at each stage. The
+complexity of these skills requires multiple reward functions,
+which can complicate policy optimization. To mitigate this,
+we employ multi-critic RL , grouping reward functions to
+balance objectives effectively.
+2) Exploration Challenges (Section IV-C): Despite multi-
+critic RL, exploration remains difficult due to the robots high
+degrees of freedom and wide joint limits. Drawing inspiration
+from human infant skill development [6, 49], we facilitate
+exploration by applying a curriculum-based vertical pulling
+force on the base link of the robot.
+3) Motion Constraints (Section IV-D): With only reward
+driven by high torque limits and numerous actuators. Such
+behaviors are impractical for real-world deployment. To ad-
+dress this, we introduce an action rescaler  to gradually
+tighten action output bounds, implicitly limiting joint torques
+and motion speed. Additionally, we incorporate smoothness
+regularization  to mitigate motion oscillation.
+Fig. 3: Simulation terrains and real-world scenes. We design four terrains
+in simulation: ground, platform, wall, and slope to create initial robot postures
+that are likely to be met in real-world environments. Examples of these real-
+world environments are shown at the bottom of the figure.
+4) Sim-to-Real Gap (Section IV-E): A significant challenge
+is the sim-to-real gap. We address this through two strategies:
+(1) designing diverse terrains to better simulate real-world
+starting postures, and (2) applying domain randomization
+to reduce the influence of physical discrepancies between
+simulation and the real world.
+B. Reward Functions  Multiple Critics
+Considering the multi-stage nature of the task, we divide
+the task into three stages: righting the body hbase < Hstage1,
+rising the body Hstage1 < hbase < Hstage2, and standing
+hbase > Hstage2, indicated by the height of the robot base
+hbase. Corresponding reward functions are activated at each
+stage. We then classify reward functions into four groups: (1)
+task reward rtask that specifies the high-level task objectives,
+(2) style reward rstyle that shapes the style of standing-up
+izes the motionw, and (4) post-task reward rpost that specify
+the desired behaviors after successful standing up, i.e., stay
+standing. The overall reward function is expressed as follows:
+rt  wtask rtask
+wstyle rstyle
+wregu rregu
+wpost rpost
+where w with superscript represents the corresponding reward
+weight. Each reward group contains multiple reward functions.
+A comprehensive list of all reward functions and groups is
+provided in Table VI.
+(critic) presents significant challenges in learning effective
+standing-up motions. Besides, the large number of reward
+functions makes hyperparameter tuning computationally inten-
+sive and difficult to balance. To address these challenges, we
+implement multiple critics (MuC; [33, 51, 53]) to estimate
+returns for each reward group independently, where each
+reward group is regarded as a separate task with its own
+assigned critic Vi. These multiple critics are then integrated
+into the PPO framework for optimization as follows:
+t  Vi(st) Vi(st1)2
+where ri
+t is the total reward and Vi is the target value function
+of reward group i. Each critic independently computes its
+TABLE II: Domain randomization settings for standing-up control.
+Trunk Mass
+U(2, 5)kg
+Base CoM offset
+Link mass
+U(0.8, 1.2) default kg
+Restitution
+Torque RFI
+U(0.05, 0.05) torque limit Nm
+Motor Strength
+Control delay
+Initial joint angle offset
+Initial joint angle scale
+U(0.9, 1.1) default joint angle rad
+advantage function Ai estimated through GAE . These
+individual advantages are then aggregated into an overall
+weighted advantage: A  P
+, where Ai
+and Ai are the batch mean and standard deviation of each
+advantage. The critics are updated simultaneously with the
+policy network  according to:
+L()  E [min (t()At, clip(t(), 1 , 1  )At)] ,
+where t() and  are the probability ratio and the clipping
+C. Force Curriculum as Exploration Strategy
+The primary exploration challenges emerge during the tran-
+sition from falling to stable kneeling, a stage that proves
+difficult to explore effectively through random action noise
+alone. While human infants are likely to learn motor skills with
+external supports [6, 49], it inspires us to design environmental
+assistance to accelerate the exploration. Specifically, we apply
+an upward force F on the robot base, which is largely set
+at the start of training. This force takes effect only when the
+robots trunk achieves a near-vertical orientation, indicating
+a successful ground-sitting posture. The force magnitude de-
+creases progressively as the robot can maintain a target height
+at the end of the episode. See more details in Appendix B.
+D. Motion Constraints
+1) Action Bound (Rescaler): Humanoid robots often feature
+many DoFs, each equipped with wide position limits and high-
+power actuators. This configuration often results in violent
+motions after RL training, characterized by violent ground
+hitting and rapid bouncing movements. While setting low
+action bounds could mitigate this behavior, it might prevent
+the robot from exploring effective standing-up motions. To
+this end, we introduce an action rescaler  to scale the action
+on each actuator. This scale coefficient gradually decreases like
+vertical force reduction. See more details in Appendix B.
+2) Smoothness Regularization:
+To prevent motion os-
+L2C2  into our multi-critic formulation. This method
+applies regularization to both the actor-network  and critics
+TABLE III: Main simulation results. We present a performance comparison between HOST and baselines for the proposed metrics. The means and standard
+variation are reported across 5 evaluations, each with 250 testing episodes.  indicates that the method completely failed on a certain task.
+Platform
+(a) Ablation on Number of Critics
+HOST-wo-MuC
+(b) Ablation on Exploration Strategy
+HOST-wo-Force
+HOST-wo-Force-RND
+(c) Ablation on Motion Constraints
+HOST-wo-Bound
+HOST-Bound0.25
+HOST-wo-L2C2
+HOST-wo-rstyle
+(d) Ablation on Historical States
+HOST-History0
+HOST-History2
+HOST-History5 (ours)
+HOST-History10
+Platform
+Fig. 4: Motion analysis in simulation. (Left) UMAP visualization of joint-space trajectories demonstrates similar but distinct motion patterns on the terrains
+except for the wall. Besides, the trajectories of each terrain are overall consistent, with variation to handle the difference of starting postures. (Right) 3D
+trajectory visualizations reveal stable, coordinated hand-foot motion and dynamic posture adaptability, demonstrating effective whole-body coordination and
+validating the proposed framework. Point color in the plot indicates motion progression, with lighter shades for earlier and darker for later times.
+Vi by introducing a bounded sampling distance between
+consecutive states st and st1:
+LL2C2  D((st), (st))  V
+D(Vi(st), Vi(st)),
+where D is a distance metric,  and V are weight coeffi-
+uniform noise u U(). We combine this objective function
+with ordinary PPO objectives to train our control policies.
+E. Training in Simulation  Sim-to-Real Transfer
+We use Isaac Gym  simulator with 4096 parallel envi-
+ronments and the 23-DoF Unitree G1 robot to train standing-
+up control policies with the PPO  algorithm.
+1) Terrain Design: To model the diverse starting postures
+in the real world, we design 4 terrains to diversify the starting
+the trunk of robot, (3) wall that supports the trunk of the
+the whole robot. We visualize these terrains and examples of
+their corresponding scenes in the real world in Fig. 3.
+2) Domain Randomization: To enhance real-world deploy-
+physical gap between simulation and reality. The random-
+ization parameters, detailed in Table II, include body mass,
+base center of mass (CoM) offset, PD gains, torque offset,
+and initial pose, following [2, 28]. Notably, the CoM offset is
+CoM position noise, which may arise from insufficient torques
+or discrepancies between simulated and real robot models.
+F. Implementation Details
+Our implementation of PPO is based on . The actor and
+critic networks are structured as 3-layer and 2-layer MLPs,
+respectively. Each episode has a rollout length of 500 steps.
+For smoothness regularization, the weight coefficients  and
+V are set to 1 and 0.1, respectively. The PD controller
+operates at 200 Hz in simulation and 500 Hz on the real robot
+to ensure accurate tracking of the PD targets, while the control
+policies run at 50 Hz. Additional implementation details and
+hardware setup are provided in Appendix A.
+V. SIMULATION EXPERIMENTS
+A. Experimenrt Setup
+1) Evaluation Metrics.: While the design of evaluation
+metrics for humanoid standing-up control remains an open
+the following metrics:
+Success rate Esucc: The episode is considered successful
+if the robots base height, hbase, exceeds a target height
+htarg and is maintained for the remainder of the episode,
+indicating stable standing.
+CoM Offset
+Sagittal Force
+Initial Pose
+Random Torque Dropout
+Fig. 5: Robustness analysis in simulation. Evaluation of control policies under four environmental disturbances demonstrates the robustness of our controllers.
+The poor performance of HOST-History1 indicates the importance of historical information for robustness, while HOST-Bound0.25s high energy consumption
+reveals limitations in motion quality under disturbance, demonstrating the effect of curriculum setup of action bound.
+Fig. 6: Trade-off analysis in simulation. Trade-offs between motion speed,
+smoothness relationship, indicating the importance of constrained motion
+speed achieved by our method for real-world deployment.
+Feet movement Efeet: The distance traveled by the robots
+feet after reaching the target height htarg, indicating stabil-
+ity in the standing pose.
+Motion smoothness Esmth: We aggregate the movement of
+all joint angles of consecutive control steps to measure the
+smoothness of the motion. It indicates that the robot should
+keep a smooth motion during the whole episode.
+Energy Eengy: The energy consumed before reaching htarg,
+indicating the avoidance of violent standing-up motion.
+2) Baselines: To evaluate the effectiveness of the key
+design choices in HOST, we compare it against the following
+ablated versions:
+Single critic: A baseline using a single critic RL to assess
+the impact of multiple critics on motor skill learning.
+Exploration strategy: Baselines with random noise and
+curiosity-based rewards (e.g., RND ) to evaluate the
+effectiveness of the force curriculum.
+Motion constraints: Ablation of action bounds  and
+smoothness regularization L2C2 to test their influence on
+motion smoothness.
+Historical states: Ablation of the number of historical
+states to assess their effect on standing-up motion.
+B. Main Results
+HOST demonstrates good efficacy in learning standing-up
+control across all terrains, as shown in Table III. The effect of
+key design choices is summarized as follows:
+Multiple critics are crucial for learning motor skills Using
+the same reward functions, the performance of the single critic
+version of HOST deteriorates significantly across all terrains,
+achieving zero success rates. This highlights the importance of
+multiple critics in learning and integrating motor skills while
+also reducing the hyperparameter tuning burden.
+Force curriculum enhances exploration efficiency. Without
+the proposed force curriculum, the robot fails to stand up on
+all terrains except the platform, as the other terrains require
+exploration from a fully fallen state to stable kneeling. While
+curiosity-based exploration partially alleviates this challenge,
+performance remains unsatisfactory. In contrast, the force
+curriculum greatly improves exploration efficiency.
+Action bound prevents abrupt motions. While the robot can
+learn to stand up without action bounds (HOST-wo-Bound),
+its movements are excessively violent, as indicated by three
+performance metrics. With action bounds, HOST demonstrates
+smoother motions and higher success rates. Although HOST-
+Bound0.25 performs well, its motions are less natural due to
+restricted exploration during training.
+Smoothness regularization prevents motion oscillation.
+Adding smoothness constraints significantly reduces motion
+oscillation and increases energy efficiency, validating the ef-
+fectiveness of smooth regularization. Further discussion is
+presented in Section VI.
+Medium history length yields great performance. HOST
+with short history length underperforms in contact-rich sce-
+length improves performance, though it slightly reduces mo-
+tion smoothness and increases energy consumption compared
+to the default setting.
+C. More Analyses
+Trajectory analysis (Fig. 4). Following , we apply Uni-
+form Manifold Approximation and Projection (UMAP; )
+to project joint-space motion trajectories into 2D, providing a
+visualization of the humanoid robots motion across diverse
+Fig. 7: Snapshot of real robot motion. We directly transfer our policies from simulation to four real-world scenes that correspond to four simulation terrains.
+We conclude that (1) our policies can produce smooth and successful standing-up motion in all tested scenes and (2) smooth regularization of L2C2 is
+important to avoid oscillation and improve stability.
+Fig. 8: Snapshot of outdoor experiments. We test our controllers in diverse outdoor environments, demonstrating smooth motion on unseen terrains such
+as grassland, wooden platforms, and stone roads, as well as successful performance on stone platforms and tree-leaning postures.
+TABLE IV: Main results for real robot experiments. We report the success rate and motion smoothness to quantitatively compare our methods with the
+baseline. The results demonstrate the superiority of our method and the importance of adding smooth regularization into our method.
+Platform
+HOST-wo-L2C2
+HOST (ours)
+terrains. The resulting UMAP figure demonstrates distinct
+motion patterns: smooth, controlled movement on flat ground,
+while more complex, yet consistent, trajectories emerge on
+challenging terrains such as Wall. Additionally, in the 3D
+trajectory plots, the coordinated motion of the robots hands
+and feet reveals significant posture adaptability, as the robot
+adjusts its stance dynamically for balance and stability. These
+observations highlight the harmonious whole-body coordina-
+tion achieved by our controllers and validate the effectiveness
+of our proposed framework.
+Robustness analysis (Fig. 5). We comprehensively evaluate
+the robustness of our learned control policies by simulating
+various environmental disturbances. Specifically, we test four
+types of external perturbations: CoM position offset in the
+sagittal direction, consistent sagittal force, initial joint angle
+strate that the policies exhibit remarkable robustness across
+all disturbances, achieving high success rates and efficient
+motion energy utilization. Notably, the poor performance of
+HOST-History1 underscores the critical role of historical
+maintaining robustness. Furthermore, while HOST-Bo

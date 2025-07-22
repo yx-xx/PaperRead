@@ -1,5 +1,5 @@
 === PDF文件: Uni-NaVid A Video-based Vision-Language-Action Model for Unifying Embodied Navigation Tasks.pdf ===
-=== 时间: 2025-07-22 09:42:37.835091 ===
+=== 时间: 2025-07-22 10:00:06.527075 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -218,4 +218,544 @@ Online Visual Token Merging
 Long-Term Memory
 Large Language Model
 Language Token
-Image T
+Image Token
+Grid Pooling
+The    plant    is   green
+Nav indicator
+Vision Encoder
+(1) Instruction
+Walk forward to the
+door then turn left, and
+move to the plant and
+(2) Question
+What is the color of the plant?
+Fig. 2: Pipeline of Uni-NaVid. Our method takes only single-view RGB frames {x1,    , xT } and a natural language instruction
+I as input. For each frame, we extract 64 visual tokens using the vision encoder and then use online token merging to accelerate
+the model while retaining compact visual information. The merged tokens and instruction tokens are sent to the large language
+model to obtain actions for navigation or answers for embodied question-answering.
+large body of datasets and corresponding benchmarks have
+been proposed [23, 111, 56, 61]. These datasets play a crucial
+role in the embodied navigation community. Here, we review
+the datasets most relevant to our methods. For vision-and-
+language navigation, the most widely used datasets are Room-
+2-Room (R2R)  and Room-cross-Room (RxR) , which
+provide navigation instructions and ground truth trajectories
+of landmarks. We focus on a variant of R2R and RxR in
+continuous environments, called VLN-CE , which is more
+practical for real-world applications. For object goal navigation,
+there are several famous benchmarks such as HM3D ,
+environments and simulators. Here, we leverages the HM3D
+dataset on Habitat , which shares the same action settings
+as VLN-CE. For embodied question answering (EQA), there
+are diverse datasets focusing on different attributes of EQA,
+such as MP3D-EQA , MT-EQA , Graph-EQA ,
+and MX-EQA . We select MP3D-EQA, which is well-
+maintained with the latest baselines. For human-following
+[104, 105] benchmarks, there is currently no benchmark
+that provides textual descriptions of humans. Therefore, we
+have self-built a textual description-based human-following
+benchmark using Habitat 3.0 . Note that new benchmarks
+are consistently being proposed, covering a diverse range
+of navigation attributes. However, our goal is to train and
+evaluate our method on mainstream datasets to clearly justify
+the performance of our approach.
+Large Language Models for Navigation. Large Language
+Models (LLMs)[20, 51, 110] have been introduced into
+robotic navigation due to their generalization capabilities in
+understanding and planning. One straightforward approach[108,
+zero-shot manner. These methods employ visual foundation
+models [22, 51] to describe surrounding environments in text
+guide the agent. However, abstracting dense visual information
+into text and relying on discrete landmarks results in sparse en-
+vironmental observations and is limited to static environments.
+Another approach [100, 97] trains a video-based large language
+model end-to-end with low-level actions to enable continuous
+movement. However, it faces efficiency challenges in long-
+horizon tasks. In contrast, Uni-NaVid implements an online
+visual token merging strategy, optimizing training efficiency
+for long-horizon tasks and supporting non-blocking execution
+in real-world environments.
+III. PROBLEM FORMULATION
+Navigation task definition. We define the general-purpose
+navigation of Uni-NaVid as follows: At the time T, given a
+natural language instruction I consisting of l words and an
+ego-centric RGB video OT comprising a sequence of frames
+{x1,    , xT }, the agent is required to plan the next k actions
+{AT ,    , AT k1} to executed for complete the instruction
+within novel environments (k  4 in our experiments). Here,
+we adopt a widely used action setting [71, 12, 42, 21], which
+require the agent to take low-level actions a A, including
+{FORWARD, TURN-LEFT, TURN-RIGHT, STOP}. Note that,
+our task formulation is compatible with existing embodied
+navigation tasks [71, 12, 42, 21], where the discrete low-level
+actions [71, 12, 42, 21] represent a small rotation (30 degrees)
+or a forward movement (25 cm), making them flexible to be
+used in continuous environments such obstacle avoidance. We
+provide a detailed explanation of how these actions are applied
+in both synthetic and real-world environments in Sec. VI-A
+Overview. As illustrated in Figure 2, Uni-NaVid is com-
+posed of three main components: a vision encoder, an online
+token merge mechanism and a large language model (LLM).
+encoder (EVA-CLIP  in implementation) to extract frame-
+wise visual features in the form of tokens, which we denote
+them as visual tokens. The visual tokens are then spatially
+and temporally merged by leveraging an online token merge
+mechanism. Next, the merged visual tokens are projected
+with an MLP projector into a feature space aligned with
+language tokens, which are referred to as visual observation
+tokens. As common, the instructions are also tokenized as a
+set of tokens, known as language observation tokens. Both the
+visual observation tokens and language observation tokens are
+concatenated and passed to the Large Language Model (LLM),
+which infers four action tokens that represent the next four
+actions.
+IV. MODEL OF UNI-NAVID
+A. Observation Encoding.
+Given the ego-centric video up to time T, denoted by OT
+{x1.    , xT }, we encode the video to a sequence of visual
+features in the form of tokens. For each frame xt, we first get
+its visual feature tokens Xt RNxC with a vision encoder
+(EVA-CLIP  in implementation), where Nx is the patch
+number (Nx is set to 256) and C is the embedding dimension.
+The visual features provide rich information that enables the
+agent to understand its navigation history and plan subsequent
+actions. However, during navigation, the progressively increas-
+ing number of visual tokens (T  Nx) results in progressively
+longer inference times for the LLM (typically 12 seconds
+per inference) . This increased latency renders LLM-
+based navigation impractical for deployment in real-world
+environments.
+B. Online Visual Token Merging
+To reduce the number of visual tokens while preserving
+sufficient navigation visual information, we design an token
+merging mechanism. This strategy is based on the key insight
+that recent observations are more critical for navigation, and
+that visual information between consecutive frames (temporally)
+and within neighboring pixels (spatially) may be redundant.
+Visual token grouping. Drawing inspiration from the
+Atkinson-Shiffrin memory model [6, 75], we categorize visual
+tokens into current visual tokens Xcurr, short-term visual tokens
+are grouped based on their timestamps relative to the current
+frame T and for each group of visual tokens, we apply a grid
+pooling operation at different pooling resolutions:
+Xcurr  GridPool(Xt, curr),
+Xshort  GridPool(Xt, short),
+if t [T-B, T)
+Xlong  GridPool(Xt, long),
+if t [1, T-B)
+where GridPool() is a grid pooling operation
+spatially squeezing the tokens from Nx to Nx
+is the length of the buffer of shorter memory. Here, we adopt
+the curr  2, short  8, long  16, leads to visual tokens as
+Xcurr R64C, Xshort R4C, Xlong R1C, respectively.
+visual information, enabling the agent to perceive its immediate
+environment and plan subsequent trajectories. Meanwhile,
+Xshort and Xlong capture temporally rich information from the
+captured video stream, facilitating the agents comprehension
+of its navigation history.
+It should be noted that these hyperparameters are obtained
+through empirical experimentation to achieve an optimal
+balance between manageable token numbers and adequate
+visual information representation. These hyperparameters can
+be further adjusted when memory capacity and computational
+resources are not limiting factors. We provide a detailed
+explanation and ablation study of  in the supplemental
+material.
+Online visual token process. During the navigation pro-
+performing encoding and grouping (Eq. 2) for all frames at
+each step would be computationally intensive. To address this,
+we implement an online visual token processing mechanism
+that maximizes the reuse of previously generated visual tokens.
+apply grid pooling exclusively to the most recent visual tokens
+at time T and the oldest short-term visual tokens at time T B.
+These processed tokens are then integrated into the short-term
+and long-term visual tokens, respectively:
+Xcurrshort  GridPool(Xcurr, short
+Xshortlong  GridPool(Xshort, long
+To prevent the linear growth of long-term visual tokens
+visual tokens by combining adjacent tokens that exhibit high
+75]. Specifically, we merge the long-term visual tokens based
+on the cosine similarity between Xshortlong and the most recent
+long-term visual tokens Xlong at time T B1. If the similarity
+exceeds a predefined threshold , we merge them according
+to the number of frames previously merged (denoted as K) in
+the latest long-term visual tokens:
+K  1 (KXlong  Xshortlong) ,
+subject to
+cos (Xlong, Xshortlong) > .
+Algorithm 1 Online Visual Token Merging
+Total number of frames T
+Short memory buffer length B
+Grid pooling scales: curr, short, long
+Current visual tokens: XT RNxC
+Previously merged tokens: Xcurr, Xshort, Xlong
+Number of frames merged in the last tokens of long
+Updated merged tokens: X
+Updated number of frames merged in the last tokens of
+long memory: K
+First frame, empty history tokens
+Update short-term visual tokens
+Xcurrshort GridPool(Xcurr, short
+short Xshort  [Xcurrshort]
+curr GridPool(XT , curr) New current visual token
+Out of short-term tokens buffer
+Xshortlong GridPool(Xshort, long
+short Xshort[1 :]
+s cos(Xlong[1], Xshortlong)
+if T > B  2 and s >  then Fuse long-term tokens
+Xlast long
+K1(KXlong[1]  Xshortlong)
+long Xlong[: 1]  [Xlast long]
+Add new long-term token
+long Xlong  [Xshortlong]
+We insert new long-term visual tokens Xshortlong when
+their similarity falls below a threshold  (empirically set
+to   0.95 ), indicating that they contain relatively
+distinct visual information. This online visual token processing
+preserves the navigation visual history in a highly compact
+form (with a length of M T B 1). Notably, only
+visual tokens at the boundaries of groups require parallelizable
+grid pooling, making the process computationally efficient and
+naturally suited for online deployment in real-world navigation
+tasks. We give a description of our token merging technique
+at Algorithmn 1.
+Compared to existing video-based large language mod-
+els [100, 75, 48], this online merging strategy significantly
+reduces inference time, achieving an average of 0.2 seconds
+per inference. This improvement becomes increasingly notable
+when handling longer video sequences. A detailed analysis of
+time efficiency is provided in the Supplementary Materials.
+C. Action Planning
+After obtaining the merged visual tokens from semantic
+Language models [51, 48] to perform vision-language align-
+interpret visual information. Specifically, we leverage a cross-
+modality projector PV () to project all merged visual tokens
+Xmerged  {Xlong, Xshort, Xcurr} into visual observation tokens
+that are compatible with the LLMs input representation space:
+T  PV (Xmerged),
+where the PV () is implemented as a two-layter MLP
+and optimized in an end-to-end training manner. For instruction
+embeing layer of LLM (Vicuna-7B ) to encode navigation
+instruction into language observation tokens EL
+T . Then we
+concatenate the visual observation tokens EV
+indicator NAVand language observation tokens EV
+T form the
+final input token sequence. Here, the navigation task indicator
+NAVis adopted by following [100, 64] for accelerating the
+specific task learning and obtaining consistent output format.
+to infer four action tokens {EA
+T 3}, as described
+below. We include a discussion on the input token format in
+the Supplementary Material
+{Current tokens} <NAV > {Instruction}
+<Action 3>
+The action tokens belong to the discrete action set
+{FORWARD, TURN-LEFT, TURN-RIGHT, STOP}. Following
+the standard configuration in existing navigation settings [71,
+97], the forward action corresponds to a movement of 25
+configuration is consistent with all training navigation data
+(Sec. V). Empirically, we find that predicting the next four steps
+yields optimal performance, which encourages Uni-NaVid to
+forecast long-horizon action sequences while still considering
+sufficient observations for accurate prediction. This multi-step
+prediction also supports asynchronous deployment, enabling
+non-blocking navigation performance in the real world. Please
+see the Supplementary Material for detailed elaboration.
+V. DATA COLLECTION AND TRAINING
+To train
+Uni-NaVidfor mastering multi-navigation tasks,
+it is crucial to gather extensive and diverse navigation data
+across various tasks and environments. However, directly
+collecting large amounts of real-world navigation data can be
+prohibitively expensive. To address this challenge, we propose
+two key strategies for training Uni-NaVid: First, we collect
+multi-task navigation data from a wide range of synthetic
+environments (totaling 861 scenes) using a uniform input
+and output format, enabling Uni-NaVidto acquire general
+Embodied
+Navigation
+Open-world
+ObjectNav
+Following
+Destination
+Entrance
+Staircase
+Standing
+Couch Kitchen
+Continue
+Advance Endpoint
+Bathroom
+Corridor
+Restroom
+Number of Samples
+Number of Frames
+Fig. 3: Visualization of training data. We visualize the
+combination of training data (5.9M), video frame counts, and
+the most common words in navigation instructions.
+navigation skills. Second, we co-tune Uni-NaVidwith real-world
+video-based question-answering data, enhancing its ability to
+interpret real-world images and supporting its open-vocabulary
+knowledge acquisition.
+A. Multi-Task Navigation Data.
+We process and collect the largest multi-task navigation
+dataset to date within the Habitat simulator environment ,
+comprising 3.6 million samples (from approximately 80K
+trajectories) across four distinct navigation tasks, as described
+below. All tasks are curated within a unified framework. A
+detailed data process and collection strategy is provided in the
+Supplementary Materials.
+(A) Vision-and-language navigation [42, 44] require the
+agent to interpret and ground instructions in visual observations,
+effectively combining linguistic and visual information to make
+sequential decisions. Specifically, the agent has to navigate
+based on landmarks and motions described in the text and
+stop nearby the correct destination. Here, we process 2.4M
+navigation samples of mainstream VLN datasets, VLN-CE
+R2R  and RxR , that focus on continuous environments.
+(B) Object Goal Navigation  involves an agent nav-
+igating an environment to locate a specific object based on
+provided visual or linguistic cues. This task evaluates the
+agents ability to perceive objects, understand scene layout, and
+execute efficient search strategies. We collected 483k samples
+from datasets in the Habitat Matterport 3D dataset (HM3D
+ObjectNav) . Note that, in HM3D ObjectNav, the agent is
+required to locate objects from a predefined category set (e.g.,
+that our method generalizes to SOTA-level open-vocabulary
+object goal searching, as shown in Table V.
+(C) Embodied question answering  requires the agent to
+navigate to the related area for question answering. It involves
+spatial reasoning, object description, and understanding contex-
+tual information, requiring the ability to integrate perception,
+Follow the woman in a
+light gray t-shirt and blue
+Instruction example:
+White t-shirt
+Blue jeans
+Blue t-shirt
+Blue jeans
+Light-green Top
+Denim shorts
+Fig. 4: Language-described human following benchmark.
+We construct our human-following benchmark based on Habitat
+3.0  by incorporating textual descriptions for each avatar
+(eight in total, top row). The robot is required to comprehend
+these descriptions and accurately follow the designated indi-
+vidual in crowded environments.
+language comprehension, and decision-making. Following the
+setup in main stream EQA methods [21, 84], the agent first
+navigates to the target related to the question, issues a stop
+action samples and 10k video-answering samples on the MP3D-
+EQA dataset  on Matterport 3D environments . We
+provide an additional experiment on OpenEQA  in the
+supplemental material.
+(D) Human following [35, 25] requires the agent to track and
+follow a human target with a specific description in dynamic
+and crowded environments, e.g., Follow the man in the blue t-
+shirt.. The agent must recognize the appearance of the human,
+follow the correct person described in the instructions, predict
+their movement trajectory, and keep an appropriate distance
+while avoiding obstacles.
+that supports language-described human following in crowded
+environments (multi-person scenarios). To this end, we extend
+the Habitat 3.0 social navigation benchmark  by (1) adding
+textual descriptions for each avatar (8 in total, as illustrated in
+Fig. 4), (2) introducing additional distracting human avatars
+to simulate challenging real-world environments, and (3)
+deploying the robot and humans in the Habitat Matterport
+3D dataset , which offers photo-realistic rendering quality
+and diverse large-scale scenes. The robot and target human
+are initialized nearby (using the same setting as ), with
+randomly moving distracting human avatars. Based on this
+We also add a detailed description in Supplementary Material.
+Unified navigation samples. The data statistics are presented
+in Figure 3. It is worth noting that the number of samples
+in VLN is relatively larger compared to other tasks. This
+is because VLN [42, 44] requires the agent to navigate all
+landmarks described in the instructions, which often results
+in longer trajectories and, consequently more video-action
+samples. Here, we collect all navigation samples in a uniform
+collected from synthetic scenes across the Habitat-Matterport
+3D (HM3D) and Matterport 3D (MP3D) datasets. We use
+the default settings of each environment, with a height range
+of 0.88 m to 1.25 m and a robot radius between 0.1 m and
+0.6 m. This approach helps prevent overfitting to a specific
+robot embodiment. This approach helps prevent overfitting
+to a specific robot embodiment. Note that while there exist
+insightful techniques [24, 29] investigating navigation for robots
+of general sizes, our focus is primarily on uniform multi-task
+navigation.
+B. Training Strategy of Uni-NaVid
+Joint training on synthetic and real-world data. Although
+we collect navigation data from various environments, the
+diversity in both observations and instructions remains limited
+to a specific set of synthetic environments. To incorporate open-
+world knowledge, we follow previous Vision-and-Language
+Action models [100, 9], integrating open-world video question-
+answering during training. Specifically, we adopt a two-stage
+training process (a common strategy in Vision-and-Language
+models [51, 48, 75]): (1) First, we exclusively train the cross-
+modality projector (Equ. 7) using the same modality alignment
+dataset as LLaMA-VID . (2) Second, we fine-tune both
+the projector and the Large Language Model (LLM) using
+2.3M video question-answering data from publicly available
+datasets [7, 19, 48], along with 3.6M multi-task navigation
+samples. During training, we apply the online token merging
+to both the VQA samples and navigation samples, the only
+difference is the VAQ samples do not include navigation task
+indicator NAV.
+Training configuration. Uni-NaVid is trained on a cluster
+server with 40 NVIDIA H800 GPUs for approximately 35
+frames at 1 FPS to remove redundant information between
+consecutive frames. During training, the vision encoder (EVA-
+CLIP ) and large language model (Vicuna-7B ) are pre-
+loaded with default pre-trained weight. Following the training
+strategy of VLM , we optimize the trainable parameters
+for only 1 epoch.
+VI. EXPERIMENT
+We conduct experiments to evaluate Uni-NaVid on three
+specific aspects: (1) How does Uni-NaVid perform on individual
+tasks? (2) Does learning multiple navigation tasks lead to
+synergistic improvements? (3) Is the key design of our method
+effective? To evaluate the general-purpose navigation method,
+we conduct extensive experiments on individual navigation
+details are provided in the supplemental material.
+Benchmarks. We evaluate our method on various bench-
+marks across different navigation tasks. Given the diversity of
+benchmarks spanning various environments and simulators, we
+meticulously verify the scene splits to ensure no overlap exists
+between the training and validation scenes across benchmarks.
+Vision-and-language navigation: We test our method
+on the validation splits of the VLN-CE R2R  and
+RxR  benchmarks.
+Object goal navigation: We use the validation split
+of the Habitat Matterport 3D (HM3D) dataset ,
+which requires the agent to find target objects from six
+categories (sofa, chair, TV, bed, toilet, and plant) in unseen
+environments. Moreover, to test generalizability, we also
+evaluate our method on the HM3D-OVON dataset ,
+an open-vocabulary object navigation benchmark, in a
+zero-shot manner.
+Embodied question-answering: We use the validation
+split of the MP3D-EQA benchmark . Additionally,
+we conduct experiments on the more recent Embodied
+Video Question Answering benchmark, OpenEQA .
+Human following: We evaluate our method along-
+side mainstream approaches on our proposed language-
+described human following benchmark.
+Video understanding: We follow the evaluation proce-
+dures of existing VQA methods . We choose the
+tyNet  datasets.
+Metrics. To evaluate navigation performance, we follow the
+standard evaluation metrics , including success rate (SR),
+oracle success rate (OS), success weighted by path length
+(SPL) , trajectory length (TL), following rate (FR) ,
+collision rate (CR)  and navigation error from goal (NE).
+Note that the success criteria change among different navigation
+benchmark. For video understanding evaluation, we employ
+widely used metrics following existing works [7, 48].
+A. Deployment Details of Uni-Navid.
+Benchmark evaluation. For each navigation task, we adhere
+to the default settings of each navigation task [42, 71, 21, 35].
+All tasks take an online captured RGB video (capturing one
+frame after each action) and a textual instruction as inputs,
+and output the next four actions (Sec. IV-C). The robot then
+executes the predicted actions and calls STOP once the first
+predicted action is a stop action. For VLN and EQA tasks, we
+directly use the text instruction provided by the benchmark
+episodes. For human following and object goal navigation, we
+transform the target information into an instruction by adding
+prefixes such as Search for or Follow. Further details can
+be found in the supplemental material.
+It is worth noting that for EQA  task, the agent executes
+navigation actions until a stop command is issued. We then
+remove the navigation-specific token <NAV> and query the
+questions using the navigation history. This strategy alleviates
+the ambiguity for the LLM in deciding whether to navigate or
+answer a question (See Table X).
+Real-world deployment. For real-world deployment, we
+utilize a remote server with an NVIDIA A100 GPU to run
+Observation
+VLN-CE R2R Val-Unseen
+Pan. Odom. Depth S.RGB
+NEOSSRSPL
+InstructNav
+R2R-CMTP
+WS-MGMap
+ETPNav.FF
+Uni-NaVid
+TABLE II: Vision-and-language navigation (R2R). Compari-
+son on VLN-CE R2R  Val-Unseen. : Methods use high-
+level action space. : Methods use the same waypoint predictor
+proposed in . : Methods use additional visual data than
+MP3D scenes . Pan. indicates the use of panoramic
+images. Odom. indicates the use of odometry information.
+S.RGB indicates a single egocentric RGB image.
+Observation
+VLN-CE RxR Val-Unseen
+Odom. Depth S.RGB
+NEOSSRSPL
+WS-MGMap
+ETPNav.FF
+Uni-NaVid
+TABLE III: Vision-and-language navigation (RxR). Compari-
+son on VLN-CE RxR  Val-Unseen. : only trained on VLN-
+CE R2R. Odom. indicates the use of odometry information.
+S.RGB indicates a single egocentric RGB image.
+instructions) and sends commands to a local robot to execute
+the predicted actions. Uni-NaVid requires approximately 0.2
+seconds to generate the next four actions. During navigation,
+the robot asynchronously compresses and uploads the latest
+observations to the model while executing pending actions.
+Refer to the supplementary video for real-world navigation
+performance.
+B. Individual Task Results
+Comparison on vision-and-language navigation. We eval-
+uate our method with mainstream baselines on two publicly
+available benchmarks: VLN-CE R2R  and RxR . The
+results are shown in Table II and Table III. We find that our
+methods achieve SOTA-level performance on both datasets
+using only RGB videos as observations. In comparison to
+is solely trained on VLN data, our approach demonstrates
+Observation
+HM3D ObjectNav
+Habitat-Web
+InstructNav
+PIRLNav-IL
+PIRLNav-IL-RL
+Uni-NaVid
+TABLE IV: Object goal navigation. Comparison on Habitat
+Matterport 3D  ObjectNav dataset. Odom. indicates the use
+of odometry information. S.RGB indicates a single egocentric
+RGB image.
+significant improvements, with a 25.7 increase in Success
+Rate (SR) on R2R. For zero-shot methods (InstructNav
+and A2Nav ) that use ChatGPT with only text inputs
+for visual language navigation (VLN), these approaches often
+face challenges in transitioning between text prompts and
+visual information, resulting in less than satisfactory outcomes.
+RxR are more diverse and involve longer paths with detailed
+landmark descriptions, making RxR widely regarded as more
+challenging than R2R. However, our method achieves consistent
+performance across both R2R and RxR, with slightly better
+results on RxR (3.6 SR()), demonstrating its ability to
+effectively leverage detailed instructions to navigate diverse
+trajectories. We add experiments of removing RxR samples in
+Supplemntal Material, where our method still achive STOA
+performance (23.9 SR()) against NaVid.
+Comparison on object goal navigation. We conduct the
+experiments on HM3D  to compare Uni-NaVid with
+mainstream methods [85, 68, 69, 92, 91] that also learn from
+ObjectNav data. The results, shown in Table IV, demonstrate
+that our approach achieves the best performance. Note that
+methods not utilizing odometry face challenges as they must
+rely on implicit memory to retain the historical trajectory.
+(4.7) and SPL (8.8) compared to previous state-of-the-
+art methods. Additionally, we believe our methods ObjectNav
+performance can be further enhanced by incorporating reinforce-
+ment learning techniques, as demonstrated by PIRLNav
+and Poliformer .
+To evaluate the generalization ability for open-vocabulary
+goal navigation benchmark (HM3D-OVON ) in a zero-shot
+manner. The results in Table V demonstrate that our method
+achieves significant 

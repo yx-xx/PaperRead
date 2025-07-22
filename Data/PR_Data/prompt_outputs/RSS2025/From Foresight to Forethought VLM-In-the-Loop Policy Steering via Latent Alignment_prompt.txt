@@ -1,5 +1,5 @@
 === PDF文件: From Foresight to Forethought VLM-In-the-Loop Policy Steering via Latent Alignment.pdf ===
-=== 时间: 2025-07-22 09:42:42.899852 ===
+=== 时间: 2025-07-22 10:00:13.780346 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -187,4 +187,340 @@ to start failing for the runtime monitor to activate. The final
 they occur and unlock the potential for preemptive correction
 of the base policy. Here, existing approaches [22, 24, 25]
 often rely on out-of-distribution (OOD) detection in a latent
-space or dense human labe
+space or dense human labels to train a binary classifier
+that distinguishes failures from successes. In this work, we
+contribute to the predictive category of methods. Our method
+anticipates future outcomes of the policys actions via a latent
+world model, and reasons about the outcomes via a VLM that
+is aligned with the predicted latent states.
+Policy Steering. A traditional method to improve a base IL
+policy is to fine-tune it with additional intervention data
+or recovery behaviors . However, recently, runtime policy
+steering has become an attractive alternative to improving a
+generalist IL policy [27, 47] without needing any additional
+and expensive demonstration data. Runtime policy steering
+assumes that the base policy is capable of generating the
+correct behaviors, but fails to select them reliably. Here, an
+external verifier can be used to re-rank (i.e., steer) the gen-
+erations towards ones with good outcomes. Previous methods
+have explored humans-in-the-loop  or a Q-function learned
+from very large offline datasets labeled with sparse rewards.
+as the verifier. In our framework, by using a VLM-
+in-the-loop as our verifier, we can perform policy steering
+autonomously after finetuning VLM on a small dataset and
+provide human-like interpretable guidance.
+Learning to Search.
+From an algorithmic perspective, our
+approach fits within the paradigm of learning to search (L2S)
+. In L2S, one learns the components required to, at test
+what was in the training data. L2S provides two key advan-
+tages over direct imitation algorithms like behavioral cloning.
+quences of its actions and potentially recover from mistakes,
+avoiding compounding errors [35, 41]. We see this manifest
+in our systems ability to avoid or correct from failures the
+base policy would have produced otherwise. Second, verifying
+whether a plan is good is often easier to learn than generating
+a good plan in the first place [43, 28]. We see this manifest in
+the fact that our system only requires a limited amount of data
+to fine-tune our verifier VLM, rather than the larger amount
+of data an end-to-end approach would have required .
+In contrast to more classical L2S approaches that require
+extensive global search in the real world [31, 52], we instead
+perform local search  against a learned verifier [42, 12]
+inside a learned world model . This allows us to avoid
+the computational expense of global search and the potential
+safety violations incurred by real-world interaction. As argued
+by [42, 32], doing so still matches many of the guarantees of
+classical L2S methods if one fits the world model on a mixture
+of on-policy and off-policy trajectories (i.e., in a hybrid fashion
+[40, 45]), as we do consistently across all of our experiments.
+III. PROBLEM FORMULATION
+We formalize the general problem of policy steering as a
+stochastic model-predictive control problem over the set of
+action plans proposed by a base action generation model.
+Setup  Notation.
+Let the robots pre-trained multimodal
+imitative action generation model [6, 23] be denoted by
+(at  ot). We will often refer to this model as the robots
+base policy throughout this paper with which it performs a
+task for an end-user. The robots observations o O : I Q
+combine RGB image data I I and proprioceptive states
+q Q (e.g., end-effector pose, gripper state), and at : at:tT
+denotes a robots T step action plan, with each action in
+the sequence specifying end-effector positions and rotations.
+at (  ot) and executing it open-loop, the robot observes
+a sequence of observations ot P(ot, at).
+Problem. Given the robots current observation ot at timestep
+t and K i.i.d. samples from the base policy, {ai
+ot), the policy steering problem seeks to return the action plan
+t which optimizes the following objective:
+EotP(ot,at)
+specified in Eq.1 requires two abilities: prediction and veri-
+fication. The prediction problem can be clearly seen in the
+expectation of Eq.1, wherein we have to forward simulate the
+outcomes of any action plan ai
+t and imagine the potential
+future observations, ot P(ot  ot, ai
+t). The verification prob-
+lem lies inside of the expectation and with the reward function
+R(ot; ). Here, L is the task description, represented via
+a language description (e.g., Serve the cup of water to the
+guest.), and R verifies how well or how poorly the future
+observations align with the behavior specified by .
+While Eq.1 characterizes the underlying policy steering
+cause of the coupled prediction and verification steps. This
+is where we seek to leverage vision-language models in-
+the-loop to obtain a practical solution with the potential to
+generalize to new environments and hard-to-model steering
+criteria. Initially, it may be tempting use the VLM directly
+as a black-box solver of Eq.1 (i.e. to solve the overarching
+behavior generation problem) by simply passing it the K
+action plan options, the current observation ot, and the task
+t . However,
+low-level action data is beyond the training distribution of
+current VLMs, which primarily focus on high-level semantic
+understanding and not embodied control . Alternatively,
+we could fine-tune the VLM to directly select action plans
+via labeled observation-action-samples datasets (labeled with
+optimal action trajectories). However, this strategy is sample-
+annotations to generate labels. Instead, we propose tackling the
+problem in Eq.1 in a way that leverages the unique strengths
+of a VLM. We hypothesize that the right place to put VLMs
+into the loop is specifically in the verification step above, as it
+leverages the models strong reasoning abilities given predicted
+outcomes. Then, to complement the VLM, we propose that
+prediction should be handled by an embodied world model that
+can reason about hard-to-model outcomes directly from low-
+level actions. It is well known that verification is significantly
+easier than generation for many problems [9, 43], boding well
+for the sample-efficiency of our modular approach.
+IV. OUR APPROACH: FOREWARN
+Our key idea is to adopt a divide-and-conquer strategy,
+explicitly decoupling the VLMs burden of predicting action
+outcomes from evaluation during policy steering. Specifically,
+we take advantage of recent advances in latent dynamics
+models [25, 50] which can learn lower-dimensional latent state
+representations from high-dimensional observation-action data
+collected on a robot. By passing possible action generations
+Llama 3.2 11B Vision Instruct
+Llama Tokenizer
+Projection Layer
+Llama De-Tokenizer
+RSSM Dynamics Model
+The robot grasps the cup by the handle.
+The robot aims to grasp the cup. Describe the behavior.
+Imagination
+A. World Model (Pretraining)
+B. VLM Latent-State Narration (Finetuning)
+FOREWARN
+General Task Description
+Base Policy
+Current Observation
+Frozen after Pretraining
+LoRA Finetuning
+Fig. 2: Training FOREWARN. In part A (Sec. IV-A), a Recurrent State Space Model (RSSM) is pretrained to learn good
+latent embeddings of the dynamics conditioned on the observations and actions. In part B (Sec. IV-B), the sequence of learned
+latent embeddings is projected through a linear layer to the text embedding space, similar to the original vision token processing
+in the Llama-3.2 Model. The projection layer and Llama model are finetuned together using LoRA , but the world model
+remains frozen.
+to the latent dynamics model, we can efficiently predict
+diverse future outcomes that would hard to model otherwise.
+that is an approximate sufficient statistic of the dynamics, one
+still needs to teach the VLM to evaluate outcomes in the latent
+representation of the world model, rather than from the raw
+image observations, as we will address in detail below.
+At the highest level, our mathematical formulation of
+model-predictive VLM-in-the-loop policy steering is:
+Eztf(zt,at)
+zt  E(ot),
+where zt1 f(zt, at) is a probabilistic latent dynamics
+that maps the robots current observations ot into a latent space
+(zt; ) represents an implicit reward function
+embedded in our VLM (parameterized by ) which evaluates
+the predicted outcomes given the task description. Both f
+and E are part of our world model and parameterized by .
+In short, to realize our idealized policy steering objective (1),
+we approximate the expectation over future outcomes with
+world model rollouts and leverage a fine-tuned VLM as a
+latent-outcome-conditioned verifier, leading to (2). We call
+our overall policy steering approach FOREWARN: Filtering
+Options via REpresenting World-model Action Rollouts as
+A. Foresight: Predicting Outcomes via Latent World Models
+In this work, we adopt the Dreamerv3 world model
+as our mechanism for predicting future outcomes of ac-
+tion plans. This world model (visualized on the left in
+Fig. 2) is pre-trained via an offline dataset that contains
+trajectories of the robots observations and actions: DWM
+ries with each trajectory representing the robots outcome oj
+induced by an action plan aj
+these trajectories. The training data consists of both successful
+and failed rollouts from the base policy (a  o) and additional
+demonstration data. This allows the world model to accurately
+predict the outcomes of both good and bad actions plans, a
+sufficient condition for successful behavior generation .
+The world model training loss incentivizes the latent state
+to be informative for high-quality image decoding as well as
+highly predictive of the next latent state given an action (see
+and Appendix A2 for more details). After training, the
+world model is frozen, and we utilize the trained E and f
+throughout the rest of our policy steering algorithm.
+B. Forethought: Latent-Text Alignment for Outcome Reason-
+ing and Policy Steering
+Once the world model encoder E learns an effective
+low-dimensional latent state representation zt and the latent
+dynamics model f learns to predict future latent states
+conditioned on the robots actions, we can shift our focus
+to evaluating the imagined outcomes of any candidate low-
+level action plan. We hypothesize that the VLMs open-world
+reasoning capabilities could allow it to be an effective verifier
+a verifier, we need to first enable the VLM to reason directly
+about the predicted latent states (rather than in terms of raw
+image observations). We propose approaching this problem
+as a latent-text alignment problem: by mapping latent states
+generated by the world model to a textual representation, we
+can enable the VLM to more easily evaluate plans due to
+its strong natural language understanding abilities. We then
+further frame this alignment problem as a visual question-
+answering (VQA) task, where we prompt the VLM to narrate
+the real-world behavior of the robot conditioned on a sequence
+of latent states produced by the world model (visualized on
+the right of Figure 2). We now discuss this process in detail.
+VLM Backbone. We use the Llama-3.2-11B-Vision-Instruct
+model  as our VLM backbone. The original Llama model
+utilizes a Vision Transformer (ViT) to tokenize visual inputs
+into latent tokens, which are then processed by the LLM
+backbone to generate text outputs. In our setting, we adapt the
+Llama model by replacing its observation (image) tokeniza-
+tion module with our world models encoder E and latent
+dynamics model f. To align the latent dynamics embedding
+space with the text embedding space, we introduce a linear
+layer as an adapter. Specifically, E encodes the current robot
+future latent states based on a candidate action plan (left side
+of Figure 2). These latent states are passed through the linear
+layer to produce a sequence of latent tokens, which serve as
+input to the LLM backbone (right side of Figure 2).
+VLM Finetuning.
+Our objective is to enable the VLM to
+narrate the real-world behavior of the robot, denoted as i
+based on a sequence of generated latent states, zi
+world model. These behavior narrations highlight fine-grained
+motion details (e.g., the robot grasps the cup by the handle)
+rather than the high-level semantics of the motion (e.g., the
+robot grasps the cup). This design encourages the model to
+capture nuanced behaviors and identify potential failures in
+the robots predicted outcomes. We construct a VQA dataset
+to finetune the VLM to achieve this objective (described in
+Sec. V and App. A3).
+VLM-In-the-Loop Policy Steering. Our fine-tuned VLM can
+now describe the outcomes of candidate action plan in natural
+language narration. However, our ultimate goal is to query the
+VLM to identify the best action sequence. To accomplish this,
+we propose querying the same VLM again (i.e. using it as a
+verifier), leveraging its open-world reasoning capabilities and
+natural language understanding to select the best action plan.
+Eztf(zt,at)
+zt  E(ot).
+where T VLM
+: ZT Lb denotes the inference process that
+translates a candidate action plan into the associated robot
+behavior narration. Instead of instructing the VLM to explicitly
+assign the reward for each predicted action plan outcome,
+we leverage its implicit knowledge about the reward and
+directly query the VLM for the best action plan among the
+K candidates, conditioned on the task description l (see the
+example in right side of Figure 1), which can be seen as a
+form of multiple-choice question answering (MCQA).
+In summary, by integrating the predictions from the world
+model with the VLMs open-vocabulary behavior narration
+generation and commonsense reasoning, FOREWARN guides
+the robot towards action plans that are aligned with the
+deployment context and task goals and enables the robot to
+proactively prevent failures.
+V. EXPERIMENTS
+In this section, we instantiate several real-world manipu-
+lation tasks to study our method. We first investigate how
+effectively we can translate low-level actions into high-level
+behavior descriptions (Sec. V-A).Then we evaluate the closed-
+loop policy steering performance as well as our methods
+robustness to novel task descriptions, (Sec. V-B).
+Real Robot Setup.
+We use a Franka Emika robotic ma-
+nipulator equipped with a 3D printed gripper from  in
+our experiments. The base generative policy controls the low-
+level robot actions (which are the robots end-effector pose
+and gripper opening) controlled at 15Hz. The robot uses
+RGB images from a wrist-mounted camera and a third-person
+camera mounted in front of the robot. See App. B1 for more
+details.
+Manipulation Tasks. We consider three real-world robot ma-
+nipulation tasks that exhibit underlying multi-modal behaviors,
+hard-to-model outcomes, and nuanced failures. In the Cup
+the Bag task, the robot must pick up a bag of chips from
+the table. Fundamentally, both tasks can be accomplished in
+diverse ways: for example, for the Cup task, the robot can pick
+up the cup by the handle or by placing its fingers inside the cup
+by grasping the lip; for the Bag task, the robot can grab the bag
+by any edge, or by squeezing the center. Furthermore, the Bag
+task has more challenging dynamics and potential outcomes
+because the bag is deformable. We use this task to study how
+our framework performs when faced with harder-to-predict
+interaction outcomes and nuanced failures (e.g., crushing the
+chips inside the bag).
+We also introduce a third task that features longer horizon
+and more complex interactions Fork-to-Bowl Transfer. In this
+it inside a bowl. This task is considerably more challenging
+than the other two tasks for three reasons: 1) it requires
+longer-horizon planning to effectively navigate distinct phases;
+2) requires reasoning about interactions between objects (the
+fork and the bowl); and 3) it introduces different multi-
+modal motion choices, including selecting the optimal picking
+location (tines or handle) and determining the appropriate
+placement strategy (inside versus outside the bowl, low versus
+high release). In the top row of Figure 3, we visualize the
+camera observations of the robot interacting with these items
+for Bag and Cup tasks.
+Base Policy. For our multi-modal imitative action generation
+teleoperated demonstrations per task. The policy takes inputs
+from wrist and third-person cameras, along with propriocep-
+tive states, to predict a distribution over T-step action plan,
+where T  64. Please see App. A1 for more details.
+World Model Training. We collected 250 real-world trajecto-
+ries per task, including both successful and failed rollouts from
+the base policy, along with additional 100 demonstrations used
+in base policy, for training and evaluating the world model
+(300 for training and 50 for testing). The world model is
+trained to predict T  64 future latent states given the current
+ot and an action plan at.
+VLM Fine-tuning.
+We construct our VQA dataset for
+fine-tuning from the same offline dataset, DWM, used to
+train the world model. For each T-step trajectory snippet
+t from the dataset, the encoder E processes the
+initial observation oj
+t at timestep t, and the forward dynamics
+model f predicts latent states zj
+although f is a stochastic dynamics function, we use only
+the most likely prediction as the outcome associated with the
+action plan. To avoid semantically repetitive latent states
+between adjacent low-level actions, we downsample the T-
+step latent states to T4. These downsampled latent states,
+along with the task description , are provided as input to the
+fine-tune the model using the Low-Rank Adaptation (LoRA)
+dynamics model f frozen during the fine-tuning process.
+VLM-In-the-Loop Policy Steering. When deploying FORE-
+WARN for run-time policy steering, we begin by sampling 100
+action plans from the base policy and aggregating them into
+K  6 modes using the non-maximum suppression (NMS)
+scheme from . These 6 aggregated action plans are then
+passed to FOREWARN for interpretation and evaluation. For
+each candidate action plan, we use only the most likely future
+latent state predictions from f as input to the VLM for
+reasoning.
+A. From Action Rollouts to Behavior Narration
+As discussed in Sec. IV-B, if we want to use the VLM
+as an open world verifier RVLM
+(; ), we need to enable the
+model to understand the underlying textual representation of
+low-level action outcomes. In this section, we study if our our
+latent-aligned VLM can accurately describe the outcomes of
+low-level actions. We also c

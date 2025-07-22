@@ -1,5 +1,5 @@
 === PDF文件: Bilevel Learning for Bilevel Planning.pdf ===
-=== 时间: 2025-07-22 09:42:32.686206 ===
+=== 时间: 2025-07-22 09:59:59.224770 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -191,4 +191,393 @@ fully specified parameters, e.g., MoveToReach(r1, p1, ) for
 a certain  . We use underline notation to represent
 is controller with object parameter placeholders, which are
 typically prefixed with ?, e.g., MoveToReach(?r, ?p, ). States
-and actions ar
+and actions are related through a known transition function
+f(x, C) 7x, which the robot can use to plan.
+1Unlike previous work , we do not assume that features are scalars;
+high-dimensional images and point clouds are also allowed.
+A predicate  is defined by an object type signature
+(1, 2, . . . , u) and a classifier  : X  O {True, False},
+where (x, (o1, . . . , ou)) evaluates the truth value of a ground
+predicate based on the continuous features of the input
+objects. For example, the predicate In has type signature
+(target, target) and a classifier that uses the poses and shapes
+of two targets to determine whether one is in the other. A
+ground predicate  has fully specified objects. For simplicity,
+we denote (x)  (x, (o1, . . . , ou)) . A lifted predicate
+has placeholders for objects, e.g., In(?t, ?t).
+Following previous work , we assume that a small set
+of goal predicates G is known and used to characterize task
+goals. In particular, a goal g is defined by a set of ground
+predicates that must evaluate to True in a state for the goal
+to be satisfied. For example, the goal in Figure 2 has only
+one ground predicate, In(t1, t2). In this work, we make an
+additional assumption that any relevant static predicates sta
+are known. A predicate is static if its evaluation never changes
+within a task (see Appendix E for examples). Conversely, a
+predicate is dynamic if its evaluation could change within a
+task; examples are provided later in Definition 1.
+A solution to a task is a plan   [C1, C2,    , CH], that is, a
+sequence of H ground actions such that successive application
+of the transition model xi  f (xi1, Ci) on each Ci ,
+starting from x0, results in a final state xH where g holds.
+For instance, the plan depicted in Figure 1 bottom right finally
+leads to the state where In(t1, t2) holds. In sum, to generate
+the plan  for a task, in each state, the robot needs to predict:
+(1) the action class C C, (2) the objects as the discrete
+During training, the robot has access to an offline demonstra-
+tion dataset D  {(Ti, i)}B
+solution pairs sampled from the task distribution T train. Note
+that since the transition function f is known and deterministic,
+we can also recover the intermediate states from x0. During
+test time, the robot is required to solve held-out tasks sampled
+from a different test distribution T test. In practice, for the sake
+of evaluating generalization, test tasks typically contain new
+and more objects than training tasks. For example, as shown in
+Figure 2, all training tasks only have 1 platform, but during test,
+there are 2 platforms. The difference in object compositions
+could result in different lengths of plans with a different action
+implicit concepts present in the training demonstrations.
+III. BILEVEL PLANNING
+In this work, we propose a method for learning predicates
+that can be used for bilevel planning. We now provide a brief
+review of bilevel planning and refer to other references for a
+more in-depth discussion [1517, 1921, 24, 32, 33].
+Bilevel planning uses relational abstractions to achieve
+sequential and compositional generalization. The two principal
+abstractions are predicates (state abstractions) and operators
+(action abstractions). Bilevel planning also uses relational
+samplers to generate possible ground actions from operators.
+The key idea is that planning jointly in the abstract transition
+?r(robot)
+?p(platform)
+?t(target)
+Generalize
+{In(?t,?t)}
+MoveToReach(?r,?p,SE(2))
+Pick(?r,?p, )
+Drop(?r,?t,?t, ) Gaze(?r,?t,SE(3))
+MoveToPlace(?r,?p,?t,SE(2))
+Grasp(?r,?t, )
+MoveAwayOff(?r,?p,SE(2))
+MoveAwayOn(?r,?p,?t,SE(2))
+WalkOn(?r,?p,?t, )
+MoveToGaze(?r,?t,SE(2))
+{In(t!, t")}
+Fig. 2: The Climb-Transport domain is presented as a running example.
+We have displayed one typical training and one test task on the top.
+The types, actions, and provided predicates are shown at the bottom.
+system and the low-level transition system can be much more
+efficient than planning in the low-level transition space only.
+Definition 1 (Operator). The operator for a parametrized
+controller C is a tuple, OpC  Var, Pre, Eff, Eff, where
+Var is a tuple of object placeholders matching the type signature
+of C, and Pre, Eff, Eff, respectively preconditions,
+add effects, and delete effects, are each a set of lifted predicates
+defined with variables in Var.  is a predicate set.
+For example, the operator for Grasp(?r, ?t) could be:
+Pre  {HandEmpty(?r), HandSees(?r, ?t)},
+Eff  {Holding(?r, ?t)},
+Eff {HandEmpty(?r), HandSees(?r, ?t)}.
+Given a task T  O, x0, g, bilevel planning (Figure 3b) starts
+by using predicates to generate an abstract state consisting of
+all ground predicates with objects O whose classifiers evaluate
+to True in x0. The initial ground predicates, together with the
+operator set and goal g, can then be input to an AI planner
+to generate a plan skeleton,  with partially grounded actions
+with unspecified continuous parameters, C. To refine the actions
+in this skeleton C  into fully grounded C with the continuous
+Definition 2 (Sampler). The sampler C for a planning operator
+OpC with v object placeholders is a conditional distribution
+C(  x, (o1, . . . , ov)) that proposes continuous action
+parameters for C((o1, . . . , ov), ) given a state x.
+Note that unlike the deterministic operators, samplers are
+usually stochastic and may fail in certain steps. Thus, bilevel
+planning alternates between the AI planner and samplers, using
+the predicate classifiers  as guidance in each step to
+compensate for potential sampling failures.
+P21(?r,?t)
+P22(?r,?t)
+P21(?r,?t)
+P31(?r,?p)
+Predicate
+Final set
+Operator
+Sampler Learning
+Candidates
+Invented P1(?r)
+Invented P2(?r,?t)
+Selection
+Symbolic Effect
+Learning
+(a) Bilevel Learning During Training
+Neural Function
+Learning
+Guidance
+AI Planner
+Ground Predicates
+(b) Bilevel Planning During Test
+Alternate
+Fig. 3: (a) Overview of IVNTR during training. Given transition pairs in the continuous space, IVNTR invents neural predicates with different
+arguments parallelly, resulting in a candidate set. A subset that minimizes the planning objective J() is selected from the candidates, which
+serves as the final dyn. With the complete predicate set, sampler and operator learning can be achieved. (b) Bilevel planning with operators
+and samplers during test. Compositional ground predicates serve as inputs to the AI planner and provide guidance to the samplers.
+Assuming we have a complete predicate set, previous
+work has studied the problem of learning operators  and
+samplers [16, 19] from the demonstration dataset D. Since the
+can be generally applied to held-out test tasks sampled from
+T test. However, with an insufficient predicate setfor example,
+with only G and stabilevel planning can be intractably
+slow . We next introduce the IVNTR framework, which
+closes this gap by automatically inventing dynamic predicates
+for efficient bilevel planning.
+IV. METHODOLOGY
+The problem of inventing dynamic predicates dyn can be de-
+composed into symbolic learninghow many predicates should
+be invented, and with what type signaturesand classifier
+Previous approaches [17, 21] address these problems via a
+define-then-select two-stage pipeline. In the first stage, for
+each predicate candidate  with known variable types, its
+classifer is pre-defined via program synthesis  or pre-
+trained foundation models . These candidates form a large
+predicate pool dyn. In the second stage, to subselect predicates
+from the pool, each candidate predicate set dyn dyn is
+scored with a function J(dyn) that measures both planning
+efficiency and effectiveness. A key limitation of this define-
+then-select pipeline is that the classifiers within dyn are
+restricted to a relatively simple set. Scaling to more general
+highly non-differentiable. To address this, we propose IVNTR,
+a learn-then-select approach that leverages bilevel learning.
+As depicted in Figure 3 (a), given the domain types ,
+IVNTR enumerates all possible typed variable compositions
+(with maximum input arity). Since the input features for the
+predicate classifier depend on its argument types, IVNTR
+invents predicates with different arguments group by group
+parallelly. For the invention of each group, IVNTR draws in-
+spiration from bilevel planning itself, where planning alternates
+between the symbolic level and the low level. Similarly, IVNTR
+interleaves symbolic learning and neural learning, with each
+providing guidance for the other. Specifically, symbolic learning
+proposes effect vectors that represent the add and delete effects
+for candidate predicates across all operators. Neural learning
+uses these effect vectors to provide supervision for classifier
+learning. The validation loss in neural learning feeds back into
+symbolic learning, and the process repeats. In this section, we
+describe these steps in detail via the exemplar predicate group
+A. Effect Vectors as Supervision for Neural Learning
+Suppose we had access to the symbolic components of a
+further that we had knowledge of all appearances of  in
+the effect sets (Eff, Eff) for each operator OpC. We now
+describe how this knowledgewhich we do not actually have,
+but which will be suggested by symbolic learningcan be
+used for supervised learning of the classifier .
+Recall that we have access to demonstrations D, and for each
+demonstrated task T, we can recover the solution trajectory,
+[x0, C0, x1, C1,    , CH1, xH]. If we knew the initial state
+ground predicates  in x0, then we could immediately recover
+all ground predicates for all the states in the trajectories
+by chaining together the operator effects. Then, a simple
+binary classification framework could easily address our neural
+learning problem. However, we do not have access to the
+initial state ground predicateswe only have access to operator
+effectsso we do not have direct knowledge of the abstract
+states in the demonstration. Nonetheless, we can still provide
+supervision for neural learning by leveraging the ground
+predicates that are added, deleted, or stay unchanged in each
+transition pair. We provide this supervision by way of predicate
+effect vectors, including the lifted effect vector for a domain,
+and the ground effect vector for a transition.
+Definition 3 (Lifted Effect Vector). The lifted effect vector for
+Gaze(r,)
+Grasp(r,)
+Neural Learning of P21(?r,?t)
+Effect Vector
+High Val
+Object Centric Feat.
+Current State
+Next State
+Neural Info Flow
+Symbolic Supervision
+Two Transition Pairs
+Lifted Effect
+Fig. 4: Detailed neural learning process for predicate P21(?r, ?t).
+From the demonstration dataset, we display two transition pairs (one
+for each action, in total four states) on the left. The neural network
+takes object centric features as input, predicting ground predicates (in
+total eight values). At the bottom, we display an example lifted effect
+vector for action Grasp, Gaze as
+t  [1, 1]. With the ground
+effect vector, supervisions can be derived on the predicted values.
+Due to the unreasonable effect supervisions, the intermediate state is
+labeled as both True and False, resulting in high validation loss.
+predicate  is   [
+M] {1, 0, 1}M where:
+Eff for Ci
+Efffor Ci
+otherwise.
+For example, in Figure 4, the effect vector [1, 1] specifies
+that predicate   P21(?r, ?t) is the add effect for both
+Gaze(?r, ?t) and Grasp(?r, ?t)2.
+The lifted effect vector is a favorable symbolic representation
+of a lifted predicate, since its shape doesnt depend on task
+object compositions and can thus be learned more efficiently,
+as we will see. However, to train the neural classifier on the
+transition pairs, we will need to derive supervision on ground
+Definition 4 (Ground Effect Vector). Let O be the object set
+in a task T, Ci be a ground action with objects OCi O, then
+the ground effect vector t,Ci  [t1,    , tP ] {1, 0, 1}P
+for predicate  grounded on O is defined as:
+if Op OCi,
+where p denotes the p-th atom with objects Op, among
+the total of P ground predicates. For example, in Figure 4,
+2Each predicate here can appear at most once in the effect sets, but this
+doesnt affect the representation capability of the final predicate set.
+ground effects for P21(r1, t1) will be 1 for both ground
+actions Gaze(r1, t1) and Grasp(r1, t1), while ground effects
+for P21(r1, t2) will be 0, as (r1, t2) (r1, t1).
+non-zero entry of all ground effects from the action class
+Ci equals
+decided by the object set OC and the predicate grounding (see
+Appendix B and Appendix C for more explanations).
+the transition pairs with supervisions from . Specifically,
+consider a transition pair: (x, Ci, x), we first construct the
+ground effect vector t,Ci using
+i . Then, the following
+supervised learning objective can be established for :
+L(x, x, )  Lzero  Lone
+Lzero DivJS
+where v, v [0, 1]P are the predicted ground predicates by
+applying  on all possible object sets from O. DivJS()
+denotes the JensenShannon divergence  and Eq.(3) tries
+to minimize the distance between v and v if the indices with
+zero values in t,C. vp, v
+p denotes p-th ground predicate, where
+Op OCi. BCE(, ) represents the Binary Cross-Entropy,
+which tries to directly supervise v and v if
+i  0. Intuitively,
+Lzero supervises the ground predicates whose values should
+stay unchanged in a transition (but we dont know their values).
+values can be derived based on the effect vectors. Since we
+have  for all lifted actions, the pipeline can be applied to
+all ground transition pairs in D, resulting in the global loss,
+E(x,C,x)DCL(x, x, ),
+where DC denotes the distribution of the grounded transition for
+action C in the dataset D (See Figure 4 for the examples of two
+transitions from different actions). Since L is fully differentiable
+with respect to , given a effector  and the demonstration
+learning frameworks [36, 37] to train a neural classifier
+that minimizes the loss L for any state representation.
+B. Neural Loss as Guidance for Symbolic Learning
+To obtain all the classifiers Var for all the typed predicates
+effect vectors  Var. As defined in Definition 3, the
+lifted effect vectors live in the discrete world with a finite shape,
+which motivates us to establish some discrete optimization
+strategies for it. One insight here is that, despite the large
+with unreasonable ones resulting in high classification error on
+the validation set after the training converges.
+A motivating example is depicted in Figure 4, where the
+proposed effect vector assumes the predicate to be the add
+effects for both Gaze and Grasp. In the demonstration, Grasp
+closely follows Gaze, making the intermediate state shared in
+the two transition pairs but with one being the next state and the
+other being the current state. Then, the intermediate state will
+be labeled as both True and False, which is unreasonable and
+results in high classification error. Thus, our symbolic learning
+aims to efficiently find all reasonable effect vectors,
+Definition 5 (Symbolic Learning Objective). Let the demon-
+strations be split into non-overlapping training and validation
+sets D  Dtrain Dval, the objective of our symbolic learning
+is to find a subset of effect vectors ,Var Var,
+Var  LDval()
+where  is learned from Dtrain with supervision derived from
+using Eq. (5), and LDval denotes the validation loss of
+classifier  calculated from Eq. (5), and  is a given threshold.
+Inspired by the fact that a predicates effects are usually
+sparse among actions, we propose a tree expansion algorithm
+for efficiently learning ,Var. Specifically, as shown in
+Figure 5 (with M  4 actions), the complete effect vector set,
+n Var, n > 0 representing an effect vector. The root 0
+of the tree is an all-zero effect vector, which is not associated
+with any potential dynamic predicate. The nodes in the lth
+level represent a vector with l non-zero entries. For each non-
+leaf node in the lth level, its children in the l  1-th level
+have the same non-zero entries with one more non-zero entry.
+A naive exploration in this tree is to enumerate its nodes and
+train neural classifiers with supervisions from each of them,
+which is extremely time-consuming due to the large space. To
+explore the effect tree more efficiently, IVNTR tries to balance
+the trade-off between exploration and exploitation [38, 39].
+associated with a scalar rn
+,Var if we expand it at the current t-th iteration. In the
+t-th iteration, we start by selecting a parent node Par(
+t ) with
+the highest current Upper Confidence bounds applied to Trees
+(UCT) score . Its child,
+t that has the current highest
+value rt among all the children is proposed for evaluation (index
+is neglected for simplicity). The evaluation process is defined
+as the supervised neural learning process in Section IV-A.
+After the classifier  converges, we collect its action-wise
+validation loss Lt RM by decomposing Eq. (5) for each
+action C C, C  M. The loss information is then used to
+update the values of all the nodes in the tree, which helps us
+select and expand the parent node in the t  1-th iteration. The
+tree expansion terminates if all of the existing nodes are fully
+definition and updating strategy of the node values rn
+the sparsity of predicate effects among actions is indicated by
+the sparsity of non-zero entries in the effect vector, we try to
+Global Value !"
+Evaluate
+Effect Tree !"
+Lifted Effect Vector  !
+Validation
+Function
+Training
+Symbolic Learning
+P2(?r,?t)
+Fig. 5: Detailed symbolic learning process for predicate group
+P2(?r,?t). With the neural validation loss from the previous
+value vector (See Eq. (7)). After the node values in the effect tree are
+children nodes, we evaluate the child with the current highest value,
+via the neural classifer training process described in Figure 4.
+efficiently explore the entries in the effect vectors that should
+not be zero to optimize Eq. (6). To achieve this, we try to
+leverage the guidance from the zero-parts (Eq. (3)) of Lt.
+t in the tth
+iteration with Lt, we use the following equations to update
+and compute rn
+t1 for all the nodes in the tree,
+Rt1  Rt I(
+t  0)  (Rt  Lt)
+t1  Mean
+Rt1 I(n  0)
+where Rt RM, R0  0M is a global value vector that stores
+the information from historical evaluations. I(
+t  0) is a
+binary vector indicating if an entry in the evaluated node
+equals to zero. Here, we only update Rt with the zero-parts
+of the loss information Lt, which then helps update the node
+values. The node values intuitively indicate how likely the loss
+will decrease in its children where there are fewer zeros in
+the effect vectors. From Eq. (7), we see that the higher loss in
+the zero entry indexes of n contributes to its higher value,
+encouraging the evaluation to prioritize its children, which are
+likely to decrease the loss. In Appendix D, we additionally
+introduce some pruning strategy for more efficient expansion.
+the associated neural classifier n as the outcomes from the
+bilevel learning of typed predicates Var. As shown in Figure 3
+(a), there could exist multiple different vector-classifier pairs for
+the same typed predicate Var, which are treated as different
+predicates in the following predicate selection stage.3
+C. Predicate Selection
+With all possible typed predicates, IVNTR is able to
+construct the predicate pool dyn without any classifier pre-
+definition. This strength has made bilevel planning applicable
+3Following previous work , we can also add quantifiers and negations
+as prefix for each of the invented neural predicates.
+Satellites
+Measure-Mul  Climb-Measure
+Calibrator
+Thermal Cam
+Target w Chemical X
+Target w
+Chemical

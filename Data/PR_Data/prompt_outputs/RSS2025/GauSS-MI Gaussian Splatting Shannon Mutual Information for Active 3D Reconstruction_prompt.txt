@@ -1,5 +1,5 @@
 === PDF文件: GauSS-MI Gaussian Splatting Shannon Mutual Information for Active 3D Reconstruction.pdf ===
-=== 时间: 2025-07-22 09:41:37.992439 ===
+=== 时间: 2025-07-22 09:58:51.116102 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -187,4 +187,443 @@ plicit uncertainty in visual quality[20, 29, 30, 31]. However,
 while these methods successfully evaluate uncertainty in NeRF
 for next viewpoint selection, their effectiveness depends heav-
 ily on the availability of high-quality datasets for training the
-evaluation neur
+evaluation neural networks.
+In contrast to NeRFs implicit modeling approach, 3DGS
+provides an explicit representation of the environment using
+a collection of spatially distributed spherical Gaussians. This
+explicit representation facilitates the direct evaluation of uncer-
+tainty in visual quality. In GS-Planner , image loss is di-
+rectly incorporated into the occupancy map, enabling the eval-
+uation of both geometric and photometric uncertainty. Jiang
+et al.  introduced FisherRF, which leverages the Fisher
+information matrix to quantify the parameter uncertainty in
+radiance maps. Building on this, Xu et al.  extended the
+GS-Planner framework by integrating FisherRF and geometric
+completeness for more comprehensive uncertainty evaluation.
+ActiveGS by Jin et al.  proposed a model for evaluating the
+confidence of each Gaussian, which is subsequently used for
+viewpoint selection in active reconstruction. In a recent study,
+Chen et al.  proposed ActiveGAMER with a silhouette-
+based information gain to enhance both geometric and pho-
+tometric reconstruction accuracy. Our method also employs
+3DGS as the scene representation for active reconstruction.
+To enhance the evaluation of observed information in the
+Gaussian map, we propose a more comprehensive probabilistic
+model that accounts for both reconstruction loss and sensor
+measurement noise.
+B. Information-theoretic View Uncertainty Quantification
+Information theory offers a robust mathematical framework
+for active 3D reconstruction, enabling the selection of view-
+points that maximize expected information and consequently
+reduce the map entropy. Occupancy grid maps, typically
+represented as probability models, inherently capture ob-
+served information and associated uncertainties. Consequently,
+information-theoretic approaches can be directly integrated
+into occupancy-based active reconstruction. One common
+method constructs information gain from each observation
+by occupancy probabilities [14, 22]. Alternatively, mutual
+information has been extensively studied for its ability to
+quantify the mutual information between a map and obser-
+vations. Shannon Mutual Information (SMI) has been proven
+to provide guarantees for comprehensive exploration of the
+and completeness in active reconstruction tasks. However, its
+practical application is hindered by substantial computational
+overhead when applied to occupancy mapping, as the compu-
+tational complexity scales quadratically with the spatial resolu-
+tion of the map and linearly with the numerical integration of
+range measurements. To overcome these limitations, Charrow
+et al.  introduced the Cauchy-Schwarz Quadratic Mutual
+Information (CSQMI) metric, which enables analytical compu-
+tation of measurement integration and reduces computational
+complexity to linear scaling with the maps spatial resolu-
+tion. Subsequent studies have demonstrated the efficiency of
+CSQMI in real-time robotic systems for active reconstruction
+tasks [2, 28, 33]. To preserve the theoretical guarantee of
+Information (FSMI) algorithm, which significantly enhances
+the computational efficiency of mutual information evaluation
+compared to the original SMI algorithm  by analytically
+evaluating integrals.
+Information-theoretic uncertainty quantification for radi-
+ance field-based approaches can be broadly divided into two
+categories. The first category learns an implicit probability
+model to estimate information gain for novel viewpoints .
+The second employs the Fisher information matrix, derived
+from the rendering loss, to quantify information gain[11, 15].
+Among these, FisherRF, a recent method based on the Fisher
+information matrix, extends its applicability to 3D Gaussian
+Splatting (3DGS) . However, FisherRF focuses primarily
+on next-best-view (NBV) selection, neglecting the real-time
+demands of active reconstruction. To overcome these limita-
+the rendering quality. Utilizing the computationally efficient
+SMI method, which jointly accounts for uncertainties in the
+reconstructed map and measurements, we introduce Gaussian
+Splatting Shannon Mutual Information (GauSS-MI), a novel
+method for quantifying visual uncertainties. Additionally, we
+develop an active reconstruction system based on GauSS-MI,
+which achieves high visual fidelity with real-time performance
+requirements.
+III. OVERVIEW
+This paper introduces Gaussian Splatting Shannon Mutual
+Information (GauSS-MI) as a metric for efficient next best
+view selection in high-visual fidelity active reconstruction. The
+proposed method is illustrated in Figure 1. At each active
+reconstruction step, we assume that we have a set of previous
+observations and a set of next viewpoint candidates. Our goal
+is to devise an effective metric for the next best view selection
+leveraging the available observed information.
+During each active reconstruction step, a new observation
+is obtained, and the 3D Gaussian Splatting (3DGS) map is
+updated by extending and initializing new Gaussians based
+on this new observation. Subsequently, the overall 3DGS map
+undergoes iterative optimization based on the loss between
+the observed images and the map. To quantify the visual
+current observation and the optimized map. By mapping the
+image loss onto the 3DGS map, we construct a probabilistic
+model for each 3D Gaussian. Subsequently, based on Shan-
+non Mutual Information theory, we leverage the probabilistic
+MAIN NOTATIONS FOR GAUSS-MI
+Notations
+Explanation
+3D Gaussian splatting map.
+The world frame.
+A series of ordered Gaussians along a camera ray.
+Position of a Gaussian.
+Color of a Gaussian.
+Opacity of a Gaussian.
+Camera pose, or a viewpoint.
+Cumulative transmittance of a Gaussian.
+Rendered color and observed color.
+Rendered depth and observed depth.
+Random variable and realization of an observation.
+Random variable and realization of luminance for a pixel.
+Real probability of a Gaussian.
+Odds ratio and log odds of a Gaussian.
+Inverse sensor model.
+Loss image between the map and the observation.
+Hyperparameters.
+Entropy of the map.
+Mutual Information between the map and the observation.
+Iteration of Gaussians.
+Iteration of the measurement beams or pixels.
+Property based on observation at time k.
+Property based on the observations from start to time k.
+model to establish the mutual information between the re-
+construction model and a viewpoint. This mutual information
+function is referred to as Gaussian Splatting Shannon Mutual
+Information (GauSS-MI), enabling real-time visual quality as-
+sessment from novel viewpoints without a prior. The next best
+view is then selected using GauSS-MI, to effectively reduce
+the uncertainty of current map. The iterative process leads to a
+decrease in visual uncertainty within the reconstruction model,
+yielding a high visual fidelity 3D reconstruction result.
+The derivation of GauSS-MI is elaborated in Section IV, and
+the system implementation details are presented in Section V.
+IV. METHODOLOGY
+This section presents the probabilistic model for 3D Gaus-
+sian Splatting (3DGS) in visual uncertainty quantification,
+followed by the formulation of Gaussian Splatting Shannon
+Mutual Information (GauSS-MI) for view selection. The main
+notations of this section are listed in Table I.
+A. 3D Gaussian Splatting Mapping
+The proposed system reconstructs the scene by 3DGS,
+utilizing a collection of anisotropic 3D Gaussians, represented
+by G. Each 3D Gaussian i contains the properties of mean
+W and covariance [i]
+and ellipsoidal shape in the world frame W, and also optical
+properties including color c[i] and opacity [i]. By splatting
+and blending a series of ordered Gaussians N, the color C[j]
+and depth D[j] for each pixel are synthesized as
+where d[i] represents the distance from camera pose  to the
+position [i]
+W of Gaussian i along the camera ray. We denote
+T [i]  [i]
+as the cumulative transmittance of Gaussian i along the ray.
+At each reconstruction step, the 3D Gaussians are extended
+and initialized using the collected RGB-D image and estimated
+camera pose . Then the Gaussians iteratively optimize
+both their geometric and optical parameters to represent the
+captured scene with high visual fidelity.
+B. 3D Gaussian probability
+To model the information obtained from the 3DGS map
+G by a random observation z, we first construct a random
+variable r for each Gaussian. As we are going to optimize the
+rendering result, we define the probability of a 3D Gaussian
+i is reliable for rendering as P(r[i]) (0, 1). Then, the
+probability of the 3D Gaussian i is unreliable for rendering is
+P(r[i])  1 P(r[i]). Additionally, we denote the odds ratio
+o[i] (0, ) and log odds l[i] (, ) of a Gaussian
+l[i] : log(o[i]) : log(P(r[i])
+P(r[i]))  log(
+1 P(r[i]))
+We assume each probability of the 3D Gaussian is indepen-
+dent. At the initial stage of the mapping, we assume that the
+agent has no prior information on the environment, i.e.,
+Once a new observation Zk is obtained at time k, the standard
+binary Bayesian filter can be used to update the probability
+o[i](Z1:k) :  P(r[i]Z1:k)
+P(r[i]Z1:k)
+P(r[i]Zk)
+P(r[i]Zk)
+P(r[i]Z1:k1)
+P(r[i]Z1:k1)
+[i](Zk)o[i](Z1:k1)
+where P(r[i]Zk) is the reliable probability of Gaussian i
+under the observation Zk. We refer to P(r[i]Zk) as the
+inverse sensor model, thereby [i](Zk) is the odds ratio of
+the inverse sensor model, which will be constructed and used
+for updating the reliable probability P(r[i]Z1:k). We further
+use o[i]
+on the observations from start to time k.
+Given the observation Zk, we construct the P(r[i]Zk) as
+P(r[i]Zk)
+(LLk)T T [i]  1
+Inverse sensor model visualization. The hyperparameters  are
+omitted in the figure for simplicity.
+be derived as
+P(r[i]Zk)
+1 P(r[i]Zk)  (LLk)T T [i]
+where L, T > 0 are hyperparameters. Lk denotes the loss
+between the observation Zk and the map, i.e., a loss image
+between the observed groundtruth image and the rendered
+image. We compute the loss image by
+Lk  cC Ck (1 c)D Dk
+where C, D denote the rendered color and depth images from
+the reconstructed 3DGS map, Ck, Dk are the groundtruth color
+and depth images from observation Zk.
+As the 3DGS map optimizes the Gaussians by minimizing
+the image loss, we use this loss to construct the inverse sensor
+rate. We further visualize the inverse sensor model (7)(8) in
+Figure 2 to illustrate the probability update. The Gaussians
+associated with observation Zk have T [i] > 0, resulting in the
+inverse sensor model P(r[i]Zk) and [i](Zk) being monoton-
+ically decreasing with loss Lk. This suggests that lower loss
+Lk corresponds to a higher reliable probability of Gaussian
+P(r[i]Zk). Additionally, a lower cumulative transmittance T [i]
+implies less impact of Gaussian i on observation Zk. Conse-
+within the inverse sensor model, e.g., when T [i]  0, we have
+P(r[i]Zk)  0.5 and [i](Zk)  1.
+To accelerate computation, in implementation, we update
+the probability P(r[i]Z1:k) by computing log odds l[i]
+Algorithm 1 Probability Update
+Loss image
+Per pixel
+for i 1 to N [j] do
+Per gaussian
+T [i]  [i]T [j]
+Gaussians transmittance
+k  T T [i] log LL[j]
+Log odds of (7)
+T [j]  (1 [i])T [j] Update pixel transmittance
+Update probability
+log of (6) and substitute (8),
+computed by rasterizing the mapping loss Lk as (1). The
+probability update algorithm is summarized in Algorithm 1.
+C. Gaussian Splatting Shannon Mutual Information
+Based on the proposed probability model and Shannon
+Mutual Information theory, we then construct the Gaussian
+Splatting Shannon mutual information (GauSS-MI) for visual
+quality assessment of novel viewpoints.
+Given the previous observations Z1:k1, we are interested in
+minimizing the expected uncertainty, i.e., conditional entropy,
+of the map after receiving the agents next observation zk. In
+information theory, the conditional entropy relates to Mutual
+Information (MI) by
+H(rzk, Z1:k1)  H(rZ1:k1) I(r; zkZ1:k1)
+To minimize the conditional entropy H(rzk, Z1:k1) is to
+maximize the MI I(r; zkZ1:k1). Note here that we use zk
+and Zk to distinguish random variable and realized variable
+for the observation at time k.
+As we assume that the previous observations Z1:k1 are
+given and try to compute the MI for the new observation zk,
+in the subsequent of this subsection, we omit the probability
+condition Z1:k1 and simplify zk into z. Therefore, the (11)
+can be simplified as
+H(rz)  H(r) I(r; z)
+As z is a random variable with independence among el-
+of I(r; z[j]) between z[j] over all measurement beams j
+I(r; z[j])
+I(r[i]; z[j])T [i]
+picture pixel.
+From information theory [6, 18], the mutual information
+between two random variables is defined and can be organized
+I(r[i]; z[j])
+:P(r[i], z[j]  Z) log( P(r[i], z[j]  Z)
+P(r[i])P(z[j]  Z))
+P(z[j]  Z)P(r[i]z[j]  Z) log(P(r[i]z[j]  Z)
+P(z[j]  Z)f([i](Z), o[i]
+where P(z[j]  Z) is only related to the observation, which
+is referred to as the measurement prior. f([i](Z), o[i]
+be derived and written in shorthand as
+o  1 log( o  1
+The detailed derivation is presented in the Appendix A. The
+function f(, o) can be interpreted as an information gain
+function.
+We define the mutual information (14) between the 3DGS
+map and the observation as Gaussian Splatting Shannon Mu-
+tual Information, GauSS-MI.
+D. Computation of Expected GauSS-MI
+We further derive the computation of the expected mutual
+information (14) for random viewpoints.
+1) Measurement prior: We refer to the noise model of RGB
+camera in , in which the expectation of the measurement
+noise is related to luminance. Thus, we construct the measure-
+ment prior P(z) for each pixel j as
+P(z[j]m[j])P(m[j])
+where P(z[j]m[j]) is the prior probability distribution of the
+sensor with respect to luminance m {0,    , 255}. To
+compute the expected measurement prior, we define P(m[j])
+for m[j]  M [j]
+otherwise
+where M [j] is the pixels expected luminance, which can be
+computed from the expected RGB color (R, G, B) by the
+luminance formula M  0.299R  0.587G  0.114B. Thus
+the measurement prior (16) can be simplified as
+P(z[j])  P(z[j]M [j])
+2) Information gain function: As there are no observations
+from random viewpoints, computing the loss image Lk for
+(Zk) is infeasible; thus, an expectation of Lk is required. We
+expect that the rendering result after reconstruction is reliable,
+i.e., there is no loss between groundtruth and the 3DGS map
+Algorithm 2 GauSS-MI
+Per pixel
+Rasterize color and f (19) on each pixel
+for i 1 to N [j] do
+Per gaussian
+T [i]  [i]T [j]
+Gaussians transmittance
+C[j]  c[i]T [i]
+Rasterize color
+f [j]  log(P [i])T [i]
+Rasterize (19)
+T [j]  (1 [i])T [j] Update pixel transmittance
+M [j] Color2Luminance(C[j])
+P(z[j]M [j]) SensorModel(M [j])
+I  P(z[j]M [j])f [j]
+Update MI
+G. Thus, we assume Lk  0 so that 1  0 in f(, o). Then
+the information gain function (15) can be derived as,
+f [i]  log(o[i]  1
+)  log(P(r[i]))
+The equation shows that when the reliable probability P(r[i])
+is low, the information gain function f will be high, consistent
+with the intuition of information gain.
+MI can be computed as
+I(r[i]; z[j])T [i]
+P(z[j]M [j])
+f [i]T [i]
+P(z[j]M [j])
+T [i] log(P(r[i]))
+The computation procedure of GauSS-MI is summarized in
+Algorithm 2.
+V. SYSTEM IMPLEMENTATION
+This section details the system implementation of GauSS-
+A. System Overview
+The proposed active reconstruction system comprises a
+reconstruction module and a planning module, as illustrated in
+Figure 3. In this work, a mobile robot is equipped with sensors
+that can capture color images and depth images and estimate
+its pose. Given these messages, the reconstruction module
+constructs and updates a 3D Gaussian splatting (3DGS) model
+in real-time, while simultaneously generating the 3D Gaussian
+probability map. Meanwhile, the planning module creates
+a library of candidate viewpoints along with the primitive
+Best Primitive
+GauSS-MI
+Actuator
+Mobile Robot
+Reconstruction
+3D Gaussian
+Probability
+Reconstruction
+Viewpoint Primitive
+Next Best View
+Selection
+View Planner
+RGB-D images
+Overview of proposed active 3D reconstruction system.
+trajectories. The optimal viewpoint and primitive trajectory are
+subsequently determined by evaluating both the viewpoints
+GauSS-MI and the trajectorys motion energy cost. The robot
+then follows the selected primitive trajectory and captures
+images from the next-best viewpoint. Given the new obser-
+process iterates and results in a high-quality 3D reconstruction
+with detailed visual representation.
+We then present the view planner for viewpoint sampling
+and selection and discuss the autonomous termination condi-
+tion design for the proposed system.
+B. View Planning
+1) Viewpoint Primitive Library: To determine the next best
+candidate viewpoints, and choose the next best view within the
+candidates. Inspired by the action generation method proposed
+[vxy, vz, z]
+where vxy and vz represent the body frame linear velocity in
+xB yB plane and zB direction, and z is the body frame
+angular velocity around the zB axis. We simplify the action of
+2-dimensional horizontal movement into 1 dimension, which
+can be compensated through the z rotation. The action space
+is given by sampling each velocity that,
+A  {vxy Vxy, vz Vz, z z}
+In this paper, we assume that the sensor, normally with a
+limited field of view, is equipped forward, i.e., facing the xB
+axis. Thus, in the further forward propagation derivation, we
+design the horizontal movement action vxy works on the yB
+Given the action   [vxy, vz, z] A , the next viewpoint
+is designed by forward propagation with duration time T,
+vxyT sin (0  zT)
+vxyT cos (0  zT)
+Algorithm 3 View and Motion Planner
+(t  T) ForwardPropagate((t),)
+T MotionPrimitive(X(t),(t  T))
+if SafetyCheck(T ) then
+I GauSS MI((t  T))
+Algorithm2
+J MotionCost(T )
+if R < wII wJJ then
+R  wII wJJ
+where ()(n) denotes the n-th derivatives, which constraints
+the final state to ensure a stable picture taking on the next
+viewpoint. A motion primitive trajectory T from current state
+(t)  0 to the next viewpoint (tT)  f can be derived
+in closed-form  (detailed in the Appendix B).
+state 0, a library of candidate viewpoints f  {f} along
+with the primitive trajectories T  {T } can be formed as
+a viewpoint primitive library.
+2) Next Best View Selection: The total reward for the next
+best view evaluation includes the mutual information I (20)
+and the motion cost J as
+R  wII wJJ
+where wI, wJ > 0 are constant reward weights to balance
+the range of two components. The motion cost J can be
+calculated based on the trajectory T with respect to a specific
+mobile robot. The next best view with primitive
+T is selected
+by optimizing R over all feasible primitives, which is then
+assigned to the controller for tracking. The complete procedure
+for view and motion planning is summarized in Algorithm 3.
+C. Termination Condition
+A spherical Gaussian may be deemed rendering reliable
+from one perspective, but this reliability may not hold from
+another perspective. Specifically, the reliable probability of a
+Gaussian P(r[i]) should exhibit anisotropic behavior. In the
+four orthogonal horizontal perspectives. The visual reconstruc-
+tion completeness of a Gaussian is quantified based on the
+average reliable probability denoted as P .
+At the beginning of the mapping process, we assume no
+prior information about the environment. Consequently, we
+initialize the probabilities of all 3D Gaussians as (5). As
+detailed in Section IV-B, the probability P(r) for a spherical
+Gaussian decreases if it renders out a relatively large image
+loss. As the reconstruction process progresses, we expect a de-
+crease in the render-ground truth loss and an increase in P(r).
+TABLE II
+PARAMETERS OF THE PROPOSED SYSTEM
+Parameter
+hyperparameter on loss L
+hyperparameter on cumulative transmittance L
+Primitive duration time T
+reward weight on information wI
+reward weight on motion cost wJ
+probability threshold
+reconstruction terminate threshold
+A Gaussian is considered completely reconstructed when its
+average probability exceeds a specified threshold,

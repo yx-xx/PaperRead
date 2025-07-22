@@ -1,5 +1,5 @@
 === PDF文件: A Unified and General Humanoid Whole-Body Controller for Fine-Grained Locomotion.pdf ===
-=== 时间: 2025-07-22 09:41:32.676796 ===
+=== 时间: 2025-07-22 09:58:43.140289 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -179,4 +179,468 @@ lower-body serves as different requirements. Accurate upper-
 body control is useful for tasks that require precision, while
 the robot should be robust to arbitrary upper-body intervention
 under any behavior.
-III. BAC
+III. BACKGROUND
+A. Humanoid Whole-Body Control
+To support various high-level functionalities and allow
+the humanoid robot to perform complicated tasks, a basic
+whole-body controller is essential. Formally, given a set of
+continuous commands C and observations O, our objective is to
+develop a control function that maps these inputs to appropriate
+control signals. Model-based approaches represent one solution
+planning and tracking modules [15, 35]. The planning module
+generates optimal trajectories and contact sequences based
+on O and C, while the tracking module translates these into
+control laws, specifying joint positions, velocities, and torques.
+the complex dynamics of humanoid robots and the discrete
+nature of whole-body contact points. Learning-based methods
+offer an alternative approach by directly learning a policy
+function a  (o, c) that maps observations O and commands
+C to joint-level actions . These actions typically represent
+offsets to target joint positions across three categories: upper-
+combines the nominal position with these learned offsets, which
+is then tracked using a proportional derivative (PD) controller
+with fixed gains.
+B. Command Tracking as Reinforcement Learning
+To achieve a generalized and powerful whole-body control
+behavior for humanoid robots, we learn a policy function by
+constructing a command-tracking problem. In detail, we want
+the learned policy  to control the robots to match the provided
+commands c. To this end, we use reinforcement learning (RL),
+where we define the reward functions r typically by distances
+d or similarities s of the command c and the observed robot
+state sc corresponding to that command:
+r(o, a, c)  d(c, sc) or r(o, a, c)  s(c, sc) .
+Under the formulation of RL, the policy is trained to maximize
+the rewards, corresponding to matching these commands.
+C. Simulation Training and Real-World Transfer
+Many recent works, especially those of legged robots, take
+advantage of RL training a robust robot-control policy with a
+large set of parallel environments in simulation and directly
+deploying into the real world [5, 26, 20, 22]. Due to the partial
+observability of the real robot, whose onboard sensors can only
+provide limited and noisy observations, it is difficult to learn a
+deployable policy from them directly. Therefore, researchers
+have developed a set of sim-to-real techniques to resolve the
+challenge. Among them, one of the most commonly used
+techniques is asymmetric training [38, 36], which is proposed
+as a one-stage solution for sim-to-real training.
+In this paper, we adopt an asymmetric actor-critic (AAC)
+framework proposed for quadruped locomotion . In this
+available from onboard sensors, with a separate encoder to
+estimate the key privileged information (e.g., the linear velocity,
+robots body height, and robots feet swing height). The training
+paradigm incorporates the RL objective (including a value
+loss Lvalue and a policy loss Lpolicy) with an estimation loss
+[36, 27, 6] Lest to train the encoder:
+LAAC  Lvalue  policyLpolicy  estLest
+In this work, we take AAC as our default training framework,
+but the proposed techniques are not limited to it.
+IV. HUGWBC
+A. A General Command-Space for Humanoid Locomotion
+We define the command space of the humanoid whole-
+body controller C  K  B by two sets of commands, the
+task commands K and the behavior commands B. The task
+commands determine a goal for the robot to reach, typically
+for movement, while the behavior commands construct the
+specific behavior pattern of the humanoid robots. In this work,
+we specify the task command as the target velocity vt R3
+(including the longitudinal and horizontal linear velocities vt,x,
+the behavior command, we define the behavior command bt
+as a vector:h
+, ht, pt, wt
+, t, t,1, t,2, t,stance
+where ft R is the gait frequency and lt R is the maximum
+foot swing height, both of which can be explained as foot
+behaviors. Besides, ht R represents the body height, pt R
+is the body pitch angle, and wt R is the waist yaw rotation.
+These commands can be regarded as controlling the posture
+behavior.
+Beyond the commands above, we further introduce distinct
+[0, 1), i  1, 2 as two time-varying periodic phase variables
+to represent the humanoid gaits, on behalf of two legs (feet).
+These two phase variables can either be set as constants, or be
+computed by the phase offset  and the gait frequency ft R
+at each time:
+where dt is a discrete time step. When following the compu-
+tation of Eq. 4, each i loops in a range of [0, 1), resulting
+in repeated phase cycles. stance [0, 1] is the duty cycle,
+which divides the gait cycle into two stages: stance (i.e., foot
+in contact with the ground) when i < stance, and swinging
+(i.e., foot in the air) otherwise. f is the stepping frequency,
+determining the wall time of each gait cycle.
+Humanoid gait control. We consider four distinct standard
+gaits in this project, i.e., walking, jumping, standing, hopping1
+1We note that running can be further derived from the walking gaits via
+high-velocity and small duty cycle commands, which promotes the prolonged
+flight of both feet.
+By constructing the behavior commands above, we can adjust
+the phase offset , the duty cycle stance, and the phase variable
+i for each leg to control the humanoid robots in versatile
+gaits. In this work, we only consider standard gaits, so we
+set the phase offset   0.5 for walking gaits , since the
+phase difference between the left and right foot is half a cycle;
+Regarding jumping gaits, the phase of the left and right foot
+is the same, thus, we set  to 0. As for the standing and the
+hopping gaits, a certain foot of the robot is always in two states
+of contact or non-contact with the ground, which motivates a
+constant i (resulting in constant contact probability of either
+0 or 1, and  is not working). In particular, for the standing
+i  0.75 for the flying leg, and i of the other leg steps with
+frequency f. The stance determines the time ratio of stance
+and swinging during a gait cycle, and a smaller stance will
+promote longer leg flight time. To represent a smooth switch
+between stance and swinging, we introduce the expected contact
+probability function C(t,i) for leg i {1, 2} at each time
+step t as:
+i < stance
+0.5  0.5  i stance
+1 stance
+i stance
+where i [0, 1] is a homogenized phase variable that maps
+the i of the stance and swinging phases to intervals [0, 0.5]
+and [0.5, 1] according to stance, as computed in Eq. (6). ()
+is the cumulative distribution function (CDF) of the standard
+normal distribution N(0, 1). The standard deviation  allows
+for the relaxation of switching points ( i  0, 0.5) to switching
+interval ( i [3, 3], [0.5 3, 0.5  3]) (see Fig. 3 for a
+detailed explanation). Intuitively, C(t,i) is the probability of
+leg i coming into contact with the ground. As one may notice,
+when t,i [0, 0.5], the first term of C(t,i) is dominant;
+we set a constant stance  0.5 for all supported gaits in all
+time steps, which means half-time stanceswinging during one
+We highlight that HUGWBC trained one single policy for
+the standing, walking, and jumping gaits, and an independent
+policy for the hopping gait.
+B. Detailed Observation
+In our asymmetric actor-critic framework, the observation
+for the critic network oV
+obtains all information related to
+the environment, including proprioceptive observations opro
+privileged observations opri
+available observation o
+t only contains history of proprioceptive
+observations within last k steps ohis
+commands ct, and the indicator signal I(t). The proprioceptive
+R63 consists of angular velocity and gravity projection
+Fig. 3: The expected contact probability function C(t,i) in the loose
+and normal formulation. The larger C(t,i), the higher the expectation
+of contact with the ground. The CDF of the normal distribution is
+introduced into the normal contact probability function to relax the
+constraint of the foot contact at the switching boundary, resulting in
+a smooth transition between the swing and the stance phase.
+in the robots base frame, joint position, joint velocity, and
+previous policy output at1. The privileged observations
+R24 contain the linear velocity, the base height error,
+foot clearance, friction coefficient of the ground, feet contact
+are samplings of terrain elevation points around the robot.
+Commands. The commands ct  [vt,bt] includes the task
+command (i.e., target velocity vt in this work) and the
+extended behavior command bt R9, where we extend the
+behavior command bt defined above through replacing the
+phase variables i, i  1, 2 with two additional clock functions
+[ClL(t), ClR(t)]  [sin
+] representing
+the contact of both feet, where t,i, i  1, 2 are the
+homogenized phase variables defined in Eq. (6). Note that
+the sine function sin
+, i  1, 2 is a gait cycle contact
+indicator function, designed for a smoother transition between
+swinging and stance phases. An illustrative explanation of the
+phase variables and the clock function is shown in Fig. 4.
+External upper-body control. We want to build a general
+humanoid whole-body controller that also supports external
+upper-body control (e.g., teleoperation). Thereafter, we intro-
+duce a binary indicator function I(t) to identify whether an
+external upper-body controller is involved. If there is no external
+upper-body control signal involved, the upper-body joints are
+controlled by our developed whole-body controller by default,
+which swings the arms naturally.
+C. Reward Design for Policy Learning
+Our humanoid whole-body controller is obtained through
+an asymmetric actor-critic training paradigm via reinforcement
+learning (RL). To learn a policy with general and diverse
+consist of three parts: task rewards, behavior rewards, and
+regularization rewards. The details of the rewards are concluded
+in Tab. I.
+The task rewards are meant to track any task command k.
+In this work, it is the target velocity v, including the linear
+and angular velocities. The regularization rewards take into
+account the performance of physical hardware and impose
+constraints on the smoothness and safety of the locomotion.
+These are commonly used in previous works . In this work,
+Fig. 4: Phase variables and clock functions under different gaits.
+right foot.  is the phase offset from 1 to 2. The dividing phase
+between stance (marked in blue) and swing (marked in yellow) is
+the duty cycle stance(0.5). Right: The purple line depicts the clock
+function ClL(t) for the left foot over a cycle, while the green line
+represents the clock function ClR(t) for the right foot over a cycle.
+since we want to build a general whole-body controller to
+support versatile locomotion behaviors for humanoid robots,
+we introduce a set of behavior rewards to encourage the robots
+to track any behavioral commands b, shown below.
+For most behavior commands, including body height h, body
+pitch p, and waist rotation w, we simply formulated the rewards
+with mean squared error (MSE):
+Beyond these simple tracking rewards, we further introduce
+periodic contact-swing rewards rcontact
+[45, 33] and the foot
+trajectory rewards rtraj
+to help generate complicated gaits.
+The periodic contact-swing reward rcontact
+is designed for
+precise adjustments between swinging and stance in different
+different combinations of contact sequences, like foot contact
+forces and velocities, we define the periodic contact-swing
+rewards rcontact
+over them to generate desired contact patterns.
+Based on C(t,i) defined as Eq. (6), we then construct the
+TABLE I: Reward definitions used in HUGWBC.
+Definition
+Task Reward
+Linear Velocity Tracking
+Angular Velocity Tracking
+Behavior Reward
+Body Height Tracking
+htarget h2
+Body Pitch Tracking
+ptarget p2
+Waist Yaw Tracking
+wtarget w2
+Foot Swing Tracking
+i[1 C(i)]
+Contact-Swing Tracking
+i[1 C(i)]
+Regularization Reward
+R-P Angular Velocity
+Vertical Body Movement
+Feet Slip
+Action Rate
+Action Smoothness
+at2 2at1  at2
+Joint Torque
+Joint Acceleration
+Upper Joint Deviation
+qupper qnominal
+Hip Joint Deviation
+Feet Symmetry
+Termination
+1[Early Terminate]
+periodic contact-swing rewards rcontact
+to encourage humanoid
+robots to learn specific contact modes and generate various
+humanoid gaits:
+rcontact
+[1 C(t,i)]
+f foot,i
+where f foot,i
+denotes the foot contact force and vfoot,i
+foot velocity. cf and cv are hyperparameters, fine-tuned
+according to the range of previous work  (We set the value
+as cf  50, cf  5). Note that during the stance phase, this
+reward function penalizes the foot velocities and ignores the
+foot contact force; on the other hand, during the swing phase,
+it penalizes the foot contact force and ignores the foot velocity.
+Except for the contact in gait control, we also require the foot
+to smoothly reach the highest point and fall down, ensuring a
+precise and controllable swing. We introduce the foot trajectory
+reward rswing
+to achieve this:
+[1 C(t,i)]
+Note that in Eq. (9), lfoot,i
+denotes the actual swing height
+of foot i, C(t,i) is the expected contact probability function.
+is the target swing height, derived from a desired foot
+A desired foot trajectory should typically require the fulfill-
+ment of three key criteria: 1) zero foot velocity and acceleration
+during the stance phase; 2) zero foot velocity and acceleration
+at the end of the swing phase; and 3) continuity of both foot
+velocity and acceleration during the transition between the
+two phases. This is beneficial for enhancing motion stability
+and reducing energy consumption. In this work, we follow the
+experience in robot kinetics and quadruped robots [9, 46], and
+incorporate the quintic polynomial trajectory to compute the
+target swing height ltarget,i
+at each control step:
+Here lt is the foot swing height command, and the polynomial
+coefficient ak is determined based on the homogenized phase
+variable i, as well as the boundary conditions of swing
+of the calculation process is provided in the Appendix B-C.
+Note that Eq. (10) only defines the target trajectory in the z-
+axis. On natural terrains, the robots precise foothold planning
+is not required. As for swing trajectories in the x-axis and
+the y-axis, which determines the stride, they can be computed
+based on the gait frequency f and the velocities v,  [14, 10].
+D. Mirror Function and Symmetry Loss
+Natural and symmetrical motion behavior is gradually mas-
+tered by humans through acquired learning, due to its inherent
+elegance and efficiency in minimizing energy expenditure.
+Humanoid robots, with highly biomimetic mechanisms, also
+have symmetrical structural features. However, without prior
+to be explored by the policy, especially for policies that generate
+diverse behaviors. This makes the initial exploration much more
+leading to unnatural movements. To leverage the advantage of
+this morphological symmetry and inspired by , we proposed
+the mirror function F () for a humanoid robot to encourage
+the policy to generate symmetric and natural motion. Under
+such a symmetrical structure, ideally, the policy output should
+t )  Fa((Fo(o
+symmetric to the X-Z plane. Here Fa and Fo are called action
+mirror function and observation mirror function, respectively,
+which map actions and observations to their mirrored version.
+Derived from these symmetric functions, we define a symmetry
+loss function Lsym. The policy learning objective for controlling
+robots with symmetrical structures can be written as:
+t ) Fa ( (Fo (o
+The Lsym is independent of the RL objective, making it easy
+to extend to different RL algorithms. It is worth noting that
+the symmetric loss function is in fact encouraging symmetric
+actions on symmetric states (and commands), and it can be
+utilized for behaviors from symmetric ones (like walking and
+jumping) to asymmetric ones, such as hopping gaits, where
+hopping with the left foot is symmetric to hopping with the
+right one.
+Overall training objective. HUGWBC adopt an asymmetric
+actor-critic framework , taking PPO  as the RL
+algorithm to train the whole-body policy. Therefore, the total
+training objective can be written as:
+L  LAAC  Lsym,
+where  is a weight coefficient to balance between minimizing
+the RL objective and symmetry gait (we simply set   0.5
+in our practice). We implemented a critic network, an actor
+Perceptrons (MLPs). The actor network, combined with the
+control frequency of 50 Hz. The sampled trajectories have
+a maximum length of 1000 timesteps, and the termination
+conditions include trunk collision with the ground or other
+E. External Upper-Body Intervention Training
+So far we learned a whole-body controller, which controls
+the upper and lower body jointly. Nevertheless, the goal of this
+work is not a controller specifically designed for locomotion
+that can serve as a basic support for loco-manipulation tasks.
+In other words, our controller should also support flexible and
+precise control of the upper body (arm and hands). Different
+from some previous works [18, 20] that augment the command
+space with upper body commands (e.g., arm joint positions), we
+consider decoupling the upper body control as external control
+intervention by teleoperation signals [4, 29] or retargeted
+motion joints [3, 23], while not affecting the lower-body gaits,
+due to their high control precision. Our solution is sampling
+alternative actions to replace the upper-body actions produced
+by the whole-body policy during training, making the policy
+robust to any intervention.
+Switching between whole-body control and intervention.
+Denote I(t) a binary indicator function for whether the
+external control signal intervenes at each time step t, we
+assign a small probability of p (p  0.005 in this work) to
+reverse I(t). This leads the expected length of a continuous
+sequence without changing the upper-body control mode to
+n1 np(1 p)n  1p
+between two control modes and most of the trajectories are
+either long sequence of whole-body controlling or intervention,
+preventing rapid switches.
+Intervention sampling. The intervened actions of the hu-
+manoid upper body are sampled from uniform noises, which
+introduce the potential for collisions with the body, simulating
+erroneous operations during external intervention.
+Noise intervention interpolation. To prevent meaningless
+jitters caused by noise intervention sampling, the intervention
+action atarg
+noise is randomly sampled in the action space every
+tinterval  90 time steps. During the first two third time steps in
+the interval, linear interpolation is applied to smoothly transition
+Fig. 5: Intervention noise curriculum. We illustrate sampled noise
+by visualizing the hand positions relative to the visualized robot hand
+joints. Top 1-3: Noise samples of three curriculum stages with noise
+levels ranging from small to large. These noises are only relative to
+the robot hand joints as visualized in the figures. Bottom 4: Front
+and top views of the noise samples from the final noise curriculum.
+the intervention joint positions from the initial pose ainit
+noise to
+the target pose atarg
+maintained for the remaining time steps.
+noise  ratarg
+tinterval
+In this equation, r is the ratio for the linear interpolation and
+t0 is the sampled time.
+Reward mask. When the intervention is involved, we mask
+the regularization rewards of the upper body during training,
+in order to eliminate the potential conflict of the policy output
+that tries to take over the upper body.
+Noise curriculum. The replaced intervention action ainterv
+gradually transited from the policy action at to the sampled
+noise ainterv
+where the smoothing factor  increases per the progression of
+the intervention curriculum. In detail,  increases by 0.01 when
+both the linear and angular velocity tracking rewards exceed
+predefined thresholds. Conversely, if either of the velocity
+rewards fails to reach two-thirds of these thresholds,  is
+decreased by 0.01. The noise curriculum is illustrated in Fig. 5.
+F. Curriculum Learning
+Directly learning a diverse policy from manual rewards
+presents significant challenges due to the simultaneous opti-
+mization and exploration of multiple objectives. We thereby
+propose a curriculum learning approach to improve training
+efficiency. In particular, we split two distinct parallel robot
+training groups: an agile group, tasked with learning high-
+on developing a control policy for managing external upper-
+body interventions. At the beginning of training, each group of
+robots randomly samples one specific gait from four humanoid
+behavioral commands (ft, lt, ht, pt, wt) and the task commands
+vt are uniformly sampled from the specified ranges, which
+can be further referred to in Tab. II. Following , we
+employ a terrain curriculum for both groups, which consists of
+continuous rough terrain. Once the robot successfully masters
+the most challenging terrain, we keep that terrain and initiate
+an intervention noise curriculum and a speed curriculum
+simultaneously. On the one hand, the speed curriculum only
+works for the agile group, meant to learn high agility, which
+gradually increases the speed commands vt following a grid
+adaptive curriculum strategy . On the other hand, the
+intervention noise curriculum as described in Section IV-E
+works for the intervention group, focused on working with
+arbitrary upper-body intervention signals.
+V. SIMULATIONS AND EXPERIMENT
+In this section, we conduct comprehensive experiments
+in both simulation and the real-world robot to address the
+following questions:
+Q1(Sim): How does the HUGWBC policy perform in
+tracking across different commands?
+Q2(Sim): How to reasonably combine various commands in
+the general command space?
+Q3(Sim): How does large-scale noise intervention training
+help in policy robustness?
+Q4(Real): How does HUGWBC behave in the real world?
+Robot and Simulator. Our main experiments in this paper are
+conducted on the Unitree H1 robot, which has 19 Degrees of
+Freedom (DOF) in total, including two 3-DOF shoulder joints,
+two elbow joints, one waist joint, two 3-DOF hip joints, two
+knee joints, and two ankle joints. The simulation training is
+based on the NVIDIA IsaacGym simulator . It takes 16
+hours on a single RTX 4090 GPU to train one policy.
+Command analysis principle and metric. One of the main
+contributions of this paper is an extended and general command
+space for humanoid robots. Therefore, we pay much attention
+to command analysis (regarding Q1 and Q2). This includes
+analysis of single command tracking errors, along with the
+combination of different commands under different gaits. For
+error (denoted as Ecmd), which measures the discrepancy
+between the actual robot states and the command space using
+L1 norm. All commands are uniformly sampled within a pre-
+defined command range, as shown in Tab. II2.
+A. Single Command Tracking
+We first analyze each command separately while keeping all
+other commands held at their default values. The results are
+2Note that the hopping gait keeps a different command range, due to its
+asymmetric type of motion. More details can be referred to Appendix B-B.
+TABLE II: Command ranges. Ranges of curriculum starting,
+Finishing
+Commands
+Behavior
+Commands
+shown in Tab. III. It is easily observed that the tracking errors in
+the walking and standing gaits are significantly lower than those
+in the jumping and hopping, with hopping exhibiting the largest
+tracking errors. For hopping gaits, the robot may fall during
+the tracking of specific commands, like high-speed tracking,
+body pitch, and waist-yaw control. This can be attributed to
+the fact that hopping requires rather high stability. Moreover,
+the complex postures and motions further exacerbate th

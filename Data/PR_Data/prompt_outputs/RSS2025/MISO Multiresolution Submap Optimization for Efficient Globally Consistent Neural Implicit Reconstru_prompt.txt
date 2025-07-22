@@ -1,5 +1,5 @@
 === PDF文件: MISO Multiresolution Submap Optimization for Efficient Globally Consistent Neural Implicit Reconstru.pdf ===
-=== 时间: 2025-07-22 09:43:07.734871 ===
+=== 时间: 2025-07-22 10:00:55.257259 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -181,4 +181,481 @@ neural point features are decoded to spawn Gaussian primitives
 enhance geometric consistency. ESLAM  uses multi-scale
 axis-aligned tri-plane feature grids with a TSDF representation
 to achieve memory-efficient reconstruction and localization.
-Co-SLAM  combines smooth one-blob c
+Co-SLAM  combines smooth one-blob coordinate encod-
+ing with local-detail hash-grid embeddings to improve camera
+tracking. GO-SLAM  supports loop closing and online
+bundle adjustment with a multi-resolution hash-grid design for
+both SDF and color. Despite these advancements, achieving
+globally consistent SDF reconstruction of large-scale scenes
+remains challenging. In this work, we address this limitation
+by developing a hierarchical approach for both local and global
+multiresolution submap optimization.
+C. Submap-based Neural SLAM
+An effective strategy for large-scale 3D reconstruction is to
+partition the scene into multiple submaps. Kahler et al.
+create submaps storing truncated SDF values based on visi-
+bility criteria and align them by optimizing the relative poses
+of overlapping keyframes. MIPS-Fusion  extends this idea
+by incrementally generating MLP-based submaps based on
+the cameras field of view and aligning them via point-to-
+plane refinement. Vox-Fusion  adopts a dynamic octree
+structure for each submap and performs joint camera tracking
+and submap alignment by optimizing a differentiable rendering
+loss. Loopy-SLAM  uses a neural-point-based approach,
+creating submaps upon large camera rotations and later con-
+structing a pose graph with iterative closest point (ICP) to
+detect loop closures. More recently, PLGSLAM  com-
+bines axis-aligned tri-planes for high-frequency features with
+an MLP for low-frequency components, enabling multiple
+local representations to be merged efficiently. NEWTON
+employs a spherical coordinate system to create local maps
+that accommodate flexible boundary adjustments. Multiple-
+SLAM  and CP-SLAM  consider collaborative scenar-
+ios and fuse local neural implicit maps from multiple agents.
+Although effective, existing methods require reconstructing
+the scenes geometry to align submaps, which can be costly
+and inaccurate in real-world settings. In contrast, our method
+aligns submaps directly in the feature space via hierarchical
+without explicit geometric reconstruction.
+III. OVERVIEW
+In MISO, we represent the scene as a collection of posed
+submaps. Correspondingly, the back-end optimization involves
+two types of problems: (i) local SLAM within each submap
+and (ii) global alignment and fusion across all submaps. See
+Fig. 2 for an illustration.
+Given odometry and point-cloud observations from depth
+images or LiDAR scans, a robot aims to estimate its trajectory
+and build a local map represented as a multiresolution feature
+grid (Fig. 2a). Organizing implicit features into a hierarchy
+of grids effectively disentangles information at different spa-
+tial resolutions. At inference time, interpolated features from
+different hierarchy levels are aggregated and processed by a
+decoder network to predict the scene geometry. To speed up lo-
+cal optimization, we introduce hierarchical encoder networks
+to initialize the grid features at each hierarchy level directly
+from input observations. To achieve further acceleration and
+enable generalization to new environments, both the encoder
+and decoder networks are pre-trained offline over multiple
+scenes and fixed during online SLAM. Sec. IV presents in
+detail our local SLAM method.
+In large environments or over long time durations, the robot
+trajectory estimates will inevitably drift and cause the submaps
+to be misaligned. To address this challenge, MISO introduces
+an approach to align and fuse all submaps in the global
+reference frame (Fig. 2b). Each submap is associated with a
+base pose that determines the transformation from the local
+(submap) frame to the global frame. Compared to existing
+an explicit representation like occupancy, mesh, or distance
+implicit features in the multiresolution submaps. We show that
+this results in significantly faster optimization and outperforms
+other methods under large initial alignment errors. Sec. V
+presents the details of the global alignment and fusion method.
+IV. LOCAL SLAM
+This section introduces our submap representation utilizing
+multiresolution feature grids and our hierarchical submap
+optimization method.
+A. Local SLAM with Multiresolution Feature Grid
+We represent each local submap as a multiresolution feature
+Definition 1 (Multiresolution Feature Grid). A multiresolution
+feature grid contains L > 1 levels of regular grids with
+increasing spatial resolution ordered from coarse (l  1) to
+fine (l  L). At each level l, each vertex located at zl,i R3
+stores a learnable feature vector fl,i Rd. Together with a
+kernel function kl : R3  R3 R, the feature grid defines
+a continuous feature field fl(x)  P
+iIl kl(x, zl,i)fl,i, where
+x R3 is any query position, and Il indexes over all vertices
+at level l. To obtain a scalar output (e.g., signed distance or
+occupancy) at query position x, the features at different levels
+are concatenated (denoted by L) and processed by a decoder
+network D,
+h(x; F, )  D
+The model has the set of features from all levels F and the
+decoder parameters  as learnable parameters.
+In this work, we implement the kernel functions kl using
+trilinear interpolation. While the multiresolution feature grid
+offers a powerful representation, directly using it as a map
+representation in SLAM presents a computational challenge
+due to the need to train the decoder network D. Even if
+computation is not a concern, training the decoder with a small
+dataset or during a single SLAM session may lead to unreliable
+generalization or catastrophic forgetting .
+To address these challenges, we pre-train the decoder D
+offline over multiple scenes, similar to prior works (e.g.,
+, ). The details of the offline decoder training are
+presented in Appendix A. During online SLAM, the decoder
+weights are fixed (as shown in Fig. 2a), and the robot only
+needs to optimize the grid features F and its own trajectory.
+estimates { T s
+k}k (e.g., from odometry) and associated obser-
+vations {Xk}k, where each Xk  {xk
+mk} R3 is
+a point cloud observed at pose k. Using this information, we
+Coarse Feature Grid
+Fine Feature Grid
+Hierarchical Encoders
+(a) Local mapping with multiresolution feature grid
+Base Pose
+(b) Global submap alignment and fusion
+Fig. 2: Overview of MISO. (a) Given point cloud observations, MISO performs local hierarchical SLAM within a submap represented as
+a multiresolution feature grid (Sec. IV). (b) Given locally optimized submaps, MISO performs global alignment and fusion across submaps
+to eliminate estimation drift and achieve globally consistent scene reconstruction (Sec. V).
+seek to jointly refine the robots pose estimates and the submap
+features F via the following optimization problem.
+Problem 1 (Local SLAM within a submap). Given n initial
+pose estimates { T s
+k}k in the reference frame of submap s
+and associated point-cloud observations {Xk}k in the sensor
+k }kSE(3)
+where cj : R R is a cost function associated with the
+j-th observation and  : SE(3)  SE(3) R is a pose
+regularization term. We drop the dependence of the model
+h on the decoder parameters  to reflect that the decoder is
+trained offline.
+The first group of terms in (2) evaluates the environment
+reconstruction at observed points xk
+j by transforming them to
+the submap frame (i.e., xs
+j ) and querying the feature
+grid model h. Empirical results show that introducing the sec-
+ond group of pose regularization terms helps the optimization
+remain robust against noisy or insufficient observations. We
+use regularization inspired by trust-region methods [41, Ch. 4],
+( bT, T)  w max
+Log( bT 1T)
+which penalizes pose updates larger than the trust-region
+In our implementation, we solve Problem 1 approxi-
+mately by parametrizing each pose variable locally as T s
+k) where s
+k R6 is the local pose correction.
+Both the grid features F and the correction terms {s
+optimized using Adam  in PyTorch .
+We introduce definitions of the cost cj specific to neural
+SDF reconstruction next. Whenever clear from context, to ease
+the notation we use xj xs
+j to represent a point in
+the submap frame.
+Cost functions for neural SDF reconstruction. We follow
+iSDF  to design measurement costs for SDF reconstruc-
+tion. Specifically, we classify all observed points as either (i)
+on or near surface (default to 30 cm as in iSDF), or (ii) in free
+space. For on or near surface observations, the cost function
+cj  csdf
+is based on direct SDF supervision,
+j (h(xj))  wsdf
+j h(xj) yj ,
+where wsdf
+> 0 is measurement weight (default to 5.4 as in
+iSDF) and yj R is a measured SDF value on or near surface
+obtained using the approach from iSDF .
+For free-space observations, we use the cost to enforce
+bounds on the SDF values. Specifically, we follow iSDF to
+obtain lower and upper bounds bj,bj on the SDF from sensor
+j (h(xj))  max(e(bjh(xj)) 1, 0),
+j (h(xj))  max(h(xj) bj, 0),
+(h(xj))  max(clo
+j (h(xj)) , cup
+j (h(xj))).
+This cost applies exponential penalty (  5 by default) for
+the lower bound and linear penalty for the upper bound. This
+is because, in practice, violation of the lower bound is usually
+more critical, e.g., if bj  0 and the model predicts negative
+SDF values. We do not include Eikonal regularization
+because we observed that it has limited impact on accuracy
+while making the optimization slower.
+B. Hierarchical Feature Initialization for Local SLAM
+In practice, the bulk of the computational cost in Problem 1
+is incurred by the optimization over the high-dimensional grid
+features F. To address this challenge, we propose a method
+that leverages the structure of the multiresolution grid to learn
+to initialize F from sensor observations. While prior works
+such as Neuralangelo  advocate for coarse-to-fine training
+are still optimized from scratch, e.g., from zero or random
+initialization. Our key intuition is that, at any level, a much
+more effective initialization can be obtained by accounting for
+optimization results from the previous levels.
+In the following, we use Fl to denote the subset of latent
+features at level l, and F1:l denote all latent features up to and
+including level l. We consider the problem of initializing Fl
+Algorithm 1 HIERARCHICAL LOCAL SLAM
+k}k, F  HIERARCHICALLOCALSLAM
+for level l  1, 2, . . . , L do
+Initialize features at level l: Fl El(r1:l1(x)).
+From the initialized values, jointly update features F and
+poses {T s
+k}k by minimizing (2).
+return {T s
+k}k and F.
+given fixed submap poses and coarser features F1:l1. This
+amounts to solving the following subproblem of Problem 1,
+j ; F1:l1, Fl, 0l1:L)
+where we explicitly expand F into the (known) coarser fea-
+tures F1:l1, the target feature to be initialized Fl, and finer
+features (assumed to be zero). During initialization, we do
+not consider pose optimization and thus drop the trust-region
+regularization in Problem 1.
+To develop our approach, we first present theoretical analy-
+sis and derive a closed-form solution to (8) in a special linear-
+least-squares case. Leveraging insight from the closed-form
+solution in the linear case, we then develop a learning approach
+to initialize the grid features at each level, applicable to the
+general (nonlinear) problem in (8).
+Special case: linear least squares. Consider the special
+case where the decoder D in Definition 1 is a linear function.
+e.g., cj(h(xj))  (h(xj) yj)2. For instance, this would
+correspond to using squared norm for the SDF cost in (4).
+Under these assumptions, problem (8) is a linear least squares
+the normal equations, as shown next.
+Proposition 1 (Linear least squares). With linear decoder D
+and quadratic costs cj(h(xj))  (h(xj) yj)2, the optimal
+solution to (8) is:
+l  E(r1:l1(x)) :
+where x  {T s
+j } and y  {yj} collect all observed points
+and labels in two vectors, J  h(x; F)Fl is the Jacobian
+matrix evaluated at x, and r1:l1(x) are the residuals of prior
+Observe that the residual vector r1:l1(x) is mapped to the
+least-squares solution F
+by a linear function, which we
+denote as E().
+Proposition 1 reveals an interesting structure of the optimal
+initialization F
+of the prior levels residuals r1:l1(x). We will build on this
+insight to approach the problem in the general case.
+Input Point Cloud
+with Residuals
+Voxelized Input
+CNN Output
+Predicted Feature
+Fig. 3: Illustration of the level-l encoder El. Input point cloud with
+residuals {xj, rin
+j }j is voxelized via averaging pooling and processed
+by a 3D CNN. The CNN outputs at all vertices are then transformed
+via a shared MLP to predict the target feature grid Fl.
+General case: learning hierarchical initialization. We
+take inspiration from Proposition 1 to develop a learning-based
+solution for the general case, where the decoder is nonlinear
+(e.g., an MLP) and the measurement costs are generic func-
+tions. Motivated by the previous insight, we propose to replace
+the linear mapping E in Proposition 1 with a neural network
+El to approximate F
+l from the residuals r1:l1(x),
+l El(r1:l1(x)),
+where l are the neural network parameters. We refer to El as
+an encoder due to its similarity to an encoding module used by
+prior works such as Convolutional Occupancy Networks
+and Hierarchical Variational Autoencoder . In this work,
+we train a separate encoder El to initialize the feature grid Fl
+at each level l. Given the learned encoder networks, we apply
+them to initialize the multiresolution feature grid progressively
+in a coarse-to-fine manner, before jointly optimizing all levels
+together with the robot trajectories, as shown in Algorithm 1.
+ral SDF reconstruction. The input to the encoder is represented
+as a point cloud. For each 3D position xj R3 in the submap
+struct an initial feature vector rin
+h(xj) yj,
+if xj near surface,
+max(h(xj) bj, 0),
+if xj in free space,
+max(bj h(xj), 0),
+if xj in free space,
+otherwise.
+The first feature rin
+The remaining two features correspond to the residuals of
+upper and lower bounds used to compute (7). The initial
+point features are pooled onto a 3D voxel grid with the
+same resolution as the target feature grid at level l. Each 3D
+vertex stores the average residual features from points nearby.
+A vertexs feature is set to be zero if there are no nearby
+points. This voxelized input is then passed through a small
+3D convolutional neural network (CNN). Finally, the CNN
+outputs at all vertices are passed through a shared MLP to
+predict the target feature grid Fl. Fig. 3 shows a conceptual
+inputs and predictions on a real-world dataset. Similar to the
+multiple environments. In particular, when training the level l
+encoder El, we use a training loss based on (8),
+where S contains the indices of all training submaps, Js
+contains the indices of all points in submap s, and F s denotes
+the features for submap s. During training, we use noisy poses
+within the submaps to compute xs
+j to account for the possible
+pose estimation errors at test time.
+C. Extension to Incremental Processing
+The local SLAM optimization formulated in (2) can be per-
+formed in an incremental manner. We describe an implemen-
+tation inspired by PIN-SLAM  and present corresponding
+evaluation on outdoor datasets in Sec. VI-D. At each time step
+cost terms {cj}mk
+j1 in (2). We then alternate between tracking
+and mapping to update the estimated robot pose and the neural
+implicit submap. During tracking, we only optimize the current
+robot pose T s
+k and keep the submap features F fixed. Specifi-
+voxel downsampling (voxel size 0.6 m in Sec. VI-D). We
+estimate the robot motion by minimizing (2) with respect to
+to improve robustness against outlier measurements. During
+submap features F. Voxel downsampling is similarly applied
+but with a smaller voxel size (0.08 m in Sec. VI-D). In
+the incremental setting, the encoder initialization is disabled.
+frames to update the submap features F by minimizing (2).
+V. GLOBAL SUBMAP ALIGNMENT AND FUSION
+As the robot navigates in a large environment or for an
+extended time, its onboard pose estimation will inevitably drift.
+To achieve globally consistent 3D reconstruction (e.g., after
+loop closures), it is imperative to accurately align and fuse the
+submaps in the global frame. Many state-of-the-art systems,
+such as MIPS-Fusion  and Vox-Fusion , employ
+approaches that align submaps using learned SDF values.
+noise. In this section, we address this limitation by developing
+a hierarchical method for submap alignment and fusion, which
+attains significant speed-up by directly performing optimiza-
+tion using the features from the multiresolution submaps.
+Hierarchical Submap Alignment. Consider the problem
+of aligning a collection of ns submaps, each represented as
+a multiresolution feature grid from Sec. IV. For each submap
+u [ns], we aim to optimize the submap base pose in the
+world frame, denoted as T w
+u SE(3). The key intuition for our
+approach is that, for any pair of submaps to be well aligned,
+their implicit feature fields should also be aligned in the global
+frame. We present our hierarchical and correspondence-free
+Algorithm 2 HIERARCHICAL SUBMAP ALIGNMENT
+u }u  SUBMAPALIGNMENT
+Initialize submap poses {T w
+for level l  1, 2, . . . , L do
+Update {T w
+u }u by solving (17) at level l for kf,l iters.
+Update {T w
+u }u by solving (19) for ks iters.
+return {T w
+approach to exploit this intuition. Our method performs align-
+ment by progressively including features at finer levels. In
+the following, let f u
+l (x) Rd denote the level-l interpolated
+feature at query position x in submap u. Furthermore, let
+including level l, i.e., f u
+l (x) Rld.
+Consider a pair of overlapping submaps u, v [ns]. Let
+u. Using these vertices, we define the following pairwise cost
+to align features,
+v )1(T w
+In (16), Iuv
+denotes the indices of level-l vertices in submap
+u that lie within the overlapping region of the two submaps.
+interpolated from the two submaps. The first feature comes
+from the source grid u evaluated at its grid vertex position
+v )1(T w
+feature grid. Finally, d denotes a distance metric in the space
+of implicit features. In our implementation, we use the L2
+2 as we find it works well
+empirically. Sec. VI-E presents an ablation study on alternative
+choices of d.
+Given the pairwise alignment costs defined in (16), MISO
+performs joint submap alignment by formulating and solving
+a problem similar to pose graph optimization. Let E denote
+the set of submap pairs with overlapping regions. Then, we
+jointly optimize all submap poses {T w
+u }u SE(3) as follows.
+Problem 2 (Level-l submap alignment). Given ns submaps
+with current base pose estimates { bT w
+u }u, solve for updated
+submap base poses via,
+u }uSE(3)
+where  is the trust-region regularization defined in (3).
+Similar to local SLAM, we solve (17) using PyTorch
+where the poses are updated by optimizing local corrections
+(represented in exponential coordinates) to the initial pose es-
+timates { bT w
+u }u. Our formulation naturally leads to a sequence
+of alignment problems that include features at increasingly fine
+levels. We propose to solve these problems sequentially, using
+solutions from level l as the initialization for level l  1; see
+lines 3-5 in Algorithm 2.
+The hierarchical, feature-based method presented above
+achieves robust and sufficiently accurate submap alignment.
+To further enhance accuracy, we may finetune the submap
+pose estimates during a final alignment stage using predicted
+SDF values. Since only a few iterations are needed in typical
+efficiency compared to other methods that directly use SDF
+for alignment. We define the following SDF-based pairwise
+alignment cost for submap pair (u, v),
+csdf(T w
+j ; F u)hv((T w
+j ; F v)
+In (18), Juv contains the indices of observed points that
+are in the intersection region of the two submaps. For each
+observation j, xu
+j R3 denotes its position in the frame of
+submap u. Compared to (16), in (18) we minimize the squared
+difference of the final SDF predictions from both submaps.
+Using this in the pose-graph formulation leads to an SDF-
+based submap alignment.
+(SDF-based
+alignment).
+submaps with base pose estimates { bT w
+u }u, solve for updated
+submap base poses via,
+u }uSE(3)
+csdf(T w
+where  is the trust-region regularization defined in (3).
+In Algorithm 2, the SDF-based submap alignment is per-
+formed at the end to finetune the submap base poses (see
+line 6). In Sec. VI-E, we demonstrate that the combination
+of feature-based and SDF-based submap alignment yields the
+best performance in terms of both robustness and computa-
+tional efficiency.
+Submap Fusion. So far, we addressed the problem of
+aligning submaps in the global frame to reduce estimation
+drift. In some applications, there is an additional need to
+extract a global representation (e.g., a SDF or mesh) of the
+entire environment from the collection of local submaps. In
+submaps to decode the global scene. For any submap u, let
+f u(xu) denote the output of its multiresolution feature field
+evaluated at a position xu R3 in the submap frame. Given
+any query coordinate in the world frame xw R3, we first
+compute the weighted average of all submap features,
+wu(xw)f u((T w
+u )1xw),
+where each submap is associated with a binary weight wu(xw)
+computed using its bounding box,
+if xw is inside submap us bounding box,
+otherwise.
+The final prediction is obtained by passing the average feature
+to the decoder network,
+hw(xw)  D(f w(xw)).
+In summary, the proposed scheme achieves submap fusion via
+an averaging operation in the implicit feature space.
+tune the estimation by jointly optimizing all submap features
+and pose variables using global bundle adjustment:
+F u, T w
+u SE(3),
+k }kSE(3), u[ns]
+In (22), each cj is the same cost term induced by a local
+measurement as in Sec. IV. Each observed local position
+j is transformed to the world frame to evaluate the re-
+construction. The integers ns, nu, mk denote the number of
+number of measurements made at robot pose k, respectively.
+In Sec. VI-D, we show that this global bundle adjustment step
+allows the method to further improve the reconstruction quality
+on outdoor datasets.
+VI. EVALUATION
+In this section, we evaluate MISO using several publicly
+available real-world datasets. Our results show that MISO
+achieves superior computational efficiency and accuracy com-
+pared to state-of-the-art approaches during both local SLAM
+and global submap alignment and fusion.
+A. Experiment Setup
+We used four datasets in our experiments: Replica ,
+Among these datasets, Replica is used to pre-train the encoders
+and decoder networks offline; see Appendix A for details.
+the real-world ScanNet dataset and the large-scale FastCaMo-
+Large dataset without additional fine-tuning. Lastly, we present
+a larger scale evaluation on sequences from the outdoor Newer
+College dataset.
+For quantitative evaluations, we compare the multiresolution
+submaps in MISO against the MLP-based representation from
+iSDF  and the neural-point-based representation from PIN-
+code. In the following, we refer to these two baselines as
+iSDF and Neural Points, respectively. When evaluating the
+performance of submap alignment, we introduce two base-
+line techniques

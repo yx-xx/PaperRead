@@ -68,16 +68,25 @@ def clean_extracted_text(text):
         clean_lines.append(line)
     return '\n'.join(clean_lines)
 
-def truncate_text_by_length(text, max_length):
+def truncate_text_by_length(text, max_length=None, percent=None):
     """
-    将文本截断到指定最大字符数，超出部分直接丢弃。
+    支持按最大字符数和百分比截断，percent为0~1之间小数，二者都传时取较小值。
+    :param text: 原始文本
+    :param max_length: 最大字符数（可选）
+    :param percent: 百分比（0~1，float，可选）
     """
-    if len(text) > max_length:
-        return text[:max_length]
-    return text
+    length = len(text)
+    cut_len = length
+    if percent is not None:
+        percent = max(0, min(percent, 1))
+        cut_len = int(length * percent)
+    if max_length is not None:
+        cut_len = min(cut_len, max_length)
+    print(f"[截断PDF调试] 原始长度: {length}，截断后长度: {cut_len}")
+    return text[:cut_len]
 
-def extract_text_from_pdf(pdf_path, max_length=None):
-    """仅用PyMuPDF提取PDF文本，保证最大化提取纯文本，可选截断长度"""
+def extract_text_from_pdf(pdf_path, max_length=None, percent=None):
+    """仅用PyMuPDF提取PDF文本，保证最大化提取纯文本，可选截断长度和百分比(percent为0~1)"""
     text = ""
     filename = os.path.basename(pdf_path)
     try:
@@ -89,7 +98,6 @@ def extract_text_from_pdf(pdf_path, max_length=None):
         print(f"{filename} PyMuPDF提取失败: {e}")
         return ""
     text = clean_extracted_text(text)
-    if max_length is not None:
-        text = truncate_text_by_length(text, max_length)
+    text = truncate_text_by_length(text, max_length=max_length, percent=percent)
     return text
     

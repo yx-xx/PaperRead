@@ -1,5 +1,5 @@
 === PDF文件: Gait-Net-augmented Implicit Kino-dynamic MPC for Dynamic Variable-frequency Humanoid Locomotion over.pdf ===
-=== 时间: 2025-07-22 09:42:15.026517 ===
+=== 时间: 2025-07-22 09:59:34.539792 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -209,4 +209,370 @@ Fig. 2: Control System Architecture
 optimization problem. In our framework, we proposed a Gait-
 Net-augmented sequential CMPC algorithm that translates the
 original nonlinear problem into convex sequential subprob-
-lems. With the
+lems. With the additional assistance of Gait-Net, we reduce
+the optimization variable and mimic a natural step duration
+decision in each iteration.
+The control framework converts user commands and contact
+sequence into joint space references {qref
+k0 and foot location reference trajectory {pref
+of contactfoot, and h is a finite number of horizon. These
+joint-space trajectories, along with joint-space feedback states,
+are then translated into spatial momenta h R6 and their
+variables used in the Gait-Net-augmented kino-dynamic MPC.
+Within the MPC, we break down the nonlinear dynamics
+constraints into sequential CMPC subproblems that can be
+solved through QP solvers. In each sequential iteration j,
+the Gait-Net predicts and updates the MPC sampling time dt
+towards convergence and enables variable-frequency walking.
+The spatial momentum and pose trajectories are updated at
+each iteration to reflect the kinematic configuration based on
+the iterative solution of dt, CoM location pc R3, and
+foot locations pf R3ni, providing a kinematically feasible
+reference. Once the terminal condition is met in the custom
+sequential solver, the control inputs are then mapped to motor
+commands in low-level control, which incorporates standard
+techniques such as inverse kinematics, contact Jacobian map-
+Net-augmented Kino-dynamic MPC is run at the beginning
+of each footstep to determine the step duration, the rest of
+the duration will incorporate the kino-dynamic MPC with the
+same MPC dt throughout this very footstep.
+III. PRELIMINARY
+In this section, we introduce the background of the whole-
+body MPC used during the variable-frequency walking data
+collection process and a general explicit kino-dynamics MPC
+formulation for humanoid robots.
+A. Whole-body Model Predictive Control
+Driven by the strong dynamics and kinematics correlation
+between the footstep location, duration, and whole-body coor-
+dination with Whole-body MPC on humanoid robots [25, 18],
+we leverage such a control paradigm to obtain high-fidelity
+humanoid locomotion results in simulation to serve as the
+training dataset for Gait-Net. We particularly focus on adapting
+this MPC to achieve variable MPC sampling times for each
+footstep (i.e., variable-frequency walking). Notably, to achieve
+variable-frequency walking, we fix a periodic contact sequence
+of the locomotion to be every h MPC time-steps. Therefore,
+we can allow variable step durations at each footstep by
+adjusting the sampling time dtk of every h  h2 time-steps,
+as a one-step gait duration.
+The optimization variable Xwb includes the robot states in
+the generalized coordinates q R6nj, their rates of change
+q R6nj, joint torque j Rnj, and the constraint forces
+{fi R3; i R3}ni
+i0 (i.e., spatial contact wrench),
+Xwb  {qk, qk, j,k, k}h
+The nonlinear optimization problem can be formulated as
+subject to:
+{ qk1, qk1}  f wb(Xwb
+Eq. Cons.:
+k )  bwb
+Ineq. Cons.:
+ineq(Xwb
+Equation (2) refers to the objective function of the NMPC,
+which is to track a predefined trajectory, while minimizing
+joint torque, contact wrench, and rate of change of the states.
+Each objective is weighted by the corresponding diagonal
+matrix Q. Equation (3a) describes the discrete-time whole-
+body dynamics in the spatial vector form, modified from
+C(q, q)  Sj
+where M and C are the mass matrix and combination of
+the Coriolis terms and the gravity vector. Ji represents the
+spatial contact Jacobian of ith contact point. S is an actuation
+selection matrix in joint space.
+The optimization problem is also subjected to additional
+equality (3b) and inequality (3c) constraints. These constraints
+include general constraints to ensure humanoid locomotion,
+such as friction pyramid constraints, torque limits, joint limits,
+contact wrench saturation, and contact wrench cone (CWC)
+constraints . The joint torque result from optimization can
+be directly applied as the motor command to control the robot.
+direct impact on the control performance (i.e., a higher hyper-
+sample rate will benefit faster reaction to disturbances).
+B. Explicit Kino-dynamic Model Predictive Control
+Due to the heavy computation burden of the full-order
+dynamics model in whole-body MPC, many works that lever-
+age this control method trade-off solution accuracy for high-
+frequency online deployment, such as constraining the number
+of iterations in SQP solvers [25, 38] and leveraging Dif-
+ferential Dynamic Programming (DDP) . According to
+, the performance of such whole-body MPCs is still to
+be proven to outperform the relatively more computation-
+friendly Centroidal-dynamics MPC (CD-MPC) and Kino-
+dynamics MPC (full kinematics  CD) [14, 17, 40, 41]. Hence,
+a well-constructed Kino-dynamics MPC can very well stand
+at the middle ground of computation intensity and control
+performance for online deployment.
+The centroidal dynamics of a humanoid robot is:
+i0(pf,i pc)  fi  i
+where lG R3 and kG R3 are the rate of change of linear
+momentum and angular momentum. (pf,ipc) is the distance
+vector from the ith contact point pf,i to robot CoM pc.
+states as part of the optimization variables, as the centroidal
+momentum matrix AG  is dependent on the whole-body
+h  AG(q) q,
+h  AG(q)q  AG(q, q) q.
+PCA in Latent Space
+Full Feature Space
+Gait-Net
+Reduced Feature Space
+Offline Simulation Locomotion Data
+Fig. 3: Illustration of the Gait-frequency Network
+Hence the optimization variables of the explicit kino-
+dynamics MPC can be chosen as,
+Xkd  {q, q, k}h
+The finite horizon optimization problem with a prediction of
+h steps can expressed as,
+subject to:
+k1  f kd(Xkd
+Eq. Cons.:
+k )  bkd
+Ineq. Cons.:
+ineq(Xkd
+where the objective function (8) aims to track a predefined
+spatial momentum trajectory, state variable trajectory, and
+minimize ground reaction wrenches. The dynamics f kd in (9a)
+is the discrete-time dynamics of (5-6). Additional constraints
+(9b-9c) are similar to those of whole-body MPC.
+It is worth noting that the kinematics aspect of the kino-
+dynamics MPC is computationally burdensome due to the
+direct optimization of full joint states. However, it may be
+embedded in the design of the MPC. As shown in , a CD-
+MPC chooses the spatial momentum vector and float-based
+states as the MPC states. This approach requires a somewhat
+accurate approximation of the evolution of the joint angles
+within the prediction horizon to construct meaningful spatial
+momentum trajectories. Hence,
+Assumption 1: If the actual spatial momentum and pose
+evolution closely align with the designed trajectories, kine-
+matic assurance can be implicitly embedded into the reference
+trajectory design rather than explicitly included in constraints.
+This enables an implicit kino-dynamic MPC approach.
+In contrast, in BiConMP , the kinematic feasibility is
+guaranteed by a subsequent kinematics optimization after the
+MPC finds a feasible spatial momentum trajectory. In our
+sequential CMPC subproblem and actively update the spatial
+reference based on the newly updated foot locations and float-
+based states within sequential iterations. We will discuss this
+key method in Sec. IV-B.
+Feature Projection on Principle Axis 1
+Projection
+Feature Projection on Principle Axis 2
+Projection
+Feature Projection on Principle Axis 3
+Projection
+Feature Projection on Principle Axis 4
+Projection
+Feature Projection on Principle Axis 5
+Projection
+Feature Projection on Principle Axis 6
+Projection
+Fig. 4: Feature Projection Bar Graphs along 6 Principle Axes. The feature with the highest projection in each axis (red bar) is selected to be part of
+the new feature space. Note that along principle axes 1 and 2, both left and right legs are equally weighted with opposite signs, making the single Gait-Net
+suitable for both legs prediction.
+IV. PROPOSED APPROACH
+In this section, we introduce the proposed approaches in
+this work, including the Gait-frequency Network, the Gait-
+Net-augmented kino-dynamics MPC formulation, and the se-
+quential MPC solving mechanism.
+A. Gait-frequency Network
+Instead of relying on heuristics or solving an additional
+optimization problem to determine step frequency from the
+desired foot location, we propose a lightweight Gait-frequency
+Network that maps current state feedback and desired foot
+placement to the preferred step duration for the upcoming
+co-optimizing the target variables. An illustration of the Gait-
+Net is shown in Fig. 3.
+1) Data collection: We begin by using a whole-body MPC
+as our baseline controller to collect variable-frequency walking
+data. Besides a more accurate representation of kinematics
+and dynamics of the robot model, this approach is chosen
+for two key reasons: first, whole-body MPC outperforms
+other simplified-model-based control methods under strong
+unknown disturbances . Second, we utilize a MATLAB-
+based high-fidelity simulation framework, bypassing real-time
+hardware constraints. This enables the use of a more pre-
+cise and robust interior-point-method-based nonlinear pro-
+gramming solver at higher control frequencies. The primary
+objective of this stage is to gather high-resolution data using
+a robust control algorithm under controlled disturbances in
+simulation.
+We ran 15 different sets of walking simulations that have a
+total period of 600 seconds of walking data with a small-size
+humanoid model in the simulation. In each set, we command
+the robot to walk at a constant velocity in the range of
+[0, 1] ms . At the beginning of each stride, we generate a
+randomized step duration between [150, 400] ms . In the first
+half of the walking simulation, the robot is commanded to
+walk without any disturbances, while in the second half, we
+apply randomized external impulses to the CoM of the robot
+every 2 seconds with the magnitude of [10, 100] N
+duration of 0.2 seconds.
+Despite the relatively small training dataset, the Gait-Net
+and MPC combination effectively handles various scenarios
+with predicted step durations, as demonstrated in Sec. V.
+2) Latent space feature reduction: The collected data ini-
+tially includes the robots floating-base state variables and
+world-frame foot locations for both legs (R16). However, not
+all featuresstates are equally deterministic in the CoM space to
+determine the output of the network. To streamline the feature
+space for more efficient inference in each iteration while
+maintaining accurate predictions of variable MPC sampling
+the input features. Specifically, we select one feature with a
+high absolute loading from each of the top six principal axes,
+as these features are minimally correlated and capture the most
+significant variance in the feature space. Fig. 4 illustrates the
+PCA loadings of all features across six principal axes.
+B. Gait-Net-augmented Kino-dynamic MPC
+1) Motivation: Given a fixed periodic contact sequence
+in MPC, one can vary the duration of each swing phase
+by altering the MPC sampling time dt for the entire swing
+duration of each footstep made up of h MPC time steps.
+Hence the swing time t  hdt. To achieve a variable-
+frequency walking MPC, we need to optimize the contact
+discrete-time CD at time step k,
+i0(pf,i pc)  fi  i
+Nonlinearity arises from the bilinear and multi-linear terms
+formed by the (cross) products of the three optimization
+variables.
+In this section, we introduce a novel NN-augmented solving
+mechanism inspired by the popular SQP approach, allowing
+the MPC dt to be concurrently determined by the Gait-Net
+alongside the optimization of other variables.
+2) Implicit kinematics assurance in trajectory reference:
+By selecting spatial momenta h and their primitive H (cen-
+troidal pose) as optimization variables, CD-MPC avoids in-
+cluding joint angles in the optimization process. However,
+generating these spatial reference trajectories still requires a
+Actual bilinear envelope
+Approximated bilinear envelope
+Fig. 5: Bilinear Envelope Approximation by Neglecting Search Direction
+Product a  b.
+corresponding whole-body joint space trajectory, which is a
+significant part of ensuring the kinematics feasibility of the
+optimization results.
+k  AG(qref
+k ) qref
+k AG(qref
+position trajectory solutions in each iteration, we perform a
+fast analytical inverse kinematics (IK) fIK to compute the
+corresponding joint trajectories for spatial momenta updates.
+The complete analytical IK and the approximation of H are
+provided in the Appendix.
+Remark 1: The spatial momentum and centroidal pose
+reference trajectories are updated in each sequential iteration to
+align with foot position updates, implicitly enforcing kinematic
+consistency in the reference trajectory.
+3) Convex MPC Subproblem: To address the weak corre-
+lation between foot location and swing duration in the CD
+to predict the MPC sampling time at the beginning of each
+step based on the local foot and CoM location solutions at
+each sequential iteration. This process continues until the
+convergence condition is met. This also translates dt from
+the optimization variable space to the parameter space for
+computation efficiency.
+To linearize the bilinearly constrained dynamics constraint
+(10) in the kino-dynamics MPC problem. We take inspiration
+from the SQP solving mechanism and solve the search direc-
+tion  of the bilinear variables,
+i  fi, i   j
+where the j superscript denotes the total solution from the
+previous sequential iteration j. The dynamics evolution of the
+angular momentum can be simplified with the assumption:
+Assumption 2: With reasonable warm-startinitialization of
+the bilinear variables a0, b0, the bilinear product of the
+search directions are minimal and negligible as the sequential
+iteration j increases, aj  bj 0, illustrated in Fig. 5.
+i dtk  fidtk
+c  pf,i pc)
+i  fi)dtk  ( j
+i  i)dtk
+idtk f j
+i  (pf,i pc)dtk
+c)  fidtk  (pf,i pc)  fidtk
+i dtk   j
+Remark 2: The linearization w.r.t. search directions  and
+with Assumption 2 arrives mathematically identical to 1st-
+order Taylor expansion of bilinear constraints with the SQP
+algorithm .
+a) Optimization Variables: We choose the state variable
+to be the spatial momentum vector h and centroidal pose H,
+and the control input variables to be the search directions of
+ground contact wrench, foot location, and MPC sampling time
+over a finite horizon h,
+{fi,k, i,k, pf,i,k}ni
+b) Objective Function: The linearized finite horizon op-
+timization problem can be formulated as
+The objectives are to track spatial trajectories, foot reference
+ground reaction wrenches. Note that the foot reference is
+constructed based on a preferred foot location through Gait-
+Net with a nominal MPC dt. This trajectory will be updated
+with each sequential iteration j until convergence.
+c) Linearized dynamics: With Assumption 2 and search
+direction linearization in equation (14-15), we obtain the CD
+as a linear form with respect to our choice of control input
+and state variables. At time step k, the discrete dynamics is
+xk1  Akxk  Bkuk  Ck,
+where Ak and Bk are the state space matrices. Ck contains
+only the constant terms shown in equation (14-15) in terms of
+optimization results obtained from the last sequential iteration
+j1. By including a constant 1 at the end of the state variables,
+k  [xk; 1], we can then obtain the discrete dynamics in a
+linearized state-space form, as similarly outlined in [8, 34].
+d) Linear momentum and CoM position: The dynamics
+evolution of CoM position pc is embedded in the linear
+momentum equation as an equality constraint:
+e) Friction pyramid: The friction pyramid is a conser-
+vative approximation of the friction cone when the pyramid
+is inscribed, such that the pyramid friction coefficient is then
+approximated as
+where  is the actual ground friction coefficient. The linear
+inequality constraint is
+f) Contact-switching Constraints: For periodic walking
+the contact switches for each contact point i. Hence, the
+ground reaction wrench can be switched on or off based on
+whether a leg is in swing or stance,
+In addition to the control input saturation, we also enforce
+stationary foot location for each footstep while the contact
+schedule i,k  1 for contact point i.
+g) Dynamic Range of Foot location: With the future foot
+location as part of the optimization variables, the constraints
+can be directly applied with only one-step preview data in
+discrete terrain - the bounds of the foot location are dependent
+on the position of the robot,
+A visualization of the constraint-triggering conditions is illus-
+trated in Fig. 7.
+Algorithm 1 Gait-Net-augmented Sequential CMPC
+f }  fref
+uj  cmpc(xref, pref
+uj1  uj  uj
+dtj1  GN(q, q, pj
+{xref, pref
+f }  fIK(pj
+4) Gait-Net-augmented Sequential MPC Algorithm: Algo-
+rithm 1 outlines the procedure for solving the proposed kino-
+Failed Step-duration
+too short to take
+a large stride
+Step-duration unoptimized at terrain
+boundary  Body leaning forward
+(a) Baseline 1: Fixed step duration for every step.
+Inconsistent step durations on flat terrain
+Step-duration
+too short to take
+a large stride
+(b) Baseline 2: Solving step duration as part of optimization variables in NMPC.
+Step duration is correlated with stride length
+and state feedback  More natural locomotion
+Consistent step duration on flat terrain
+(No need to adjust gait frequency)
+(c) Proposed: Gait-Net-augmented Kino-dynamic MPC.
+Walking on flat terrain
+Close to terrain boundary
+taking quick and small steps
+to prepare for next large stride
+Stepping over gap
+taking large
+and long steps
+Baseline 2
+(d) Comparison of MPC dt (interpreted as step duration).
+Fig. 6: Comparison

@@ -1,5 +1,5 @@
 === PDF文件: ROMAN Open-Set Object Map Alignment for Robust View-Invariant Global Localization.pdf ===
-=== 时间: 2025-07-22 09:43:01.126117 ===
+=== 时间: 2025-07-22 10:00:44.261475 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -187,4 +187,342 @@ maximum clique [1316] or densest subgraph  problem.
 The work by Dube et al.  is one of the early works that
 performs global localization by nding maximum cliques of
 consistency graphs. Ankenbauer et al.  leverage graph-
-theoretic
+theoretic data association  as the back-end association
+solver to perform global localization in challenging outdoor
+scenarios. Matsuzaki et al.  use semantic similarity be-
+tween a camera image and a predicted image to evaluate
+pairwise consistency. Thomas et al.  use pre-trained, open-
+set foundation models for zero-shot segmentation in novel
+environments for open-set object map alignment. Our method
+extends these prior works by incorporating object-to-object
+similarity and an additional pairwise association prior used
+to guide the optimization to correct associations.
+Inter-Robot Loop Closures for Collaborative SLAM.
+In the context of multi-robot collaborative SLAM (CSLAM),
+our approach serves to detect inter-robot loop closures that
+fuses individual robots trajectories and maps. State-of-the-
+art CSLAM systems [4246] commonly adopt a two-stage
+loop closure pipeline, where a place recognition stage nds
+candidate loop closures by comparing global descriptors and
+a geometric verication stage nds the relative pose by
+registering the two keyframes. To improve loop closure ro-
+tency maximization (PCM) which extracts inlier loop closures
+from candidate loop closures by solving a maximum clique
+problem. Do et al.  extends PCM  by incorporating
+loop closure condence and weighted pairwise consistency.
+Choudhary et al.  performs inter-robot loop closure via
+object-level data association; however, a database of 3D object
+templates is required. Hydra-Multi  employs hierarchical
+inter-robot loop closure that includes places, objects, and
+visual features summarized in a scene graph.
+III. ROMAN
+We now give an overview of the ROMAN global local-
+ization method. The core idea behind this work is that small,
+local maps of objects near a robot give rich, global information
+about the robots pose in a previously mapped area. To
+leverage this information, ROMAN uses a mapping module
+to create object submaps and a robust data association module
+to associate objects in the robots local map with objects seen
+by another robot or mapping session (see Fig. 3).
+Our mapping pipeline begins with open-set image segmen-
+tation to extract initial observations of objects. Then, object
+observations are aggregated into an abstract object map. While
+we initially represent mapped objects with a dense point
+are abstracted to a single point and a feature descriptor,
+making our world representation communication- and storage-
+efcient. A submap centered around a robots pose and con-
+taining nearby sparse, abstract objects is then created and
+used for global localization. Using local 3D segments, global
+localization can be achieved by matching objects in a local
+submap with objects from another robot or session. This is
+accomplished using our robust object data association method
+that leverages segment geometry, semantic information, and
+the direction of gravity to correctly associate objects. Our
+view-invariant global localization formulation enables global
+localization even in cases when maps were created by robots
+traveling in opposite directions. We rst describe ROMANs
+object data association method in Section IV and then present
+our approach for creating open-set object maps in Section V.
+A. Notation
+We use boldfaced lowercase and uppercase letters to de-
+note vectors and matrices, respectively. We dene [n]
+{1, 2, . . . , n}. For any n N and x1, . . . , xn R, we use
+n to denote the geometric mean
+of x1, . . . , xn, and GM(x) to denote the geometric mean of
+the elements of the vector x. For any vectors x, y Rn, their
+cosine similarity is denoted as cos sim(x, y)
+x2y2 . We
+dene the element-wise operation ratio(x, y) min( x
+Promoted Associations
+Penalized Associations
+Semantics
+Fig. 2: Visualization of improved afnity metrics. The gravity-
+based distance score, sgravity promotes pairs of associations that are
+consistent with the direction of gravity, while sshape and ssemantic are
+used to encourage individual associations to be consistent in terms
+of geometric shape and semantics respectively.
+where min and x
+y are also performed element-wise. We use
+b SE(3) to denote the pose of frame Fb with respect to
+frame Fa.
+IV. ROBUST OBJECT DATA ASSOCIATION
+While our data association method can be used for gen-
+eral point cloud registration, we focus on the problem of
+associating objects between two local object submaps for
+global localization. We rst detail submap alignment for global
+localization in Section IV-A then briey review fundamentals
+in graph-theoretic data association in Section IV-B before
+describing the proposed afnity metrics for object association
+in Sections IV-C to IV-E.
+A. Submap Alignment
+We consider a pair of submaps Mi and Mj which are
+associated with gravity-aligned poses Ti
+Mi and Tj
+Mj. Each
+submap Mi  {p1, . . . , pmi} where pk is a 3D segment,
+represented by a 3D point in the gravity-aligned map frame
+FMi and a feature vector containing shape and semantic
+attributes (object feature descriptors are discussed in greater
+detail in Section IV-D). We formulate global localization as
+the problem of estimating the transformation Ti
+j which relates
+the two local frames Fi and Fj. To accomplish this, we
+attempt to associate objects in Mi with objects in Mj. After
+nding these associations, TMi
+Mj can be computed using the
+closed-form Aruns method , enabling the relation between
+frames Fi and Fj given that Ti
+to correctly associate segments, a challenging task in the
+presence of uncertainty, outliers, and geometric ambiguity. To
+this end, we construct a novel map-to-map object association
+method leveraging a graph-theoretic formulation incorporating
+the direction of gravity within maps and object shape and
+semantic attributes.
+Fig. 3: ROMAN employs a front-end mapping module to create maps of open-set objects, representing each object with its centroid and
+feature descriptor. Local collections of objects are grouped into submaps and used for global localization by matching objects between two
+submaps. Accurate data association is achieved using a graph-theoretic formulation which leverages object shape and semantic similarity
+and a gravity prior.
+B. Preliminaries: Graph-Theoretic Global Data Association
+We follow the formulation used by CLIPPER  by rst
+constructing a consistency graph, G, where each node in
+the graph is a putative association ap  (pi, pj) between
+a segment pi Mi and a segment pj Mj. Edges are
+created between nodes when associations are geometrically
+consistent with each other. Specically, given two putative
+correspondences ap  (pi, pj) and aq  (qi, qj), CLIPPER
+declares that ap and aq are consistent if the distance between
+segment centroids in the same map is preserved, i.e., if
+d(ap, aq)  c(pi) c(qi)c(pj) c(qj) is less than
+a threshold , where c() R3 is centroid position of a
+segment. In this case, a weighted edge between ap and aq
+is created with weight sa(ap, aq) exp
+d(ap,aq)2
+bounded noise in the segment point representation.
+Given the consistency graph G, a weighted afnity matrix
+M is created where Mp,q  sa(ap, aq) and Mp,p  1. CLIP-
+PER determines inlier associations by (approximately) solving
+for the densest subset of consistent associations, formulated as
+the following optimization problem,
+subject to
+upuq  0 if Mp,q  0, p, q,
+where up is 1 when association ap is accepted as an inlier and
+0 otherwise. In the following sections, we describe methods to
+improve afnity metrics. Given our construction of M, we then
+use CLIPPERs solver to nd inlier associations u. See
+for more details.
+C. Improving afnity metrics: general strategies
+In its original form, the afnity matrix M in Equation (1)
+relies solely on distance information between pairs of cen-
+troids. However, when applied to segment maps, unique
+challenges are introduced that are often not faced in other
+point registration problems (e.g., lidar point cloud registration),
+including dealing with greater noise in segment centroids (e.g.,
+due to partial observation) and few inlier segments mapped
+in both Mi and Mj, which can lead to ambiguity when
+performing segment submap registration. To address these
+post-processing methods that leverage additional information
+such as segment size and gravity direction to lter incorrect
+object associations or reject returned inlier associations if they
+result in an estimated Ti
+j that is inconsistent with gravity.
+In comparison to works that use prior information in pre-
+processing or post-processing steps which may discard valu-
+able information, ROMAN directly incorporates gravity and
+object similarity into the underlying optimization problem
+in Equation (1). The key to our approach is to extend the
+original similarity metric to (i) use additional geometric (e.g.,
+attributes to disambiguate segments, and (ii) directly incorpo-
+rate knowledge of the gravity direction (when available) to
+guide the data association solver.
+Consider the putative association ap  (pi, pj). Intuitively,
+if objects pi and pj are dissimilar, then the association ap
+is less likely to be correct, which should be represented in
+the data association optimization formulation of Equation (1).
+Given a segment similarity score so(ap) comparing objects
+pi and pj,  and  suggest setting the diagonal entries
+of M to reect object similarity information, e.g., by setting
+tion (1) shows that this approach has limited impact,
+uMu  p[n]
+p  q[n],qp (Mp,qupuq)
+As the dimension of M increases, the number of off-diagonal
+terms (pairwise association afnity terms) increases quadrati-
+cally and will quickly dominate the overall objective function.
+afnity score by so() so that Mp,q  sa(ap, aq)so(ap)so(aq).
+While this gives segment-to-segment similarity a signicant
+role in the registration problem, the elements of M are skewed
+to be much smaller resulting in many fewer accepted in-
+lier associations. To incorporate segment-to-segment similarity
+without signicantly diminishing the magnitudes of the entries
+of M, we instead propose using the geometric mean,
+The use of geometric mean in merging scores of potentially
+different scales is well-studied in the eld of operation re-
+search . It was shown that, under reasonable assumptions,
+the geometric mean is the only averaging function that merges
+scores correctly [54, 55]. With this insight in mind, we incor-
+porate additional information into the optimization problem (1)
+through careful designs of sa(, ) and so(), which will be
+explained in the subsequent subsections. An ablation study on
+fusion methods is presented in Section VI-F.
+D. Improving afnity metrics: incorporating metric-semantic
+segment attributes
+In this subsection, we design the segment-to-segment sim-
+ilarity score so() by comparing geometric and semantic
+attributes of the mapped segments (visualized in Fig. 2).
+From the relatively dense point-cloud representation created
+for online mapping, a low-data shape descriptor and the
+averaged semantic feature descriptor are extracted for each
+3D segment. These descriptors are compared using a shape
+similarity scoring function sshape() and a semantic similarity
+score ssemantic(), which we present next. The nal segment-to-
+segment similarity score so() is set to be the geometric mean
+of those two scores.
+a) Semantic similarity metric: To incorporate semantic
+ilarity score by taking the cosine similarity of their CLIP
+observe that the cosine similarity score of pairs of CLIP
+embeddings from images is usually higher than 0.7, which
+does not allow semantic similarity to play a signicant role in
+determining data associations in Equation (1). We propose to
+rescale the cosine similarity score using hyperparameters min
+and max, so that scores less than min are set to 0, scores
+larger than max are set to 1, and scores between min and
+max are scaled linearly so that they range from 0 to 1.
+b) Shape similarity metric:
+To incorporate segment
+shape attributes, we dene a segment-to-segment shape simi-
+larity score:
+sshape(ap)  GM (ratio(f(pi), f(pj))) ,
+where f(p) returns a four-dimensional vector of the shape
+attributes of p and is dened as follows. For each segment
+point cloud of segment p, and f2(p), f3(p), and f4(p) denote
+the linearity, planarity, and scattering attributes of the 3D
+points computed via principle component analysis (PCA). The
+interested reader is referred to  for details. The scoring
+function sshape() [0, 1] allows direct feature element-to-
+element scale comparison. Intuitively, if one element is much
+larger than the other, the score will be near 0, while if the
+element is very similar in scale, sshape will be close to 1.
+E. Improving afnity metrics: incorporating gravity prior
+We additionally address implicitly incorporating knowledge
+of the gravity direction in the global data association formu-
+lation. Due to the geometric-invariant formulation of Equa-
+tion (1), the solver naturally considers registering object maps
+as a 6-DOF problem. Often in robotics, an onboard IMU
+makes the direction of the gravity vector well-dened, so we
+are only interested in transformations with x, y, z, and yaw
+components. Because the optimization variable of Equation (1)
+is a set of associations rather than a set of transformations, it is
+not immediately clear how to leverage this information within
+the optimization problem, motivating the post-processing re-
+jection step from . In this work, we propose a method to
+leverage this extra knowledge within the data association step
+by replacing sa(, ) with a redesigned pairwise score metric,
+sgravity(, ), to guide the solver to select pairs of associations
+that are consistent with the direction of the gravity vector.
+vector by decoupling computations in the x-y plane and along
+the z axis:
+sa(ap, aq)  exp
+xy(ap, aq)
+z(ap, aq)
+dxy(ap, aq)   cxy(pi) cxy(qi)cxy(pj) cxy(qj)
+dz(ap, aq)   (cz(pi) cz(qi)) (cz(pj) cz(qj))  .
+In effect, this prohibits selecting pairs of associations where
+the vertical distances between objects within the same submap
+are dissimilar, as visualized in Fig. 2. It is important to note
+that we use the difference in the z-axis since we have direc-
+tional information from the gravity vector while we only use
+distance in the x-y plane. The directional information helps
+further disambiguate correspondence selection in scenarios
+where distance information is insufcient.
+V. OPEN-SET OBJECT MAPPING
+This section describes ROMANs approach to creating
+open-set object maps used for global localization in diverse
+environments. A map containing accurate and concise metric-
+object-based global localization. However, creating such a
+map has historically been difcult due to the need for an
+object classier. Using recent zero-shot open-set segmentation,
+object-level environment information can easily be extracted
+from each image, but aggregating this information is difcult
+due objects or groups of objects being segmented incon-
+sistently between views, occluded object observations, and
+drift in robot odometry. To overcome these difculties, we
+propose the following open-set object mapping pipeline, which
+is visualized in Fig. 3.
+A. Mapping
+The inputs to ROMANs mapping module consist of RGB-D
+images and robot pose estimates (e.g., provided by a visual-
+inertial odometry system). Per image object observations are
+made by segmenting a color image using FastSAM
+and applying a series of preprocessing steps to lter out
+undesirable segments. Distinct and stationary objects are most
+likely to be segmented consistently across different views, so
+our segment ltering aims to capture only such segments.
+We use YOLO-V7  to reject segments containing people.
+image and remove large planar segments which are often
+large ground regions or non-distinct walls which cannot be
+represented well as an object. Each of the remaining segments
+is fed into CLIP  to compute a semantic descriptor.
+are then sent to a frame-to-frame data association and tracking
+Data association is performed between existing 3D segment
+tracks and incoming 3D observations by computing the grid-
+aligned voxel-based IOU between pairs of tracks and observa-
+tions with 3D voxel overlap . We use a global nearest
+neighbor approach  to assign observations to existing
+object tracks and create new tracks for any unassociated
+observation. Semantic descriptors of the associated segments
+are merged by taking a weighted average of descriptors of the
+existing segment and the incoming segment as in . Because
+FastSAM may segment objects differently depending on the
+the same object. Specically, 3D segments are merged based
+on high grid-aligned voxel IOU or when a projection of the
+two segments onto the image plane results in a high 2D IOU.
+The result of our mapping pipeline is a set of open-set 3D
+objects with an abstractable representation. While performing
+frame-to-frame data association and object merging. However,
+our global localization only uses a low-data representation
+of segments consisting of centroid position, shape attributes,
+and mean semantic embedding, which enables efcient map
+communication and storage.
+B. Submap Creation
+As a robot travels, submaps are periodically created. After
+a robots odometry estimate reaches a distance greater than cd
+from the previous submap pose, a new submap is instantiated.
+The new submap is assigned the current robots pose with
+pitch and roll components removed using the IMUs gravity
+direction estimate, which ensures that objects are represented
+in a gravity-aligned frame for data association. All objects
+within a radius r of the submap center are added, and objects
+continue to be added until the robots distance from the
+submap center is greater than r. The submap is then saved,
+after using a maximum submap size N to remove objects
+(starting at objects farthest from the center) so that the submap
+size mi N thus limiting submap alignment computation.
+association module and ROMAN attempts to align the current
+submap with previous submaps (e.g., from earlier in the run or
+from another robot or session). Resulting Ti
+j estimates from
+the submap object data association and alignment are used
+for global localization if the number of associated objects is
+greater than a threshold, .
+VI. EXPERIMENTS
+In this section, we evaluate ROMAN in an extensive series
+of diverse, real-wo

@@ -1,5 +1,5 @@
 === PDF文件: Bridging Model Predictive Control and Deep Learning for Scalable Reachability Analysis.pdf ===
-=== 时间: 2025-07-22 09:41:40.215582 ===
+=== 时间: 2025-07-22 09:58:55.290945 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -193,4 +193,313 @@ u V (x, t), f(x, u).
 For low-dimensional systems, HJB-VI can be solved nu-
 merically on a state-space grid using various toolboxes [28,
 methods suffer from the curse of dimensionality; consequently,
-learning-based methods have been proposed 
+learning-based methods have been proposed to solve HJB-
+VI. This work builds upon one such line of learning methods
+called DeepReach [2, 34, 6], that learn the HJB-VI solution
+for high-dimensional problems in a self-supervised manner by
+minimizing the following HJB-VI residuals:
+(xi,ti)X[0,T ] [min {DtV (xi, ti)  H (xi, ti) ,
+l (xi) V (xi, ti)} ] .
+(T t)  O(x, t), where O(x, t) is the output of a NN with
+trainable parameters . This formulation inherently satisfies
+the boundary condition V(x, T)  l(x), thereby leaving only
+the PDE residual errors in the loss function (7). Again, we
+emphasize that learning the value function for complex, high-
+dimensional reachability problems using pure self-supervision
+remains challenging and unstable. To address this, we aim
+to leverage approximated value function data to enhance the
+training process.
+III. LEARNING REACHABILITY SOLUTIONS WITH
+MPC-BASED GUIDANCE
+Our approach consists of three key steps: first, we generate
+an approximate safety value function using a sampling-based
+MPC method that optimizes the safety cost function in (2).
+These approximate value samples are then used to augment
+the training loss of DeepReach to incentivize the learned value
+function to be consistent with them. Finally, the MPC-guided
+value function is corrected for potential learning errors using
+a conformal prediction scheme, thereby providing a verified
+safe set of the system. We now explain each of these steps in
+detail. An overview of our approach is in Fig. 1.
+A. Generating Approximate Value Function Dataset Using
+Sampling-Based MPC
+Our key idea is that HJ reachability computes the BRT
+via formulating it as an optimal control problem where the
+cost function is given by (2). Thus, an approximate safety
+value function can be obtained by solving this optimal control
+problem using alternative optimal control methods, such as
+MPC. Subsequently, this approximate value function can be
+leveraged to enhance the training of DeepReach.
+by solving the following discrete-time version of the optimal
+control problem:
+V (x, t)  max
+where h {0, 1, ..., H} denotes the time steps between t
+and T, h is the system state, and u : [u0,    , uH] is the
+control sequence. fd are the discretized dynamics that can be
+obtained from the continuous dynamics using first-order Euler
+approximation. The optimization problem in (8) can be solved
+using a broad class of MPC methods. Specifically, we lever-
+age sampling-based MPC methods to solve this discrete-time
+Our MPC algorithm is summarized in Alg. 1. The algorithm
+takes as inputs the number of initial states DMP C, the
+number of hallucinated trajectories N, the number of iterative
+sampling steps R, the time horizon H, the nominal control
+output of the algorithm is a dataset DMP C, where each data
+point consists of an initial time t, an initial state x, and a corre-
+sponding value function approximation V (t, x). To generate a
+single data point, the algorithm begins by sampling N distinct
+control sequences, un, around the nominal control sequence
+unom. These N trajectories are rolled out using discretized
+dynamics with a time step of , and the corresponding cost
+values Jn are computed. Finally, the nominal control sequence
+is updated to the best-performing control sequence, and the
+process is repeated for R iterations. This process is highly
+parallelizable in practice and can be significantly accelerated
+with modern GPU computation.
+Algorithm 1 MPC Dataset Generation
+(ti, xi, V (ti, xi))
+xi Uniform(X); ti Uniform(0, T)
+for r  1 : R do
+for n  1 : N do
+un Gaussian(unom, 2)
+for h  0 : H 1 do
+Jn  minh0,1,...,H l(n
+n arg maxn Jn
+V (ti, xi) Jn
+DMP C DMP C (ti, xi, V (ti, xi))
+We conclude this section with a few remarks about the
+proposed MPC method.
+Remark 1: In practice, we set one of the sampled control
+sequences in Line-5 to unom. This allows for a monotonic
+improvement in the MPC value function over R iterations.
+Remark 2: We can efficiently bootstrap the MPC dataset
+by computing the running value function along the optimal
+state-control trajectory, terminating when the minimum l(x) is
+reached. Specifically, if ndenotes the state trajectory under
+the optimal control sequence un, we can estimate the value
+function at intermediate points along this trajectory as:
+V ( h, n
+to DMP C. This approach enables rapid collection of a large,
+high-quality MPC dataset for guiding the learning process.
+Remark 3: Several design choices remain for the MPC
+(e.g., weighted sum vs. best sample) and the choice of control
+perturbation distribution (e.g., uniform vs. Gaussian). Empir-
+Gaussian sampling yielded the least noisy datasets. However,
+these options remain configurable, allowing users to tailor the
+approach to their specific needs.
+B. Learning Reachability Solution Using MPC Dataset and
+HJB-VI Residuals
+Our approach (summarized in Algorithm 2) leverages a
+three-phase learning scheme for learning the safety value
+goal is to train a value function that accurately captures the
+HJ reachability-based PDE residual loss.
+Pretraining
+Supervised
+Learning
+Dataset. During the pretraining phase, the model is trained
+using the collected MPC dataset, which consists of sampled
+states and their corresponding estimated value function. The
+training objective minimizes the prediction error between the
+learned value function V(x, t) and the approximated value
+hdata(xMP C
+hdata(x, t, V ; )  V (x, t) V(x, t).
+This supervised learning step aligns the learned value func-
+tion with the approximated reachability solution inferred from
+the MPC dataset, providing an informative warmstart of safe
+and unsafe regions for the neural network.
+Curriculum Training: Joint Optimization with PDE Loss.
+After pretraining, we refine the value function using a curricu-
+lum training strategy that gradually increases the horizon of
+training samples, meaning the time horizon is progressively
+increased from [T, T] to [0, T] over Nc iterations. Since HJB-
+VI is a terminal time PDE, the accuracy of safety value func-
+tion at earlier time steps (corresponding to smaller t) depends
+on the accuracy of predictions at later times. Intuitively, this
+temporal curriculum reduces the complexity of the learning
+problem. The loss function during curriculum training consists
+of two components: the data-driven loss (Ldata) from the MPC
+dataset and the HJB-VI residual loss (LP DE), which enforces
+the HJ reachability equation:
+hP DE(xP DE
+hP DE(x, t; )  min {DtV (x, t)  H (x, t) ,
+The overall loss function during the curriculum learning phase
+is given by:
+Lcombined  LP DE  Ldata,
+where a trade-off factor  is dynamically adjusted based on
+the loss gradients to balance the contributions of LP DE and
+A crucial step in the curriculum training phase is MPC
+dataset refinement. The initial dataset generated by the
+sampling-based MPC method is inherently suboptimal and
+noisy for long horizons, which can hinder the convergence
+of the PDE loss and cause the model to overfit to outliers,
+leading to violations of the governing HJB-VI equations. To
+mitigate this, we periodically refine the MPC dataset using the
+learned value function.
+we leverage the learned value function and policy to gen-
+erate a new MPC dataset with an extended time horizon of
+[tR HR, T]. This updated dataset is computed by incorpo-
+rating the learned value function as the terminal cost in the
+MPC formulation, providing a more accurate estimate of the
+Algorithm 2 DeepReach Training with MPC Dataset
+(ti, xi, Vi) Uniform(DMP C), i  1, 2, ..., NMP C
+Compute Ldata using (9)
+) Uniform(X [t, T]), i  1 : NP DE
+, Vi) Uniform(DMP C)
+Compute Ldata and LP DE using (9) and (10)
+Lcombined
+if t < tR then
+Refine DMP C using V
+tR tR HR
+Repeat the curriculum step with t  0 and
+optimal cost-to-go over the horizon [tR, T] while keeping the
+effective MPC horizon fixed at HR. With this terminal cost,
+we repeat the MPC dataset generation procedure in Algorithm
+over the time horizon [tRHR, T]. This dataset is then used to
+continue the curriculum training for another HR seconds and
+the entire process is repeated again. By iteratively refining the
+dataset every HR seconds, we ensure that the MPC dataset
+remains informative and consistent, continuously guiding the
+learning process with higher-quality supervisory signals.
+antees. The final fine-tuning phase improves the accuracy
+of the learned solution by employing a smaller learning rate
+and refining the safety decision boundary. A key challenge is
+minimizing false positives, where the learned value function
+incorrectly predicts a state as safe but is actually driven to
+failure under the safe policy induced by the value function.
+Such errors can lead to catastrophic consequences in real-
+world safety-critical systems.
+To address this, the fine-tuning process introduces a modi-
+fied data-driven loss function, where the loss for false positives
+is amplified by a scaler parameter F P . This ensures that
+safety predictions remain conservative, reducing the likelihood
+of unsafe behaviors. The loss function is defined as follows:
+hF T (xMP C
+hF T (x, t, V ; )
+F P V V(x, t)V(x, t),
+if V(x, t) 0 V < 0
+V V(x, t).
+otherwise
+Note that since fine-tuning is done after the curriculum learn-
+ing phase, MPC is able to use the learned safety policy
+(induced by the learned value function via Eqn (6)) to generate
+an informative nominal control sequence for computing V .
+This results in a high quality approximation of the value
+function through the fine tuning loss in (12).
+C. Safety Assurances for the Learned Value Function
+In general, neural network can make errors and, as such,
+the safe set provided by the learned value function is only a
+candidate safe set  there might be states in the learned safe
+set that steer the system into the failure region. To overcome
+this challenge, we leverage the formal verification method
+proposed in  that uses conformal prediction to determine a
+probabilistic safe set given a candidate value function V and
+the induced safety policy, u.
+The overall idea is to provide a high-confidence bound
+on the value function error. The corrected value function is
+then used to compute the BRT and the safe set. Specifically,
+the method requires users to specify a confidence parameter
+(0, 1) and a safety violation parameter  (0, 1). It
+then computes the error bound  using conformal prediction
+to ensure that with at least 1  confidence, the probability
+of safety violation within the super- level set of V is upper-
+bounded by :
+where S  {x : x X, V(x, 0) > } and V (x, 0) is the
+underlying ground-truth value function. In other words, the
+probability of a state within the super- level set of V being
+actually unsafe is at most . Thus, S represents a high-
+confidence estimate of the safe set.
+IV. EXPERIMENTS
+We now evaluate the benefits of including MPC-based
+guidance when learning reachability solutions. We consider
+four different case studies: a 2D vertical drone system, a
+13D nonlinear quadrotor system, a 7D high-speed F1Tenth
+car system, and a 40D publisher-subscriber system. Each
+of these systems presents unique challenges for reachability
+analysis due to their dimensionality, complex dynamics, andor
+complex geometry of the failure set.
+A. Baselines
+We compare the safe set obtained via the proposed method
+with the following baselines:
+Vanilla DeepReach : A NN-based safety value
+function obtained using DeepReach with exact boundary
+condition imposition (self-supervision only).
+MPC Distillation: A NN-based safety value function
+distilled from a dense MPC dataset (supervision only).
+Neural CBF: A NN-based control barrier function (CBF)
+learned using the approach proposed in [9, 10].
+Fig. 2: Parameterized Vertical Drone: Value function slices at K  12. The brown lines represent the ground and the ceiling  the failure
+set in this case. In (a), the solid black lines are the contours of ground-truth safe sets. In (b), all MPC data samples with K (11, 12) used
+for the proposed approach are shown. (c) illustrates the learned safe set using the neural CBF approach. For (d), (e), and (f), the dashed
+contours illustrate the learned safe sets and the solid contours represent the verified safe sets. Note that the black solid contours are missing
+in (d) and (e) since Vanilla DeepReach and MPC Distillation have an empty verified safe set.
+Ground Truth Value Function: Wherever possible, we
+compute the ground-truth value function by solving the
+HJB-VI numerically using the OptimizedDP toolbox .
+Note that this is computation is feasible only up to 5D-6D
+systems.
+Each of the value functions corresponds to an implicit safe
+efficacy of these learned safe policies in maintaining system
+B. Evaluation Metrics
+Our key evaluation metric is the volume of the (verified) safe
+For all value functions, the verified safe set is obtained by the
+verification procedure outlined in Sec. III-C, with   103
+and   1016. This corresponds to obtaining a safe set, S
+with a 99.9 safety rate. To estimate the volume of the safe
+set over the state space of interest, we compute the likelihood
+of a uniformly sampled state lying in the set:
+i1 1(xi S)
+, xi Uniform(X).
+We choose a large value of M  1  106 to attain samples
+from a significant portion of the state space.
+For low dimensional problems where the ground truth is
+false positive rate compared to the ground-truth value function.
+Parameter
+Vertical
+40D Publisher-
+Subscriber
+Pretraining
+Curriculum
+Fine-Tuning
+TABLE I: Detailed parameters for training.
+C. Implementation Details
+For all baselines, we employ a three-layer sinusoidal NN,
+with 512 neurons per layer. The NNs are trained using the
+Adam optimizer with a learning rate of   2  105 on
+an NVIDIA GeForce RTX 4090 GPU. The sampling-based
+MPC method uses a time step of  0.02s and 10 iterative
+sampling steps (R  10), where N100 perturbed control
+sequences are generated per step. The fine-tuning loss weight
+F T is set to 100 and the dataset refinement horizon HR is
+set to 0.2s for all experiments.
+In each case study, we use the same number of training
+iterations across all baselines to ensure a fair comparison.
+involve a fine-tuning phase, as we observe that fine-tuning
+encourages overfitting in these baselines and degrades their
+performance. Detailed training parameters are provided in
+Table I.
+The total training time for all baselines is reported in
+Baseline
+Recovered ()
+Time [h]
+Vertical Drone
+Distillation
+Neural CBF
+Proposed
+Quadrotor
+Distillation
+Neural CBF
+Proposed
+Distillation
+Neural CBF
+Proposed
+Publisher-Subscriber
+Proposed
+TABLE II: Recovered safe set volumes and training time
+for different case studies. The proposed approach consistently
+achieves higher safe set volumes compared to the baselines.
+We note that the safe sets obtained by the NeuralCBF method
+cannot be verified directly; thus, the reported (learned) vol-
+umes are likely optimistic and would reduce further upon
+verification. For the vertical drone system, the volumes corre-
+sponding to K  12 are shown in brackets.
+Table II. The addit

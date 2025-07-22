@@ -1,5 +1,5 @@
 === PDF文件: Demonstrating ViSafe Vision-enabled Safety for High-speed Detect and Avoid.pdf ===
-=== 时间: 2025-07-22 09:41:43.457564 ===
+=== 时间: 2025-07-22 09:58:58.927890 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -183,4 +183,318 @@ communicated to the controlled agent. Moreover, we deal
 with information unavailability, where the CBF is only active
 when intruder information from our vision-based detection and
 tracking module is available.
-C. Aircraft Detection and T
+C. Aircraft Detection and Tracking
+tracking systems have employed modular approaches in-
+corporating established computer vision techniques such as
+frame stabilization, background-foreground separation, and
+flow-based object tracking [30, 13, 15, 11, 29, 36]. In these
+modular approaches, frame stabilization was achieved using
+optical flow or image registration methods [35, 45, 48], while
+regression-based motion compensation and morphological op-
+erations were utilized to highlight potential intruders .
+Background subtraction and traditional machine learning algo-
+tors to identify aircraft [46, 13, 44]. Furthermore, temporal
+filtering was used to reduce the false positives from these
+morphological operations. Lastly, track-before-detect methods
+have also been explored, where the tracking is usually man-
+aged using methods like Hidden Markov Models, Kalman
+our visual detection and tracking system, AirTrack , uses
+deep learning-based modules, the overall sequential pipeline
+of performing frame alignment, detection, tracking, and false
+positive filtering is strongly motivated by the success of past
+modular  traditional approaches.
+Recent advancements have leveraged deep learning, par-
+ticularly convolutional neural networks (CNNs), for object
+detection [12, 22, 53, 24]. In particular, for aircraft detection,
+the challenge is detecting small objects within high-resolution
+tive than traditional anchor-based methods like YOLO and R-
+CNN . Given the data-centric nature of these methods,
+this has led to a proliferation of aircraft detection datasets
+[1, 50, 49, 54, 43]. This insight aligns with findings in related
+fields such as face detection and object detection in aerial im-
+agery [21, 26, 31]. For vision-based aircraft detection systems
+where computational efficiency is crucial, fully convolutional
+networks that predict heatmaps are the most effective [24, 25].
+for aircraft tracking, using a management system to handle
+track initiation and termination and associating new detec-
+tions with existing tracks using algorithms like the Hungarian
+method [9, 30, 13]. For small objects, where bounding box
+IoU is unreliable due to sensitivity to positional deviations,
+integrated detection and tracking approaches offer a superior
+alternative . Motivated by this trend, our AirTrack
+employs an anchor-free detection and tracking system.
+III. PROBLEM DEFINITION
+We model the problem of maintaining safe separation be-
+tween two aerial agents: the ownship agent and the intruder
+agent. The ownship refers to the primary controlled agent
+and the intruder refers to a potentially unknown agent in the
+configuration space which doesnt have any communication
+with the ownship agent. Only passive sensing, specifically
+keeping the two agents outside each others collision volume
+at all times. We model the collision avoidance problem in the
+horizontal plane and assume constant velocity vectors for the
+intruder agent inspired by . The separation requirement
+can be formally defined as:
+label {eq1 } forall t in T { operation} bullet d{ownship-intruder} geq d{thresh}
+distance
+threshold
+downshipintruder is the relative horizontal distance between the
+agents. For notational simplicity, we will refer to this distance
+as d in our formulations. Additionally, Toperation is the time
+of operation of the ownship agent, and Eq. (1) formally states
+the problem of safe separation for the entire operation time.
+As can be inferred from (1), this is equivalent to a forward
+invariance property. In order to encode and enforce this
+simple unicycle dynamics model for our ownship agent:
+{own }}  beg
+in { bmatrix}
+{own})}  v{own} sin {(chi {own})}  0  0 end {bmatrix}  begin {bmatrix} 0  0  0  0  1  0  0  1 end {bmatrix} u
+u T  [ dot {v}{own} dot {chi }{own}]
+heading (yaw) angle. The control input u R2 consists of
+the rate of change of speed and heading, i.e., vown and own.
+mimick real world deployment scenarios.
+u geq  u{m in } , u leq u{max}  forall t in T{operation}
+Onboard System
+Digital Twin
+Real World
+AirTrack Visual Detector
+Motor Control
+3D Projection  Kalman Filter
+Safety Violation Assessment
+Global Path
+Follower
+Overview of our ViSafe framework for real-world testing and hardware-in-the-loop simulation: Firstly, the onboard sensors or digital twin
+simulation stream the multi-cam videos to the AirTrack visual detection module, which detects the intruder across multiple views. Then, these detections,
+along with the ownship state information, are sent to the multi-view fusion and coordinate frame conversion module, which then tracks the intruder and sends
+the intruder state information along with the ownship state information to the CBF. The CBF uses the nominal global plan and the safety violation assessment
+to compute modifications to the nominal control input in case of violation. This safe control output is then sent to the drone autopilot system for execution.
+This loop continues to operate in real-time until the flight test is complete.
+These control constraints are particularly important for our
+use case since, for some aircraft, loiter safety maneuvers are
+actually impossible and would lead to an aircraft crash.
+{x{ int}}
+begi n {bmatri
+x} v{int} cos {(chi {int})}  v{int} sin {(chi {int})}  end {bmatrix}
+heading (yaw) angle. Overall, we make two assumptions:
+earlier. Second, the intruder agent is agnostic to the ownship
+agents maneuvers, i.e., there are no interaction effects. This
+assumption also implies that the township agent possesses
+no collision avoidance algorithm, since that would lead to
+interaction effects. These assumptions are made to keep the
+problem tractable but remain practical in todays airspace.
+IV. ViSafe FRAMEWORK
+An overview of our ViSafe framework (Fig. 2) is as follows:
+While the visual detection module (Section IV-A) provides an
+image-level intruder detection, the intruder state information is
+transformed to the North East Down (NED) coordinate system
+and broadcasted to the safety controller in its expected input
+format (Section IV-B). The safety controller (Section IV-C)
+encodes the desired safe separation constraints as well as our
+actuation constraints and computes modifications to nominal
+control input in case of violation. These constraints are derived
+using our defined CBF. This modified control action is then
+converted into low-level drone commands and executed.
+A. Visual Detection Module
+We extend the state-of-the-art aircraft detection  tracking
+modified the AirTrack algorithm (originally focused on single-
+camera inference) to incorporate multi-camera inputs and
+enable multi-camera tracking. Furthermore, we also upgraded
+the SWaP-C hardware, implementing efficient multi-camera
+image sharing (with zero memory copies) and further opti-
+mizing the deep learning model inference to operate at the
+desired frequency required to facilitate high-speed collision
+avoidance on the edge. The overall design of our Detection
+Module comprises Frame Alignment, Detection, Secondary
+are two consecutive grayscale image frames, and it outputs
+a list of tracked objects with various attributes. The model
+is trained on the Amazon Airborne Object Tracking (AOT)
+Frame Alignment: The goal of this module is to align the
+successive frames in a video so that the ego-camera motion
+can be discarded, thereby helping to distinguish foreground
+objects from the background. This is achieved by predicting
+the optical flow between two successive input image frames
+and the confidence of the predicted flow. The input images are
+cropped from the center-bottom to cover high-texture details
+below the horizon, and a ResNet-34 backbone architecture
+with two prediction heads is used for alignment. The prediction
+is made at 132 scale of the input, and low confidence offset
+predictions are rejected.
+detection module and a secondary detection module. The
+primary module takes in two full-resolution (1224  1024)
+grayscale image frames that have been aligned, while the
+secondary module receives a smaller 15th sized crop of the
+image around the top k detector outputs (based on confidence)
+from the primary module. The network is fully-convolutional
+(HR-Net-W32) and it produces five outputs: a center heatmap
+indicating the objects center, bounding box size, center offset
+from the grid to the objects center, track offset of the objects
+center from the prior frame, and object distance in log scale.
+Secondary Classifier: A ResNet-18 module is used as a
+binary classifier for false-positive rejection. The module takes
+cropped regions around the bounding boxes from the detection
+module as input and predicts whether the crop is an aircraft
+or not. This improves the overall precision.
+Image-level Tracking: We use an offset tracking vector-
+based approach . The predicted track offset vector from the
+detection module is subtracted from the current object center
+to find the location in the prior frame. If the location matches
+existing tracks within a threshold, the detection is associated
+with an image-level track; otherwise, a new track is initialized.
+to provide precise image-level aircraft tracks and distance from
+the ownship. For ViSafe, we run AirTrack on video streams
+from two cameras at 8 Hz on our Nvidia Orin AGX compute
+system (described in Section V-E). We encourage the readers
+to refer to the AirTrack  paper for further details.
+B. Multi View Fusion  Coordinate Frame Conversion
+Once AirTrack provides an image-level intruder track (from
+any one of the multiple cameras), we unproject the track
+location in the image to 3D leveraging the predicted distance
+of the aircraft, center of the predicted bounding box and the
+calibrated intrinsics of the respective camera. Then, the 3D
+position of the image-level track in the camera coordinate
+frame is transformed to the local frame of the 3DM-GQ7
+GNSINSS module by using the multi-camera and IMU ex-
+trinsic calibration. Since, the GNSS module provides us the
+heading of the ownship with respect to the North direction,
+we can transform the 3D image-level intruder track position
+to a North-East-Down (NED) coordinate frame centered about
+the GNSS module of the ownship. Now given the 3D position
+[xt,yt,zt] of the image-level track, the range d, azimuth  and
+elevation  of the intruder in the ownships NED coordinate
+frame can be calculated as:
+beg in { alig
+n e d}  d
+r t  {{xt}
+{yt}2  {zt}2}   theta  arctan left (frac {yt}{xt}right )   phi  -arcsin left (frac {zt}{d}right ) end {aligned}
+We leverage a multi-view fusion module to track and fuse
+the intruder positions across multiple cameras. At the start, for
+the first image-level intruder track, we initialize two Kalman
+Filters to perform tracking and fusion of new observations
+for the same intruder. We empirically observe that the range
+(d) is noisier than the angles (  ) since the angular
+estimates depend solely on the 2D location of the detection
+Encounter geometry and information required for vision-enabled
+collision avoidance. The velocity of the ownship vown and heading with
+respect to North own are obtained from the ownship odometry. The intruders
+range d, azimuth , velocity vint, and heading with respect to North int are
+obtained using the visual detection module.
+while the range is predicted by the monocular deep learning
+model (AirTrack). It is possible to use a single Kalman Filter
+by specifying independent process noises; however, we find
+that the coupling of range measurements degrades the angular
+two Kalman Filters, each with a constant velocity motion
+model (one for angles and one for range). Through decoupling,
+the range filter accounts for high uncertainty in range while
+the angle filter ensures smooth tracking. Subsequently, for
+each new image-level track across the different cameras, we
+use the angular distance to determine if the track associates
+with pre-existing 3D intruder tracks. If it associates, we fuse
+the new observation with the two pre-existing Kalman Filters.
+Kalman Filters. In this way, we can use Kalman Filters (unique
+to each intruder) to initialize, associate, and track different
+intruders in 3D. Each 3D intruder track is configured to
+propagate the intruder position and velocity to the downstream
+supervisory safety controller at a frequency of 24 Hz.
+As shown in Fig. 3, the supervisory safety controller de-
+scribed in the subsequent sub-section expects the multi-view
+fusion module to output the range d, the angle of the line
+of sight to the NED frame centered about the intruder ,
+the velocity of the intruder vint along the North and East
+direction and the heading of the intruder with respect to the
+North direction int. The tracks from the multi-view fusion
+module already provide the range d, and  can be computed as
+. Furthermore, using the ownships odometry information
+(vown  own) and the track information (range d, range rate
+components of vint as follows:
+begin { aligned}   { v{i nt }} {No
+rth}  { v {own}} { No rth}     dot {d}cos {theta }  ddot {theta }sin {theta }   {v{int}}{East}  {v{own}}{East}  dot {d}sin {theta }  ddot {theta }cos {theta } end {aligned}
+can be obtained as:
+b e gin {a
+l igned}
+int}}  arctan left (frac {{v{int}}{East}}{{v{int}}{North}}right ) end {aligned}
+level intruder detections to the expected input format of the
+supervisory safety controller.
+C. Supervisory Safety Controller
+The three key requirements for this controller are:
+Certified safety: Enforcement of a strict notion of safety
+while working with vision inputs
+Run time safety: Reactive low latency solution that can
+make decisions in real-time
+Performant safety: Preserving original mission require-
+ments and introducing a minimal modification to the
+original control input provided by a nominal controller
+Existing techniques, such as reachability analysis and regret
+minimization for MPC, often conflict with these three require-
+ments. For example, reachability analysis-based techniques are
+certified and can generate controllers that preserve mission
+outputs. However, they tend to be computationally expensive,
+compromising the reactive requirement. Considering these
+three key requirements, we used a Control Barrier Function
+(CBF) based Quadratic Program (QP) for our supervisory
+safety controller. CBFs were introduced in  to formally
+certify the safety of robotic control systems. We assume we
+are given a nonlinear control affine system defined by
+label {eq0} dot {x}  f(x)  g(x) u
+where x X , f and g are locally Lipschitz continuous
+functions and u R is the set of inputs to the system.
+Let us say our safe set is defined by Xs X , then the
+goal of safe control is to keep this set forward invariant with
+respect to the dynamics Eq. (8). Mathematically, this forward
+invariance of the set is described as
+for a ll  x(t { 0}
+t  in mathcal {X}{s} bullet x(t) in mathcal {X}{s} quad t geq t0
+Let C : {x X h(x) 0} be a zero sub-level set of a
+function h : X R. Then h is a valid control barrier function
+for C given dynamics Eq. (8) if there exists an extended class
+Lf h(x)  L  g h(x)u
+l eq - alpha (h(x) quad forall x in mathcal {C}
+drift f(x) and control g(x) dynamics, respectively. Note this
+formulation is slightly different than the one defined in
+since we define the safe set to be a zero-level subset instead
+of a superset. However, since we change the inequality sign,
+we can still ensure forward invariance using this condition.
+This design choice is inspired by .
+QP-based controller. Our supervisory controller enforces our
+safety and actuation constraints. We devise this controller
+using our defined control barrier function. First, let our safe set
+be defined as C, then a straightforward distance maximization-
+based CBF would be:
+h( x )  d{ thresh} - d label {eq:nomcbf}
+b egin  {
+a li g n ed} x  in C : h(x) leq 0 x notin C : h(x) > 0 end {aligned}
+dthresh represents the minimum distance threshold that should
+be maintained between the two agents. However, since the
+relative degree of pure distance maximization-based CBF
+with respect to u is 2, there would be singularity with the
+CBF proposed in Eq. (11). Inspired by , we propose the
+following CBF:
+{eq12}  h( x)  c  d{n}{thresh} - d{n} - kdot {d} k
+where c > 0,n > 0 and k > 0 are hyperparameters to be tuned.
+Our defined CBF takes negative values when the agents are
+safely separated and positive values when the requirement is
+violated. The CBF condition we enforce for forward invariance
+is as follows:
+do t  {h}(x) leq - lambda h(x)
+We choose the penalty term as h(x) itself as is often done
+for CBFs.  is another hyperparameter that controls the rate
+of change of the barrier function. Note that the non-linear
+constraint h(x) 0 is not necessarily a subset of d dthresh
+when d > 0. However, as demonstrated in , the system
+remains forward invariant within the set h(x) 0d dthresh
+under the application of the control law h(x) h(x). Our
+final QP formulation is defined as follows:
+n {aligned}
+min  {u}
+u - u{nom} {2}  textrm {s.t.} quad  dot {h}(x) leq - lambda h(x) u leq u{max}  u geq u{min}  end {aligned} label {eq:qp}
+where unom is the control input provided by the nominal
+controller and umax and umin encode the actuation constraints.
+formulation using post-processed visual detection information
+and ownership odometry information (vown  own). First, we
+derive the values of h in terms of our control input u using
+our encounter geometry as illustrated in Fig. 3.
+be g in {a li gned}  dot {h}(x)  nd{n-1}dot {d} -kddot {d}  end {aligned} k
+begi n {al i gned}  d ot {d }   v{own}cos {(alpha - chi {own})}  v{int}cos {(alpha - chi {int})}  end {aligned} label {eq:ddot}
+(b) Overtake
+(a) Head-on
+(c) Crossing
+Diversity of the airborne collision testing scenarios: (a) The various encounter geometries used for real-world  simulation f

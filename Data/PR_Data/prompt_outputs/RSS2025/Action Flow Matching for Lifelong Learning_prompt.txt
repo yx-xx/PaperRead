@@ -1,5 +1,5 @@
 === PDF文件: Action Flow Matching for Lifelong Learning.pdf ===
-=== 时间: 2025-07-22 09:42:12.749872 ===
+=== 时间: 2025-07-22 09:59:31.034279 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -187,4 +187,463 @@ use ridge regression to find the residual weights and biases
 of the nominal model. Initially, they rely on the nominal
 model and only start learning the residual parameter after k
 decide when enough data has been collected to be able to
-learn a good set of coe
+learn a good set of coefficients. k also serves as the maximum
+size of the replay buffer, thus as new data arrives, old data
+is sequentially discarded to encourage learning only based on
+the latest transition dynamics.
+Jamone et al.  explore kinematics learning for a sim-
+ulated humanoid working with tools with different shapes
+and sizes, which induces a non-negligible context switch. The
+context is recovered by identifying the transition discrepancy
+from similar inputs, which signals the presence of a different
+confounding factor (different tool in this case) that modifies
+the true robots dynamics. To model the transitions they learn
+a multi-valued function, that allows for multiple potential solu-
+tions to be associated with the same query input. Nonetheless,
+they rely on the Infinite Mixture of Linear Experts algorithm,
+thus constraining the modeled relationships to collections of
+local linear models.
+B. Online Learning for Robot Adaptation
+Pastor et al.  achieve online robotic arm movement
+adaptation by associating experienced sensor traces with
+stereotypical movements. The traces are leveraged to generate
+an implicit model that can be used to track differences in what
+the robot feels for future similar movements. The model then
+enables planning reactive behaviors to compensate or adapt to
+unforeseen events. In contrast to our work, this works adaptive
+behavior results from the predictive controller correcting for
+discrepancies based on the models learned a-priori, while we
+focus on modeling the new dynamics.
+Thor and Manoonpong  develop an online error-based
+learning method for frequency adaptation of central pattern
+generators (CPGs) to produce periodic motion patterns, which
+can be leveraged for robot locomotion. In this setting, learning
+happens using a dual integral learner that relies on a simple
+objective function that does not need to explicitly consider
+the systems dynamics. Although this method adds supporting
+evidence to error-guided learning for control adaptation, it
+is encapsulated to CPGs, which might not be relevant to
+controlling certain robotic platforms.
+Hagras et al. [13, 14] achieve a lifelong learning approach
+for online controller learning and calibration. They focus on
+agricultural mobile robots that adapt their navigation behaviors
+to the dynamic and unstructured environment. Specifically,
+they learn online the membership functions for a hierarchical
+fuzzy genetic system. Additionally, each behavior is imple-
+mented as a simple fuzzy logic controller, thus limiting the
+number of inputs and outputs. Fuzzy coordination will then
+allow behaviors to activate concurrently at varying levels,
+providing smoother control than switching methods.
+achieves continual learning in simulation environments by
+applying online stochastic gradient descent (SGD) to update
+the model parameters, while concurrently meta-learning a
+mixture model to represent parameters across different tasks.
+Chen and Wen  do trajectory tracking for flexible-joint
+robots. The controllers network consists of a regressor and
+output layer, designed to model the robots linear-in-parameter
+dynamics. The parameters are updated guided by the trajec-
+tory tracking error on separate time scales: fast adaptation of
+output weights via Lyapunov-based laws and slower internal
+weight updates through backpropagation, inspired by singular
+perturbation theory.
+C. Batch-based Learning for Robot Adaptation
+The Rapid Motor Adaptation (RMA) family of algorithms
+has emerged to enable a robot to rapidly adapt to envi-
+ronmental challengesparticularities represented via a latent
+vector that augments the input of a policy learned offline, in
+simulation and using privileged information (e.g., ground truth
+sensor readings and environment information) [20, 21, 32, 24].
+Although they have shown good performance, online learning
+is not possible given the need for multi-staged training, where
+the latent representation is first learned together with the
+model-free base policy, followed by learning an adaptation
+module that learns to predict the latent representation using
+past state-action data. Lee et al.  propose Context-aware
+Dynamics Models (CaDM) for handling diverse dynamics.
+The approach involves learning a context encoder alongside
+forward and backward dynamics models, with both models
+conditioned on a latent vector that encodes dynamics regime-
+specific information. This work highlights the need for con-
+tinual dynamics learning, as it is hard to exhaustively learn
+a robots transition model and the challenge is exacerbated
+by the possibility of ambiguous state representations due to
+non-observed state variables (e.g., broken or missing sensors).
+III. PRELIMINARIES
+We begin with an introduction to model-based planning
+and its reliance on predictive dynamics models for effective
+decision-making. Then, we introduce flow matching, a gen-
+erative framework for transforming random variables from a
+source to a target distribution.
+A. Model-Based Planning and Control
+Let S Rn be the state space representing all possible
+configurations of the system. Let A Rm be the action space
+representing all possible control actions that influence the sys-
+tems dynamics. Model-based planning leverages a dynamics
+model f : S  A S to predict the state evolution. This
+predictive capability allows planners to optimize a sequence
+of actions a A from a state s S by minimizing a cost
+function J (s, a) that balances the multiple objectives of the
+and resource efficiency:
+a arg min
+aAH J (st, a; H).
+where the trajectory cost J is defined as:
+J (st, a; H)
+(sth, ath)  (stH).
+actions over the planning horizon H, while and  denote
+the running cost at each timestep and the terminal cost,
+respectively. The sequence of states {st, st1, . . . , stH} is
+determined recursively using the dynamics model f as:
+st1  f(st, at),
+where st S represents the state of the system at time t, and
+at A is the action at t.
+In this setting, the dynamics model f serves as the mathe-
+matical representation of the constraints governing the evo-
+lution of the systems state. That is, the feasibility of any
+proposed sequence a is dictated by the systems dynamics.
+strained sequential decision-making problem:
+a arg min
+a J (st, a, H),
+subject to
+sth1  f(sth, ath),
+This formulation emphasizes that f, the dynamics model,
+governs admissible trajectories by encoding critical physical
+constraints such as non-linearities, dynamics limits, and uncer-
+tainties. Any inaccuracies in f shift the feasible solution space,
+resulting in plans {st} that may violate real-world constraints
+or be suboptimal when executed. Consequently, maintaining
+an aligned dynamics model is essential for effective planning
+and control.
+We solve the optimization problem in Eq. (4) using
+sampling-based methods, which are well-suited for high-
+dimensional and non-linear dynamics. These methods optimize
+action sequences by sampling trajectories, evaluating their
+The differences among this family of methods lie in how
+the candidate distribution is selected and updated at decision
+(MPPI) [12, 28] and the Cross Entropy Method (CEM) .
+The critical role of the dynamics model highlights the need
+for mitigating the impact of model misalignment, particularly
+in complex, unstructured environments where exhaustively
+anticipating all changes in transition dynamics is impractical or
+even infeasible. AFM, introduced later in this work, addresses
+this by transforming planned actions into those that better align
+with the agents true intention, compensating for errors caused
+by misalignment between the true and modeled dynamics.
+B. Flow Matching (FM)
+In the following overview we adopt the notation and de-
+scription of FM by Lipman et al. : FM is a framework
+for generative modeling that constructs bijective, deterministic
+flows through a learned velocity field, designed to interpolate
+between a source p and target q distribution. Formally, given
+a training dataset with samples from a target distribution
+q Rd, the goal is to train a neural network parameterized as
+a time-dependent velocity field u
+: [0, 1]Rd Rd such that
+the associated flow transforms the source distribution p into q.
+This is achieved by constructing a time-continuous probability
+path {p}1
+method can be decomposed as follows:
+1) Constructing the Flow: The flow transformation  :
+Rd Rd is defined through the solution of an Ordinary
+Differential Equation (ODE) parameterized by the velocity
+transforming samples X0 p through X  (X0).
+2) Designing the Probability Path: This is used to interpo-
+late samples from the source to the target distribution. Among
+the alternatives, we choose the conditional optimal-transport
+combination of the source X0 p and target X1 q samples:
+3) Training Objective: The core learning objective is to
+minimize the discrepancy between the learned velocity field
+and the target velocity u, defined via a regression loss:
+LFM()  EU[0,1],X p
+(X) u(X)
+the joint transformation between two high-dimensional distri-
+butions .
+EU[0,1],X0p,X1q
+whose key property is that it shares the same gradient as the
+nominal flow matching loss:
+LFM()  LCFM(),
+thus enabling learning a valid velocity field u
+without the
+need for the ground-truth u.
+4) Sampling from the Model: After training, new samples
+X1 q are drawn by solving the ODE over the interval
+[0, 1] for an input X0 p:
+Specific to our work, we obtain X1 using the learned velocity
+solver .
+IV. METHOD: ACTION FLOW MATCHING
+We introduce Action Flow Matching (AFM), a method
+towards continual learning in robotics built on a set of key
+time model alignment. In this context, misalignment can arise
+from simplifying assumptions, new or unaccounted latent
+uncertainty.
+Our identified insights include: (1) efficient dynamics space
+reduction using the initially available model; (2) dynamics
+regime representation learning without ground-truth models
+by focusing on state change evolution patterns; and (3) intent
+mapping for accelerated learning by using a generative model
+to produce guiding signals based on information about the
+intent of the robot and the current dynamics regime, instead
+of solely relying on the possibly misaligned model.
+A. Formal Overview
+Given the available dynamics model ft at time t, with
+weights t updated every step using the previous state tran-
+horizon H using planned actions a0
+st1  ft(st, a0
+t is chosen to minimize a trajectory cost J (st, at, H),
+which evaluates deviations from desired outcomes and control
+effort. However, when ft significantly deviates from the true
+environment dynamics f, the predicted states st1 fail to
+accurately reflect the systems behavior, leading to suboptimal
+plans and limiting both learning and control performance.
+To address these discrepancies, we deviate from the conven-
+tional approach of only relying on the imperfect dynamics f
+to gather experience with which the model can be improved,
+since complex systems can make it challenging and time
+consuming. Instead, we opt to add a more direct and efficient
+t itself.
+The essence of our proposed framework can be likened
+to optometry, where instead of attempting to correct the
+biological intricacies of a myopic persons eyesan inherently
+complex and delicate systemwe place corrective lenses that
+adjust the incoming light path, ensuring the perceived image
+is properly aligned with reality. Similarly, rather than solely
+modifying the intricate and often imperfect system dynamics,
+we introduce an additional transformation step that compen-
+sates for discrepancies, ensuring that the executed actions are
+better aligned with the intended outcomes. This additional step
+in our case is AFM, whose overview is presented in Figure 2.
+t aims to reduce the
+deviation between the planned next state:
+t1  ft(st, a0
+and the state the robot would actually reach if a0
+t is executed
+(realized next state):
+st1  f(st, a0
+that is,
+f(st, a1
+t12 f(st, a0
+It is important to highlight that the constraint in Eq. (14)
+aims to reduce the deviation, instead of minimizing it. The
+main drivers for this problem formulation are twofold:
+Limited access to environment dynamics. We cannot
+assume access to the current environment dynamics f.
+Minimizing st1s
+t12 would require full knowledge
+of f, which remains partially unknown and is the exact
+target we seek to learn. As such, attempting to directly
+minimize this quantity would render the learning of the
+AFM model g both intractable and redundant.
+Enhancing data informativeness and model alignment.
+By targeting the more tractable constraint in Eq. (14),
+the agent is encouraged to collect more informative state
+evolution data. This not only facilitates faster alignment
+of ft, but also improves planning efficacy by ensuring
+that actions a1
+t more closely correspond to the desired
+outcomes. These features are especially advantageous for
+lifelong learning algorithms [37, 43].
+B. Learning to Map Plans to Intentions
+To enable efficient continual learning of evolving dynamics,
+we focus on generating informative exploratory trajectories.
+This addresses the challenge posed by misaligned dynamics
+models ft, where planned actions a0
+t may fail to achieve the
+desired outcomes, resulting in data collection inefficiencies in
+regions of the state space with low informational value.
+To mitigate this, we propose the AFM model g, designed
+to transform the distribution of planned actions a0
+t into actions
+t that align more closely with the agents intended actions.
+have been chosen had the agent used a well-aligned dynamics
+model. Consequently, AFM guides the agent to select actions
+that promote data collection in regions of higher utility, thereby
+expediting model alignment.
+The key contribution of AFM stems from its novel training
+a potentially misaligned dynamics model to actions that more
+closely achieve the intended outcomes. Standard approaches
+to flow matching would require datasets consisting of samples
+from the source and target distributions. Specifically, AFM
+would necessitate a dataset comprising planned actions a0
+(source distribution) and intended actions a1
+t (target distribu-
+tion). However, creating such datasets is infeasible due to the
+challenging hurdle of comprehensively identifying the causes
+Training
+ODE SOLVER
+Action Flow Matching
+Dynamics
+Representation
+Intended
+Representation
+Flow Model
+Deployment
+Fig. 2: AFM Pipeline. During training we leverage counterfactual-inspired transitions by simulating the state evolution with one randomly
+sampled action but registering a different random action as the cause. At deployment time, the agent tries to identify the current dynamics
+regime and based on that transforms the planned actions a0
+t to a corrected or intended action a1
+t that AFM considers has a higher chance
+of accomplishing the desired state transition.
+and consequences of model misalignments. Additionally, di-
+rect access to f or the desired action distribution is unavailable
+(both are what we are actually trying to learn). Therefore, the
+diversity and extent of possible source distributions introduce
+the following two critical challenges:
+Q1 How can we generate diverse datasets that simulate
+dynamics model misalignments while relying solely on
+the initial dynamics model f0? This model, learned from
+data representing a specific dynamics regime (e.g., flat
+office carpet), may not generalize to other regimes (e.g.,
+icy sidewalk).
+Q2 How can we identify and characterize the current dy-
+namics regime using only observed state evolution data,
+thereby informing AFM of environmental characteristics
+and the predictive reliability of the current model ft?
+Fig. 3: Feasible Dynam-
+ics Space Intuition. Blue:
+State-Action space. White:
+Dynamically
+feasible
+gion. Orange: Approxima-
+tion of the feasible region
+using the dynamics model.
+approach would involve randomly
+generating
+alongside corresponding planned
+actions a0
+and using them to
+train the flow matching model.
+state-action
+constraints
+introduced
+embodiment.
+we leverage the initial dynamics
+model f0
+to approximate the
+dynamically
+feasible
+depicted
+constrain
+exploration space, ensuring focus
+on regions of practical relevance.
+f0(s, a) F,
+s S, a A,
+where F Rn represents the approximated feasible dynamics
+region derived from f0.
+train g, we simulate how actions influence state transitions
+under varying dynamics regimes. Specifically, given an initial
+state st S, a planned action a0
+t A, and an intended action
+t A, we compute the next state st1 under the intended
+st1  f0(st, a1
+but register the transition as if it resulted from the planned
+st1 f0(st, a0
+: si S, a0
+We find this counterfactual-inspired misaligned dynamics sim-
+ulation generates diverse and useful source and target distri-
+butions for AFM.
+To address Q2, we propose a learned representation ZD
+that encodes the current dynamics regime. This representation
+is produced by a model that receives the current state st, the
+planned action a0
+) between the planned state transition s
+t1 (Eq. 12) and the
+realized state transition st1 (Eq. 13). Note, however, that we
+need to consider how to compute et in two distinct scenarios:
+During the dataset generation phase, an error value et
+is calculated as the difference between the predicted
+state transitions when using two actions, a1
+t (the action
+that results in the observed state transition) and a0
+planned action):
+et  f0(st, a1
+t) f0(st, a0
+During operation in the environment, the error is instead
+defined as the difference between the observed next state,
+(untransformed) action a0
+et  st1 ft(st, a0
+In addition to the dynamics regime representation model,
+a transformed action encoder, EZT : [0, 1]
+A Rdim(ZT ),
+A Rm symbolizes the action transformations space.
+The latent representations ZD and ZT are passed through a
+flow model, FM : Rdim(ZD)  Rdim(ZT ) Rdim(S), responsible
+for predicting the velocity field u Rdim(at):
+u  g(st, a0
+EZD(st, a0
+t ; ZT ); FM
+where   [ZD; ZT ; FM] represents the learnable parame-
+ters of the model. Using the collected dataset E, learning the
+model g involves optimizing the parameters  to minimize
+the conditional flow matching loss LCFM defined in Eq. (8).
+t from a0
+used by an explicit midpoint ODE solver . This solver
+takes incremental steps, transforming a
+t into a
+(starting
+from   0), iteratively refining the action toward a1
+C. Continual Learning with AFM
+Once the AFM model g is trained, it can be leveraged for
+accelerated continual dynamics learning. This process involves
+using decision-time planning to select actions that explore
+regions of the space most informative for reducing model
+regimes.
+A crucial aspect is determining when to rely solely on the
+learned model ft and when to utilize the AFM model to
+mitigate potential model misalignments. This decision process
+is formalized as follows. At each iteration, we record the
+predicted state transition spred  ft(st1, a0
+t1) and the
+realized next state sreal. The prediction error et is computed
+as the L2 norm of the difference between the realized and
+predicted states:
+if sreal spred2 < M,
+sreal spred,
+where M is a predefined threshold for acceptable dynamics
+misalignment. From et, a binary model misalignment flag M
+is generated:
+The flag M dictates whether action transformations are re-
+quired. If M transitions from True to False, it implies that
+the current model ft aligns with the dynamics, allowing
+actions to be executed without transformation. Conversely,
+a transition from M  False to M  True indicates a
+dynamics regime change. In this case, transformed actions
+should be executed to facilitate faster model re-alignment.
+Upon detecting a regime change, a representation of the
+current dynamics ZD is computed as:
+ZD  EZD(st, a0
+where EZD encodes the relevant contextual information for
+g. The AFM model then maps the planned action a0
+transformed action a1
+t  ODE SOLVER
+t ; ZT ); FM
+s  0, e  1, step
+which is executed every time step until the model is realigned
+(flag M transitions again).
+(st1, at1, st) is collected and used to update the model
+parameters t1 to t. Note that our approach makes no
+assumptions about the specifics of f, as it is agnostic to the
+of the dynamics model. Instead, our focus is on generating
+more informative actions that facilitate adapting f, thereby
+enabling and accelerating continual learning.
+V. RESULTS
+We evaluate our method on two robotic platforms shown
+in Figure 4: the Jackal UGV and the Crazyflie quadrotor.
+The experiments assess whether AFM enables faster transi-
+tion model alignment under evolving world or embodiment
+conditions that affect the robots dynamics. Adapting to these
+changes is crucial for successfully completing the tasks.
+Fig. 4: Platforms employed for validation of our method and
+comparison against the baselines in simulation. (Left) Jackal UGV
+. (Right) Crazyflie quadrotor .
+A. Baselines
+We are interested in comparing with methods that achieve
+dynamics model adaptation by learning from the continuous
+stream of robot observations during deployment1:
+1Approaches that focus on offline adaptation strategies , latent-space
+dynamics learning , assume some structure over the task space [4, 35],
+or directly learn a policy  fall outside the scope of this paper.
+X Coordinate
+Y Coordinate
+X Coordinate
+Y Coordinate
+Fig. 5: ETHZ Maps  where the online dynamics learning tasks
+took place. The UGV has to re

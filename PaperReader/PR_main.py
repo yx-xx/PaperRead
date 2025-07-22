@@ -2,7 +2,7 @@ from pdf_reader import get_pdf_files, extract_text_from_pdf, get_processed_files
 # from .qwen_api import analyze_paper_with_qwen
 from glm_api import analyze_paper_with_glm
 
-from config import OUTPUT_EXCEL, MAX_LENGTH
+from config import OUTPUT_EXCEL, MAX_LENGTH, PAPER_PERCENT
 from result_writer import append_result_to_excel, EXCEL_COLUMNS
 import os
 from tqdm import tqdm
@@ -36,7 +36,7 @@ def main():
         ########### 阶段1：提取文本 ###########
         print(f"\n正在提取文本: {file_name}", flush=True)
         try:
-            text = extract_text_from_pdf(pdf_path, MAX_LENGTH)
+            text = extract_text_from_pdf(pdf_path, MAX_LENGTH, PAPER_PERCENT)
 
             ########### 阶段2：分析中 ###########
             print(f"开始分析: {file_name}", flush=True)

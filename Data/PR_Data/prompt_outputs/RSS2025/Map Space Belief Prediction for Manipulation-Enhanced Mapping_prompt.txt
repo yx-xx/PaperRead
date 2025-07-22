@@ -1,5 +1,5 @@
 === PDF文件: Map Space Belief Prediction for Manipulation-Enhanced Mapping.pdf ===
-=== 时间: 2025-07-22 09:42:35.149491 ===
+=== 时间: 2025-07-22 10:00:02.501944 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -190,4 +190,476 @@ always slide along axis without rotation), having limited
 applicability in the real world.
 In this work, we do not focus on retrieving individual
 environment. With our long-term occupancy and semantic map
-on perfect model knowledge or single-shot scene 
+on perfect model knowledge or single-shot scene understand-
+complex manipulation behaviors.
+C. Learned World Dynamics Models
+Many model-based reinforcement learning algorithms learn
+environment models from episodic environmental interaction,
+often in latent spaces for improved evaluation speed .
+These models, however, do not result in a human-interpretable
+representation in contrast to our learned map-space dynamics.
+Another recent trend leverages the popularity of conditional
+video diffusion models to develop interactive pixel-space
+simulators [45, 43]. These models focus on short-term visual
+fidelity. We posit that explicit 3D maps provide long-term
+temporal consistency and calibrated uncertainty measures that
+are needed for robotic tasks that involve information gathering.
+III. PROBLEM DEFINITION
+We address the MEM problem as follows: Consider an
+environment with a set of movable objects of varying sizes
+and orientations, where some objects may be occluded and
+not directly observable from any viewpoint. The arrange-
+ment of these objects, along with the fixed support geometry
+(e.g., a shelf or table), constitute the workspace configuration
+space Cw . The environments initial configuration is un-
+observable and denoted c0 Cw.
+The robots objective is to create an accurate representation
+of the workspace configuration ct after the execution of a
+sequence  of actions [a0, . . . , an]. These actions include two
+to a specific viewpoint vt V to capture an RGB-D image,
+and manipulation actions, where the robot interacts with the
+scene (e.g., via pushing or grasping). We address the eye-
+in-hand RGB-D camera setting in which the robot does not
+receive informative observations during manipulation and must
+instead move to a retracted viewpoint to receive valid depth
+data due to minimum depth restrictions. Moreover, we do
+not integrate views during movement between locations, since
+such images are subject to motion blur.
+To formalize the problem, let the robots internal represen-
+tation of the environment, a belief over metric-semantic maps
+explaining object classes over the workspace, be denoted as
+t. We assume a closed set of Nclasses semantic classes. Let
+the most-likely map according to a belief t be denoted t.
+When the robot executes a manipulation action at, it causes
+a transition ct 7ct1 Cw according to the environments
+dynamics ct1  Dyn(ct, at). Additionally, whenever the
+robot takes any action at and gets an observation ot, drawn
+according to the observation function Z(otat, ct1), its inter-
+nal representation is updated through its belief update function
+t1  BelUpdate(t, at, ot).
+an optimal budgeted mapping problem. The robot is given
+a maximum action budget T, and an initial environment
+configuration c0, which is a priori unknown. The task is to
+output the most informative sequence of actions  such that
+the robots predicted map T , at the last step of the budget,
+maximizes its mean Intersection over Union (mIoU) to the
+ground truth map GT
+which represents cT . So we have:
+ToMap(cT )
+ct1  Dyn(ct, at)t
+t1  BelUpdate(tat, ot), ot Z(otat, ct1), t
+where BelUpdate() represents the robots belief update, Z()
+is the observation function, and ToMap() yields the metric-
+semantic map that corresponds to a known configuration of
+the environment. In deployment, the robot cannot accurately
+predict GT
+ration nor the dynamics of the environment. It may not even
+know the number of objects, their shapes, or semantic labels.
+IV. METHOD
+A. Overview
+We model the MEM problem as a Partially Observable
+Markov Decision Process (POMDP) in metric-semantic map-
+space . To solve this POMDP, the agent should perform a
+belief update about the state of the map after both manipu-
+lation and observation actions. For manipulation actions, the
+belief update propagates through a map transition function
+T(t1t, at) that is a priori unknown. For observation
+while reasoning over hidden object shapes and arrangements
+to reduce uncertainty.
+sible maps makes traditional belief updates computationally
+infeasible . The approximation that map cells are inde-
+leads to compact belief representations but reduces precision
+in the belief update. Our CNABU method captures prior
+knowledge about the world, such as object contiguity and usual
+object sizes and arrangements, in its update. We also leverage
+uncertainty-aware deep learning models to predict factorized
+belief updates that are better aligned with plausible map con-
+figurations and yield actionable quantification of uncertainty.
+These models are trained using simulated ground truth to ap-
+proximate occlusion reasoning and interaction dynamics, i.e.,
+Dyn. Object sizes, classes, occlusion levels, and manipulation
+effects should be roughly representative of real scenes, but
+our method is tolerant to differences in configuration, number,
+class distribution, and moderate shape changes.
+tive with the Volumetric Information Gain (VIG) metric ,
+since directly modeling the mIoU metric is not feasible, as it
+depends on the unobservable workspace configuration. It uses
+a 2-step greedy approach that obtains good performance by
+exploiting near-submodularity of the VIG function. Moreover,
+the 2-step approach obviates the need to sample from the
+observation distribution Z.
+B. Neural Map Belief Dynamics
+Following grid mapping literature , we represent a belief
+t over the semantic-metric map using a Bernoulli distribution
+Manipulation
+Occlusion Aware
+Information Gain
+Observation
+Partial observation
+Predicted push dynamics
+Executed
+manipulation
+Belief at time t
+Push beliefs
+Selection
+If observation action selected
+Best manipulation action
+If manipulation action selected
+Executed
+observation
+Manipulation actions
+View actions
+Belief at time t1
+after manipulation
+Belief at time t1
+after observation
+Best observation
+Fig. 2: From a prior map belief, our pipeline predicts a map belief resulting from a set of candidate pushes. It then weighs the information gain from taking
+two consecutive independent views given the current belief (orange arrows) or taking a single observation given any of the predicted beliefs after pushing
+(blue arrows), selecting the path of highest cumulative information gain and taking its respective first action  either taking the next best view or executing
+the best push. IGVt represents the best information gain obtainable from taking two distinct observation actions, whereas IGMt is the best information gain
+obtainable through a manipulation action followed by an observation action.
+for a cells occupancy and a categorical distribution for a
+cells semantic class. Each cell is assumed independent. We
+represent the occupancy map as a 3D voxel belief O
+RHW D and the semantic map as a 2D birds-eye belief
+t RHW Nclasses. The semantic map is 2D for simplicity
+because objects are roughly prismatic and stacking is not
+allowed in our problem, while the occupancy is 3D because
+object heights affect visibility determination. We consider
+observations ot O consisting of an RGB-D image with
+added semantic labels.
+efficient
+introduce
+Calibrated-Neural Accelerated Belief Update (CNABU) tech-
+nique that uses separate neural networks to represent the
+posteriors of the viewpoint and manipulation actions in the
+factored representation. The first, called observation CNABU,
+computes a map belief update after a observation action
+o(t, ot, at). The second, called manipulation
+action t1 m(t, at), where we drop the observation
+because no new observation is generated.
+Let t()  P(t) denote the probability density of a
+map  under belief t. For any action at and observation ot,
+the standard POMDP belief update equation  gives the
+posterior belief as:
+Z(otat, )
+T(, at)t(),
+where  ranges over all possible maps, with  being a
+normalizing constant. If we wished to project the belief state
+into a marginalized occupancy probability of a cell, we would
+need to compute:
+t1[i, j, k]  Et1[O[i, j, k]  1],
+where E is the expected value. A similar equation would hold
+for semantic updates. Regardless, the space of possible maps is
+far too large  and there is no current method for assessing
+map densities t() that accurately accounts for inter-cell
+correlations (e.g., object shapes, arrangements, and visibility).
+any scene that could produce a belief t via its observations is
+inherently a sample of the distribution induced by this belief,
+the training process leverages a neural networks averaging
+tendency to create an implicit Monte Carlo estimate of Eq. 3.
+We postpone the network and training details to Section. IV-G
+and proceed to describe their use in MEM.
+C. Solving the POMDP
+We propose to solve the map-space POMDP by using a
+k-step receding horizon greedy planner, as shown in Fig. 2,
+which uses Volumetric Information Gain (VIG)  as an
+approximation of the true reward. VIG correlates to infor-
+mation gain and is a submodular optimization objective in
+static scenes , having been used to efficiently solve NBV
+planning and sensor placement problems. Due to VIGs sub-
+bounded suboptimality, justifying the greedy receding-horizon
+strategy. While VIGs submodularity does not hold in general
+for dynamic scenes, we assume that manipulation actions do
+not increase entropy at a rate that justifies the significant
+expense of long lookaheads. However, because a manipula-
+tion action does not produce any observation (and hence no
+immediate information gain) at least one further observation
+must be considered in scoring. Hence, the minimum viable
+search horizon at k  2, which yields a balanced tradeoff
+between computational efficiency and action quality.
+To perform an observation action, the robot chooses from
+vi V possible views in a fixed array of camera positions
+V to which the robot can move. Furthermore, let t t
+be a sampled manipulation action from a set of feasible
+manipulation actions. In our two-step greedy search, we only
+Semantic
+Occupancy
+Semantic
+2D Occ. Beta t1
+Semantic Map t
+Changes Beta t1
+Occ. UNet Inputs
+Occ. UNet Inputs
+Manipulation CNABU ()
+Observation CNABU ()
+Semantic Dirichlet t1
+3D Occ. Beta t1
+Semantic Map t
+Semantic Obs.
+Occ. Cell Obs.
+Free Cell Obs.
+3D Occ. Beta t
+Occupancy
+Projection
+Semantic UNet Inputs
+Semantic Map t
+Semantic Obs.
+2D Occ. Beta t1
+Semantic Map t
+End Point Map
+Start Point Map
+Swept Volume
+3D Occ. Beta t
+3D Occ. Beta t1
+Changes Beta t1
+Projection
+Semantic Dirichlet t1
+Learned Modules
+Intermediate Results
+Static Processes
+Semantic UNet Inputs
+Fig. 3: Architecture overview of our observation and manipulation CNABU networks. The observation prediction network uses the occupancy posterior beta
+and semantic posterior Dirichlet for loss computation, while the manipulation prediction network additionally takes the 2D map of occupancy changes after
+the push for loss calculations.
+consider two possible kinds of action sequences: taking two
+observation actions (vt, vt1) or performing a manipulation
+action followed by an observation (t, vt1). This is because
+(t, t1) would result in no observation and therefore no
+information gain and the information gain of (vt, t1) is
+strictly smaller than the VIG of any (vt, vt1), vt1  vt.
+Letting IG(vi,    , vin1O) denote the Volumetric
+Occlusion-aware Information Gain  for voxels intersected
+by the rays from n views (vi    vin1) given belief O ,
+the two most informative consecutive views (v
+t1), are:
+t1)  arg max
+IG(vt, vt1O
+For manipulation, t
+t1  m(t, t) denotes the predicted
+belief from the manipulation CNABU when given action
+t t as input. We can define the most informative 1-step
+t and its associated most informative view v
+represent
+semantic
+H(t, t1)  H(t) H(t1).
+IGVt  IG(v
+information
+gain obtained from two viewpoints, also called ViewPoint
+Planning (VPP), while IGMt  IG(v
+t1) represents
+the best information gain from a push followed by a
+selection.
+Regt  H(t,
+captures
+difference
+between the current semantic map and the map after the best
+Our policy decides the action at to take according to:
+if IGVt > IGMt  Regt
+otherwise
+Where  is a discount factor to account for different
+magnitudes between camera array VIGs and whole-map se-
+mantic entropy values. Regt serves as a regularization on
+the aggressiveness of the selected pushes, as more radical
+environment manipulations could potentially reveal more of
+the environment, but would cause unnecessary disturbances to
+the scene and introduce a lot more uncertainty to the post-
+push representations. If at
+get the observation ot and use o to obtain the new belief
+t1  o(t, at, ot). This search is then repeated in a loop
+until the maximum number of actions has been performed, or
+a threshold for full map completion has been reached, which
+we set to 95 of the semantic voxels with greater than 85
+certainty in the belief . When this threshold is reached, the
+planner no longer pushes, but still collects novel views.
+D. Push Sampling
+We consider pushing as our manipulation action. To com-
+pute valid push candidates using O
+high-confidence frontier points from the shelf entrance and
+sample k of them uniformly at random as start points for
+the pushes. We test the start points of the k sampled pushes
+for collisions against other high confidence voxels in O
+After randomly sampling these k unique frontier points, we
+determine for each point whether this starting position of a
+push will lead to a feasible and valid motion plan. For each
+valid start point, we sample a likely occupied point in O
+near it to obtain the push direction and sample a push distance
+uniformly at random between 50 and 150 mm. We then obtain
+a valid motion plan using a sampling based motion planner
+[13, 15] and parametrize this plan with .
+E. Evidential Posterior Learning
+Although we could learn to predict beliefs as functions
+evidential posterior networks , as evidential learning is
+known improve the calibration of uncertain predictions. An
+evidential map belief  consists of belief prior parameters
+for each cell of the map belief . Specifically, we store
+O RHW D2, a 3D grid of Beta distribution parameters
+for each voxel in the map, and S RHW Nclasses, a
+grid of Dirichlet distribution parameters for each cell in the
+2D map. Let Beta() and Dir() denote the Dirichlet and
+Beta distributions, respectively. Therefore, the occupancy and
+semantic map beliefs are related to evidential parameters via
+O[]  E[Beta(O[])] and S[]  E[Dir(S[])] . We
+assume that the initial states O
+0 are uninformed and
+set to 1, a unit tensor with appropriate dimensions. Note: evi-
+dential parameters are maintained for each map belief  in our
+algorithm and CNABUs operate by propagating the evidential
+parameters (t1 o(t, ot, at) and t1 m(t, at))
+followed by an update to the standard belief parameters.
+F. Dataset Generation
+To train the CNABU models o and m, we collect datasets
+on maps, viewpoints, and sampled pushes in simulation.
+A total of 14 different object categories from the YCB
+dataset  are used and sampled in a shelf board of size
+(0.8  0.4  0.4)m. We sample object configurations on
+the shelf following a stochastic method that considers class
+dependencies and efficient free space coverage for placing
+objects. This method allows for the sampling of varied object
+detail in Appendix A.
+To train the viewpoint belief prediction model o, we
+assemble a dataset D  {d1, d2, . . .} where each scene di has
+the form (GT, o1,    , on). Here, GT represents the ground
+truth 3D metric-semantic voxel map of a shelf environment
+with randomly placed objects, and o1,    , on are the depth
+and semantically segmented images captured from V, the set
+of discrete viewpoints in the environment. The ground truth
+semantic labels are used in the rendered images.
+To train the manipulation belief prediction model m, the
+simulated robot executes a randomly sampled action in synthe-
+sized scenes. This produces a dataset Da  {da
+each sequence da
+post are the ground truth maps before and after manipu-
+observations from V as before, taken before the manipulation
+is executed.
+G. Training CNABU Networks
+We now outline the procedure for training the two CNABUs,
+whose network architectures are shown in Fig. 3, with further
+details given in Appendix B.
+We train o from the dataset D by sampling, without
+l1), from every scene di at every epoch. This
+sampling diversifies the beliefs encountered during training by
+varying the emulated observation sequences for each scene.
+The loss over the sequence d is computed as follows. We
+recursively predict the evidential beliefs t  o(t1, o
+up to time l. Also, let yi {0, 1}dim indicate a one-hot
+encoded tensor of the ground truth value for a given voxel
+i according to GT, where dim is either Nclasses for S
+t . For each voxel i in t, define, for its predicted
+distribution parameter i
+t  yi  (1 yi) i
+where denotes element-wise multiplication. We employ the
+evidential uncertainty-aware cross-entropy from Sensoy et al.
+as the loss, which, for each time step, is given by:
+t)Dir(1)
+Calibration
+L515 Camera
+Fig. 4: Real-world environment showing a shelf scenario. The UR5 is
+equipped with an Robotiq parallel-jaw gripper and a Realsense L515 RGB-D
+camera to create a calibrated representation of the scene.
+, where L(i
+t) log(ij
+tween distributions a and b, 1 is a vector of all ones, type is
+o if it is an occupancy loss (dim  2) and s if it is a semantic
+loss (dim  Nclasses), and  is an annealing parameter, set
+according to Sensoy et al. . The total loss for the sample
+d is the sum of the semantic and occupancy losses Lo
+over the l observations.
+The manipulation CNABU is defined similarly to the obser-
+vation CNABU, except that it has an auxiliary output, which
+predicts a Beta distribution over a voxel grid modeling the
+probability of a given voxel being changed in GT after the
+manipulation is executed, which we call diff. Therefore, we
+t1  m(t, at)
+Training epochs iterate over sequences in Da. For each
+without replacement as above. We then recursively obtain
+the beliefs from the observation CNABU, t1  o(t, o
+for t  0, . . . , l 1. Next, we predict the post-manipulation
+belief S
+t1  m(l, a) and use GT
+post as the
+training target. The random sampling of a different number
+of observations prior to pushing ensures the CNABU sees
+different belief stages during training. We derive the ground
+truth for diff, GT
+consistency loss, Lcon which is the Mean Squared Error
+between l1 and l. This loss serves as a regularization
+to encourage the alpha parameters of the distributions in the
+unchanged areas of the map to have a similar magnitude.
+As before, the network heads are trained using the loss in
+Eq. 7 . The total loss for the manipulation sequence is
+given by L  LO
+l1  Ldiff
+l1  Lcon.
+V. EXPERIMENTS
+We perform four core experiments to evaluate our approach.
+provements in map completeness and accuracy compared to
+state-of-the-art . Next, we present a series of ablations
+of our method and evaluate several interactive baselines. We
+Ours wo Pushing
+Random  Observation CNABU
+Dengler et al.
+Action Taken
+Occupancy mIoU
+Low Occlusion - Occupancy
+Action Taken
+High Occlusion - Occupancy
+Action Taken
+Semantic mIoU
+Low Occlusion - Semantics
+Action Taken
+High Occlusion - Semantics
+Fig. 5: Simulation results for Manipulation Enhanced Mapping against SOTA and non-pushing baselinesshowing both occupancy and semantic IoUs over
+time for each method. Our method outperforms all baselines in highly occluded scenes, while not having degraded performance in low occlusion scenes.
+Standard deviation of performance of random baselines over random seeds is represented as shading around each plot.
+then present some experiments on the generalization of the
+trained CNABUs to within-class shape variations. Finally, we
+study the robustness of our system in terms of its zero-shot
+transferability to a physical setup. Further evaluations, which
+validate the individual CNABUs performance and the use of
+VIG as a reward proxy, are provided in Appendices C and D.
+A. Experimental Setup
+Our task setup consists of a shelf scene with a UR5 arm for
+observation and action execution (Fig. 4). The robot is fixed to
+a table facing an occluded shelf and equipped with a Robotiq
+parallel-jaw gripper for manipulation and an RGB-D camera
+for observations. In simulation, the ground truth observations
+and segmentations are provided by rendering.
+The real-world setup is similar, but with a few notable
+differences. For action execution, ROS and MoveIt  are
+used. The depth image is obtained from an intel Realsense
+L515 camera and the semantic segmentation in the real world
+is performed using segment anything 2 (SAM2)  and a
+strategy similar to LSeg [25, 19]. We take detected masks
+from SAM2 and crop the original image around them. Next,
+we extract their CLIP  embeddings and compute their
+cosine similarity to the language embeddings of our target
+we normalize the similarity scores to classify each mask.
+B. Simulation Experiments
+These experiments consider both low and high occlusion
+scenarios for manipulation-enhanced mapping. We generate
+100 low occlusion scenarios via rejection sampling, using our
+sampling method described in Appendix A, but keeping only
+scenarios for which at least one object cannot be seen from
+any of the 300 viewpoints. We then crafted 25 high occlusion
+scenarios by hand to be challengingly crowded and with many
+objects occluded. We provide examples of each category in
+Figs. 10 and 11 in the Appendix. The robot begins with a
+naive uniform map prior.
+We compare our work (Ours) with the following baselines.
+and fine-tuned the network weights provided by the authors
+for only 5,000 action steps. Although their experimental setup
+closely aligns with ours, our tests introduce a lower upper
+shelf board height and more densely sampled object con-
+figurations. Second, the Random baseline randomly samples
+a set of unique views [vr
+n] V and uses standard
+metric-semantic occupancy mapping . We also combine
+random view selection with our observation belief predictor
+ablation of our pipeline that does not use manipulation, Ours
+wo pushing.
+Metric and semantic mIoU compared to the ground truth
+map at time t are plotted in Fig. 5. We observe that the
+previous S.O.T.A. for unstructured MEM, Dengler et al. ,
+explores efficiently 

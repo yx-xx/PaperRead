@@ -1,5 +1,5 @@
 === PDF文件: V-HOP Visuo-Haptic 6D Object Pose Tracking.pdf ===
-=== 时间: 2025-07-22 09:41:27.126046 ===
+=== 时间: 2025-07-22 09:58:35.943261 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -193,4 +193,324 @@ model [3, 54, 26, 53, 52, 2], we can convert SI into tactile
 point cloud Sp,c.
 Yet we are not the first to employ point cloud representations
 for tactile learning, prior works [8, 54, 64, 13] focus on a
-single type 
+single type of sensor and overlook the gripper posture. Our
+key contribution is a unified representation spanning both
+taxel-based and vision-based sensors on multi-embodiments,
+empowered by our multi-embodied dataset. We demonstrate
+generalizability on the Barrett hand (taxel-based) during our
+real-world experiments and on the Allegro hand (vision-
+based DIGIT sensor) using the Feelsight dataset . Our
+novel haptic representation seamlessly integrates the tactile
+signals with the gripper posture, enabling more effective
+gripper-object interaction reasoning. In subsequent sections,
+we describe our approach and provide empirical evidence
+demonstrating that our representation improves generalization
+sensor modalities.
+III. METHODOLOGY
+We propose V-HOP, a data-driven approach that fuses visual
+and haptic modalities to achieve accurate 6D object pose
+tracking. Our goal is to build a generalizable visuo-haptic
+pose tracker that accommodates diverse embodiments and
+objects. We first outline the core representations used in our
+haptic modality: gripper and object representations. Our choice
+for the representations follows the spirit of the render-and-
+compare paradigm . Later, we introduce our visuo-haptic
+model and how it is trained.
+A. Gripper Representation
+Tactile signals only represent the cutaneous stimulation,
+while haptic sensing combines tactile and kinesthetic feedback
+to provide a more comprehensive spatial understanding of
+contact and manipulation. We propose a novel haptic rep-
+resentation that integrates tactile signals and gripper posture
+in a unified point cloud representation. This gripper-centric
+representation enables efficient reasoning about spatial contact
+and gripper-object interaction.
+Using the URDF definition and joint positions j, we gen-
+erate the gripper mesh Mh through forward kinematics and
+calculate the surface normals. The mesh is then downsampled
+to produce a 9-D gripper point cloud Ph  {pi}nh
+pi  (xi, yi, zi, nix, niy, niz, c) R9,
+where xi, yi, zi represent the 3-D coordinate of the point.
+is a one-hot encoded point label:
+[1, 0, 0]: Gripper point in contact.
+[0, 1, 0]: Gripper point not in contact.
+[0, 0, 1]: Object point (for later integration with the object
+point cloud).
+To obtain the contact state of each point, we map the tactile
+point cloud Sp,c, representing the contact points detected by
+the tactile sensors (Sec. II-B), onto the downsampled gripper
+point cloud Ph. Specifically, for each point in Sp,c, we find its
+neighboring points in Ph within a radius r. These neighboring
+points are labeled as in contact, while all others are labeled
+as not in contact. The choice of the radius r is randomized
+during training and determined by the measured effective
+radius of each taxel during robot deployment. The resulting
+haptic point cloud, Ph, serves as a unified representation for
+both tactile and kinesthetic data (Fig. 2).
+B. Object Representation
+We denote the object model point cloud as P  {qi}no
+Similar to the gripper point cloud, qi follows the same 9-D
+definitions (Equation 3),
+qi  (xi, yi, zi, nix, niy, niz, c) R9,
+with c  [0, 0, 1] for all object points. At each timestep i > 0,
+we transform the model point cloud into a hypothesized point
+cloud Po  {q
+i1 according to the pose from the previous
+timestep Ti1. For each point q
+i in the hypothesized point
+cloud Po
+To enable reasoning about gripper-object interactions, we
+fuse the gripper point cloud Ph and the hypothesized object
+point cloud Po to create a gripper-object point cloud P,
+P  Ph Po.
+This novel unified representation adopts the principles of the
+render-and-compare paradigm from visual approaches [35, 66,
+hypothesis) is compared against the visual observation. The
+hypothesized object point cloud Po serves as the rendered
+pose hypothesis (Fig. 2). The gripper point cloud Ph represents
+the real observation using haptic feedback, which we used to
+compare with. By leveraging this representation, the model
+captures the contact-rich interactions between the gripper and
+the object by learning feasible object poses informed by haptic
+feedback.
+C. Network Design
+Visual modality. Unlike prior works, which train the whole
+visuo-haptic network from scratch, our approach can effec-
+tively leverage the pretrained visual foundation model. Our
+design extends the formulation of FoundationPose , as
+it demonstrates great generalizability on unseen objects and
+a narrow sim-to-real gap. To harness the high-quality visual
+ResBlock
+Translation
+Rotation
+3D Rotation
+3D Translation
+Positional
+Encoding
+Shared   Weights
+Fig. 2: Network design of V-HOP. The visual modality, based on FoundationPose , uses a visual encoder to process
+RGB-D observations (real and rendered) into feature maps, which are concatenated and refined through a ResBlock to produce
+visual embeddings . The haptic modality encodes a unified gripper-object point cloud, derived from 9D gripper Ph and
+object Po point clouds, into a haptic embedding that captures gripper-object interactions. The red dot in the figure denotes the
+activated tactile sensor. These visual and haptic embeddings are processed by Transformer encoders to estimate 3D translation
+and rotation.
+prior captured by it, we utilize its visual encoder fv and freeze
+it during our training. Using this encoder, We transform the
+RGB-D observation into visual embeddings Zv  fv(O).
+Haptic modality. In parallel, we encode the gripper-object
+point cloud P using a haptic encoder fh, resulting in a haptic
+embedding Zh  fh(P). By representing all interactions in
+point cloud space, our novel haptic representation provides
+the flexibility to utilize any point cloud-based network for
+encoding. For this purpose, we choose PointNet  as
+our haptic encoder fh. To improve learning efficiency, we
+canonicalize the point cloud using the centroid of the gripper
+during processing.
+Visuo-haptic fusion. Integrating visual and haptic modali-
+often apply fixed or biased weightings between these modali-
+ties [32, 54, 8, 59], which can fail under specific conditions.
+For example, when contact is absent, the visual modality alone
+should be leveraged, or when occlusion is severe, haptics
+should be favored. Inspired by the principle of optimal inte-
+gration in human multisensory perception [12, 19, 28, 55, 20],
+where the brain dynamically adjusts the weighting of visual
+and haptic inputs to maximize reliability, we adopt self-
+attention mechanisms  for the adaptive fusion of visual
+and haptic embeddings. This ensures robustness across varying
+To achieve this fusion, we propose haptic instruction-tuning,
+inspired by visual instruction-tuning . While keeping the
+visual encoder fv frozen, we feed both visual embedding
+Zv and haptic embedding Zh into the original visual-only
+Transformer encoders [60, 70], which are initialized with the
+pretrained weights from FoundationPose. We then fine-tune
+the Transformer encoders and the haptic encoder fh together.
+tively using self-attention blocks, and the model dynamically
+adjusts the modality weight based on the context (Fig. 9).
+Following FoundationPose, we disentangle the 6D pose into
+3D translation and 3D rotation and estimate them using two
+output heads (Fig. 2), respectively.
+D. Training Paradigm
+We train our model by adding noise (R, t) to the ground-
+truth pose T  (R, t) to create the hypothesis pose eT
+( eR,et):
+et  t  t.
+The rendered image is generated using eT, while the object
+point cloud is transformed based on eT; in contrast, the RGB-
+D image and gripper point cloud represent actual observations.
+The model estimates the relative pose bT  (bR, bt)
+between the pose hypothesis and observation. The model is
+optimized using the L2 loss:
+LT  bR R2  bt t2,
+where we use quaternion representations for rotations. The
+estimated pose bT  ( bR,bt) is:
+bR  bR  eR,
+bt  bt  et.
+We further incorporate an attractive loss (La) and a penetra-
+tion loss (Lp) to encourage the object to make contact with the
+tactile point cloud Sp,c and avoid penetrating the gripper point
+cloud Ph. We first transform the initial hypothesized object
+pose cloud Po using the estimated pose bPo  bT eT1 Po,
+where Po is in homogenous form.
+Fig. 3: Dataset sample visualization. (Top row) Barrett Hand, Shadow Hand, Allegro Hand, SHUNK SVH. (Bottom row)
+The attractive loss enforces that each activated taxel must
+make contact with the object:
+which can be interpreted as a single-direction Chamfer dis-
+tance between the tactile point cloud and the object point
+The penetration loss avoids penetrations between the object
+and the gripper [76, 77, 4]:
+po  arg min
+emax{0, no(phpo)} 1,
+where po represents the nearest neighbor of each point ph in
+the gripper point cloud Ph. Our overall loss is:
+L  LT  La  Lp,
+where we set   1 and   0.001 empirically. We optimize
+the model using the AdamW  optimizer with an initial
+learning rate of 0.0004 and train the model for 20 epochs.
+IV. EXPERIMENTS
+A. Multi-embodied Dataset
+Existing visuo-haptic datasets were not publicly avail-
+able [8, 33, 61] at the time of completing this work and focused
+on a single gripper , leaving the question of generalization
+to novel embodiments unanswered. Consequently, we develop
+a multi-embodied dataset (Fig. 3) using NVIDIA Isaac Sim
+to enable cross-embodiment learning and thorough evaluation.
+Our dataset comprises approximately 1,550,000 images col-
+lected across eight grippers and thirteen objects. We utilize
+85 of the data for training and the rest for validation. The
+camera trajectories are sampled on the semi-sphere around
+the gripper, which has a random radius between 0.5 and 2.5
+meters. We selected graspable YCB object  and grippers
+used in prior works [9, 45]. Additional details about the dataset
+can be found in the appendix.
+In this paper, we follow the sim-to-real paradigm and utilize
+only synthetic data for training. Increasing real-world training
+data could indeed help mitigate the sim-to-real gap. However,
+as demonstrated in recent work , leveraging a large-scale
+synthetic dataset enriched with domain randomization can
+yield superior real-world performance compared to small-
+scale real-world datasets. Our synthesized dataset exemplifies
+this principle and supports our robust real-world performance.
+Collecting real-world data with comparable scale and diversity
+would be both challenging and resource-intensive. Moreover,
+our unified haptic representation leverages point cloud repre-
+sentation to maintain invariance across various tactile sensors.
+strate robust performance and eliminate the need for costly
+real-world data collection.
+B. Pose Tracking Comparison
+In the following experiments, we evaluate performance
+using the metrics:
+Area under the curve (AUC) of ADD and ADD-S [21,
+72], and
+ADD(-S)-0.1d : ADDADD-S that is less than 10
+of the object diameter.
+We compare V-HOP against the current state-of-the-art
+approaches in visual pose tracking (FoundationPose , or
+FP in short) and visuo-tactile pose estimation (ViTa ).
+To ensure a fair comparison, we finetune FoundationPose
+and train ViTa on our multi-embodied dataset. To verify the
+generalizability of the novel object and novel gripper, we
+exclude one object (pudding box) and one gripper (DClaw)
+during training.
+Due to the absence of a visuo-haptic pose tracking approach,
+we compare V-HOP with ViTa, an instance-level visuo-tactile
+Object Name
+AUC Metric
+master chef can
+sugar box
+tomato soup can
+mustard bottle
+pudding box (Unseen)
+gelatin box
+potted meat can
+power drill
+scissors
+large marker
+large clamp
+TABLE I: Per-object comparison of AUC metrics for ADD
+and ADD-S. The row of novel object is grayed out. Both
+metrics are the higher, the better. The best results are bolded.
+Gripper Name
+AUC Metric
+Allegro Hand
+Barrett Hand
+DClaw (Unseen)
+Inspire Hand
+LEAP Hand
+Robotiq 3-Finger
+SCHUNK SVH
+Shadow Hand
+TABLE II: Per-gripper comparison of AUC metrics for
+ADD and ADD-S. Our dataset contains eight grippers.
+We train the model on seven grippers, leaving one gripper
+(DClaw) unseen.
+pose estimation approach that operates under different settings.
+For ViTa, we provide ground-truth segmentation and train
+a separate model for each object, as it is an instance-level
+method. In contrast, both FoundationPose and V-HOP handle
+novel-object estimation and require training only once. For
+fair evaluation, we run both methods for two iterations per
+tracking step. For V-HOP, we run one visuo-haptic iteration
+and one visual iteration.
+In Tab. I, we show the performance for each object. V-
+ADD-0.1d
+AUC ADD-S
+ADD-S-0.1d
+Without Tactile
+Without Visual
+V-HOP (Ours)
+TABLE III: Ablations of input modalities. Our results
+confirm the effectiveness of combining visual and haptic
+modalities.
+Fusion Type
+ADD-0.1d
+AUC ADD-S
+ADD-S-0.1d
+Late Fusion
+Early Fusion (Ours)
+TABLE IV: Ablations of fusion strategies. We evaluate the
+performance of early fusion and late fusion strategies.
+HOP consistently outperforms ViTa and FoundationPose (FP)
+on most objects with respect to ADD and across all objects
+in terms of ADD-S. On average, our approach delivers an
+improvement of 4 in ADD and 5 in ADD-S compared
+to FoundationPose. Notably, V-HOP demonstrates strong per-
+formance on unseen objects, highlighting the potential of our
+model to generalize effectively to novel objects.
+In line with its object performance, V-HOP outperforms its
+counterparts on most grippers in terms of ADD and across
+all grippers in ADD-S. Moreover, V-HOP demonstrates ro-
+bust performance on unseen grippers, further emphasizing the
+generalizability of our unified haptic representation.
+C. Ablation on Modalities
+We conduct an ablation study on the input modalities
+to evaluate the effectiveness of the haptic representation.
+without tactile feedback and another without visual input, as
+shown in Tab. III. To exclude tactile input, we remove all in
+contact point labels (Equation 3). Our results indicate that
+visual input significantly contributes to performance, likely
+due to the richness of visual information, including texture
+and spatial details. This finding aligns with previous studies
+on human perception systems, which suggest that vision plays
+a dominant role in visuo-haptic integration . Similarly,
+tactile feedback is crucial; without it, performance degrades
+notably because reasoning about gripper-object contact during
+interactions becomes more difficult.
+D. Ablation on Fusion Strategies
+We perform ablation studies on different modality fusion
+to fusion at the input or feature level, the one we presented
+in Fig. 2. Late fusion strategy fuses the visual and tactile
+modalities at the result level, where each modality has a
+separate branch to estimate its result . As shown in Tab. IV,
+the late fusion strategy results in an average ADD score of
+47.56 and an ADD-S score of 70.43, which underperforms
+our early fusion design by 30.97 in ADD and 18.69 in
+ADD-S. The results confirm the necessity to fuse the visual
+and haptic modalities at the feature level.
+Fig. 4: Performance under various occlusion ratios. We
+use the direct ADD and ADD-S metrics (in meters) in this
+experiment.
+ADD-S-0.1d
+NeuralFeels
+V-HOP (Ours)
+TABLE V: Performance on the FeelSight Dataset. For
+consistency w

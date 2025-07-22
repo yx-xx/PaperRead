@@ -1,5 +1,5 @@
 === PDF文件: Kinodynamic Trajectory Following with STELA Simultaneous Trajectory Estimation & Local Adaptation.pdf ===
-=== 时间: 2025-07-22 09:42:24.878752 ===
+=== 时间: 2025-07-22 09:59:48.454087 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -171,4 +171,372 @@ to be generated at a minimum of 10Hz and on average at 20-
 tion for different environments and different levels of observa-
 tion and actuation noise both for an idealized holonomic model
 used in prior work as well a second-order dynamical system
-not addre
+not addressable by prior FG work corresponding to a MuSHR
+robot. The simulations demonstrate that STELA achieves at
+least comparable, and often superior, performance to previous
+frameworks on the idealized vehicle with linear dynamics.
+More critically, STELA also achieves a high success rate
+for the second-order dynamical system and good robustness
+given different noise levels. Ablation studies highlight the
+importance of different components of the approach, such as
+the importance of the SBMP initialization, the introduction of
+control duration as an optimization variable, and the incorpora-
+tion of the sliding window approach. Real-world experiments
+validate STELAs practical applicability on a low-cost MuSHR
+robot that exhibits high noise and non-trivial dynamics.
+II. RELATED WORK
+Motion planning consists of nding a plan for a robot to
+move in an environment from a starting state to a desired goal
+region without collisions. Multiple classications of motion
+planning algorithms have been proposed [11, 32, 2, 30]. This
+paper primarily focuses on Sampling-Based Motion Planners
+(SBMP) and trajectory optimization.
+SBMPs build graphical representations of the underlying
+robots state space and can provide guarantees, namely prob-
+abilistic completeness (PC) and asymptotic optimality (AO),
+for kinematic [21, 9] and kinodynamic [34, 27, 23] systems.
+among different homotopic classes) and easily handle task-
+specic constraints (i.e., collisions, limits), but can be nega-
+tively impacted computationally as the cost of SBMP subrou-
+tines increases, e.g., forward propagation, collision checking,
+and nearest neighbor discovery , which is an issue when
+planning for dynamical systems.
+planning
+cal optimization problem. Example optimization-based mo-
+tion planners include Covariant Hamiltonian optimization
+(CHOMP), stochastic trajectory optimization (STOMP)
+, and Sequential Convex Optimization (TrajOpt) .
+Starting from an initial, potentially infeasible, guess, an op-
+timizer attempts to minimize an objective function subject to
+Optimization methods can quickly converge to a feasible,
+high-quality solution if the initial guess is in the vicinity
+of one. Non-trivial environments and systems, however, can
+challenge convergence and may require careful denition of
+initial guess also imposes a discretization of the solution
+trajectory representations via Gaussian Processes  can
+minimize the discretization problem for linear time-varying
+(LTV) systems that are stabilized using stochastic differential
+equations (SDEs), i.e., LTV-SDE systems.
+There are also integrative frameworks in the planning liter-
+ature. For kinematic systems, a precomputed graph of convex
+sets can be used by a mixed-integer optimizer to nd a
+valid path . An approach for dynamical systems involves
+the pre-computation of motion primitives, which are stitched
+together by a planner [13, 32]. An interleaving approach uses
+a graph to generate suggestions used by an optimizer .
+Simultaneous localization and planning (SLAP)  models
+the challenge as a POMDP, which is approximated ofine by a
+roadmap in belief space that is updated online via observations.
+In the area of state estimation, there has been a transition
+from tools that explicitly estimate the probability distribution
+regarding the robots state to optimization techniques, such
+as those that employ Factor Graphs (FGs) . A FG is a
+probabilistic graphical model that can be used to represent the
+joint probability mass function of the variables that comprise
+the system . FGs aim to exploit the underlying, known
+structure of the problem by using sparse linear algebra tech-
+niques and nd solutions via optimization algorithms, such
+as Gauss-Newton. Non-linear problems require frequent re-
+over the entire graph. The incremental smoothing and mapping
+(iSAM2)  algorithm uses the Bayes tree  to keep
+updates local, avoiding a full re-linearization of the graph.
+FGs are well suited for addressing a variety of problem
+(SLAM) [5, 8, 15] and simultaneous trajectory estimation and
+mapping (STEAM) . Multiple initial guesses are possible
+via a network of trajectories so as to initialize a FG-based
+planning solution for holonomic systems .
+The two closest methods to this work are also employing
+FGs and integrate state estimation and planningcontrol.
+They correspond to Simultaneous Trajectory Estimation And
+Planning (STEAP)  and Simultaneous Control And Trajec-
+tory Estimation (SCATE) . SCATE builds on top of STEAP
+and also deals with dynamic obstacles. Specically, STEAP
+employs Gaussian processes as dynamics, while SCATE uses
+a linear time-invariant (LTI) approximation of the dynamics.
+SCATE adds the LTI dynamics and dynamic obstacle factors to
+the FG. The output of STEAP is a plan but does not compute
+controls directly and relies on an external controller. SCATE
+outputs a control to be applied to the robot. To operate at high
+estimator. Neither of the two techniques is directly applicable
+to systems with non-linear dynamics. Prior work also uses
+naive initialization of these methods, such as a straight line
+connection of the start and the goal, which can lead to local
+minima due to the local nature of numerical optimization.
+III. PROBLEM SETUP
+Consider a robot with state space X and control space U
+tasked with navigating a workspace W from initial state x0 to
+a goal region XG. Obstacles divide X into collision-free Xf
+and obstacle Xo subsets. The true dynamics xt  f(xt, ut)
+(xt X, ut U) govern the robots motions but are not
+perfectly known and may exhibit non-holonomic constraints.
+In terms of its dynamics, the robot has access only to an
+approximate dynamics model via a parameterized function
+xt  f(xt, ut), which is dened by a set of physical parame-
+ters . The approximate dynamics model f is a simplication
+of the true dynamics f and does not necessarily have the same
+expression as f, i.e., there may not be a choice of physical
+with f. Example physical parameters for a car-like robot are
+friction coefcients, steering, and throttle gains.
+In addition, the approximate model f employed models the
+obstacle-free workspace as a at, planar surface with uniform
+friction. In reality, however, the true workspace can also
+which can vary over the workspace, and (ii) an uneven surface
+that can include traversable obstructions, such as a ramp.
+A plan pT is a sequence of T piece-wise constant controls
+{u0, . . . , uT 1)}, where each control ui is executed for a
+timestep ti. When a plan pT is executed at a state xi, it
+produces a trajectory f(xt, pT ), i.e., a sequence of states
+{xt,    , xtT } according to a dynamics model f. Due to the
+gap between the true dynamics f and the planning model f,
+the executed robot trajectory f(xi, pT ) does not match the
+planned trajectory
+f(xi, pT ) for the same plan pT .
+The robot has access to noisy sensing that provides discrete
+measurements z(t), which partially inform about the robots
+state x(t), such as sensing the robots pose from external
+sensors. A state estimation process uses measurements z(0 : t)
+to compute estimated states x(0 : t). This work assumes
+perfect knowledge of obstacles poses during execution, such
+as walls or obstacles that the robot should not collide with.
+A controller
+f) is employed to track the planned
+trajectory
+f given the estimated states xi and returns controls
+u U. With some abuse of notation1, denote as f(xi,
+the trajectory executed by the robot when the controller
+executed starting at state xi.
+Problem Denition: Given a: (i) start state x0 Xf, (ii)
+goal region XG Xf, (iii) approximate dynamics model
+f(x, u) given identied parameters , (iv) desired trajectory
+f(x0, pT ) that brings the robot in XG, and (v) online
+measurements z(t), the objective is to simultaneously compute
+estimated robot states x(t) and execute a controller
+so that the executed trajectory f(x0,
+f) is collision free and
+brings the robot inside XG.
+Secondary objectives include minimizing the error between
+estimated states x(t) and true states x(t), minimizing the error
+1Trajectories above were dened for open-loop plans pT . Here the deni-
+tion is adapted to receive as input the controls arising from the closed-loop
+controller
+Fig. 2: A typical trajectory estimation FG at time T uses state
+observations zx(0 : T) and the robot model xt  f(xt, ut) to
+generate state estimates
+X(0 : T). The unary factors impose a
+cost between observations and estimated states. The binary factors
+correspond to the robots dynamics.
+between the planned and the executed trajectory, as well as
+minimizing the cost of the executed trajectory. In this work,
+the cost corresponds to the trajectory duration.
+Additional notation:
+The goal region is dened by a
+single conguration qG in the robots conguration space Q
+so that: XG  {x Xf  d(M(x), qG) < }, or equivalently,
+XG  B(qG, ), where  is a goal radius in Q according
+to distance function d. The function M(x) maps states to
+congurations. Estimated pastcurrent states are represented
+by x(t) and future (estimated) states are represented as x(t).
+The following are relevant Lie group concepts and opera-
+tions; refer to  for a more in-depth explanation. Consider
+qi M where M is a Lie group of dimension m and
+qi Rm( TqiM) is a constant velocity (an element in the
+tangent space of M at q). The function Exp : Rm M
+maps vector elements to the manifold with its inverse being
+dened as Between(qa, qb)  q1
+qb and computes the
+element that would move qa to qb. Forward integration in a
+Lie group is dened as qi1  qi Exp( qiti).
+IV. FOUNDATIONS: INFERENCE VIA FACTOR GRAPHS
+Factor graphs (FGs) have been highly adopted for sensor
+relationship between estimation and control, recent work also
+explores their use in control and planning [4, 29, 30].
+In probabilistic inference, the objective is to nd the set of
+values  given events e. The posterior density of  is computed
+via Bayes rule: p(e) p()p(e), where p() is the prior
+on  and p(e) is the likelihood function. Given a prior and
+a likelihood, the optimal solution is found by the maximum a
+posteriori (MAP) operation:
+p(e)  arg max
+p()l(; e),
+where the likelihood function l(; e)  p(e) species the
+probability of events e given . The general likelihood function
+for non-linear FGs is dened as: l(; e) exp( 1
+where h is a measurement function with covariance .
+two types of nodes: factors fi F and variables i . FG
+edges are always between factor nodes and variable nodes.
+Given an FG, its posterior distribution is:
+The MAP estimate can be reduced to a non-linear least squares
+problem and solved with standard solvers. Most robotic prob-
+lems require the solver to operate at high frequency and incor-
+porate new data on demand. Standard solvers are not enough
+in robotics, as they do not take advantage of the sparsity
+or the incremental nature of robotic problems. To alleviate
+the FG. iSAM uses a Bayes tree to avoid re-linearization of
+variables unaffected by a new measurement. Finally, a FG
+implies some level of discretization, which is also present
+in other estimation and trajectory optimization approaches.
+The following subsections review FG representation from the
+literature for estimation and planningcontrol.
+A. Trajectory Estimation
+Fig. 2 presents a typical FG for past trajectory estima-
+tion. It computes p(T Ee) f T E
+f trajf estimation
+where f traj  Qt
+i0 f robot
+(i) is the trajectory derived from
+the robots model and f estimation  Qt
+i0 f estimation
+are factors that incorporate the measurements. Typically, the
+underlying discretization is given by the frequency of the
+measurements. Discretization can be problematic for complex
+dynamical systems. To avoid discretization of the dynamics,
+methods often employ a Gaussian Process (GP) to model
+the system, achieving continuous-time trajectories but limiting
+applicability to holonomic robots with linear expressions.
+Benets of Trajectory Estimation vs Filtering While
+a controller only requires the latest state, methods such as
+Kalmanparticle lters, which provide incremental estimates
+of the latest state, solve the Bayesian ltering problem. The
+latest robot state estimate, however, of an optimal solver for
+the most likely trajectory problem, which STELA focuses
+that of an optimal solver for ltering. Solving for the most
+likely trajectory is typically computationally more expensive
+than solving ltering. Given the least square approximations,
+factor graph frameworks allow solving such problems online.
+STELA takes advantage of this to provide high-frequency
+MLE updates of the robots past trajectory. In this way,
+it provides better estimates of the robots latest state, and
+future controls are simultaneously co-optimized based on these
+improved state predictions.
+B. Trajectory Optimization as a Motion Planner
+Motion planning can be seen as an optimization problem
+where the cost of the trajectory cost() produced by the plan
+pT is minimized subject to i) start state condition: (0)
+xt  f( xt, ut) and iv) collision-free condition
+smoothness on the controls, energy minimization, etc.
+FGs have also been used for motion planning of holonomic
+systems. In the factor graph setting, trajectories can be ob-
+tained via: p(P le) f robotf obstaclef prior , where f robot
+are the dynamical system factors, f obstacle the obstacle avoid-
+ance factors and f prior the (xed) start and goal conditions.
+Fig. 3 provides an example.
+For a general dynamical system, each factor f robot corre-
+sponds to solving a steering function. Dynamics linearization
+Fig. 3: An FG for robot planning employs the robots model xt
+f( xt, ut) on a dynamics factor to compute a trajectory of T states,
+starting in x0 and ending in the goal region
+XT XG. Beyond the
+ternary dynamics factor, there are costs imposed for the optimization
+by unary factors for obstacle avoidance (c(Xo)) over the intermediate
+state variables (
+XT 1), a state prior for the initial state (c(x0))
+and a goal region prior for the nal state (c(XG)).
+has been proposed as an alternative to solving a steering
+function for certain systems [43, 10]. In practice, nding a
+feasible solution depends both on the quality of the prior
+and the complexity of the environment. In previous factor
+graph approaches, these limitations are alleviated by using a
+holonomic robot modeled via a Gaussian Process and relying
+on random re-initializations.
+FGs can suffer from local minima, making any solution
+heavily dependent on the initial guess. For the motion planning
+ically feasible solution may be in collision while a collision-
+free one may not be feasible.
+V. SIMULTANEOUS TRAJECTORY ESTIMATION
+AND LOCAL ADAPTATION (STELA)
+The STELA framework uses numerical optimization for
+simultaneously solving trajectory estimation and control. It in-
+troduces a general FG representation tailored for kinodynamic
+trajectory following, given feasible desired plans generated
+by an SBMP. Fig. 4 presents the overarching system and the
+processes it involves. Ofine, a system identication process
+builds a dynamics model f(xt, ut) that bridges the gap with
+the target robot (see the Experiments Section for this process,
+which is based on FG tools). Given the model, a kinodynamic
+SBMP is called to solve a motion planning query given the
+available environment map. The resulting feasible plan pT
+from the planner is forwarded to the STELA module, which
+also consumes from a perception system online observations
+z(t) regarding the robots poses. STELA internally generates
+improved estimates x(0 : t) of past robot states and forwards
+controls u(t) to the robot that minimize deviation from the
+planned trajectory, move the robot to the desired goal region
+A. Initialization of desired trajectory via SBMP
+Given the identied robot model f(xt, ut), an environment
+map that identies obstacle regions Xo and a motion planning
+query specifying x0 and XG, the approach calls an asymptot-
+ically optimal kinodynamic Sampling-Based Motion Planner
+(SBMP) [23, 27] tasked to generate a feasible, collision-free
+trajectory
+f(x0, pT ) that solves the query on the provided
+map for the given model.
+The output of the planner is treated as the desired trajectory.
+It is represented via a discretized graphical representation G
+Fig. 4: Asynchronous system architecture: Ofine, a system iden-
+tication process generates a FG-based dynamics model of the
+robot system. A motion planner receives the dynamics model, the
+desired solution plan that addresses the query for the given map
+and model. Upon completion, the desired plan, the model, and the
+environment are sent to STELA. Online, raw data i.e., images from
+external cameras are processed by a perception process to provide
+robot state observations to the control module. These observations
+are used by STELA to estimate the executed trajectory and generate
+controls to be forwarded to the robot at a high frequency. The closed-
+loop framework enables the system to adapt to noise dynamically,
+execution errors, and the gap between the planning model and the
+real system. In the accompanying experiments, the robot system is
+either a real MuSHR robot or a simulated system, where both an
+idealized LTV-SDE robot and an analytical dynamics model of a
+MuSHR robot are considered.
+(N, E) where a node ni N represents a reachable, collision-
+free state xi  [qi, qi]T and an edge eij  {ni, nj} E
+contains a control, duration pair (u, t) that drives the robot
+from state ni to state nj according to f. An upper threshold
+for the duration t of edges eij E of the desired trajectory
+is applied (0.5sec for the LTV-SDE system and 0.1sec for
+MuSHR in the accompanying experiments). If a control is
+applied for longer than t in the solution SBMP trajectory,
+then it is broken into multiple smaller edges in the graphical
+representation of the desired trajectory so that none exceed the
+duration threshold. In this way, the number of discrete states
+used to initialize STELA is not xed, and it is adaptive to the
+output solution of the SBMP.
+B. The STELA Factor Graph
+STELA builds on top of the incremental smoothing and
+mapping (iSAM) framework  and is executed at a high
+frequency to consume robot measurements z(t) that arrive
+asynchronously. STELA is initialized by converting each edge
+of the desired trajectory into a dynamics factor graph as in
+Fig. 5. The proposed FG includes six different factor types.
+Each factor is dened as f j() exp( 1
+) for a factor-
+specic error function hj(). All the FG variables qi, qi, ui and
+ti are initialized according to the desired trajectory.
+The integration factor operates a conguration qi, the
+velocity qi, the duration ti, and the predicted next con-
+guration qpred
+qi Exp( qiti). The error func-
+tion is then dened as hintegration(qi1, qi, qi, ti)
+Log(Between(qpred
+The dynamics factor explains the evolution of the velocity
+given the control input. The control input ui is used to
+obtain an acceleration in the local frame via a system-specic
+function q  f(ui). The error function uses the predicted
+velocity term qpred
+i1  qi  qt to compute the error function:
+hdynamics( qi1, qi, ui, ti)  qpred
+i1 qi1. As q Rm, an
+Euler integration scheme is sufcient.
+The observation factor incorporates observations to es-
+timate the executed trajectory. This work considers obser-
+vations of the conguration qi
+z that are generated asyn-
+chronously as the robot moves. Observations have a known
+(but noisy) timestamp from which the elapsed time from qi
+to the observation is ti
+z. The predicted observation is then
+qiExp( qitz) and the error is hobservation(qi, qi)
+Log(Between(qpred
+, qz)). Observation factors using mea-
+surements of velocities or higher-order magnitudes can be
+integrated in a

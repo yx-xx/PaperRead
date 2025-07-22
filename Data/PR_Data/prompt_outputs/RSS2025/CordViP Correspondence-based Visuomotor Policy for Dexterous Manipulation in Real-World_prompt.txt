@@ -1,5 +1,5 @@
 === PDF文件: CordViP Correspondence-based Visuomotor Policy for Dexterous Manipulation in Real-World.pdf ===
-=== 时间: 2025-07-22 09:41:59.725306 ===
+=== 时间: 2025-07-22 09:59:12.432692 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -188,4 +188,440 @@ continually pushed the boundaries of whats possible in robotic
 behavior generation. While traditional BC policies typically
 rely on 2D image-based representations [7, 70, 54, 63, 28, 30],
 recent advancements have extended imitation learning to 3D
-visual repres
+visual representations [69, 4, 13, 55, 56, 31]. These 3D
+approaches provide a more comprehensive understanding of
+spatial relationships and 3D structures, further enhancing
+robotic behavior learning.
+C. Correspondence Learning
+Correspondence refers to the relationship or alignment
+between different entities or components, with the aim of
+establishing meaningful connections. Correspondence learning
+has been shown to improve performance in various robotic tasks,
+including grasping [36, 9], perception [27, 4], pose estimation
+and garment manipulation . In this paper, correspon-
+dence specifically refers to the alignment between hand-object
+spatial interaction and hand-arm temporal coordination. By
+incorporating correspondence, we enhance feature extraction
+movements in downstream tasks.
+III. METHOD
+The overview of our framework is shown in Figure 2, which
+operates in three phases: (1) Interaction-aware generation of
+3D point clouds. We acquire relatively accurate and complete
+3D observations during real-world dexterous manipulation
+tasks even under significant occlusions, as described in III-B.
+(2) Contact and coordination-enhanced feature extraction. By
+leveraging large-scale play data and incorporating contact maps
+and hand-arm coordination, we improve spatial interaction
+perception and capture cooperative motion features, detailed
+in III-C. (3) Correspondence-based diffusion policy. The pre-
+trained encoder is used to extract 3D representations, which
+guide the training of a visuomotor policy, as outlined in III-D.
+A. Problem Formulation
+We formulate our problem as learning a visuomotor policy
+7A from expert demonstrations of the form
+of {(o1, a1), (o2, a2), . . . , (on, an)}, where O represents the
+robots observations and A represents the corresponding actions,
+allowing the robot to generalize beyond the training data
+distribution. In our approach, each observation ot is composed
+of the objects point cloud Pobj, the hands point cloud Phand,
+and the robots joint states, including a 6-Dof arm and 16-
+Dof hand configuration. Unlike previous works that rely on
+global point clouds for 3D feature extraction, our approach
+prioritizes capturing the individual information of the arm,
+a result, CordViP not only effectively addresses occlusion
+challenges during dexterous manipulation but also significantly
+improves the models ability to comprehend spatial interactions
+and collaborative dynamics. Furthermore, leveraging these
+hand and the manipulated objects, as well as capture col-
+laborative interaction information between the arm and hand.
+These elements are critical for modeling spatial and temporal
+relationships.
+B. Interaction-aware Generation of 3D Point Clouds
+Motivated by the superior generalization and efficiency of
+the 3D-based diffusion policy[69, 56, 68, 4], the key intuition
+behind our solution is to focus on the interactions between
+the hand and the manipulated object in 3D space. Although
+intuitively reasonable, achieving this goal is challenging in
+practice. On the one hand, real-world point cloud data, typically
+captured using stereo cameras or low-cost RGB-D scanners,
+suffers from geometric and semantic loss due to factors such
+as light reflection, material transparency, and limitations of
+sensor resolution and viewing angle. On the other hand, during
+dexterous manipulation with multi-fingered hands, occlusions
+frequently occur, resulting in the loss of critical contact and
+interaction information, which is vital for precise and effective
+manipulation. To this end, we propose the interaction-aware
+generation of 3D point clouds, enabling the reconstruction of
+crucial spatial information.
+Real-to-Sim for Digital Twin Generation. To achieve the
+goal of obtaining a complete and accurate static point cloud of
+the manipulated object, we aim to reconstruct the digital twin
+from a single-view image [34, 35]. Referring to the approach
+utilizes its strong priors and broad understanding of visual
+concepts in the 3D world to generate 3D digital assets. To
+ensure the accuracy of point cloud flow tracking, we maintain
+consistency between the geometric and material properties
+of the reconstructed assets and their real-world counterparts.
+the generated digital twin to obtain the initial 3D point clouds,
+providing a robust and accurate initial observation for both 3D
+spatial perception and pose tracking.
+Pose-Driven Point Cloud Tracking. We have successfully
+obtained the initial point cloud of the object. However, tracking
+the objects point cloud in complex, real-world environments
+poses a significant challenge, particularly in scenarios with
+severe occlusions. To overcome this, we leverage foundation
+models to ensure precise pose estimation of the manipulated
+Large-Scale Play Data
+Point Cloud
+Robot Proprioception
+Contact Map Prediction
+Single-View
+Digital Assets
+Initial PC
+Object PC
+Interaction-aware PC
+Robot State
+(a) Interaction-aware Generation of 3D Point Clouds
+(b) Contact and Coordination-Enhanced Pretraining
+Robot PC
+Transformer
+Object PC
+Transformer
+Arm State
+Transformer
+Hand State
+Transformer
+FoundationPose
+Robust Viewpoint
+(c) Correspondence-Based Diffusion Policy
+Denoising
+Conditioning
+Denoised Action
+Fig. 2: Overview Framework (a) We first employ TripoSR to generate the initial object point cloud and FoundationPose
+to estimate the 6D pose of the object. In parallel, the hand point cloud is generated based on the robots state. They are
+combined to construct interaction-aware point clouds, which demonstrate robustness to viewpoint variations. (b) During the
+pre-training phase, the generated point cloud data, combined with the robots proprioceptive information, is utilized to enhance
+spatial understanding and interaction modeling. (c) The pre-trained encoder is subsequently integrated into an imitation learning
+framework to facilitate downstream tasks in dexterous manipulation.
+we first employ the Segment Anything model  to extract
+the mask of the manipulated object. This is combined with
+a digital twin generated via real-to-sim techniques, enabling
+us to use FoundationPose  for accurate pose estimation.
+Using the center of the acquired point cloud as the origin, we
+then apply the estimated pose to transform the entire point
+Robot Point Cloud Forward Kinematics Model. To obtain
+the point cloud of the dexterous hand, we develop the robot
+point cloud forward kinematics model Fpc. We first parse the
+URDF file to identify individual links of the robot system, and
+uniformly sample point clouds on the surface for each link. The
+robot system model is constructed with point clouds denoted as
+, we designed the robot point cloud forward kinematics
+model that maps any joint configuration to the corresponding
+pose of the point cloud. In order to focus on the interaction
+between the hand and the object, we ignore the point cloud
+of the robotic arm. Therefore, the 3D observation of the hand
+Phand RNP3 is defined as:
+ma t hbf {P }{hand
+}  mathcal {F}{pc}(q, {P{ell i}}{i1}{Nell }),
+where NP represents the downsampled size of the point
+(b) Interaction-aware Point Clouds
+(a) RGB-D Synthesized Point Clouds
+Raw RGB Image
+Fig. 3: Point Clouds Comparison. We present point clouds
+of two methods under three different viewpoints. Notably, for
+better visualization, we have applied color information to the
+point clouds. However, color information is not used in the
+policy learning.
+at 8Hz, a frequency that is sufficiently high for our experimental
+As shown in Figure 3, interaction-aware point clouds
+significantly enhance the quality of 3D observations compared
+to RGB-D synthesized point clouds, while demonstrating strong
+robustness to different viewpoints.
+C. Contact and Coordination-Enhanced Feature Extraction
+Interaction-aware Generation of 3D Point Clouds provides
+us with accurate and complete point cloud observation.
+more detailed information. pre-training based on contact and
+learn the intrinsic structures, facilitating more effective feature
+Contact Map Synthesis. A contact map serves as a critical
+piece of information in dexterous manipulation tasks, which
+captures the interaction between the hand and the object. Given
+the complete point clouds, we first calculate object-centric
+contact map C as the normalized distances from the objects
+surface point to the hand surface. Given the point clouds of
+the object Pobj and the point cloud of the hand Phand, the
+aligned distance D(O,H) between each point vo on the object
+surface and the surface of the dexterous hand is defined as
+{D{(O,  H)}}  min {vh i n  mathbf {P}{hand}} e{gamma (1 - <v{h} - v{o}, no>)} vo - vh2,
+where no is the surface normal of the object, which is computed
+using the K-Nearest Neighbors methods  by considering the
+local geometric properties of the point cloud.  is the scaling
+Based on the aligned distance, we compute the contact map
+following Jiang et al. :
+m athcal {C}   1 - 2 ( text {Sigmod}(theta cdot mathcal {{D{(O, H)}}})-0.5)
+where  is the scaling factor and each points contact value
+ci C is bounded within the [0, 1] range.
+Point Cloud Feature Extraction. We employ two encoders
+with identical architecture to extract point cloud embeddings,
+denoted as fO(Pobj) and fH(Phand), for the object and hand,
+respectively. In detail, we adopt PointNet  as the point
+cloud encoder, which excels in capturing local structures and
+integrating global information. To establish correspondences
+between the hand and the object features, we apply two
+multi-head cross-attention transformers gO, gH to fuse their
+respective embeddings, which maps the hand and object
+features to two sets of aligned representations, denoted as
+R and O:
+begin {split}  phi H  g {theta
+To help the point cloud encoder learn the intrinsic features,
+we designed a contact map prediction task. Since 3D point
+cloud observations implicitly contain contact information, we
+utilize a three-layer MLP to predict the object-centric contact
+map Cpred given the point cloud observations of both the hand
+and the object. The MSE loss is calculated between C and
+Cpred. This pre-training approach enables the encoder to learn
+the interactions and relationships within the environment.
+Hand-Arm Coordination Enhancement. To help the robot
+system learn the features of hand-arm coordination, we also
+propose a correspondence-based design for action prediction.
+The arm and hand states are first projected into vectors of
+identical dimensionality through a linear layer, after which the
+same cross-attention transformers are employed to establish
+correspondences between the hand and the arm. We predict
+the action sequence of the robot arm based on the point clouds
+and the state of the hand. Similarly, we also predict the action
+sequence of the hand using point clouds and the arm state. We
+use MSE loss to compute the loss between the reconstructed
+and original action. By further predicting the action sequence
+motion and capture collaborative dynamics.
+Given the aforementioned losses, our overall training objec-
+tive during the pre-training phase is defined as:
+u n d erset { m athcal {E}}{min } mathcal {L}  mathcal {L}{contact}  lambda mathcal {L}{coordination},
+where E represents the encoder of the observation, and  is
+a hyperparameter that controls the relative strengths of the
+D. Correspondence-based Diffusion Policy
+After obtaining the pre-trained encoder, we utilize an
+imitation learning framework to learn visuomotor policy for
+dexterous manipulation tasks. Specifically, we adopt conditional
+denoising diffusion model [22, 7, 38] as our backbone, which
+conditions on 3D visual features H,O and robot states features
+network  performs k iterations to gradually denoise AK into
+the noise-free action A0:
+A { k-1}   alpha k (Ak -  gam m a k  varepsilon {theta }(phi {H,O}, psi {A,H}, Ak, k))  sigma k mathcal {N}(0,I),
+where N(0, I) is Gaussian noise, k, k and k are functions
+of k, determined by the noise scheduler. This formulation
+allows the model to capture the distribution of action without
+the cost of inferring future states.
+We use the DDIM scheduler  to accelerate the inference
+speed in real-world experiments. The training objective is to
+predict the noise added to the original data:
+mathca l { L
+}  M SE(v areps ilon k, varepsilon {theta }(bar {alpha k}A0bar {beta }varepsilon k, phi {H,O}, psi {A,H}, k))
+Unlike the original diffusion-based policy, we incorporate
+consistency-related features as a condition for policy learning
+using the pre-trained encoder and fine-tuning the encoder during
+downstream tasks training. This encoder implicitly extracts
+contact and coordination information, thereby enhancing the
+policys understanding of spatial relationships.
+IV. EXPERIMENTS
+We conduct comprehensive real-world experiments to answer
+the following questions:
+To what extent can our framework promote the learning of
+the visuomotor policy for dexterous manipulation across
+diverse real-world scenarios (Section IV-B)?
+How promising is CordViP in terms of sample efficiency
+and generalization capability (Section IV-C, IV-D)?
+What role does each of the system components play in
+enhancing its overall performance (Section IV-E, IV-F)?
+Global RGBD
+Leap Hand
+Teleoperation
+Fig. 4: Real robot system. Our system consists of a Leap
+Hand and a UR5 Arm, with a fixed Realsense L515 camera
+employed to capture visual observation. The Realsense D435
+camera is only used for data collection during teleoperation
+and is not involved in the policy learning.
+A. Experiment Setup
+Robot System Setup. As shown in Figure 4, our system
+consists of a 6-Dof UR5 robot arm and a 16-Dof Leap Hand
+with four fingers. A single Intel Realsense L515 RGBD
+camera is mounted on the side of the robot to capture visual
+observation.
+Tasks. We evaluate our approach on four base dexterous
+manipulation tasks, along with two advanced contact-rich and
+fine-grained tasks, as shown in Figure 5. The episode length
+of each task will be limited to a maximum of 500 steps and
+each task is evaluated with 20 trials by default. We now briefly
+describe our tasks:
+1) PickPlace. The Leaphand picks up a toy chicken and
+places it into a blue bowl.
+2) FlipCup. The Leaphand reaches a cup lying on the table,
+lifts it up, and then rotates the wrist to position the cup
+upright on the table.
+3) Assembly. The Leaphand reaches and grasps a cylindrical
+4) ArtiManip. The Leaphand lifts the lid of a box using
+its thumb and gently opens it, which involves the
+manipulation of the articulated objects.
+5) FlipCap. This task requires four-finger coordination: the
+thumb and middle finger lift and rotate the cap slightly,
+while the index finger pushes it from the opposite side
+to complete the flip.
+6) LongHoriManip. This task involves four sequential
+continuous control across a long horizon.
+For each task, we incorporate a certain level of randomization
+to ensure that the policy learns the task-specific features rather
+than fitting the trajectory. As shown in Figure 6, the objects
+are randomly placed within the red rectangular region. More
+details are provided in Appendix A.
+Expert demonstrations. Our training demonstrations are
+collected by human teleoperation. Since our tasks place
+significant emphasis on coordination and coherence between
+the hand and the arm, we employ a vision-based approach to
+teleoperate the robot. Specifically, we use HaMeR  to track
+human hand pose with a single Realsense D435 camera and
+use Anyteleop  framework to retarget the robot system.
+The robotic arm is controlled through the 6-Dof end-effectors
+pose while the robotic hand is controlled through the retargeted
+hand joint positions. We collect 50 demonstrations for each
+Baselines. We first compare our method with six state-of-
+the-art imitation learning algorithms, i.e., three vision-based
+policies(BCRNN , ACT , DP ) and three 3D-based
+policies(BCRNN3D, ACT3D, DP3 ). BCRNN3D and
+ACT3D are variants of BCRNN and ACT, respectively, in
+which the image input is substituted with point clouds, encoded
+using PointNet.We emphasize that the resolution of both the
+image and depth for all 2D and 3D baseline methods is kept
+To further assess the performance under the same privileged
+setting as CordViP, we also introduce three additional baselines:
+(1) State-based MLP, a simple behavior cloning policy that takes
+the robots proprioception and the object pose as input; (2) State-
+based Diffusion Policy, which conditions a diffusion model on
+the concatenated proprioceptive and object pose features; and
+(3) G3Flow , a recent method that dynamically computes
+semantic flow based on pose information and integrates it with
+raw 3D point clouds in the Diffusion Policy framework.
+B. Effectiveness
+The results of the effectiveness experiments are given in
+Table I and Table II. Our proposed CordViP maintains a
+completion rate of over 85 across four base tasks, significantly
+outperforming the other baselines, and also demonstrates
+superior performance on the two advanced tasks. BCRNN
+and its 3D variant perform poorly in all base tasks. While the
+dexterous hand can locate and reach the object, a substantial
+finger jitter is observed during the grasping and contact-rich
+manipulation phases. The image-based policies, ACT and DP,
+achieve good performance in the flipcup and pickplace tasks.
+due to the significant occlusions during manipulation, where
+these image-based policies fail to effectively leverage spatial
+information. state-based DP matches and even outperforms
+vision-based baselines on simpler tasks. However, due to the
+lack of geometric information, it struggles with more dexterous
+tasks. Compared to ACT, ACT3D shows superior results
+in all tasks, highlighting the crucial importance of geometric
+structure and spatial information in policy learning. G3Flow,
+which benefits from both 3D visual and state information, is
+the strongest baseline overall. However, its performance on
+PickPlace
+Assembly
+ArtiManip
+Task Progress
+LongHoriManip
+Fig. 5: Visualization of six dexterous manipulation tasks, with the right side showing the end state.
+(a) PickPlace
+(b) FlipCup
+(c) Assembly
+(d) ArtiManip
+Fig. 6: Randomization of Object Positions. The red rectangles
+mark the range of positions of manipulated objects. For
+PickPlace and FlipCup, both the toy chicken and the cup
+are randomly rotated within a certain range.
+tasks such as FlipCap is limited due to the impact of 3D noise
+and the lack of correspondence modeling.
+underperforms relative to DP in most of our tasks, which aligns
+with the findings of Wang et al. . Although several studies
+have demonstrated the effectiveness of DP3 in simulation and
+relatively ideal real-world scenarios, such as those with multiple
+TABLE I: Main results of four base real-world tasks. Each
+experiment is evaluated with 20 trials.
+PickPlace
+Assembly
+ArtiManip
+State-based MLP
+State-based DP
+CordViP(Ours)
+has a significant impact on DP3s performance. Further details
+will be discussed in Section IV-E. In contrast, our method
+exhibits remarkable robustness to the quality of point clouds.
+By establishing correspondences between the dexterous hand
+and objects, CordViP facilitates more effective perception of
+spatial and interaction information.
+Inference Efficiency. CordViP also attains an efficient
+inference speed, as it eliminates the need for the farthest
+point sampling of point clouds while utilizing compact 3D
+representations. We evaluate the inference speed of CordViP
+compared with DP3 on an Intel i7-14700KF CPU and RTX
+4090D GPU, CordViP reaches a maximum of 12.84 FPS,
+surpassing DP3s 11.79 FPS. This highlights that our approach
+not only achieves enhanced performance but also maintains
+low computational overhead during inference.
+TABLE II: Main results of advanced tasks. Each experiment
+is evaluated with 10 trials.
+LongHoriManip
+State-based DP
+CordViP(Ours)
+Number of Expert Demonstrations
+Task Success Rate ()
+Pick and Place
+CoVP (Ours)
+Number of Expert Demonstrations
+Flip Cup
+CoVP (Ours)
+Fig. 7: Experimental results of efficiency. We train ACT, DP,
+an increasing number of demonstrations.
+C. Efficiency
+The number of expert demonstrations plays a crucial role
+in the performance of imitation learning. To access the
+learning efficiency, we train ACT, DP, DP3 and our proposed
+CordViP on dexterous tasks using varying quantities of expert
+demonstrations. As illustrated in Figure 7, CordViP exhibits
+superior performance, achieving higher accuracy with fewer
+demonstrations. Remarkably, even with just 10 demonstrations,
+CordViP effectively establishes correspondences, extracts spa-
+tial and geometric features, and maintains a high success rate.
+capabilities.
+D. Generalization
+Besides the remarkable effectiveness and efficiency, Cord-
+ViP also showcases excellent generalization capabilities in
+real-world dexterous manipulation tasks. In this section, we
+comprehensively investigate its generalization abilities across
+four aspects, as detailed below.
+Generalize to different lighting conditions.
+We established three distinct lighting conditions. As shown
+in Table III, the 3D representation of our proposed CordViP
+is dynamically maintained through FoundationPose tracking.
+(RGB images, depth data, and prior 3D model knowledge
+of the target object), demonstrated significant robustness to
+lighting variations in our empirical tests. In contrast, diffusion
+policies failed to complete tasks under most conditions. These
+image-based policies typically rely on data augmentation to
+improve generalization, which may introduce instability during
+TABLE III: Generalization results on different lighting con-
+ditions. We evaluate the policy under three lighting scenarios:
+dim light(dim), white light(white) and colored lighting(colored).
+Original
+PickPlace
+CordViP(Ours)
+TABLE IV: Generalization results in diverse scenarios,
+including varying visual appearances and challenging cluttered
+environments.
+Original
+Cluttered
+PickPlace
+Cluttered
+Cluttered
+CordViP(Ours)
+training.
+Generalize to different scenarios. CordViP relies on a
+robust 6D pose estimator to track objects and build interaction-
+aware 3D point clouds, which enables our method to generalize
+to different scenarios. The results presented in Table IV show
+that DP is highly sensitive to visual variations, 

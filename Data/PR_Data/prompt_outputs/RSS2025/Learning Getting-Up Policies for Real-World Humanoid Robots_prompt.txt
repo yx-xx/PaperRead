@@ -1,5 +1,5 @@
 === PDF文件: Learning Getting-Up Policies for Real-World Humanoid Robots.pdf ===
-=== 时间: 2025-07-22 09:41:52.857725 ===
+=== 时间: 2025-07-22 09:59:09.247499 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -196,4 +196,396 @@ The two-stage training induces a curriculum (Sec. III-C). Stage I targets motion
 learned motion deployable and generalizable.
 B. Legged robots fall recovery
 Humanoid robots are vulnerable to falls due to under-actuated
-control dynamics, high-dimensional states, and unst
+control dynamics, high-dimensional states, and unstructured
+environments [27, 30, 35, 36, 42, 44], making the ability to
+recover from falling of great significance. Over the years, this
+problem has been tackled in the following ways.
+1) Getting up via motion planning: Early work from
+Morimoto and Doya  solved the getting-up problem for a
+states are used as subgoals to transit via hierarchical RL. This
+line of work can be viewed as an application of motion planning
+by configuration graph transition learning , where stored
+robot states between lying and standing are used as graph
+nodes to transit [21, 40, 41, 69]. More recently, some progress
+has been made to enable toy-sized humanoid robots to get
+up [24, 26, 37, 67]. For example, Gonzalez-Fierro et al.
+explores getting up from a canonical sitting posture with motion
+planning by imitating human demonstration with ZMP criterion.
+To address the high-dimensionality of humanoid configurations,
+Jeong and Lee  leverage bilateral symmetry to reduce the
+control DoFs by half and a clustering technique is used for
+further reducing the complexity of configuration space, thereby
+improving getting-up learning efficiency. However, such state
+machine learning using predefined configuration graphs may
+not be sufficient for generalizing to unpredictable initial and
+intermediate states, which happens when the robot operates on
+challenging terrains.
+2) Hand-designed getting-up trajectories: Another solution,
+often adopted by commercial products, is to replay a manually
+designed motion trajectory. For example, Unitree  has a
+getting-up controller built into G1s default controllers. Booster
+Robotics  designed a specific recovery controller for their
+robots that can help the robot recover from fallen states.
+Concurrent work from Zhuang and Zhao  enables a G1
+robot to get up by tracking the getting-up motion of a real
+human. The main drawback of such pre-defined trajectory
+getting-up controllers is that they may only handle a limited
+number of fallen states and lack generalization.
+3) Learned getting-up policies for real robots: RL fol-
+lowed by sim-to-real has also been successfully applied for
+quadruped [39, 47, 55, 77] fall recovery. For example, Lee et al.
+explore sim2real RL to achieve real-world quadruped fall
+recovery from complex configurations. Ji et al.  train a
+recovery policy that enables the quadruped to dribble in snowy
+and rough terrains continuously. Wang et al.  develop a
+quadruped recovery policy in highly dynamic scenarios.
+4) Learned getting-up policies for character animation: A
+parallel research effort in character animation, also explores
+the design of RL-based motion imitation algorithms: Deep-
+controllers in simulation. By tracking user-specified getting-
+up curves, Frezzato et al.  enable humanoid characters to
+get up by synthesizing physically plausible motion. Without
+recourse to mocap data, such naturalistic getting-up controllers
+for simulated humanoid characters can also be developed with
+careful curriculum designs . Some works explore sampling-
+based methods for addressing contact-rich character locomotion,
+including getting up [31, 49, 61], while some works have
+demonstrated success in humanoid getting up with online
+model-predictive control . It is worth noticing, however,
+that these works use humanoid characters with larger DoFs
+compared to humanoid robots (e.g., 69 DoFs in SMPL )
+and use simplified dynamics. As a result, learned policies
+operate body parts at high velocities and in infeasible ways,
+leading to behavior that cannot be transferred into the real world
+directly. Hence, developing generalizable recovery controllers
+for humanoid robots remains an open problem.
+III. HUMANUP: SIM-TO-REAL HUMANOID GETTING UP
+Our goal is to learn a getting-up policy  that enables a
+humanoid to get up from arbitrary initial postures. We consider
+getting up from two families of lying postures: a) supine poses
+(i.e. lying face up) and b) prone poses (i.e. lying face down).
+Getting up from these two groups of postures may require
+different behaviors, which makes it challenging to learn a
+single policy that handles both scenarios. To tackle this issue,
+we decompose the getting-up task from a prone pose to first
+rolling over and then standing up from the resulting supine
+posture. Therefore, we aim to learn policies for rolling over
+from a prone pose and getting up from a supine pose separately.
+To solve these two tasks, we propose HUMANUP, a general
+learning framework for training getting-up and rolling over
+policy f is trained to figure out standing-up or rolling-over
+motions. f is trained without deployment constraints, and
+only the task and symmetry rewards are used. In stage II,
+a deployable policy  imitates the rolling-over  getting-
+up behaviors obtained from stage I under strong control
+regularization. This deployable policy  is transferred from
+simulation to the real world as the final policy. We detail the
+policy model and two-stage training in Sec. III-B, and then
+discuss the induced curriculum in Sec. III-C.
+A. Policy Architecture
+HUMANUP trains two policy models f and  with RL. Both
+policy models take observation ot  [zt, st, st10:t1] R868
+as input and output action at R23, where st R74
+is the proprioceptive information, st10:t1 is the 10 steps
+history states. zt R54 are the encoded environment extrinsic
+latents that are predicted from observation history and learned
+using regularized online adaptation . The proprioceptive
+information st consists of the robots roll and pitch, angular
+tive information can be accurately obtained in the real world,
+and we find that this is sufficient for the robot to infer the
+overall posture. We do not use any linear velocity and yaw
+information as it is difficult to reliably estimate them in the
+real world [32, 33].
+implemented
+trained via PPO . The optimization maximizes the ex-
+pected -discounted policy return within T episode length:
+, where rt is the reward at timestamp t.
+B. Two-Stage Policy Learning
+1) Stage I: Discovery Policy: This stage discovers getting-
+up  rolling-over behavior efficiently without deployment
+constraints. We use the following task rewards with very weak
+regularization to train this discovery policy f. Timestep t and
+reward weight terms are omitted for simplicity. The precise
+expressions for each reward term and their weights are provided
+in Sec. A.1.
+Rewards for Getting Up: rup  rheight rheight ruprightness
+rstand on feet  rfeet contact forces  rsymmetry, where
+rheight encourages the robots height to be close to a target
+height when standing;
+rheight encourages the robot to continuously increasing its
+ruprightness encourages the robot to increase the z-component
+of the projected gravity,1 so that the robot stands upright;
+rstand on feet encourages the robot to stand on both feet;
+rfeet contact forces encourages the robot to increase contact
+forces applied to the feet continuously;
+rsymmetry reduces the search space by encouraging (but not
+requiring) the robot to output bilaterally symmetric actions.
+Past work [37, 68] employed hard symmetry which improves
+RL sample efficiency at the cost of limiting robots DoFs and
+generalization. Our soft symmetry reward partially leverages
+the benefit but mitigates the limitation.
+Rewards for Rolling Over: rroll  rgravity, which encourages
+the robot to change its body orientation so that its projected
+gravity is close to the projected gravity when lying face up.
+2) Stage II: Deployable Policy: This stage trains policy
+that will be directly deployed in the real world. Policy  is
+trained to imitate an 8 slowed-down version of the state
+trajectories discovered in Stage I, while also respecting strong
+regularization to ensure Sim2Real transferability. We use the
+typical regularization rewards and describe them in Sec. A.2.
+Tracking Rewards: rtracking encourages the robot to act close
+to the given motion trajectory derived from the discovered
+motion. rtracking  rtracking DoF  rtracking body, where
+rtracking DoF encourages the robot to move to the same DoF
+position as the reference motion, and
+rtracking body encourages the robot to move the body to
+the same position as the reference. Specifically, rtracking body
+becomes two different rewards to encourage tracking upright
+posture (rhead height) and correct head orientation (rhead gravity)
+for getting-up and rolling-over tasks, respectively.
+1Projected gravity on a robot part is the gravity vector transformed from
+the world frame to the parts local frame.
+C. Stage I to Stage II Curriculum
+The design of two-stage policy learning induces a hard-to-
+easy curriculum . Stage I targets motion discovery in easier
+settings (weak regularization, no variations in terrain, same
+starting poses, simpler collision geometry). Once motions have
+been discovered, Stage II solves the task of making the learned
+motion deployable and generalizable. As our experiments will
+learning. Specifically, complexity increases from Stage I to
+Stage II in the following ways:
+1) Collision mesh: As shown in Fig. 2, Stage I uses a
+simplified collision mesh for faster motion discovery, while
+Stage II uses the full mesh for improved Sim2Real performance.
+2) Posture randomization: Stage I learns to get up (and roll
+over) from a canonical pose, accelerating learning, while Stage
+II starts from arbitrary initial poses, enhancing generalization.
+To further speed up Stage I, we mix in standing poses. For
+Stage II, we generate a dataset P of 20K supine poses Psupine
+and 20K prone poses Pprone by randomizing initial DoFs from
+canonical lying poses, dropping the humanoid from 0.5m, and
+simulating for 10s to resolve self-collisions. We use 10K poses
+from each set for training and the rest for evaluation.
+3) Control Regularization and Terrain Randomization: For
+Sim2Real transfer, we use the following control regularization
+terms and environment randomization in Stage II:
+Weak strong control regularization. Weak control
+regularization in Stage I enables discovery of getting-up
+rolling-over motion, while strong control regularization (via
+smoothness rewards, DoF velocity penalties, etc, see the full
+list in Sec. A.2) in Stage II encourages more deployable action.
+Fast slow motion speed.
+Without strong control
+up motion (<1s), infeasible for real-world deployment. To
+address this, we slow it to 8s via interpolation, providing stable
+tracking targets for Stage II, which better aligns with its control
+regularization.
+Fixed random dynamics and domain parameters. Stage
+II also employs domain and dynamics randomization via terrain
+randomization and noise injection. Such randomization has
+been shown to play a vital role in successful Sim2Real .
+IV. IMPLEMENTATION DETAILS
+A. Platform Configurations
+We use the Unitree G1 platform  in all real-world
+and simulation experiments. G1 is a medium-sized humanoid
+robot with 29 actuatable degrees of freedom (DoF) in total.
+12 DoFs, and the waist has 3 DoFs. As getting up does not
+involve object manipulation, we disable the 3 DOFs in the
+G1 has waist yaw and roll DoFs, and we find them useful
+for our getting-up task. The robot has an IMU sensor for roll
+and pitch states, and the joint states can be obtained from the
+motor encoders. We use position control where the torque is
+derived by a PD controller operating at 50 Hz.
+B. Simulation Configurations
+We use Isaac Gym  for simulated training and evaluation.
+We use a URDF with simplified collision for stage-I training
+and the official whole-body URDF from Unitree  for stage-
+II. To accurately model the numerous contacts between the
+humanoid and the ground, we use a high simulation frequency
+of 1000 Hz, while the low-level PD controller frequency
+operates at 50 Hz. More details can be found in Sec. C.
+V. SIMULATION RESULTS
+A. Tasks
+We evaluate three tasks involved in the humanoid getting-up
+prone to supine poses, and getting up from prone poses which
+can be addressed by solving task and task consecutively.
+Simulation tests are conducted with the full URDF.
+B. Baselines
+We compare to the following baselines,
+a) RL with Simple Task Rewards (Tao et al. ):
+This policy is trained with RL using rewards from Tao
+et al.  originally designed for physically animated
+characters instead of humanoid robots. Similar to our
+weak torque limit and motion speed curriculum for
+getting-up policy learning. Because  does not consider
+sim2real deployment regularization and requirements (e.g.,
+smoothness and collision mesh usage), policies learned
+through their scheme arent appropriate for real-world
+humanoid deployment.
+b) HUMANUP wo Stage II: Our policy trained with only
+stage I, where no deployment constraints are applied.
+c) HUMANUP wo Full URDF: Our policy trained with
+two stages, but stage II uses the simplified collision mesh.
+d) HUMANUP wo Posture Randomization: Our policy
+trained on a single canonical lying posture without any
+randomization of initialization postures.
+e) HUMANUP w Hard Symmetry: Our policy trained using
+a humanoid with a symmetric controller. This symmetric
+controller follows the symmetry control principle of
+the manufacturer-provided controller baseline described
+in real-world experiments, which leads to bilaterally
+symmetric control. We set all pitch DoFs actions to
+be the same between the left and the right DoFs, while
+flipping the directions of all the roll and yaw actions.
+f) HUMANUP wo Two-Stage Learning: Our policy trained
+in a single stage with the full collision mesh, posture
+applied at the same time.
+C. Metrics
+Task Success. i) Task success rate Success (): For the
+getting-up task, the robots head height must be 1.1m at
+success. For the rolling-over task, the cosine between the robots
+TABLE I: Simulation results. We compare HUMANUP with several baselines on the held-out split of our curated posture set
+Psupine and Pprone using full URDF. All methods are trained on the training split of our posture set P, except for methods
+HUMANUP wo Stage II and wo posture randomization. HUMANUP solves task by solving task and task consecutively.
+We do not include the results of baseline 6 (HUMANUP wo Two-Stage Learning) as it cannot solve the task.  Tao et al.
+is trained to directly solving task as it does not have a rolling over policy. SIM2REAL column indicates whether the method
+can transfer to the real world successfully. We tested all methods in the real world for which the SMOOTHNESS and SAFETY
+metrics are reasonable, and SIM2REAL is false if deployment wasnt successful. Metrics are introduced in Sec. V-C.
+SIM2REAL
+SMOOTHNESS
+Task Metric
+Action Jitter
+DoF Pos Jitter
+Getting Up from Supine Poses
+Tao et al.
+HUMANUP wo Stage II
+HUMANUP wo Full URDF
+HUMANUP wo Posture Rand.
+HUMANUP w Hard Symmetry
+Rolling Over from Prone to Supine Poses
+HUMANUP wo Stage II
+HUMANUP wo Full URDF
+HUMANUP wo Posture Rand.
+HUMANUP w Hard Symmetry
+Getting Up from Prone Poses
+Tao et al.
+HUMANUP wo Stage II
+HUMANUP wo Full URDF
+HUMANUP wo Posture Rand.
+HUMANUP w Hard Symmetry
+lying face up should be 0.9, thus, the robot needs to move
+until lying face up. ii) Task Metrics: the head height (m) for
+the getting-up task, and the cosine of the angle between the
+robots torso X-axis (sticking out to the front from the torso)
+and the gravity, for the rolling-over task.
+Smoothness. We measure the Action Jitter (rads3), DoF
+Pos Jitter (rads3), and mean Energy (N mrads ) for action
+smoothness evaluation . The jitter metrics are computed as
+the third derivative values , which indicate the coordination
+stability of body movements.
+Safety. We introduce safety scores STorque
+[0, 1] and SDoF
+[0, 1] that measure the relative magnitude of commanded torque
+DoF compared to the torque and DoF limits, where  is a
+safety threshold. This is essential for robotic safety during
+issues and cause mechanical and motor damage. Formally,
+these scores are defined as:
+where t,j and qt,j denote the applied torque and joint
+displacement at time step t for joint j, respectively.  max
+represent their respective limits, T is the total number of
+time steps, and J is the total number of joints. The threshold
+determines when a torque or displacement is considered
+excessive. The indicator function 1() returns 1 if the condition
+is met and 0 otherwise. The parameters ,  [0, 1] control
+the trade-off between peak and prolonged violations, ensuring
+a balanced assessment of safety risks. In this paper, we use
+0.8,   0.5,   0.5 as default during evaluation.
+D. Results and Analysis
+Tab. I presents results based on policies tested on held-out
+subsets of our curated initial posture set P, i.e. 10K val samples
+each from Psupine and Pprone. Fig. 4 shows the learning curve
+for the getting-up task, where the termination base height
+reflects the robots ability to lift its body, and body uprightness
+indicates whether it achieves a stable standing posture.
+1) Ignoring Torque  Control Limits Leads to Undeployable
+cantly worse than HUMANUP. For example, the average action
+jitter metric is nearly 18 higher than HUMANUP. Actions
+from  are highly unstable and unsafe and thus cannot be
+safely deployed to the real robot. Furthermore,  learns a
+very fast getting-up motion that keeps jumping after getting
+up. See visualization s getting up motion in Sec. B.1.
+A similar trend can be seen when comparing HUMANUP to
+HUMANUP wo Stage II. While HUMANUP wo Stage II
+also solves the task to some extent, it achieves unsatisfying
+smoothness and safety metrics similar making it inappropriate
+for real-world deployment. Thus, the regularization imposed
+in Stage II is essential to making policies more amenable to
+Sim2Real transfer.
+Getting Up
+From Supine Poses
+Roll Over
+From Prone Pose
+Snow Field
+Conc. Path
+Brick Surface
+Stone Tile
+Muddy Grass Grass Slope
+Snow Field
+Manufacturer
+HumanUP wo PR
+(a) Getting Up from Supine Poses (10 Trials)
+(b) Rolling Over from Prone Poses (10 Trials)
+Brick Surface
+Concrete Path
+Muddy Grass
+Stone Tile
+Grass Slope (10)
+Snow Field
+Brick Surface
+Concrete Path
+Muddy Grass
+Stone Tile
+Grass Slope (10)
+Conc. Path
+Brick Surface
+Stone Tile
+Muddy Grass Grass Slope
+Snow Field
+Manufacturer (NA)
+HumanUP wo PR
+Fig. 3: Real-world results. We evaluate HUMANUP (ours) in several real setups that span diverse surface properties, including
+both man-made and natural surfaces, and cover a wide range of roughness (rough concrete to slippery snow), bumpiness
+(flat concrete to tiles), ground compliance (completely firm concrete to being swampy muddy grass), and slope (flat to about
+10). We compare HUMANUP with G1s manufacturer-provided controller and HUMANUP wo posture randomization (PR).
+HUMANUP succeeds more consistently (78.3 vs 41.7) and can solve terrains that the manufacturer-provided controller cant.
+2) Importance of Learning via a Curriculum: So, while it is
+clear that we need to incorporate strong control regularization
+for good safety metrics and Sim2Real transfer, our 2 stage
+process is better than doing it in a single stage. In fact, as plotted
+in Fig. 4, HUMANUP wo Two Stage Learning where the policy
+is trained in a single stage using all sim2real regularization
+fails to solve the task. This is because the strict Sim2Real
+regularization makes task learning extremely challenging. Our
+two-stage curriculum successfully incorporates both aspects: it
+learns to solve the task, but the policy also operates safely.
+3) Full URDF vs. Simplified URDF: Somewhat surprisingly,
+even though HUMANUP wo Full URDF was trained without
+the full URDF mesh, it generalizes fine when tested with the
+full URDF in simulation, as reported in Tab. I. However, we
+found poor transfer of this policy to the real world. It failed on
+all 5 trials on a simple flat terrain. We believe the poor real-
+world performance was because of the mismatch between the
+contact it was expecting and the contact that actually happened.
+4) Posture randomization helps: HUMANUP wo posture
+randomization (PR) works much worse than HUMANUP,
+suggesting that PR is necessary for generalizable control.
+5) Soft symmetry vs. hard symmetry: Compared to HU-
+MANUP w Hard Symmetry, HUMANUP achieves better task
+success in Tab. I, particularly for the rolling-over task, which
+is very difficult with symmetric commands.
+VI. REAL WORLD RESULTS
+We also tested HUMANUP policies in the real world on G1
+robot. Our real-world test bed consists of 6 different terrains
+shown in Fig. 3: concrete, brick, stone tiles, muddy grass, grassy
+Ours wo Two-Stage Learning
+Fig. 4: Lea

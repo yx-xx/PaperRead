@@ -1,5 +1,5 @@
 === PDF文件: DexterityGen  Foundation Controller for Unprecedented Dexterity.pdf ===
-=== 时间: 2025-07-22 09:42:02.446002 ===
+=== 时间: 2025-07-22 09:59:15.885931 ===
 
 请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
@@ -185,4 +185,320 @@ B. Sim-to-real Reinforcement Learning
 dexterous manipulation involves two main challenges:
 a) Sim-to-Real Gap: It is difficult to reproduce real-
 world sensor observation (mainly for vision input) and physics
-in simulation. This gap can make s
+in simulation. This gap can make sim-to-real transfer highly
+challenging for complex tasks. In particular, transferring a
+vision-based control policy from simulation to real world
+for dexterous hands is a huge challenge and requires costly
+visual domain randomization . For instance, Dextreme
+leveraged extensive visual domain randomization with 5M
+rendered images to train a single object rotation policy.
+b) Reward Specification: A more important issue, be-
+yond the sim-to-real gap, is the notorious challenge of design-
+ing reward functions for long-horizon, contact-rich problems.
+Existing methods often involve highly engineered rewards or
+overly complicated learning strategies , which are task-
+specific and limit scalability.
+though sim-to-real RL can be difficult, especially for those
+complex long-horizon or vision-based tasks, some recent
+works have shown that sim-to-real RL is sufficient to build
+diverse transferable manipulation primitives based on propri-
+oception and touch . Therefore, one opportunity for sim-
+to-real RL is to create rich low-level action primitives that can
+be combined with the high-level action plan discussed above.
+In this paper, we achieve this through generative pretraining.
+Object Model
+Grasp Set
+Simulation RL
+Data Collection
+Grasp-to-Grasp
+Trajectories
+Diverse Wrist Movement
+Diverse Grasp Set
+Diverse Objects
+Grasp Generation
+Training Dataset Pipeline
+Fig. 3: Dataset: The Anygrasp-to-Anygrasp dataset generation pipeline is designed for the generative pretraining of DexGen.
+For a wide variety of objects, we extensively search for potential grasp configurations, using these as both the initial and
+goal states for RL policies. To ensure our diffusion model can manage diverse scenarios, we incorporate varied wrist poses,
+Diffusion Model
+Gradient Guidance
+Inverse Dynamics Model
+Conditioning
+Conditioning
+DexGen Controller
+Fig. 4: Model: Architecture of the DexGen controller. The whole system takes robot state, external motion conditioning, and
+mode conditioning as input. A diffusion model first generates the motion as the intermediate action representation. The motion
+conditioning is not fed into the diffusion model directly but as the gradient guidance during the diffusion sampling. Then,
+another inverse dynamics model will translate the generated motion to executable robot action. We implement our diffusion
+model as a UNet in this paper. The inverse dynamics model is a residual multilayer perceptron.
+III. THE DEXGEN CONTROLLER
+We propose to pretrain a generative behavior model p(ao)
+on the simulation dataset to model prior action distribution so
+that it can generate stable and effective actions a conditioned
+on the robot state o. During inference, we can sample actions
+from this distribution and further aligned with external motion
+commands using gradient guidance. We detail the dataset used
+for training the model in section III-B, the model architecture
+in section III-C, and the inference procedure in section III-D.
+A. Preliminaries
+a) Diffusion Models: Diffusion Model  is a pow-
+erful generative model capable of capturing highly complex
+probabilistic distributions, which we use as our base model.
+The classical form of the diffusion model is the Denoising
+Diffusion Probabilistic Model (DDPM) . DDPM defines a
+forward process that gradually adds noise to the data sample
+x0 pdata(x):
+xt  txt1
+is some noising schedule. We have xt
+N(tx0, (1 t)I) where t  Qt
+s1 s goes to 0 as
+t . DDPM trains a model (xt, t) to predict denoised
+sample x0 given the noised sample xt with its timestep t.
+During sampling, DDPM generates the sample by removing
+the noise through a reverse diffusion process:
+p(xt1xt)  N(xt1; (xt, t), 2
+DDPM can generate high-fidelity samples in both vision and
+robotics applications. In addition to the power to generate
+data samples faithfully, diffusion models also support guided
+p(x) pdata(x)h(x) where h(x) is given by a differentiable
+energy function h(x)  exp J(x). To do this, we only need
+to introduce a small modification to the reverse diffusion
+step. Given the current sample , we add a correction term
+J() to . Here,  is a step size hyperparameter and
+is the variance in each diffusion step. This will guide the
+sample towards high-energy regions in the sample space. We
+can set h(x) to control the style of generated samples.
+b) Robot System and Notations: In this paper, we assume
+the robot hand is driven by a widely used PD controller. At
+each control timestep, we command a joint target position qt
+and the controller will use torque   Kp(qt qt) Kd qt to
+drive the joints. Here, qt is the current joint position, and qt
+is the joint velocity. Kp and Kd are two constant scalar gains.
+We use xt to denote the key point positions of finger links at
+time t in the wrist frame. Note that our algorithm does not rely
+on a specific system implementation and can be extended to
+other robot systems. We can also specify keypoints and actions
+for other robots to implement our proposed algorithm.
+B. Large-Scale Behavior Dataset Generation
+Since human teleoperation or external policies will control
+the robot hand to interact with the object in diverse ways, our
+model should be capable of providing refinement for all these
+potential scenarios (states). To achieve this, we require a large-
+scale behavior dataset to pretrain our DexGen model, ensuring
+comprehensive coverage of the state space. We accomplish
+this by collecting object manipulation trajectories in simulation
+through reinforcement learning.
+Anygrasp-to-Anygrasp To ensure our dataset can cover a
+broad range of potential states, we introduce Anygrasp-to-
+Anygrasp as our central pretraining task. This task captures
+the essential part of in-hand manipulation, which is to move
+the object to arbitrary configurations. For each object, we
+define our training task as follows. We first generate a set
+of object grasps using Grasp Analysis and Rapidly-exploring
+Random Tree (RRT) , similar to the Manipulation RRT
+procedure . Each generated grasp is defined as a tuple
+(hand joint position, object pose). In each RL rollout, we
+initialize the object in the hand with a random grasp. We set
+the goal to be a randomly selected nearby grasp using the
+k Nearest-Neighbor search. After reaching the current grasp
+to select a nearby reachable goal during the training process,
+as learning to reach a distant grasp directly can be difficult.
+After training, we use this anygrasp-to-anygrasp policy to
+rollout grasp transition sequences to cover all the possible
+hand-object interaction modes. We sample over 100K grasp
+for most objects during grasp generation to ensure coverage.
+This training procedure yields a rich repertoire of useful
+the high-level policy can leverage for solving downstream
+tasks (Figure 5). In addition to the Anygrasp-to-Anygrasp task,
+we also introduce other tasks such as free finger moving and
+fine-grained manipulation (e.g. fine rotation) to handle tasks
+that have special precision requirements.
+Pretraining Dataset
+State Space
+action distribution
+Motion Prompt
+Fig. 5: Our large-scale, multi-task pretraining dataset covers
+diverse grasp to grasp transitions (arrows). DexGen controller
+learns the dataset action distribution (purple shaded area) at
+each state, and we can use sequential motion prompting (pur-
+ple triangle) to perform a useful long-horizon skill, connecting
+two distance states.
+During RL training, we use a diverse set of random objects
+and wrist poses. For each task, we include random geometrical
+objects with different physical properties. To enhance the
+robustness of our policy, we randomly adjust the wrist to dif-
+ferent poses throughout the process, in addition to employing
+commonly used domain randomizations, so the policy will
+learn to counteract the gravity effects and exhibit prehensile
+manipulation behavior (Figure 3). By combining all these data,
+the robot hand can manipulate different kinds of objects in
+different wrist configurations against gravity rather than being
+limited to manipulating a single object at a certain pose. More
+details of the RL training can be found in Appendix.
+We collect a total of 1  1010 transitions as our simulation
+Generating this dataset (by rolling out trained RL policies)
+requires 300 GPU hours. Although the dataset is large, we
+hypothesize it can still be far from sufficient as the human
+dexterity emerges from millions of years of evolution. Never-
+behavior that have not been showed before.
+C. DexGen Model Architecture
+We illustrate our DexGen model architecture in Figure 4.
+The DexGen model has two modules. The first module is a
+diffusion model that characterizes the distribution of robot fin-
+ger keypoint motions given current observations. Here we use
+3D keypoint motions x RT K3 in the robot hand frame
+as an intermediate action representation, This representation is
+particularly advantageous for integrating guidance from human
+teleoperation. In this context, T is the future horizon, K is the
+number of finger keypoints. The second module in DexGen
+is an inverse dynamics model, which converts the keypoint
+motions to executable robot actions (i.e. target joint position)
+We use a UNet-based  diffusion model to fit the complex
+keypoint motion distribution of our multitask dataset. Our
+Wrist Tracker
+Hand Tracker
+Hand Tracker
+Wrist Tracker
+Fig. 6: Real world experimental setup based on Allegro Hand
+with a Franka Panda Arm (Left). We use human teleoperation
+(Right) as a proxy for high-level policy.
+model learns to generate several future finger keypoint offsets
+xi  xti xt conditioned on the robot state at timestep
+t and a mode conditioning variable. The state is a stack of
+historical proprioception information. The mode conditioning
+variable is a one-hot vector to explicitly indicate the intention
+of the task. For instance, when placing an object we do not
+want the model to produce actions that will make the robot
+hold the object firmly. Without introducing a release object
+if most of the actions in the dataset will keep the object
+in the palm. In our dataset, the majority of transitions are
+labeled with a default (unconditional) label, and only a small
+portion of them corresponding to specialized scenarios has
+a special mode label. We only use a specialized precision
+rotation mode label for screwdriver in our experiments. For
+releasing object, we find that disabling DexGen controller is
+sufficient in practice.
+The inverse dynamics model is a simple residual multilayer
+perceptron that outputs a normal distribution to model the
+actions conditioned on the current robot state and motion
+command. We train both the diffusion model and inverse
+dynamics model with our generated simulation dataset using
+the standard diffusion model loss function and the MSE loss
+for regression respectively. We train these models with the
+AdamW optimizer [35, 29] for 15 epochs using 96 GPUs,
+which takes approximately 3 days. The detailed network setup
+can be found in the appendix.
+D. Inference: Motion Conditioning with Guided Sampling
+Our goal is to sample a keypoint motion that is both safe (i.e.
+from our learned distribution p(xo)) and can maximally
+preserve the input reference motion. Formally, this can be
+written as x p(xo) exp(Dist(x, xinput)). Here,
+xinput RK3 is the input commanded fingertip offset, and
+Dist is a distance function that quantifies the distance between
+the predicted sequence and the input reference. There can be
+many ways to instantiate this distance function. In this paper,
+Fig. 7: Part of our real world testing objects, which are
+not present in our pretraining dataset. We include objects of
+different sizes, masses, and aspect ratios.
+we find the following simple distance function works well
+Dist(x, xinput)
+xi xinput2.
+The above function encourages the generated future fingertip
+position to closely match the commanded fingertip position.
+Since the action of the robot hand has a high degree of
+freedom (16 for the Allegro hand used in this paper), naive
+sampling strategies become computationally intractable. To
+address this, we propose using gradient guidance in the
+diffusion sampling process to incorporate motion conditioning.
+In each diffusion step, we adjust the denoised sample x by
+subtracting xDist(x, xinput) as a guide. Here  is
+a parameter of the strength of the guidance to be tuned, which
+we will study in experiments. The generated finger keypoint
+movement is then converted to action by the inverse dynamics
+model. We use DDIM sampler  during inference for 10Hz
+control. The total sampling time is around 27ms (37Hz) on
+a Lambda workstation equipped with an NVIDIA RTX 4090
+IV. EXPERIMENTS
+In the experiments, we first validate the effectiveness of
+DexGen through simulated experiments, demonstrating its
+ability to enhance the robustness and success rate of extremely
+suboptimal policies. Then, we test our system in the real world
+with a focus on its application in shared autonomy. Our results
+show that DexGen can assist a human operator in executing
+unprecedented dexterous manipulation skills with remarkable
+generalizability.
+A. System Setup
+In this paper, we use Allegro Hand as our manipulator
+and we attach the Allegro Hand to a Franka-panda robot
+arm. In the teleoperation experiments in real world, we use a
+retargeting-based system to control the robot with human hand
+Guidance
+Duration
+Guidance
+Duration
+Guidance
+Duration
+Mul U(0, 0.5)
+Guidance
+Duration
+Achieved Goals
+Achieved Goals
+Achieved Goals
+Ours (Duration)
+Ours ( Goals)
+Baseline (Duration)
+Baseline ( Goal)
+Fig. 8: Results of simulation evaluation. We use DexGen to correct several noise-corrupted expert policies. Note that each
+dimension of action space is bounded by [-1, 1] and these noises ruin the expert action most of the time. We measure the
+average duration (in seconds) and number of achieved goals per trial over a 20-minute simulated experiment. As shown in the
+duration by 10-100x and even help an extremely perturbed policy to achieve success where the baseline fails.
+gestures. The human hand pose is captured by Manus Glove
+and retargeted to the Allegro hand through the Geometric
+Retargeting algorithm . We obtain the 6D human wrist
+pose via the Vive tracking system and use it to control the
+robot arm separately. Although we use this single robot setup
+in our experiments, we believe our method is general and can
+be applied to other hand setups.
+B. Simulated Experiments
+1) Experimental Setup: We first test the capability of Dex-
+Gen in assisting suboptimal policies in solving the Anygrasp-
+to-Anygrasp task in simulation. We simulate 2 kinds of
+suboptimal policies with an expert RL policy exp. The first
+one is noisy(as)  exp(as)  U(, ), which simulates
+an expert that can perform dangerous suboptimal actions
+through additive uniform noise. The second is slow(as)
+U(0, )exp(as), which is a slowdown version of expert.
+We compare these suboptimal experts  to their assisted
+counterparts DexGen . We record the average number of
+critical failures (drop the object) and the number of goal
+achievements within a certain time of different policies.
+2) Main Results:
+We plot the result of different policies
+in Figure 8. We find that without our assistance, the noisy
+expert has much more frequent failures. As a result, it can
+only hardly achieve any goals in the evaluation. In contrast,
+with the assistance of DexGen, we can partially recover
+the performance of this noisy expert. We also find that for
+different policies, the optimal guidance value is also different.
+these policies. Moreover, when the guidance is relatively small,
+although we can maintain the object in hand, we can not
+achieve the desired goal as well because DexGen does not
+know what the goal is. When the guidance becomes too large,
+the potentially suboptimal external motion command may take
+over DexGen guidance and lead to a lower duration in some
+Fig. 9: DexGen can maximally preserve input action while cor-
+recting dangerous actions. DexGen can reject users behavior
+(open up the palm) and keep holding the object.
+C. Real World Experiments:
+We have demonstrated that our system can provide effective
+assistance through simulated validation. Then, we further
+design several tasks for benchmarking in the real world. In
+the first set of experiments, we ask a human teleoperator to
+act as an external high-level policy and we evaluate whether
+our system can assist humans to solve diverse dexterous
+manipulation tasks. We introduce a set of atomic skills that
+covers common in-hand dexterous manipulation behavior.
+In-hand Object Reorientation The user is required to
+control the hand to rotate a given object to a specific
+pose. In the beginning, we initialize the object in the air
+over the palm, and the user needs
