@@ -68,8 +68,16 @@ def clean_extracted_text(text):
         clean_lines.append(line)
     return '\n'.join(clean_lines)
 
-def extract_text_from_pdf(pdf_path):
-    """仅用PyMuPDF提取PDF文本，保证最大化提取纯文本"""
+def truncate_text_by_length(text, max_length):
+    """
+    将文本截断到指定最大字符数，超出部分直接丢弃。
+    """
+    if len(text) > max_length:
+        return text[:max_length]
+    return text
+
+def extract_text_from_pdf(pdf_path, max_length=None):
+    """仅用PyMuPDF提取PDF文本，保证最大化提取纯文本，可选截断长度"""
     text = ""
     filename = os.path.basename(pdf_path)
     try:
@@ -80,5 +88,8 @@ def extract_text_from_pdf(pdf_path):
     except Exception as e:
         print(f"{filename} PyMuPDF提取失败: {e}")
         return ""
-    return clean_extracted_text(text)
+    text = clean_extracted_text(text)
+    if max_length is not None:
+        text = truncate_text_by_length(text, max_length)
+    return text
     
