@@ -12,12 +12,12 @@ CUSTOM_DICT_PATH = "custom_dict.txt"   # 自定义词典路径
 
 
 # 聚类算法配置
-CLUSTER_ALGORITHM = "dbscan"          # 可选: kmeans, dbscan
+CLUSTER_ALGORITHM = "kmeans"          # 可选: kmeans, dbscan
 N_CLUSTERS = 5                        # 聚类数量
 RANDOM_STATE = 42                     # 随机种子
 
 
 # 可视化配置
-VIS_METHOD = "tsne"                   # 可视化方法: tsne 或 pca
-LABEL_DENSITY = 0.3                   # 标签显示密度(0-1)
-PLOT_SIZE = (12, 8)                   # 图像尺寸
+VIS_METHOD = "pca"                   # 可视化方法: tsne 或 pca
+LABEL_DENSITY = 0.2                   # 标签显示密度(0-1)
+PLOT_SIZE = (24, 16)                   # 图像尺寸
