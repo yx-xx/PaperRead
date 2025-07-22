@@ -12,7 +12,7 @@ CUSTOM_DICT_PATH = "custom_dict.txt"   # 自定义词典路径
 
 
 # 聚类算法配置
-CLUSTER_ALGORITHM = "kmeans"          # 可选: kmeans, dbscan
+CLUSTER_ALGORITHM = "dbscan"          # 可选: kmeans, dbscan
 N_CLUSTERS = 5                        # 聚类数量
 RANDOM_STATE = 42                     # 随机种子
 
