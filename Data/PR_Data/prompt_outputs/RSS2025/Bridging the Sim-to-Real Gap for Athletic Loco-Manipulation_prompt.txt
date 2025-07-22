@@ -1,7 +1,7 @@
 === PDF文件: Bridging the Sim-to-Real Gap for Athletic Loco-Manipulation.pdf ===
-=== 时间: 2025-07-22 10:00:17.127113 ===
+=== 时间: 2025-07-22 15:57:02.499933 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -460,4 +460,199 @@ We first evaluate the modeling accuracy of these approaches
 by reporting the mean-square joint position error on both the
 training data and on an unseen test trajectory (see Figure 6).
 Our results show that the UAN method achieves the best
-windows of simulator rollouts for a single arm joint
+windows of simulator rollouts for a single arm joint are
+provided in Figures 6b (training data) and 6c (test data);
+additional results for the other arm joints are included in the
+appendix (Figures 8 and 9). In our observations, the CEM
+method helps prevent overshoot (by effectively slowing the
+Distance Thrown (m)
+Throw Release Speed (ms)
+Peak Leg Power (kW)
+No-Fine-Tuning
+No-Pre-Training
+Fig. 5: End-to-end fine-tuning from a pre-trained WBC leads to the best task performance. Throwing evaluation metrics
+across 100 simulated throws for four policies: Our fine-tuned WBC (Ours) achieves the longest throw distance with lower
+peak leg power as compared to a throwing policy trained from scratch (No-Pre-Training) or a high-level policy for a
+frozen WBC (No-E2E). The WBC before finetuning (No-Fine-Tuning) has the lowest peak leg power but throws the ball
+a much shorter distance.
+arm to match the lower joint velocities seen on hardware).
+Actuator Net can improve over the baseline by capturing
+lag effects, but it diverged on the 5 min rollouts on the
+training data. However, only UAN achieves a tight fit to the
+training data, thanks to its capacity to model the nonlinear
+effects introduced by the harmonic reducers. As shown by
+Figure 6, UAN can even accurately capture the arms response
+to Gaussian noise control input, which is commonly used
+for exploration in reinforcement learning but represents a
+challenging regime for accurate simulation where the baseline
+methods degrade substantially.
+To further assess these system identification methods in
+a task context, we trained arm-only throwing policies in
+simulation augmented with each approach and deployed them
+on hardware. The average throwing performance in simulation
+and reality is presented in Figure 4. In simulation, although
+the Actuator Net and CEM produced a promising throw,
+its behavior did not transfer as well to hardware. In contrast,
+the UAN policy achieved the farthest throws on hardware with
+the smallest sim-to-real gap. Meanwhile, the Default, DR,
+and ROA policies produced unstable behaviorsthe Default
+ball at all.
+B. Finetuning Foundational WBC
+We compare four throwing policies to assess the impact of
+our pre-training and fine-tuning approaches:
+1) No-Fine-Tuning: a pre-trained WBC that tracks a
+throwing reference trajectory.
+2) No-Pre-Training: a throwing policy trained from
+scratch.
+3) No-E2E: a high-level policy that outputs commands for
+a frozen pre-trained WBC.
+4) Ours: our method that initializes with the pre-trained
+WBC and fine-tunes with RL.
+All methods observe a hand-designed throwing reference tra-
+jectory.
+Figure 4 presents the performance of each throwing policy
+across 100 simulated throws. No-Fine-Tuning success-
+fully throws the ball by tracking the reference, but its per-
+formance is sub-optimal. However, the strong performance of
+No-E2E shows that the WBCs performance can be improved
+by providing a better reference trajectory. Still, the No-E2E
+policy does not perform to the maximum capability of the
+hardware. Through RL finetuning with the task reward, Ours
+can learn to throw farther while using a reduced peak power
+output in its leg motors. While No-Pre-Training could
+theoretically push the capabilities of the hardware, in practice,
+it struggles to do so due to exploration challenges. We found
+that No-Pre-Training achieved similar throwing perfor-
+mance to No-E2E, despite hitting a larger peak power output
+in its legs.
+C. Hardware Results
+1) Ball throwing: The task objective is to throw a 100 g
+ball as far as possible. Because grasping and releasing a
+ball directly is challenging for our gripper, a small bucket
+is attached to the robots EE. The policy leans back prior to
+forward to launch the ball. On hardware, the ball was thrown
+approximately 20 m, with the real robot throwing slightly
+further than in simulation  possibly due to inaccuracies in
+the ball-bucket contact modeling.
+2) Dumbbell snatch: The goal is to lift a dumbbell with the
+EE and hold it stably. The dumbbell is simulated by modifying
+the grippers mass. The robot first lowers its EE to the ground,
+at which point the mass is added to its gripper. Then, it is
+commanded to lift the weight in the air. When lifting, the
+robot is rewarded for maximizing the z position of its EE.
+When training the lifting policy, we randomized the mass
+of the robots EE from 0 to 10 kg. At convergence, the policy
+could consistently lift weights up to 8kg, but struggled to
+stabilize heavier weights above its body. Since the robots arm
+is much weaker than the legs, the policy learns to pitch its base
+backwards to swing the weight upwards into the air. During
+hardware experiments, we secured the dumbbells inside the
+robots gripper with a belt to prevent it from slipping out of
+the robots grasp. We found the Z1 arm could not lift even
+a 5 lb. dumbbell to an upright position through simple joint
+interpolation. We first verified the whole-body policy could
+lift a 5 lb. dumbbell and then progressed to a 10 lb. dumbbell.
+In both experiments, the robot lifted the weight above its base
+and maintained it there stably for more than 5 s.
+3) Sled pull: In this task, the robot pulls a heavy sled
+attached by a rope to its EE. The sled is modeled as a
+is rewarded for tracking a backward base velocity while
+minimizing lateral drift. The policy learns to adopt a low
+stance to maintain balance and extend its arm to avoid applying
+unnecessary torques to the arms actuators. In simulation, the
+policy successfully pulled weights up to 150 kg. On hardware,
+the robot pulled a cart resisting a friction force of 113 N over
+10 meters; a heavier cart (requiring 230 N) was only pulled
+about 0.5 meters.
+V. LIMITATIONS
+Our fine-tuning approach requires a task reference trajec-
+tasks. It also necessitates per-task engineering of the training
+environment (reward functions, object simulation, etc.). Future
+work might employ generative models to automatically syn-
+thesize task references. Additionally, our unsupervised actuator
+net focuses on arm actuators. Extending real-to-sim calibration
+to other robot subsystems and modeling structural integrity are
+promising future directions.
+VI. RELATED WORK
+A. Whole-Body Control
+Walking robots with arms present a formidable challenge
+to control due to their many degrees of freedom and complex
+dynamics. A typical paradigm is to implement a WBC that
+optimizes actuation to achieve control objectives considering
+a model of robot kinematics and dynamics . WBC ap-
+proaches based on offline trajectory optimization or online
+optimization with reduced-order models have achieved con-
+siderable success in dynamic walking and manipulation [1, 3,
+enabled whole-body control that can naturally handle model
+In the case of whole-body control based on reinforcement
+with an input reference position [4, 7, 18], force , or
+whole-body pose [6, 13, 25, 26] and outputs joint-space
+actions.
+It is common to teleoperate legged-armed robots by parsing
+a reference trajectory from a humans movements in real-time
+and tracking it with a WBC; such an approach can accomplish
+also train a high-level policy to select reference trajectories
+or a latent representation autonomously in place of the tele-
+reinforcement learning [23, 26]. However, some tasks may not
+be achievable by any choice of reference trajectory if they
+require a motion outside the training distribution of the WBC.
+It is challenging to formulate a generic pre-training scheme
+for whole-body control that anticipates all kinds of tasks one
+might want to perform for humanoids, motion capture datasets
+can provide diverse feasible reference commands , but
+for quadruped manipulators, pre-training commonly defaults
+to tracking procedurally generated smooth trajectories within
+the workspace .
+To avoid the reliance on high-quality pre-training, another
+possibility is to discard the explicit notion of reference tra-
+jectories altogether and directly train end-to-end policies for
+specific tasks such as fall recovery , door opening ,
+soccer [12, 16, 17], or box manipulation . This enables
+the policy to learn highly dynamic motions to optimize the
+task reward, but, in practice, these motions can be hard to
+find due to fundamental exploration challenges in RL. We
+address this challenge by initializing the policy with pre-
+trained WBC weights and a reference trajectory. While
+also guide training with reference trajectories, they rely on
+tracking rewards, whereas we crucially rely exclusively on
+task-oriented rewards, enabling athletic performance even with
+rough references.
+B. Overcoming the sim-to-real gap
+Prior work proposed simulated athletic tasks as a benchmark
+for learned whole-body control [44, 26], though they left sim-
+to-real transfer as future work. In contrast, other studies have
+demonstrated sim-to-real transfer of athletic tasks on small
+robots with transparent actuators [12, 16, 17]. Achieving sim-
+to-real transfer for athletic behaviors on large robots with non-
+ideal actuators is especially challenging because even minor
+modeling discrepancies can lead to reward hacking. To address
+bridge the sim-to-real gap.
+Domain randomization is a common strategy to mitigate
+discrepancies between simulation and reality [19, 20]. In
+the field of dynamic legged robots, common parameters to
+randomize include the proportional and derivative gains of
+each joint, the stall torques, the link masses and inertias, and
+terrain properties [20, 55]. Excessive DR can reduce peak
+performance if the policy cannot identify key parameters of
+the environment necessary to optimize its reward function.
+To overcome this challenge, previous work employed teacher-
+student frameworks, where a student policy learns to imitate
+an expert policy that has access to privileged observations
+(a) Error metrics.
+MSE (rad2)
+Square  Sine Waves
+Gaussian Noise
+(b) Train rollout.
+Time [s]
+Angle [rad]
+Time [s]
+Time [s]
+Time [s]
+(c) Test rollout.
+Time [s]
+Angle [rad]
+Time [s]
+Time [s]
+Time [s]
+Actuator Net
+U

@@ -1,7 +1,7 @@
 === PDF文件: FAST Efficient Action Tokenization for Vision-Language-Action Models.pdf ===
-=== 时间: 2025-07-22 09:58:46.769154 ===
+=== 时间: 2025-07-22 16:15:45.571631 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -658,4 +658,167 @@ enizer closely matches the performance of the dataset-specific
 FAST tokenizers, suggesting that the universal tokenizer can
 be used as a strong default for robot action tokenization.
 D. Ablation Studies
-We analyze two key aspects of our me
+We analyze two key aspects of our method: (1) Is our
+FAST tokenization approach independent of the underlying
+VLA backbone? (2) How important is the BPE compression
+T-Shirt Folding
+OpenVLA  FAST
+To answer the first question, we
+train an OpenVLA policy  on
+the challenging high-frequency T-
+shirt folding dataset, comparing
+the nave tokenization approach
+originally used in OpenVLA to
+our FAST tokenizer. To comply
+with the task setup, we modify the
+OpenVLA model code to accept
+multiple input images and predict
+1-second action chunks. The re-
+sults on the right demonstrate that FAST is able to significantly
+boost performance of OpenVLA, enabling it to train effectively
+on high-frequency robot manipulation data. This suggests, that
+our tokenization approach is independent of the underlying
+model backbone, and may be easily applied to a wide range
+of pre-trained autoregressive transformer models.
+FAST without BPE
+TABLE BUSSING
+Task Progress
+T-SHIRT FOLD
+encoding step on the table buss-
+ing and T-shirt folding tasks. The
+figure on the right shows that
+the resulting policies without BPE
+encoding achieve worse rollout
+performance (but still outperform
+nave tokenization). Intuitively, the
+DCT transform still concentrates
+most of the signals information
+in a few tokens, improving the
+learning signal. However, without
+the learning signal and also significantly slow down inference,
+since models need to autoregressively predict hundreds of
+action tokens, ultimately leading to worse policy performance.
+0 (3x compute)
+Task Progress
+Single Task Performance
+Fig. 9: Comparison of diffusion 0  to our 0 model with
+FAST decoding on single-task training. On small datasets
+(Libero, T-Shirt Folding), both perform comparably. On large
+datasets (Table Bussing), FAST converges faster. In DROID,
+we find that FAST follows language instructions better. We
+report mean and 95 CI.
+E. Comparing FAST to Diffusion
+In this section, we compare 0, a state-of-the-art diffusion
+autoregressive decoding. We compare the performance of both
+models on the tasks from Section VI-B.
+We report results in Figure 9. We find that on small
+datasets (Libero, T-Shirt Folding; <50h), both VLAs perform
+comparably. However, on large datasets like Table Bussing,
+we find that the FAST-based VLA converges significantly
+than the diffusion variant of 0. Additionally, we find that
+the autoregressive 0 model trained with FAST tokenization
+follows language instructions more closely: in the DROID
+investigation of the language following abilities of diffusion
+and autoregressive VLAs to future work.
+One current limitation of the autoregressive VLA is its
+inference speed: while 0 with diffusion typically predicts one
+second action chunks within 100ms on an NVIDIA 4090 GPU,
+the 0 model with FAST tokenization needs approximately
+750ms of inference time per chunk, since it must perform
+more autoregressive decoding steps (typically 30-60 action
+tokens need to be decoded, vs. 10 diffusion steps for diffusion
+0) and use the full 2B parameter language model backbone
+for autoregressive decoding (vs. a 300M parameter action
+expert for diffusion 0). While we did not find this slower
+inference to hurt performance on the static manipulation
+tasks we evaluated, it made evaluations significantly slower.
+Going forward, there are many techniques for accelerating the
+inference of discrete, autoregressive transformer models that
+are used extensively in the LLM literature (e.g., speculative
+will leave an investigation of these to future work.
+Laundry Folding
+Fig. 10: Rollout of 0-FAST on the laundry folding task. FAST tokenization enables autoregressive VLAs to perform
+TOAST OUT
+OF TOASTER
+Task Progress
+Generalist VLA Performance
+Fig. 11: Comparison of 0-FAST and diffusion 0
+generalist policies. 0-FAST matches the performance of
+diffusion 0 while requiring significantly less compute for
+training. Reported: mean and 95 CI.
+F. Scaling Autoregressive VLAs to Large Robot Datasets
+We have demonstrated FASTs effectiveness for training
+autoregressive VLAs on individual robot datasets, but does
+it scale to training dexterous generalist policies? To test this,
+we train the 0-FAST model from the previous section on
+a large cross-embodied robot data mixture It includes 903M
+timesteps of mixed-embodiment data from single-arm, bi-
+manual and mobile robots like the ones listed in Appendix A.
+source datasets BRIDGE v2 , DROID , and OXE .
+We compare zero-shot performance to the diffusion 0
+model in Figure 11. Overall, we find that the autoregressive
+0-FAST model matches the performance of the diffusion 0
+while requiring significantly less compute for training.
+We show a qualitative example of 0-FAST performing the
+laundry folding task in Figure 10 and include additional videos
+on our website.
+We find that 0-FAST converges significantly faster than
+the diffusion 0 model: the model in the evaluations above
+required 5x fewer GPU hours for training than the 0 model
+from Black et al. . We show robot evaluation results for
+multiple checkpoints throughout the course of training in
+Figure 1 (averaging performance on two representative tasks:
+table bussing and t-shirt folding). The results show clearly that
+0-FAST achieves high performance with significantly less
+compute. For state-of-the-art VLA training runs, which can
+often use thousands of GPU hours, a 5x reduction in required
+compute is significant. We include a full comparison across
+all tasks for a compute-matched 0 checkpoint in Appendix,
+Figure 15 and find that the same conclusions hold: 0-FAST
+clearly outperforms the compute-matched 0.
+To summarize, we have demonstrated that FAST tokeniza-
+tion allows us to train autoregressive VLAs on complex, dex-
+terous robot tasks that prior tokenization schemes completely
+fail on. We have also shown that FAST, when combined with
+state-of-the-art VLAs like 0, scales to training generalist,
+cross-embodied policies that rival the performance of the best
+diffusion VLAs while being significantly faster to train.
+VII. CONCLUSION
+In this paper, we introduced FAST, an efficient action
+tokenizer for high-frequency robotic control data. FAST uses
+the discrete cosine transform (DCT) followed by byte-pair
+encoding (BPE) to compress action chunks, leading to sig-
+nificantly better compression than existing action tokenizers
+across a range of robotics domains. Our real-world and simu-
+lated VLA experiments show that FAST yields dramatically
+improved performance over nave action discretization ap-
+methods based on vector quantization. We also developed
+default tokenizer for any robot action sequence, and used it
+to train 0-FAST, a dexterous generalist policy that can match
+performance of state-of-the-art diffusion VLAs while being
+significantly more efficient to train.
+VIII. LIMITATIONS
+Action tokenizers. While we believe that FAST is a signifi-
+cant step toward general purpose robot action tokenizers, many
+questions remain. In this work, we tested FAST on static robot
+manipulators. Our offline experiments demonstrated promising
+compression capabilities of FAST on other robot morpholo-
+gies like mobile robots, dexterous hands, and humanoids.
+Testing actual policy performance on these platforms is an
+exciting direction for future work. Additionally, exploring al-
+ternative compression schemes, and testing the combination of
+compression-based action encodings with non-autoregressive
+decoding approaches like diffusion  are interesting direc-
+tions for future investigation.
+VLA architectures. Our paper has taken initial steps to
+explore the trade-offs between two major classes of VLA
+the jury on the best VLA architecture is still out. Future work
+should carefully explore trade-offs in training speed, language
+grounding abilities, and expressiveness of either approach.
+Inference speed. While 0-FAST matches the overall per-
+formance of diffusion 0, it is slower at inference time
+(see Section VI-E). While the slower inference speed was
+acceptable on the static tasks we evaluated, future work should
+explore approaches for speeding up inference of autoregressive
+VLA models to enable them to solve highly dynamic tasks.
+There is a la

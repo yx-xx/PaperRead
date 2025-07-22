@@ -1,0 +1,1094 @@
+=== PDF文件: Sim-and-Real Co-Training A Simple Recipe for Vision-Based Robotic Manipulation.pdf ===
+=== 时间: 2025-07-22 16:01:56.715020 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Sim-and-Real Co-Training: A Simple Recipe for
+Vision-Based Robotic Manipulation
+Abhiram Maddukuri,1, Zhenyu Jiang,1,2, Lawrence Yunliang Chen2,3, Soroush Nasiriany1,2,
+Yuqi Xie2, Yu Fang2, Wenqi Huang2, Zu Wang2,4, Zhenjia Xu2, Nikita Chernyadev2,
+Scott Reed2, Ken Goldberg3, Ajay Mandlekar,2, Linxi Fan,2, Yuke Zhu,1,2
+1UT Austin
+3UC Berkeley
+4New York University
+AbstractLarge real-world robot datasets hold great potential
+to train generalist robot models, but scaling real-world human
+data collection is time-consuming and resource-intensive. Sim-
+ulation has great potential in supplementing large-scale data,
+especially with recent advances in generative AI and automated
+data generation tools that enable scalable creation of robot
+behavior datasets. However, training a policy solely in simulation
+and transferring it to the real world often demands substantial
+human effort to bridge the reality gap. A compelling alternative
+is to co-train the policy on a mixture of simulation and real-world
+datasets. Preliminary studies have recently shown this strategy
+to substantially improve the performance of a policy over one
+trained on a limited amount of real-world data. Nonetheless, the
+community lacks a systematic understanding of sim-and-real co-
+training and what it takes to reap the benefits of simulation data
+for real-robot learning. This work presents a simple yet effective
+recipe for utilizing simulation data to solve vision-based robotic
+manipulation tasks. We derive this recipe from comprehensive
+experiments that validate the co-training strategy on various
+simulation and real-world datasets. Using two domainsa robot
+arm and a humanoidacross diverse tasks, we demonstrate that
+simulation data can enhance real-world task performance by
+an average of 38, even with notable differences between the
+simulation and real-world data. Videos and additional results
+can be found at co-training.github.io.
+I. INTRODUCTION
+The ability to generalize across diverse environments and
+tasks is a critical step toward realizing generalist robotic
+systems. Recent advancements in robot foundation mod-
+els trained on a mixture of web-scale vision-language
+datasets and robot-specific datasetshave demonstrated sig-
+nificant potential for cross-domain generalization. Large real-
+world robot datasets ,  embody this diversity and are a
+crucial source of data. Despite this progress, challenges remain
+in achieving reliable real-world deployment. To bridge this
+even larger-scale real-robot datasets , . These works
+have shown the potential of data-driven methods in acquiring
+versatile robotic skills. However, they involve considerable
+whether simply scaling real-world data collection alone is
+sufficient to train generalist robot models.
+Simulation is a promising alternative to mitigate the data
+hunger of large models. The recent proliferation of genera-
+Equal contribution. Project leads.
+Simulation Data
+Policy Co-Training
+Deployment
+Training on real-world
+and sim data
+Deploy  to real-
+world environments
+Real-World Data
+Real-World Task
+Task-Aware Simulation
+Task-Agnostic Simulation
+Deployment task in real world
+No sim-to-real gap
+Expensive to collect data
+Aligned with real-world tasks
+Automated data generation
+Simulation tuning required
+Preexist  use out of the box
+Many tasks  environments
+Orders more data
+Least target task alignment
+Fig. 1: Sim-and-Real Co-Training. We show how co-training
+policies on real-world and simulation data can attain superior per-
+formance in the real-robot deployment, compared to training solely
+on real-world data. We specifically study two forms of simulation
+the real-world tasks, and (2) task-agnostic data from multi-task prior
+simulations covering more diverse settings but with less alignment to
+the target task.
+tive AI tools allows for the automated generation of assets,
+with high-fidelity physics simulators and photorealistic ren-
+can be applied to these simulation environments to synthesize
+large amounts of diverse, high-quality robot trajectories with
+minimal human effort , offering massive training data
+for generalist manipulation policies. However, approaches that
+use simulation data must deal with the reality gap since the
+visuals and physics in simulation do not align perfectly with
+the real world. Prior approaches on sim-to-real policy transfer
+typically rely on extensive tuning of simulation to match the
+real world , or meticulously randomizing a specific
+set of simulation parameters . Such approaches can
+require significant human effort.
+A compelling alternative to sim-to-real transfer is to directly
+co-train policies on a mixture of simulation and real-world
+data. Preliminary findings in recent work ,  sug-
+gest that incorporating simulation data in this way can greatly
+improve policy performance compared to using real-world
+data alone. Moreover, sim-and-real co-training may not require
+the high level of alignment between simulation and reality
+typically needed for sim-to-real transfer, making it a promising
+strategy to tap into the potential of large synthetic datasets with
+minimal human effort. Despite its promise, the community
+lacks a systematic understanding of this strategy and what it
+takes to reap the benefits of simulation data for real-robot
+learning. It remains unclear how different the simulation data
+can be from the real-world data, and what kinds of dataset
+mixtures and compositions are ideal.
+This work presents a simple recipe for supplementing
+real robot datasets with synthetic simulation datasets to
+facilitate learning vision-based manipulation policies for
+real robots. We derive this recipe by conducting a comprehen-
+sive set of experiments that co-train robot policies on various
+simulation and real-world datasets. As shown in Figure 1, we
+focus on two concrete sources of simulation data  task-aware
+ally designed to align with the real world loosely, akin to the
+digital cousin concept introduced in Dai et al. , and task-
+agnostic simulation, which comprises prior simulation data
+made independently of the particular target task. Our study
+is carried out on two distinct robot embodiments (robot arm
+and humanoid) across several diverse tasks, spanning pick-
+manipulation (e.g., pouring). We investigate a number of criti-
+cal data composition factors to understand the degree to which
+simulation and real-world data must be aligned for co-training
+to be effective. For example, should the tasks, scenes, and
+objects be the same between the sim and the real? How about
+the location of workspace cameras and object placements? We
+make use of synthetic data generation tools ,  to test
+different simulation dataset compositions with ease, resulting
+in actionable insights for robotics practitioners.
+We summarize our contributions as follows:
+1) We establish a systematic study for co-training on real-
+robot data and synthetically generated data from simu-
+simulation data for real-world manipulation;
+2) We demonstrate empirically how co-training on syn-
+thetic simulation data can be broadly useful in facili-
+tating policy learning for downstream real-world tasks,
+improving policy performance across two domains by
+an average of 38;
+3) We derive insight into what types of simulation data are
+most effective for sim-and-real co-training. Surprisingly,
+we find that simulation data provides substantial benefits
+even with notable differences from the real-world data,
+and that diverse simulation data can facilitate general-
+ization to unseen scenarios in the real world.
+II. RELATED WORK
+A. Learning Manipulation from Demonstration Data
+Behavior cloning  is a widely adopted approach for
+learning robot policies from demonstration data . In
+this framework, policies are trained to predict actions based
+on ground truth state-action pairs provided in a demonstration
+dataset. This method has been extensively applied in robot
+manipulation tasks . However, its success in real-
+world applications typically hinges on the availability of large
+amounts of high-quality demonstration data, which can be
+prohibitively expensive to collect. To address this limitation,
+our work explores the use of simulation data to enhance real-
+world robot manipulation through imitation learning, thereby
+reducing the dependency on costly real-world data collection.
+B. Sim-to-Real and Sim-Real Co-Training
+Sim-to-real transfer has been a pivotal focus in robotics
+perform effectively in the real world. One popular approach is
+domain randomization , , , which introduces
+variability into the simulation environment to train policies
+that are robust to discrepancies between simulation and real-
+ity. However, domain randomization approaches can require
+careful tuning and a significant human burden to determine
+proper randomization ranges for the parameters that enable the
+policy to transfer to the real world. Another common approach
+seeks to minimize the sim-to-real gap by improving simulation
+fidelity to match the real world closely. Techniques such as
+system identification ,  and the creation
+of digital twins ,  aim to align simulated dynamics
+more closely with real-world conditions. These methods often
+require significant human effort, preventing their applicability
+to diverse tasks and environments. Instead, recent research
+has trained real-world manipulation policies using a mixture
+of simulation and real-world data , , , , ,
+and demonstrated superior performance to solely using the
+same quantity of real-world data. Furthermore, the simulation
+data in these approaches does not necessarily need to be
+perfectly aligned with the real world, making it a compelling
+alternative to other approaches. Building on these findings, our
+work systematically investigates sim-and-real co-training. We
+examine the effectiveness of co-training real-world policies
+using two sources of simulation data with varying levels of
+prior simulation, as shown in Figure 1. Our study offers
+practical insights and methodologies for practitioners aiming
+to achieve robust performance in real-world scenarios.
+C. Dataset Composition in Robot Learning
+Recent research ,  has highlighted the importance
+of dataset composition in robot learning, particularly in un-
+derstanding how variations in data quality and diversity influ-
+ence policy generalization , . Studies such as Mimi-
+cLabs  have conducted large-scale analyses to identify the
+types of data that maximize the utility of robotic datasets and
+improve downstream policy performance. Inspired by this line
+of work, we investigate the optimal composition of simulation
+and real-world data specifically for real-world robotic manip-
+ulation tasks. Our study aims to provide actionable guidelines
+on how to strategically combine these data sources to achieve
+superior policy learning outcomes in the real world.
+III. PROBLEM STATEMENT AND PRELIMINARIES
+A. Co-Training on Real-World and Simulation Data
+We assume access to robot trajectory demonstrations col-
+lected in real environments, Dreal  {i}N
+i1. Instead of train-
+ing a policy on demonstrations solely from the real world, we
+have additional demonstrations from simulation environments,
+Dsim  {i}M
+N. We train a
+visuomotor policy  on these two data sources. We adopt
+the co-training formulation following prior work , where
+we minimize the behavioral cloning action loss
+Ltotal(; Dreal, Dsim)  L(; Dsim)(1)L(; Dreal) (1)
+where L(; D)
+(oi,ai)D log (aioi) and
+[0, 1] is the co-training ratio balancing the relative weight
+of simulation and real-world data. In practice, we use an
+equivalent formulation of , which represents the probability
+of sampling from simulation data in each training batch.
+probability of drawing it from the simulation dataset is
+P[(oi, ai) Dsim]  , while the probability of drawing
+it from the real dataset is P[(oi, ai) Dreal]  1
+during training batch sampling. We further detail the relative
+weighting procedure in Appendix VIII-G. As we will see in
+Our end objective is to produce vision-based manipulation
+policies that maximize task performance on one or multiple
+downstream tasks in real-world environments.
+B. Data Composition Factors
+Dreal and Dsim can comprise demonstration trajectories from
+either a single task or a diverse array of tasks, embodiments,
+and environments. To reason about how the particular choices
+in constructing these datasets can affect the success of co-
+data composition factors. We assume that each dataset follows
+a distribution of factors {Z(1), Z(2),    , Z(K)}, borrowing
+notation from recent work . We do not assume that the
+simulation dataset is perfectly aligned with the real-world
+sim  Z(i)
+real. Despite these
+alignment gaps, we are interested in transferring knowledge
+from simulation domains to learn a more effective policy
+for real-world tasks.
+Common data composition factors include, but are not
+limited to, the following:
+Task composition: Which tasks, and by extension, sub-
+tasks and motions, are present in the simulation and real-
+world data. Even if the real-world and simulation data
+involve solving the same task, there may be multiple valid
+ways to achieve the task. Different datasets may exhibit
+different orderings of subtasks and different manipulation
+Scene composition: The number of scenes in simulation
+and real-world data, in addition to the scope and diversity
+of various components across these scenes. For example,
+the number of fixtures, articulation properties of interac-
+tive objects, range of lighting conditions, and range of
+background textures;
+Object composition: Which object categories are present
+in the simulation and real-world data, and the number of
+unique object instances per object category;
+Initialization distribution: The initial state distribution
+in the datasets, representing the distribution of states in
+the initial state of each trajectory in the dataset. This
+comprises the initial robot base pose and arm joints, in
+addition to the initialization distribution of objects and
+fixtures in the scene;
+Camera parameters: We assume that we have a set of
+N cameras used to train each visuomotor agent. Each
+camera has a range of values across several parameters.
+The most prominent parameters are camera intrinsics and
+camera extrinsics;
+Dynamics parameters: Key physical parameters such as
+include robot controller variables such as the type of
+controller and its gains.
+We define these parameters in more detail and quantify them
+in Section IV, when we introduce the domains and tasks, and
+we study how important it is to align each factor between
+simulation and the real world for co-training success.
+C. Automated Synthetic Data Generation
+A key advantage of simulation is ease of data collection
+we leverage automated synthetic data generation tools to
+generate large, high-quality simulation datasets and use them
+for co-training with smaller real-world datasets. For each
+task in the simulation, we first collect dozens of source
+human demonstrations. We then use MimicGen  to generate
+large synthetic trajectory datasets at scale. For bimanual and
+humanoid robots, we use DexMimicGen , a method that
+builds on top of MimicGen. The process is as follows. First,
+we segment these source demonstrations into a sequence of
+object-centric segments. (Dex)MimicGen then generates new
+demonstrations by applying linear transformations to selected
+source demonstration segments and concatenating these trans-
+formed segments to form novel trajectories. By leveraging
+these methods, we can use physics simulations to multiply
+the number of trajectories by orders of magnitude.
+Real-world task
+Collect dozens of
+demos via teleoperation
+Task-agnostic prior
+simulation datasets
+Create digital
+cousin task
+Real-world data (1x)
+Collect dozens of demos,
+multiply via DexMimicGen
+Digital cousin
+sim data (100x)
+Batch sampling
+Policy co-training
+Deployment
+Task setup
+Data preparation
+Co-training and deployment
+batchsize
+Sim data
+Prior sim data (1000x)
+(1  )  batchsize
+Real data
+Fig. 2: Method Overview. Our workflow consists of three components: (1) We start with a real-world target task in mind and some prior
+simulation data; (2) Given real-world tasks and prior simulation data, we build simulated digital cousin environments that share semantic
+similarities with their real-world counterparts but may still hold discrepancies in visual and physical aspects. We leverage synthetic data
+generation methods to multiply trajectories in digital cousins, producing a large quantity of demonstrations in simulation. From here, we
+consolidate prior simulation data, digital cousin data, and real-world data; (3) We co-train the policy on a mixture of real-world and simulation
+data. We sample simulation data according to a sampling ratio of , which is crucial for the methods effectiveness. After training the policy,
+we deploy the learned policy directly to the real robot.
+IV. STUDY SETUP
+Our goal is to develop a simple recipe for co-training
+on real-robot and simulation data to significantly improve
+real-world policy performance compared to training on real
+data alone. We are broadly interested in two scenarios:
+(1) Co-training with prior large-scale simulation data. Can
+we use existing large prior simulation datasets as co-training
+data? Note, these datasets often have significant discrepancies
+with the real world in terms of visual features, task semantics,
+and behaviors. We are interested in understanding the extent
+to which these datasets can help out of the box in learning
+downstream real-world tasks in spite of these domain gaps.
+(2) Co-training with task-aware simulation data. Given
+knowledge of the real-world tasks, we can create customized
+simulation datasets that are better aligned with the real-world
+tasks. However, tuning simulation environments to match
+the real-world environments precisely is impractical. Which
+data composition factors are most important to align between
+simulation and the real-world setup, and can we forgo perfect
+See Figure 2 for an overview of our workflow, including
+the real-world setup, simulation pipeline, and the co-training
+procedure. We describe all of these components in detail in
+the following sections.
+A. Real-World Domains
+We seek a co-training recipe that is broadly applicable to
+a wide range of embodiments, tasks, and environments. To
+this end, we conduct a comprehensive study featuring two
+distinct domains, each with a unique robot embodiment and
+diverse tasks (see Figure 3 for an illustration):
+Panda Kitchen. A real-world kitchen environment with
+the Franka Emika Panda robot. We adopt the DROID tabletop
+hardware setup , with some minor modifications (see
+Appendix VIII-C for details). We experiment with three
+real-world tasks and collect 50 human demonstrations for
+each task:
+to the sink basin. This task features nine object categories
+with diverse shapes: can, cup, coffee cup, water bottle,
+to the cabinet. This task features eight object categories.1
+Humanoid Tabletop. A real-world tabletop environment with
+a Fourier GR-1 humanoid robot. We control the robot using
+a mink-based  IK controller. We use a first-person view
+RGB camera mounted to the head of the humanoid. We choose
+three tasks and collect 20 human demonstrations for each task.
+We describe more details in Appendix VIII-C.
+second level of the shelf.
+and pour the ball into a bowl on the table.
+Our study is grounded in the real worldwe compare the
+efficacy of different co-training methods by directly evaluating
+1We use the same object categories as CounterToSinkPnP but exclude the
+water bottle due to difficulties in placing it stably into the cabinet.
+Humanoid Tabletop
+Panda Kitchen
+Multi-Task
+Simulations
+CounterToSinkPnP
+CounterToCabPnP
+Task-Aware
+CloseDoor
+Fig. 3: Real-World and Simulation Tasks. We experiment with co-training on three data sources on the two robot domains of Kitchen
+Panda and Humanoid Tabletop: (top) data collected for real-world tasks; (middle) data from task-aware digital cousin environments that
+resemble the target tasks but are not perfectly aligned; (bottom) prior multi-task data from simulation that comprise a wide range of tasks
+and environments but have larger discrepancies with real-world tasks.
+policies on these real-world tasks.
+B. Prior Task-Agnostic Simulation Data
+We leverage synthetically generated data to supplement
+real-robot datasets for policy training. One approach is to
+directly co-train with existing large-scale simulation datasets,
+or prior task-agnostic simulation datasets. We define a prior
+task-agnostic simulation dataset as any simulation dataset
+that existed before the creation of the downstream, real-world
+task. For the purpose of direct co-training, we use prior task-
+agnostic datasets that contain the same robot embodiment
+and action space, but this is not a strict requirement. We
+otherwise assume that these datasets cover a broad range of
+tasks and environments. We are interested in co-training with
+these datasets out of the box, without expending additional
+efforts designing new tasks in simulation and collecting new
+data. These datasets may have numerous discrepancies with
+real-world data, but they present a simple and convenient
+way to leverage simulation data. We use the following prior
+simulation datasets:
+Panda Kitchen. We use the multi-task RoboCasa dataset .
+We choose RoboCasa, given its focus on kitchen environments,
+a diverse range of scenes and tasks, and the availability of large
+robot data. In addition, Nasiriany et al.  showed preliminary
+findings that co-training with simulation data can aid transfer
+in a real-world kitchen environment. The dataset comprises
+72k demonstrations across 24 tasks and 100 scenes; for each
+human demonstrations using the MimicGen data generation
+system . Refer to Appendix VIII-D for in-depth details
+about the tasks and datasets. Note that three of these tasks
+semantically correspond to our real-world tasks but include
+notable discrepancies with the real-world setup, including
+initial robot joint positions, controller parameters, physical
+present a quantitative comparison of data composition for the
+real-world and prior simulation datasets in Appendix VIII-F.
+Camera alignment differences between simulation and
+real-world data can be a major discrepancy. We address this
+discrepancy by re-rendering the simulation demonstrations
+to approximately match the camera poses of the real-world
+setup.2 Note that this does not represent perfect alignment, but,
+as we demonstrate in our experiments, it can significantly help
+nonetheless. Beyond this simple post-processing operation,
+we do not make any further changes to the prior data.
+Humanoid Tabletop. To mirror the setup for the kitchen
+10 tasks in RoboCasa involving a single kitchen countertop
+and a GR-1 robot. Each task involves grasping a specified
+2This operation introduces occlusions for the drawer and stove knob manip-
+ulation tasks, so we opt to exclude these. In total, we use 60k demonstrations
+across 20 tasks.
+object from a source receptacle and placing it into a
+target receptacle (e.g., from bowl to basket). Refer to
+Appendix VIII-D for additional details about these tasks.
+While semantically similar to the real-world setup, the prior
+tasks and datasets were developed independently and involve
+numerous discrepancies such as object categories, visual
+these 10 tasks is semantically equivalent to the real-world
+tasksthey involve different source andor target receptacles.
+We use DexMimicGen , a data generation framework
+built on top of MimicGen for humanoid and other bimanual
+demonstrations. We generate 1,000 demonstrations for each
+C. Building Task-Aware Simulation Datasets
+The tasks and datasets presented in the previous section
+may have a number of large discrepancies with the real-world
+expend additional effort in creating custom tasks in simulation
+that are better aligned with the real-world tasks. Creating a
+perfect digital twin , ,  copy of the real-world
+task is challenging, requiring extensive manual tuning, system
+to create tasks in simulation that share the same task semantics,
+namely the object categories in the environment and the same
+behaviors. We refer to these as task-aware digital cousins.
+The term digital cousin was recently introduced by Dai et
+al.  to describe simulation environments that are close to,
+but not perfectly aligned with, their real-world counterparts.
+We extend this notion with a more precise definition: a task-
+aware digital cousin is a simulation dataset that preserves four
+key elements of the real-world task:
+1) The same robot and action space;
+2) The same task goalspecifically, the same success
+check and, if applicable, the same language instructions;
+3) The same object categories, though individual instances
+may differ in geometry or texture;
+4) The same environmental fixture categories (e.g., kitchen
+We outline our efforts to create these tasks as follows:
+Kitchen.
+real-world
+are already represented in the RoboCasa prior dataset, but
+have several discrepancies as outlined in the prior section.
+We outline the changes that we made to the task and dataset
+as follows. First, we adjust the initial state distribution of the
+robot joints and robot base position in simulation to match the
+real environment. In addition, we restrict the objects in the
+task to a curated list of 10 object categories, which includes
+all of the nine object categories used in the real-world
+CounterToSinkPnP task. This is in contrast to the prior
+possible object categories. For each task, we then collect 100
+source human demonstrations. Finally, we generate 10,000
+demonstrations for each task using MimicGen. This is in
+contrast to the prior dataset, where the authors collected 50
+source human demonstrations per task and generated 3,000
+demonstrations per task with MimicGen. We provide a more
+in-depth comparison between the real data, task-agnostic prior
+simulation data, and task-aware digital cousin simulation data
+in Appendix VIII-F.
+Humanoid
+Tabletop.
+this domain, we construct a digital cousin of the real-world
+environment in RoboCasa. In each of the real-world tasks,
+we use a fixed set of objects for both data collection and
+evaluation. In the digital cousin, however, we randomly
+select objects from the same category as those in the
+real-world
+increase
+diversity
+simulation
+demonstrations. Additionally, we align the robots initial
+pose and camera position to closely replicate the real-world
+setup. We then collect 10 source demonstrations and generate
+A detailed analysis of the data composition is provided in
+Appendix VIII-F.
+D. Training and Evaluation Protocol
+In our study, we compare the effect of co-training with
+different forms of real-world and simulation data. For each
+Real-world data (Real): demonstrations collected for
+the target task in the real-world. See Section IV-A for
+the list of tasks.
+Prior simulation data (Prior): task-agnostic simula-
+tion data outlined in Section IV-B.
+Task-aware digital cousin data (DC): synthetic simula-
+tion data outlined in Section IV-C.
+See Appendix Tables III and
+IV for an overview and
+comparison of these datasets for the Panda Kitchen and
+Humanoid Tabletop domains.
+We compare various mixtures of these datasets by co-
+training a policy on the data and evaluating the resulting policy
+on our real-world tasks outlined in Section IV-A. We train
+visuomotor policies with the Diffusion Policy implementation
+from Chi et al. . The policy takes RGB images and
+robot proprioceptive information as input and produces a
+sequence of actions to execute. We outline specific settings
+and hyperparameters in detail in Appendix VIII-G. Following
+record the success rate. See Appendix VIII-H for details on
+our evaluation protocol.
+V. EXPERIMENTS
+In this section, we present a comprehensive empirical study
+of co-training real-world policies using simulation data. We
+begin by showcasing the benefits of co-training using our full-
+fledged recipe, which has been informed by systematic exper-
+imentation (Section V-A and Section V-B). Specifically, we
+demonstrate how co-training with simulation data enhances the
+real-world policys in-domain performance (Section V-A) and
+improves its generalization to novel scenarios (Section V-B).
+Data Composition
+Panda Arm
+GR-1 Humanoid
+CloseDoor
+Real  DC
+Real  Prior
+Real  DC  Prior
+TABLE I: Effect of different simulation data in the co-training mix. We compare co-training with different simulation data on six tasks
+across two robot platforms. Note that we abbreviate the CounterToSinkPnP task as C2SPnP and CounterToCabPnP as C2CPnP.
+Co-training with Prior (third row) consistently boosts performance over policies trained on real data only (first row). On top of these
+the development of our recipe (Section V-D). These exper-
+iments identify key elements for effective sim-and-real co-
+based on our findings (Section V-E), ensuring clarity for
+practitioners.
+A. Effectiveness of Sim-and-Real Co-Training
+Co-training with task-aware digital cousin data sig-
+nificantly enhances real-world performance beyond real-
+only policies. Table I presents our main results. In the sec-
+ond row, compared to policies trained only on Real, those
+trained on Real and DC exhibit a 35.8 higher average suc-
+cess rate. These results indicate that incorporating simulation
+data more closely aligned with real-world tasks significantly
+enhances real-world policy performance. It is important to
+note that DC data is generated in task-aware digital cousin
+simulation environments. These environments share the same
+task definitions, similar scene setups, and comparable camera
+views with the real world, though none are perfectly aligned.
+and approximately align these digital cousins with real-world
+environments (see Section IV-C), demonstrating the feasibility
+of leveraging such simulations for improved real-world policy
+training.
+Co-training with task-agnostic prior simulation data
+also improves real-world performance. As shown in the
+third row of Table I, policies trained on Real and Prior
+consistently outperform those trained solely on Real across
+all tasks, achieving an average success rate improvement
+of 31.5. This is a particularly surprising and encouraging
+knowledge of real-world tasks. These results indicate that even
+without manual alignment of the simulation environment, co-
+training with simulation data yields substantial benefits. This
+finding highlights the potential of leveraging readily available
+simulation data to enhance real-world policy performance.
+combination of Real, DC, and Prior data in general perform
+the best, achieving an improvement of 37.9 over the real-
+only policies on average.
+We observe a dramatic performance gap between Real and
+the other co-trained polices for the CloseDoor task. We
+further investigate the robustness of this gap by training the
+Real policy with more demos. See Section VIII-L for more
+results.
+B. Generalization Beyond Real Demonstrations
+To understand how simulation data enhances real-world
+policy performance, we investigate whether exposure to di-
+verse situations in simulationones not explicitly covered
+in real-world demonstrationscan improve a policys ability
+to generalize to similar, unseen situations in the real world.
+This question is particularly important because generating
+broad-coverage data in simulation is relatively easy, whereas
+collecting diverse real-world demonstrations is often expensive
+and impractical. If simulation data can effectively bridge this
+real-world policies with minimal real-world data.
+To explore this, we evaluate the generalization capabil-
+ities of co-trained policies beyond real-world demonstra-
+tions. Specifically, we consider two key axes of varia-
+CounterToSinkPnP and CupPnP tasks as our testbed,
+to assess the policys ability to handle novel scenarios in the
+real world (see Section IV-C).
+Co-training with simulation data enhances policy robust-
+ness to novel object entities. For the CounterToSinkPnP
+instances of the original object categories with differing size,
+cup with cups of different colors and introduce novel objects.
+The settings of generalization experiments are detailed in
+Appendix VIII-I. As shown in Table II, the policy trained
+solely on Real achieves a success rate of only 33 and 10
+on novel objects, whereas the co-trained policy significantly
+outperforms it with success rates of 50 and 80. The diver-
+sity in simulation data contributes to improved generalizability
+in real-world policy performance.
+Co-training with simulation data enhances policy robust-
+ness to novel object positions. In this experiment, we exclude
+real demonstrations where the object is placed in the middle
+of the workspace, retaining only those where the object is po-
+sitioned along borders or corners of the rectangular sampling
+Data Composition
+Unseen Objects
+Unseen Positions
+Real  DC
+TABLE II:
+Co-training with sim enhances policy general-
+ization across novel objects and novel positions. We select the
+CounterToSinkPnP task on Panda and the CupPnP task on the
+humanoid and evaluate the policies performance when the object is
+changed and when the object is placed at unseen positions.
+Success Rate
+Number of Real Demos
+Co-Trained Policy
+Policy Trained only on Real Data
+Effect of the quantity of real demonstrations. We use
+a total of 4,000 simulation DC demos and vary the total number of
+real demos from 40 to 400 on task MultiTaskPnP. The results
+show that our co-training recipe remains beneficial with larger real
+datasets.
+region. During evaluation, we place the objects in the center
+of the sampling region, which are unseen positions in the real
+demonstrations. The setups are visualized in Appendix VIII-I.
+In simulation, we still include data with objects distributed
+uniformly in the rectangular region. As shown in Table II,
+policies co-trained with DC achieve a twice higher success rate
+compared with the policies trained solely on Real for both
+humanoid and Panda experiments. This result indicates that
+diverse simulation data substantially improve policy robustness
+to spatial variations.
+C. Effectiveness of Co-Training in Data-Rich Settings
+Our main results (Section V-A) examine the effectiveness of
+sim-and-real co-training in single-task settings with different
+embodiment and scene setups. Meanwhile, recent works ,
+,  have demonstrated incredible performance by training
+policies on large-scale, multi-task real-world manipulation
+datasets. This raises the questioncan co-training with syn-
+thetic data still be beneficial with larger real-robot datasets?
+To evaluate the effectiveness of our co-training approach in a
+scaled-up setting, we conduct experiments on a new humanoid
+MultiTaskPnP task. In this task, the robot must pick an
+object from one container and place it into another, with four
+different source-target container combinations.
+For each real-world task variation, we construct a corre-
+sponding task-aware digital cousin. We train policies using a
+fixed set of 4,000 DC demonstrations (1,000 per task) while
+varying the number of real-world demonstrations. During
+Success Rate
+Co-Training Ratio : Probability of Sampling from Simulation Data
+Co-Trained Policy
+Policy Trained only on Real Data
+Fig. 5: Effect of the different co-training ratios. The co-training
+minibatch. We experiment on the CupPnP task with 20 real demos
+and 1000 simulation demos from task-aware digital cousins. Tuning
+the co-training ratio is important for the good performance of co-
+trained policies.
+three unseen objects. The detailed task setup is provided in
+Appendix VIII-J.
+As shown in Figure 4, increasing the number of real-world
+demonstrations improves the success rate for both real-only
+and co-trained policies. Even with 400 real demonstrations,
+the co-trained policy consistently outperforms the real-
+only policy, demonstrating that sim-and-real co-training
+remains beneficial even in data-rich settings.
+D. Key Elements of Effective Co-Training
+In the sections above, we demonstrated the effectiveness of
+sim-and-real co-training with our full-fledged recipe. In this
+elements for successful co-training. These elements include the
+quantity of real and simulation demonstrations, the co-training
+(DC) environments. Our findings highlight practical strategies
+for optimizing co-training and improving real-world policy
+performance.
+A sufficient number of simulation demonstrations is
+crucial for effective co-training. First, we analyze the im-
+pact of varying the number of simulation demonstrations.
+We reduce the number of DC demonstrations for the Panda
+CounterToSinkPnP and GR-1 CupPnP tasks and train
+policies using Real data combined with the reduced DC
+data. In the Panda CounterToSinkPnP task, decreasing
+the number of simulation demonstrations from 10k to 500
+causes the success rate to drop from 67 to 53. Similarly,
+in the GR-1 CupPnP task, reducing the number of simulation
+demonstrations from 1k to 100 lowers the success rate from
+95 to 75. Therefore, having sufficient simulation demon-
+strations is essential for achieving strong performance in co-
+trained policies.
+Tuning the co-training ratio is required for effective
+co-training. We investigate the impact of the co-training
+ratiothe proportion of simulation data used during train-
+ingon the CupPnP task (Section IV-A). As shown in
+Figure 5, a 1:1 ratio (50) is suboptimal. In our experiments,
+Real World
+Digital Cousin
+(Aligned Camera)
+Digital Cousin
+(Default Camera)
+Fig. 6: Camera alignment visualization. We visualize the
+default and aligned camera views of the GR-1 CupPnP task
+and Panda CounterToSinkPnP task.
+a co-training ratio of 99 yielded the best performance.
+99.5 and 99.9 resulted in drops in success rate, from 95
+to 60. These findings highlight the importance of carefully
+tuning the co-training ratio to achieve optimal performance.
+Camera alignment is critical for successful co-training
+with task-aware digital cousin data. In DC, we approximate
+the alignment of the simulation environments camera with
+the real-world camera view. To evaluate the importance of
+this alignment, we render data using the default, unaligned
+camera view and trained policies on the resulting misaligned
+simulation data. The results indicate a significant drop in
+performance compared to policies co-trained with properly
+aligned DC data. On the Panda arm CounterToSinkPnP
+while in the GR-1 humanoid CupPnP task, it declined from
+95 to 70. We visualize the default and aligned camera
+views in Figure 6. Notably, the aligned camera is not strictly
+identical to the real-world camera. For example, the camera
+mounted on the real-world humanoid has a fisheye effect,
+whereas our aligned simulation camera does not model this
+distortion. This suggests that while alignment enhances perfor-
+co-training.
+E. A Simple Recipe for Sim-and-Real Co-Training
+Based on our empirical findings, we provide a set of
+recommendations to help practitioners reap the benefits of co-
+training with synthetic simulation data.
+Task and scene composition. The greatest performance
+gains are observed when co-training with simulation
+data from task-aware digital cousins, where the task and
+scene compositions closely mirror those of the real-world
+setting. Nevertheless, co-training with large multi-task
+prior simulation datadespite differences in task and
+scene compositionstill provides meaningful benefits.
+Object composition and initialization distribution. In-
+corporating diverse objects and varying their placements
+in simulation data helps real-world policies generalize to
+unseen scenarios.
+Alignment between the task-aware digital cousin and
+the real world. It is essential that the simulation task
+shares the same definition and success criteria as its real-
+world counterpart. Additionally, maintaining similar cam-
+era viewpoints between simulation and real-world settings
+can improve performance, though perfect alignment is not
+required.
+Co-training hyperparameters. We recommend utilizing
+a sufficiently large amount of simulation data (ideally,
+orders of magnitude more than real-world data) and care-
+fully tuning the co-training ratio to optimize performance.
+VI. LIMITATIONS
+Although we conduct systematic studies on several tasks
+across both a tabletop manipulator and a humanoid robot,
+most tasks are centered around pick-and-place. Extending our
+approach to a broader set of manipulation tasks, such as
+high-precision insertion, and longer-horizon tasks, is left for
+future work. While our co-training recipe consistently im-
+proves success rates compared to solely training on real-robot
+data collection, the policys performance is still not perfect.
+Future efforts could look into building on top of this recipe
+to further boost real-world performance. Finally, certain real-
+world tasksparticularly those involving deformable objects
+and liquidsremain difficult to simulate accurately, inherently
+limiting the applicability of simulation data. Applying this co-
+training strategy to such tasks presents a challenge. Future
+work could explore the use of co-training data produced by
+video generation models and world models  as a way
+to bridge this gap.
+VII. CONCLUSION
+In this work, we systematically investigate how to effec-
+tively leverage synthetically generated data from physics sim-
+ulations to solve real-world, vision-based manipulation tasks.
+By analyzing key factors that impact the dataset distributions
+and co-training strategies, we demonstrate that large-scale
+simulation data can effectively complement real-world data
+even in the presence of significant discrepanciesleading to
+policies that outperform those trained on real-world data alone.
+generalization to scenarios not covered in real-world datasets,
+underscoring its potential for developing more robust and
+adaptable robotic systems. Our findings highlight the promise
+of leveraging diverse simulation data to advance generalist
+robot autonomy.
+In addition, we offer a set of practical recommendations for
+practitioners to harness the benefits of synthetic simulation
+data without requiring extensive manual effort in construct-
+ing or aligning simulation environments. They reinforce the
+importance of systematically integrating simulation and real-
+world data. We hope our insights will inspire future research
+to further unleash the potential of simulation in building
+generalizable robot models in the real world.
+REFERENCES
+K. Black, N. Brown, D. Driess, A. Esmail, M. Equi, C. Finn, N. Fusai,
+L. Groom, K. Hausman, B. Ichter et al., 0: A vision-language-action
+flow model for general robot control, arXiv preprint arXiv:2410.24164,
+M. J. Kim, K. Pertsch, S. Karamcheti, T. Xiao, A. Balakrishna, S. Nair,
+R. Rafailov, E. Foster, G. Lam, P. Sanketi et al., OpenVLA: An open-
+source vision-language-action model, arXiv preprint arXiv:2406.09246,
+L. Fan, Y. Fang, D. Fox, F. Hu, S. Huang et al., Gr00t n1: An
+open foundation model for generalist humanoid robots, arXiv preprint
+F. Ebert, Y. Yang, K. Schmeckpeper, B. Bucher, G. Georgakis, K. Dani-
+of Robotic Skills with Cross-Domain Datasets, in Proceedings of
+A. Brohan, N. Brown, J. Carbajal, Y. Chebotar, J. Dabis, C. Finn,
+K. Gopalakrishnan, K. Hausman, A. Herzog, J. Hsu et al., RT-1:
+Robotics transformer for real-world control at scale, arXiv preprint
+A. Khazatsky, K. Pertsch, S. Nair, A. Balakrishna, S. Dasari, S. Karam-
+large-scale in-the-wild robot manipulation dataset, in Proceedings of
+S. Nasiriany, A. Maddukuri, L. Zhang, A. Parikh, A. Lo, A. Joshi,
+A. Mandlekar, and Y. Zhu, Robocasa: Large-scale simulation of ev-
+eryday tasks for generalist robots, in Robotics: Science and Systems
+Y. Wang, Z. Xian, F. Chen, T.-H. Wang, Y. Wang, K. Fragkiadaki,
+Z. Erickson, D. Held, and C. Gan, Robogen: Towards unleashing
+infinite data for automated robot learning via generative simulation,
+in Forty-first International Conference on Machine Learning, 2023.
+A. Mandlekar, S. Nasiriany, B. Wen, I. Akinola, Y. Narang, L. Fan,
+Y. Zhu, and D. Fox, Mimicgen: A data generation system for scalable
+robot learning using human demonstrations, in Conference on Robot
+Learning.
+Z. Jiang, Y. Xie, K. Lin, Z. Xu, W. Wan, A. Mandlekar, L. Fan, and
+Y. Zhu, Dexmimicgen: Automated data generation for bimanual dex-
+terous manipulation via imitation learning, in 2025 IEEE International
+Conference on Robotics and Automation (ICRA), 2025.
+C. Garrett, A. Mandlekar, B. Wen, and D. Fox, Skillmimicgen:
+Automated demonstration generation for efficient skill learning and
+M. Dalal, A. Mandlekar, C. R. Garrett, A. Handa, R. Salakhutdinov,
+and D. Fox, Imitating task and motion planning with visuomotor
+F. Ramos, R. C. Possas, and D. Fox, Bayessim: adaptive domain
+randomization via probabilistic inference for robotics simulators, arXiv
+preprint arXiv:1906.01728, 2019.
+F. Muratore, T. Gruner, F. Wiese, B. Belousov, M. Gienger, and J. Peters,
+Neural posterior domain randomization, in Conference on Robot
+Learning.
+V. Lim, H. Huang, L. Y. Chen, J. Wang, J. Ichnowski, D. Seita,
+M. Laskey, and K. Goldberg, Real2sim2real: Self-supervised learning
+of physical single-step dynamic actions for planar robot casting, in 2022
+International Conference on Robotics and Automation (ICRA).
+M. Memmel, A. Wagenmaker, C. Zhu, P. Yin, D. Fox, and A. Gupta,
+A. Z. Ren, H. Dai, B. Burchfiel, and A. Majumdar, Adaptsim: Task-
+driven simulation adaptation for sim-to-real transfer, arXiv preprint
+J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel,
+Domain randomization for transferring deep neural networks from
+simulation to the real world, in 2017 IEEERSJ international conference
+on intelligent robots and systems (IROS).
+X. B. Peng, M. Andrychowicz, W. Zaremba, and P. Abbeel, Sim-to-real
+transfer of robotic control with dynamics randomization, in 2018 IEEE
+international conference on robotics and automation (ICRA).
+Y. Zhu, Z. Wang, J. Merel, A. Rusu, T. Erez, S. Cabi, S. Tunya-
+Reinforcement and imitation learning for diverse visuomotor skills,
+in Proceedings of Robotics: Science and Systems, 2018.
+O. M. Andrychowicz, B. Baker, M. Chociej, R. Jozefowicz, B. McGrew,
+J. Pachocki, A. Petron, M. Plappert, G. Powell, A. Ray et al., Learning
+dexterous in-hand manipulation, The International Journal of Robotics
+A. Handa, A. Allshire, V. Makoviychuk, A. Petrenko, R. Singh, J. Liu,
+D. Makoviichuk, K. Van Wyk, A. Zhurkevich, B. Sundaralingam et al.,
+to reality, in 2023 IEEE International Conference on Robotics and
+Automation (ICRA).
+K. Bousmalis, A. Irpan, P. Wohlhart, Y. Bai, M. Kelcey, M. Kalakrish-
+and domain adaptation to improve efficiency of deep robotic grasping,
+in 2018 IEEE International Conference on Robotics and Automation
+L. Ankile, A. Simeonov, I. Shenfeld, M. Torne, and P. Agrawal, From
+imitation to refinementresidual rl for precise assembly, arXiv preprint
+J. Wang, Y. Qin, K. Kuang, Y. Korkmaz, A. Gurumoorthy, H. Su, and
+X. Wang, Cyberdemo: Augmenting simulated human demonstration for
+real-world dexterous manipulation, in Proceedings of the IEEECVF
+Conference on Computer Vision and Pattern Recognition, 2024, pp.
+T. Dai, J. Wong, Y. Jiang, C. Wang, C. Gokmen, R. Zhang, J. Wu,
+and L. Fei-Fei, Automated creation of digital cousins for robust policy
+D. A. Pomerleau, Alvinn: An autonomous land vehicle in a neural
+M. Drolet, S. Stepputtis, S. Kailas, A. Jain, J. Peters, S. Schaal, and
+H. Ben Amor, A comparison of imitation learning algorithms for
+bimanual manipulation, IEEE Robotics and Automation Letters (RA-
+A. Tung, J. Wong, A. Mandlekar, R. Martn-Martn, Y. Zhu, L. Fei-Fei,
+and S. Savarese, Learning multi-arm manipulation through collabora-
+tive teleoperation, in 2021 IEEE International Conference on Robotics
+and Automation (ICRA).
+T. Z. Zhao, V. Kumar, S. Levine, and C. Finn, Learning Fine-Grained
+Bimanual Manipulation with Low-Cost Hardware, in Proceedings of
+J. Aldaco, T. Armstrong, R. Baruch, J. Bingham, S. Chan, K. Draper,
+D. Dwibedi, C. Finn, P. Florence, S. Goodrich et al., Aloha 2: An
+enhanced low-cost hardware for bimanual teleoperation, arXiv preprint
+S. Schaal, Is imitation learning the route to humanoid robots? Trends
+in cognitive sciences, vol. 3, no. 6, pp. 233242, 1999.
+A. J. Ijspeert, J. Nakanishi, and S. Schaal, Movement imitation with
+nonlinear dynamical systems in humanoid robots, Proceedings 2002
+IEEE International Conference on Robotics and Automation, vol. 2, pp.
+M. Seo, S. Han, K. Sim, S. H. Bang, C. Gonzalez, L. Sentis, and Y. Zhu,
+Deep imitation learning for humanoid loco-manipulation through hu-
+man teleoperation, in 2023 IEEE-RAS 22nd International Conference
+on Humanoid Robots (Humanoids).
+R. Ding, Y. Qin, J. Zhu, C. Jia, S. Yang, R. Yang, X. Qi, and
+X. Wang, Bunny-visionpro: Real-time bimanual dexterous teleoperation
+for imitation learning, arXiv preprint arXiv:2407.03162, 2024.
+X. Cheng, J. Li, S. Yang, G. Yang, and X. Wang, Open-television:
+teleoperation with immersive active visual feedback, arXiv preprint
+A. Mandlekar, D. Xu, J. Wong, S. Nasiriany, C. Wang, R. Kulkarni,
+L. Fei-Fei, S. Savarese, Y. Zhu, and R. Martn-Martn, What matters
+in learning from offline human demonstrations for robot manipulation,
+in Conference on Robot Learning (CoRL), 2021.
+C. Chi, S. Feng, Y. Du, Z. Xu, E. Cousineau, B. Burchfiel, and S. Song,
+Diffusion policy: Visuomotor policy learning via action diffusion, in
+Proceedings of Robotics: Science and Systems (RSS), 2023.
+C. Finn, T. Yu, T. Zhang, P. Abbeel, and S. Levine, One-shot visual
+imitation learning via meta-learning, in Conference on robot learning.
+A. Billard, S. Calinon, R. Dillmann, and S. Schaal, Robot programming
+by demonstration, in Springer Handbook of Robotics, 2008.
+S. Calinon, F. Dhalluin, E. L. Sauser, D. G. Caldwell, and A. Billard,
+Learning and reproduction of gestures by imitation, IEEE Robotics
+and Automation Magazine, vol. 17, pp. 4454, 2010.
+A. Mandlekar, D. Xu, R. Martn-Martn, S. Savarese, and L. Fei-Fei,
+A. Zeng, P. Florence, J. Tompson, S. Welker, J. Chien, M. Attarian,
+T. Armstrong, I. Krasin, D. Duong, V. Sindhwani et al., Transporter
+Conference on Robot Learning.
+C. Wang, R. Wang, A. Mandlekar, L. Fei-Fei, S. Savarese, and D. Xu,
+Generalization through hand-eye coordination: An action space for
+learning spatially-invariant visuomotor control, in 2021 IEEERSJ Inter-
+national Conference on Intelligent Robots and Systems (IROS).
+C. Lynch, M. Khansari, T. Xiao, V. Kumar, J. Tompson, S. Levine, and
+P. Sermanet, Learning latent plans from play, in Conference on Robot
+K. Pertsch, Y. Lee, Y. Wu, and J. J. Lim, Demonstration-guided
+reinforcement learning with learned skills, in Conference on Robot
+A. Ajay, A. Kumar, P. Agrawal, S. Levine, and O. Nachum, Opal: Of-
+fline primitive discovery for accelerating offline reinforcement learning,
+in International Conference on Learning Representations, 2021.
+K. Hakhamaneshi, R. Zhao, A. Zhan, P. Abbeel, and M. Laskin, Hier-
+archical few-shot imitation with skill transition models, in International
+Conference on Learning Representations, 2021.
+Y. Zhu, P. Stone, and Y. Zhu, Bottom-up skill discovery from un-
+segmented demonstrations for long-horizon robot manipulation, IEEE
+Robotics and Automation Letters, vol. 7, no. 2, pp. 41264133, 2022.
+S. Nasiriany, T. Gao, A. Mandlekar, and Y. Zhu, Learning and retrieval
+from prior data for skill-based imitation learning, in Conference on
+Robot Learning (CoRL), 2022.
+Y. Chebotar, A. Handa, V. Makoviychuk, M. Macklin, J. Issac, N. Ratliff,
+and D. Fox, Closing the sim-to-real loop: Adapting simulation random-
+ization with real world experience, in 2019 International Conference
+on Robotics and Automation (ICRA).
+B. Mehta, M. Diaz, F. Golemo, C. J. Pal, and L. Paull, Active domain
+P. Huang, X. Zhang, Z. Cao, S. Liu, M. Xu, W. Ding, J. Francis,
+B. Chen, and D. Zhao, What went wrong? closing the sim-to-real gap
+via differentiable causal discovery, in Conference on Robot Learning.
+A. Kumar, Z. Fu, D. Pathak, and J. Malik, Rma: Rapid motor adaptation
+for legged robots, arXiv preprint arXiv:2107.04034, 2021.
+B. Evans, A. Thankaraj, and L. Pinto, Context is everything: Implicit
+identification for dynamics adaptation, in 2022 International Confer-
+ence on Robotics and Automation (ICRA). IEEE, 2022, pp. 26422648.
+Z. Jiang, C.-C. Hsu, and Y. Zhu, Ditto: Building digital twins of
+articulated objects from interaction, in Proceedings of the IEEECVF
+Conference on Computer Vision and Pattern Recognition, 2022, pp.
+M. Torne, A. Simeonov, Z. Li, A. Chan, T. Chen, A. Gupta,
+and P. Agrawal, Reconciling reality through simulation: A real-
+to-sim-to-real
+approach
+preprint
+A. Brohan, N. Brown, J. Carbajal, Y. Chebotar, X. Chen, K. Choroman-
+action models transfer web knowledge to robotic control, arXiv preprint
+J. Hejna, C. Bhateja, Y. Jian, K. Pertsch, and D. Sadigh, Re-mix:
+Optimizing data mixtures for large scale imitation learning, arXiv
+preprint arXiv:2408.14037, 2024.
+A. Xie, L. Lee, T. Xiao, and C. Finn, Decomposing the generalization
+gap in imitation learning for visual robotic manipulation, in 2024 IEEE
+International Conference on Robotics and Automation (ICRA).
+W. Pumacay, I. Singh, J. Duan, R. Krishna, J. Thomason, and D. Fox,
+The colosseum: A benchmark for evaluating generalization for robotic
+J. Gao, A. Xie, T. Xiao, C. Finn, and D. Sadigh, Efficient data
+collection for robotic manipulation via compositional generalization,
+arXiv preprint arXiv:2403.05110, 2024.
+V. Saxena, M. Bronars, N. R. Arachchige, K. Wang, W. C. Shin,
+S. Nasiriany, A. Mandlekar, and D. Xu, What matters in learning from
+large-scale datasets for robot manipulation, in CoRL 2024 Workshop
+on Mastering Robot Manipulation in a World of Abundant Data.
+K. Zakka, Mink: Python inverse kinematics based on MuJoCo, Jul.
+2024. [Online]. Available:
+S. Nasiriany, H. Liu, and Y. Zhu, Augmenting reinforcement learning
+with behavior primitives for diverse manipulation tasks, in IEEE
+International Conference on Robotics and Automation (ICRA), 2022.
+Open X-Embodiment Collaboration, A. ONeill, A. Rehman, A. Mad-
+and RT-X models,  2023.
+P. Chattopadhyay, Y. Chen, Y. Cui, Y. Ding, D. Dworakowski, J. Fan
+et al., Cosmos world foundation model platform for physical AI, 2025.
+J. Bruce, M. Dennis, A. Edwards, J. Parker-Holder, Y. Shi, E. Hughes,
+M. Lai, A. Mavalankar, R. Steigerwald, C. Apps, Y. Aytar, S. Bechtle,
+F. Behbahani, S. Chan, N. Heess, L. Gonzalez, S. Osindero, S. Ozair,
+S. Reed, J. Zhang, K. Zolna, J. Clune, N. de Freitas, S. Singh, and
+T. Rocktaschel, Genie: Generative interactive environments, 2024.
+[Online]. Available:
+A. Hu, L. Russell, H. Yeo, Z. Murez, G. Fedoseev, A. Kendall,
+J. Shotton, and G. Corrado, Gaia-1: A generative world model for
+autonomous driving, 2023. [Online]. Available:
+Y. Zhu, A. Joshi, P. Stone, and Y. Zhu, Viola: Imitation learning
+for vision-based manipulation with object proposal priors, 6th Annual
+Conference on Robot Learning, 2022.
+O. Khatib, Inertial properties in robotic manipulation: An object-level
+E. Perez, F. Strub, H. de Vries, V. Dumoulin, and A. Courville, Film:
+Visual reasoning with a general conditioning layer, 2017. [Online].
+C. Chi, Z. Xu, C. Pan, E. Cousineau, B. Burchfiel, S. Feng, R. Tedrake,
+and S. Song, Universal manipulation interface: In-the-wild robot teach-
+ing without in-the-wild robots, in Proceedings of Robotics: Science and
+Systems (RSS), 2024.
+A. Dosovitskiy, An image is worth 16x16 words: Transformers for
+image recognition at scale, arXiv preprint arXiv:2010.11929, 2020.
+O. Ronneberger, P. Fischer, and T. Brox, U-net: Convolutional networks
+for biomedical image segmentation, in Medical Image Computing and
+Computer-Assisted Intervention, 2015, pp. 234241.
+K. Rao, C. Harris, A. Irpan, S. Levine, J. Ibarz, and M. Khansari,
+D. Ho, K. Rao, Z. Xu, E. Jang, M. Khansari, and Y. Bai, Retinagan:
+An object-aware approach to sim-to-real transfer, in 2021 IEEE Inter-
+national Conference on Robotics and Automation (ICRA).
+P. M. Scheikl, E. Tagliabue, B. Gyenes, M. Wagner, D. DallAlba,
+P. Fiorini, and F. Mathis-Ullrich, Sim-to-real transfer for visual rein-
+forcement learning of deformable object manipulation for robot-assisted
+D. Liu, Y. Chen, and Z. Wu, Digital twin (dt)-cyclegan: Enabling zero-
+shot sim-to-real transfer of visual grasping models, IEEE Robotics and
+Automation Letters, vol. 8, no. 5, pp. 24212428, 2023.
+Z. Yang, J. Teng, W. Zheng, M. Ding, S. Huang, J. Xu, Y. Yang,
+W. Hong, X. Zhang, G. Feng et al., Cogvideox: Text-to-video diffusion
+models with an expert transformer, arXiv preprint arXiv:2408.06072,
+VIII. APPENDIX
+A. Overview
+The Appendix contains the following content:
+Author Contributions (Appendix VIII-B): list of each
+authors contributions to the paper
+Real-World Tasks (Appendix VIII-C): details about real-
+world domains and tasks
+Task-Agnostic Simulation Datasets (Appendix VIII-D):
+details about task-agnostic simulation environments and
+datasets
+Task-Aware
+Datasets
+pendix VIII-E): details about the tuning process for
+digital cousin environments and generating large-scale
+Data Composition Analysis (Appendix VIII-F): compar-
+ing data composition factors across real, digital cousin,
+and prior datasets
+Training Details (Appendix VIII-G): training algorithm,
+model architecture, and training protocols
+Policy Evaluation (Appendix VIII-H): experiment eval-
+uation protocols
+Generalization Experiment Details (Appendix VIII-I):
+details about the generalization experiments presented in
+Section V-B
+MultiTaskPnP Task Setup (Appendix VIII-J): details
+about the multi-task experiment setup presented in Sec-
+tion V-C
+Improving
+pendix VIII-K): additional experiments on bridging the
+visual gap between simulation and real-world data with
+Vid2Vid techniques
+Training
+CloseDoor
+(Appendix VIII-L): additional experiments to improve
+performance on real-world CloseDoor task
+FAQ (Appendix VIII-M): additional topics
+B. Author Contributions
+Algorithm design: Soroush Nasiriany, Zhenyu Jiang,
+Lawrence Yunliang Chen, Abhiram Maddukuri, Ajay
+Experiments (Panda Kitchen): Abhiram Maddukuri,
+Soroush Nasiriany
+Experiments
+(Humanoid
+Tabletop): Zhenyu Jiang,
+Lawrence Yunliang Chen, Yuqi Xie, Zu Wang
+Infrastructure support: Yu Fang, Wenqi Huang, Nikita
+Digital release: Lawrence Yunliang Chen, Zhenyu Jiang
+Technical advice: Ken Goldberg, Scott Reed
+Project leads: Yuke Zhu, Linxi Fan, Ajay Mandlekar
+C. Real-World Tasks
+Panda Kitchen. For our Panda Kitchen tasks, we use the
+DROID  setup and make some modif

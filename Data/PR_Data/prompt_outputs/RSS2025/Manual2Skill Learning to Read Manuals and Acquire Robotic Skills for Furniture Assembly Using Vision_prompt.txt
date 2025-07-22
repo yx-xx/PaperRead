@@ -1,0 +1,1221 @@
+=== PDF文件: Manual2Skill Learning to Read Manuals and Acquire Robotic Skills for Furniture Assembly Using Vision.pdf ===
+=== 时间: 2025-07-22 15:43:05.296435 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Acquire Robotic Skills for Furniture Assembly
+Using Vision-Language Models
+Chenrui Tie1
+Shengxiang Sun2
+Jinxuan Zhu1
+Yiwei Liu4
+Jingxiang Guo1
+Haonan Chen1
+Junting Chen1
+Ruihai Wu3
+Lin Shao1
+1National University of Singapore
+2University of Toronto
+3Peking University
+4Sichuan University 5Zhejiang University
+Real Parts
+Manual2Skill
+Hierarchical Assembly Graph
+Per-step Pose Estimation
+Motion Planning and Execution
+Completed
+Assembly
+Equivalent Parts
+Fig. 1: Overview of Manual2Skill Framework. We propose Manual2Skill, which learns manipulation skills from manuals,
+enabling robots to understand and execute complex manipulation tasks in a manner akin to humans. The green region showcases
+the input of our pipeline: the pictures of the assembly manual and real parts. The blue region depicts our pipeline: 1) a Vision-
+Language Model (VLM) generates a Hierarchical Assembly Graph, 2) a per-step pose estimation module predicts the 6D-poses
+of components, and 3) a motion planning and execution module controls the robot arms to assemble the furniture autonomously.
+AbstractHumans possess an extraordinary ability to under-
+stand and execute complex manipulation tasks by interpreting
+abstract instruction manuals. For robots, however, this capability
+remains a substantial challenge, as they cannot interpret abstract
+instructions and translate them into executable actions. In this
+robots to perform complex assembly tasks guided by high-
+level manual instructions. Our approach leverages a Vision-
+Language Model (VLM) to extract structured information from
+instructional images and then uses this information to construct
+hierarchical assembly graphs. These graphs represent parts,
+task execution, a pose estimation model predicts the relative 6D
+poses of components at each assembly step. At the same time, a
+motion planning module generates actionable sequences for real-
+world robotic implementation. We demonstrate the effectiveness
+of Manual2Skill by successfully assembling several real-world
+IKEA furniture items. This application highlights its ability to
+manage long-horizon manipulation tasks with both efficiency and
+ing from instruction manuals. This work marks a step forward in
+advancing robotic systems capable of understanding and execut-
+ing complex manipulation tasks in a manner akin to human ca-
+pabilities. Project Page:
+Assembly-Web
+Equal contribution.
+I. INTRODUCTION
+Humans can learn manipulation skills from instructions in
+images or texts; for example, people can assemble IKEA fur-
+niture or LEGO models by following a manuals instructions.
+This ability enables humans to efficiently acquire long-horizon
+manipulation skills from sketched instructions. In contrast,
+robots typically learn such skills through imitation learning
+or reinforcement learning , both of which require sig-
+nificantly more data and computation. Replicating the human
+ability to transfer abstract manuals to real-world actions re-
+mains a significant challenge for robots. Manuals are typically
+designed for human understanding, using simple schematic
+diagrams and symbols to convey manipulation processes.
+This abstraction makes it difficult for robots to comprehend
+such instructions and derive actionable manipulation strategies
+[32, 49, 48]. Developing a method for robots to effectively
+utilize human-designed manuals would greatly expand their
+capacity to tackle complex, long-horizon tasks while reducing
+the demand of collecting extensive demonstration data.
+Manuals inherently encode the structural information of
+complex tasks. They decompose high-level goals into mid-
+level subgoals and capture task flow and dependencies, such as
+sequential steps or parallelizable subtasks. For example, furni-
+ture assembly manuals guide the preparation and combination
+of components and ensure that all steps follow the correct
+. Extracting this structure is crucial for robots
+to replicate human-like understanding and manage complex
+tasks effectively [19, 33]. After decomposing the task, robots
+need to infer the specific information for each step, such
+as the involved components and their spatial relationships.
+For example, in cooking tasks, the instruction images and
+texts may involve selecting ingredients, tools, and utensils and
+arranging them in a specific order . Finally, robots need
+to generate a sequence of actions to complete the task, such as
+have tried to leverage sketched pictures  or trajectories
+to learn manipulation skills but are always limited to relatively
+simple tabletop tasks.
+In this paper, we propose Manual2Skill, a novel robot learn-
+ing framework that is capable of learning manipulation skills
+from visual instruction manuals. This framework can be ap-
+plied to automatically assemble IKEA furniture, a challenging
+and practical task that requires complex manipulation skills.
+As illustrated in Figure 1, given a set of manual images and the
+real furniture parts, we first leverage a vision language model
+to understand the manual and extract the assembly structure,
+represented as a hierarchical graph. Then, we train a model
+to estimate the assembly poses of all involved components in
+each step. Finally, a motion planning module generates action
+sequences to move selected components to target poses and
+executes them on robots to assemble the furniture.
+In summary, our main contributions are as follows:
+We propose Manual2Skill, a novel framework that lever-
+ages VLM to learn robotic skills from manuals, enabling
+a generalizable assembly pipeline for IKEA furniture.
+We introduce a hierarchical graph generation pipeline that
+utilizes VLM to extract structured information for assem-
+bly tasks. Our pipeline facilitates real-world assembly and
+extends to other assembly applications.
+We define a novel assembly pose estimation task within
+the learning-from-manual framework. We predict the 6D
+poses of all involved components at each assembly step
+to meet real-world assembly requirements.
+We evaluate our method on four real items of IKEA
+in real-world assembly tasks.
+II. RELATED WORK
+A. Furniture Assembly
+Part assembly is a long-standing challenge with extensive
+research exploring how to construct a complete shape from in-
+dividual components or parts [6, 13, 20, 27, 29, 36, 53, 46, 45].
+assembly and semantic assembly. Geometric assembly relies
+solely on geometric cues, such as surface shapes or edge
+In contrast, semantic assembly primarily leverages high-level
+semantic information about the parts to guide assembly pro-
+Furniture assembly is a representative semantic assembly
+a chair leg or a tabletop), and the assembly process follows
+be attached to the chair seat). Previous studies on furniture
+assembly have tackled different aspects of the problem, includ-
+ing the motion planning , multi-robot collaboration ,
+and assembly pose estimation [29, 58, 30]. Researchers have
+developed several datasets and simulation environments to
+facilitate research in this domain. For example, Wang et al.
+, Liu et al.  introduced IKEA furniture assembly
+datasets containing 3D models of furniture and structured
+assembly procedures derived from instruction manuals. Ad-
+simulation environments for IKEA furniture assembly, while
+Heo et al.  provides a reproducible benchmark for real-
+world furniture assembly. However, existing works typically
+focus on specific subproblems rather than addressing the
+entire assembly pipeline. In this work, we aim to develop a
+comprehensive framework that learns the sequential process of
+furniture assembly from manuals and deploys it in real-world
+experiments.
+B. VLM Guided Robot Learning
+Vision Language Models (VLMs)  have been widely
+used in robotics to understand the environment  and
+interact with humans . Recent advancements highlight
+VLMs potential to enhance robot learning by integrating
+vision and language information, enabling robots to perform
+complex tasks with greater adaptability and efficiency . A
+potential direction is the development of the Vision Language
+Action Model (VLA Model) that can generate actions based
+on the vision and language inputs [2, 23, 3, 44]. However,
+training such models requires vast amounts of data, and they
+struggle with long-horizon or complex manipulation tasks.
+Another direction is to leverage VLMs to guide robot learning
+by providing high-level instructions and perceptual under-
+standing. VLMs can assist with task descriptions [17, 18],
+environment comprehension , task planning [47, 56, 62],
+and even direct robot control . Additionally, Goldberg et al.
+demonstrates how VLMs can assist in designing robot
+assembly tasks. Building on these insights, we explore how
+VLMs can interpret abstract manuals and extract structured
+information to guide robotic skill learning for long-horizon
+manipulation tasks.
+C. Learning from Demonstrations
+Learning from demonstration (LfD) has achieved promising
+results in acquiring robot manipulation skills [12, 64, 7]. For
+a broader review of LfD in robotic assembly, we refer to Zhu
+and Hu . The key idea is to learn a policy that imitates the
+experts behavior. However, previous learning methods often
+require fine-grained demonstrations, like robot trajectories
+or videos [22, 40, 21]. Collecting these demonstrations is often
+labor-intensive and may not always be feasible. Some works
+propose to learn from coarse-grained demonstrations, like the
+hand-drawn sketches of desired scenes  or rough trajectory
+sketches . These approaches reduce dependence on expert
+demonstrations and improve the practicality of LfD. However,
+they are mostly limited to tabletop manipulation tasks and do
+not generalize well to more complex, long-horizon assembly
+problems. In this work, we aim to extend LfD beyond these
+constraints by tackling a more challenging assembly task using
+abstract instruction manuals.
+III. PROBLEM FORMULATION
+Given a complete set of 3D assembly parts and its assembly
+of robotic assembly actions for autonomous furniture assem-
+bly. Manuals typically use schematic diagrams and symbols
+designed to depict step-by-step instructions in an abstract for-
+mat that is universally understandable. We define the manual
+pages as a set of N images. I  {I1, I2,    , IN}, where each
+image Ii illustrates a specific step in the assembly process,
+such as the merging of certain parts or subassemblies
+The furniture consists of M
+individual parts P
+{P1, P2,    , PM}. A part is an individual element in P
+that remains disconnected from other parts until assembly. A
+subassembly is any partially or fully assembled structure that
+forms a proper subset of P (for example, {P1, P2}). The term
+component encompasses both parts and subassemblies.
+Given the manual and 3D parts, the system generates an
+assembly plan. Each step corresponds to a manual image and
+specifies the involved parts and sub-assemblies, their spatial
+6D poses, and the assembly actions or motion trajectories
+required for execution.
+IV. TECHNICAL APPROACH
+Our approach automates furniture assembly by leveraging
+the VLM to interpret IKEA-style manuals and guide robotic
+execution. Given a visual manual and physical parts in a pre-
+assembly scene, a VLM generates a hierarchical assembly
+in each step. Next, a per-step pose estimation model predicts
+6D poses for each component using a manual image and the
+point clouds of involved components. Finally, for assembly
+world frame, and a motion planner generates a collision-free
+trajectory for part mating.
+This paper shows an overview of our framework in Fig. 2.
+We describe the VLM-guided assembly hierarchical graph
+generation in Section IV-A, followed by per-step assembly
+pose estimation in Section IV-B and assembly action genera-
+tion based on component relationships in Section IV-C.
+A. VLM Guided Hierarchical Assembly Graph Generation
+This section demonstrates how VLMs can interpret IKEA-
+styled manuals to generate high-level assembly plans. Given a
+manual and a real-world image of furniture parts (pre-assembly
+scene image), a VLM predicts a hierarchical assembly graph.
+We show one example in Fig. 2. In this graph, leaf nodes repre-
+sent atomic parts, while non-leaf nodes denote subassemblies.
+We structure the graph in multiple layers, where each layer
+contains nodes representing parts or subassemblies involved in
+a single assembly step (corresponding to one manual image).
+The directed edges from the children to a parent node indicate
+that the system assembles the parent node from all its children
+nodes. Additionally, we add edges between equivalent parts,
+denoting these parts are identical(e.g. four legs of a chair).
+Representing the assembly process as a hierarchical graph
+can decomposes the assembly into sequential steps while
+specifying necessary parts and subassemblies. We give the
+formal definition of the hierarchical graph in Appendix J. We
+achieve this in two stages: Associating Manuals with Real
+Parts and Identifying Parts needed in Each Image.
+1) VLM Capabilities and General Prompt Structure: The
+task is inherently complex due to the diverse nature of input
+images. Manuals are typically abstract sketches, whereas pre-
+assembly scene images are high-resolution real-world images.
+Such diversity requires advanced visual recognition and spatial
+reasoning across varied image domains, which are strengths
+of VLMs due to their training on extensive, internet-scale
+datasets. We demonstrate the effectiveness of VLMs for this
+task in Section V-A and Appendix D.
+Every VLM prompt consists of two components:
+Image Set: This includes all manual pages and the real-
+world pre-assembly scene image. Unlike traditional VLM
+applications in robotics [23, 18], which process a single
+Text Instructions: These instructions provide a task-
+specific context, guiding the model in interpreting the
+image set. The instructions range from simple directives
+to Chain-of-Thought reasoning . All instructions in-
+corporate in-context learning examples, specifying the
+required output formatbe it JSON, Python code, or
+natural language. This structure is essential to our multi-
+stage pipeline, ensuring well-structured, interpretable out-
+puts that seamlessly integrate into subsequent stages.
+2) Stage I: Associating Real Parts with Manuals: Given
+the manuals cover sketch of the assembled furniture and
+the pre-assembly scene image, the VLM aims to associate
+physical parts with the manual. The VLM achieves this by
+predicting the roles of each physical part through semantically
+interpreting the manuals illustrations. This process involves
+analyzing spatial, contextual, and functional cues in the man-
+ual illustrations to enable a comprehensive understanding of
+each physical part. Our method follows CoT  and Least-
+to-Most  prompting for better accuracy.
+To enhance part identification, we employ Set of Marks
+and GroundingDINO  to automatically label parts
+{name: side frame, label :, role: ...}
+{name: side frame, label: , role: ...}
+{name: seat frame, label: , role: ...}
+{name: support bar, label: , role: ...}
+{name: support bar, label: , role: ...}
+{name: back rest, label: , role: ...}
+Stage I: Output
+1. VLM Guided Hierarchical Graph Generation
+Create a JSON file from the
+scene and manual page.
+Stage I: Image Set  Text Instructions
+Create an assembly hierarchical graph
+from the manual pages and your JSON file
+Step 1: Parts Involved: [0, 5]
+Step 2: Parts Involved: [3, 4, [0, 5]]
+Step 3: Parts Involved: [1, [3, 4, [0, 5]]]
+Step 4: Parts Involved: [2, [1, [3, 4, [0, 5]]]]
+Final Output: Hierarchical Graph
+2. Per-step Assembly Pose Estimation
+Cross-modality
+Part-wise
+Regressor
+Planning
+3. Robot Assembly Action
+Planning and Execution
+Equivalent Parts
+Stage II: Image Set  Text Instructions
+target pose
+real part
+Stage II: Output
+Fig. 2: Framework Overview. (1) GPT-4o  is queried with manual pages to generate a sequential assembly plan, represented
+as a hierarchical assembly graph. (2) The furniture components point clouds and corresponding manual images are processed
+by a pose estimation module to predict target poses for each component. (3) The system sequentially executes the assembly
+by planning and performing robotic actions based on the hierarchical assembly graph and estimated poses.
+on the pre-assembly scene image with numerical indices. The
+labeled scene image and manual sketch form the Image Set.
+Text instructions consist of a brief context explanation for the
+association task of predicting the roles of each physical part,
+accompanied by in-context examples of the output structure:
+{name, label, role}
+For example, in Figure 2 In Stage I Output, we describe the
+chairs seat as name: seat frame, label: , role: for people
+sitting on a chair, the seat offers essential support and comfort
+and is positioned centrally within the chairs frame. Here,
+indicates that this triplet corresponds to the physical part
+labeled with index 2 in the pre-assembly scene image. This
+triplet format enhances interpretability and ensures consistency
+by structuring all outputs into the same data format. We use
+the Image Set and Text Instructions as the input prompt for the
+VLM (specifically GPT-4o ) and query it once to generate
+real assignments for all physical parts. We then use these labels
+as leaf nodes in the hierarchical assembly graph.
+We can obtain equivalent parts through these triplets. When
+two physical parts share the same geometric shapes, their
+triplets only differ by label. For example, in Figure 2 Stage
+I Output, {name: side frame, label: , role:...} and {name:
+side frame, label: , role:...}these two parts are considered
+equivalent. Understanding equivalent part relationships is cru-
+cial for downstream modules, as demonstrated by our ablation
+experiments(see Appendix C).
+3) Stage II: Identify Involved Parts in Each Step: This stage
+focuses on identifying the particular parts and subassemblies
+involved in each manual page. The VLM achieves this by
+reasoning through the illustrated assembly steps, using the
+triplets and the labeled pre-assembly scene from the previous
+stage as supporting hints.
+In practice, we observe that irrelevant elements in the
+manual (e.g., nails, human figures) can distract the VLM. We
+use the cropped manual images from , where only the
+furniture parts and subassemblies are reserved to focus the
+VLMs attention (Figure 2 Stage II Image Set), significantly
+improving performance (see Appendix E for details).
+The manual pages, combined with the labeled pre-assembly
+scene from the previous stage, form the Image Set. The Text
+Instructions use a Chain-of-Thought prompt to guide the
+VLM in identifying parts and subassemblies step by step and
+includes in-context examples that clarify the structured output
+The bottom left output of Figure 2 provides an example of
+this format. Together, the Image Set and Text Instructions
+compose the input prompt for GPT-4o, which generates pairs
+for all assembly steps using a single query.
+As shown in Fig. 2, the system outputs nested lists. We then
+transform these lists, along with the equivalent parts, into a
+hierarchical graph. Using this assembly graph, we traverse all
+non-leaf nodes and explore various assembly orders. Formally,
+a feasible assembly order is an ordered set of non-leaf nodes,
+ensuring that a parent node appears only after all its child
+nodes. A key advantage of the hierarchical graph represen-
+tation is its flexibilitysince the assembly sequence is not
+B. Per-step Assembly Pose Estimation
+Given an assembly order, we train a model to estimate the
+poses of components (parts or subassemblies) at each step of
+the assembly process. At each step, the model inputs the man-
+ual image and the point clouds of the involved components,
+predicting their target poses to ensure proper alignment. To
+support this task, we construct a dataset for sequential pose
+estimation. For a detailed description, see Appendix A.
+Given each components point cloud (obtained from real-
+world scans or our dataset), we first center it by translating its
+centroid to the origin. Next, we apply Principal Component
+Analysis (PCA) to identify the dominant object axes, which
+define a canonical coordinate frame. The most dominant axes
+serve as the reference frame, ensuring a shape-driven and
+consistent orientation that remains independent of arbitrary
+coordinate systems.
+The dataset we create provides manual images, point clouds,
+and target poses for each component in the camera frame of the
+corresponding manual image(following ). For an assembly
+step depicted in the manual image Ii, the inputs to our model
+involved components. The output is the target pose T SE(3)
+for each component represented in the camera frame of Ii.
+1) Model Architecture: Note that the number of compo-
+nents at each step is not fixed, depending on the subassembly
+division of the furniture. Our pose estimation model consists
+of four parts: an image encoder EI, a point cloud encoder EP ,
+a cross-modality fusion module EG, and a pose regressor R.
+We first feed the manual image I into the image encoder to
+get an image feature map FI.
+FI  EI(I)
+to get the point cloud feature for each component.
+{Fj}  EP ({P}j)
+In order to fuse the multi-modality information from the
+manual image and the point cloud features, we leverage a
+GNN  to update the information for each component. We
+consider the manual image feature and component-wise point
+cloud features as nodes in a complete graph, employing a GNN
+to update the information for each node.
+j}  EG(FI, {Fj})
+j} are updated image and point cloud features.
+into the pose regressor to get the target pose for each compo-
+2) Loss Function: t jointly considers pose prediction accu-
+racy and point cloud alignment, following [60, 30]. The first
+term penalizes errors in the predicted SE(3) transformation,
+while the second measures the distance between predicted
+and ground truth point clouds. To account for interchangeable
+tations of equivalent parts and select the minimum loss as the
+final training objective. We provide further details on the loss
+formulation and training strategy in Appendix B.
+C. Robot Assembly Action Generation
+1) Align Predicted Poses with the World Frame: At each
+assembly step, the previous stage predicts each components
+pose in the camera frame of the manual image. However, real-
+world robotic systems operate in their world frame, requiring
+a 6D transformation between these coordinates. Consider two
+frame are denoted as Ii Ta and Ii Tb. Meanwhile, our system
+can collect the current 6D pose of part A in the world frame,
+represented as W Ta. To align Ii Ta to W Ta, we compute the
+6D transformation matrix W
+Ii T , which maps the camera frame
+to the world frame.
+Ii T Ii Ta
+Using the same transformation W
+Ii T , we compute the assem-
+bled target pose of part B (and all remaining components) in
+the world frame.
+Ii T Ii Tb
+This transformation accurately maps predicted poses from the
+manual image frame to the robots world frame, ensuring
+precise assembly execution.
+2) Assembly Execution: Once our system determines the
+target poses of each component in the world frame for the
+current assembly step, it grasps each component and generates
+the required action sequences for assembly.
+a) Part Grasping: After scanning each real-world part,
+we obtain the corresponding 3D meshes for each part. We em-
+ploy FoundationPose , and the Segment Anything Model
+(SAM)  to obtain the initial poses of all parts in the scene.
+Given the pose and shape of each part, we design heuris-
+tic grasping methods tailored to the geometry of individual
+components. While general grasping algorithms such as Grasp-
+Net  are viable, grasping is beyond the scope of this work.
+designed for structured components in assembly tasks. For
+stick-shaped components, we grasp the centroid of the object
+after identifying its longest axis for stability. For flat and thin-
+shaped components, we use fixtures or staging platforms to
+securely position the object, allowing the robot to grasp along
+the thin boundary for improved stability. We provide further
+details on these grasping methods in Appendix G.
+b) Part Assembly Trajectory: Once the robot arm grasps
+a component, it finds a feasible, collision-free path to prede-
+fined robot poses (anchor poses). At these poses, the 6D pose
+of the grasped component is recalculated in the world frame,
+leveraging the FoundationPose
+and the Segment Any-
+thing Model (SAM). The system then plans a collision-
+free trajectory to the components target pose. We use RRT-
+Connect  as our motion planning algorithm. All collision
+objects in the scene are represented as point clouds and fed
+into the planner. Once the planner finds a collision-free path,
+the robot moves along the planned trajectory.
+c) Assembly Insertion Policy: Once the robot arm moves
+a component near its target pose, the assembly insertion
+process begins. Assembly insertions are contact-rich tasks that
+require multi-modal sensing (e.g., force sensors and closed-
+loop control) to ensure precise alignment and secure con-
+nections. However, developing closed-loop assembly insertion
+skills is beyond the scope of this work and will be addressed
+in future research. In our current approach, human experts
+manually perform the insertion action.
+V. EXPERIMENTS
+In this section, we perform a series of experiments aimed
+at addressing the following questions.
+eration module effectively extract structured information
+from manuals? (see Section V-A)
+different categories of furniture and outperform previous
+settings? (see Section V-B)
+assembly of furniture with manual guidance? (see Sec-
+tion V-C)
+ios?(see Section V-D)
+tasks? (see Section V-E)
+design choices of each module? (ablation experiments,
+see Appendices C and E)
+In addition, we have included a comprehensive set of prompts
+utilized in the VLM-guided hierarchical graph generation
+process in Appendix K
+A. Hierarchical Assembly Graph Generation
+In this section, we evaluate the performance of our VLM-
+guided hierarchical assembly graph generation approach.
+Image using the IKEA-Manuals dataset . We provide the
+rationale for excluding Stage I evaluation in Appendix H.
+TABLE I: Success Rate Across Task Complexity ()
+Number of Parts
+SingleStep
+GeoCluster
+Ours (Scene Variations)
+Furniture Count
+Ground Truth                     SingleStep                       GeoCluster                               Ours
+Input Manual  Scene
+Fig. 3: Qualitative results. Our method significantly outper-
+forms the baselines. SingleStep fails on moderately complex
+subassemblies (highlighted in red). In contrast, our approach
+closely aligns with the ground truth.
+Fig. 4: Pre-Assembly Scene Variations. (Left) original pre-
+assembly scene. (Middle) parts randomly shuffled along the
+ground plane. (Right) parts randomly rotated in-place.
+Experiment Setup. The IKEA-Manuals dataset  in-
+cludes 102 furniture items, each with IKEA manuals, 3D parts,
+and assembly plans represented as trees in nested lists. For
+each item, we load its 3D parts into Blender and render two
+neatly arranged parts, and another showing a scene variation
+where parts are arbitrarily perturbed (e.g., rotated and shuffled)
+along a ground plane (see Figure 4). This randomization
+introduces diversity, better simulating real-world pre-assembly
+scenarios where parts may be disorganized.
+Each rendered image of the pre-assembly scene, along with
+the manual, is processed by the VLM through the stages
+outlined in Section IV-A to generate a hierarchical assembly
+graph. Since we represent our graph as a nested list, we align
+our notation with the assembly tree notation used in IKEA-
+Manuals . In this subsection, we refer to our generated
+assembly graph as the predicted tree.
+Evaluation Metric. We use Success Rate criterion, which
+measures the proportion of the predicted tree that exactly
+matches the ground-truth tree. We consider a predicted tree
+exactly matched if all its nodes contain the same set of children
+nodes as their ground-truth counterparts. All equivalent parts
+are seen as identical when computing the tree matching.
+Baselines. We compare our VLM-based method against two
+heuristic approaches introduced in IKEA-Manuals .
+SingleStep predicts a flat, one-level tree with a single
+parent node and n leaf nodes.
+GeoCluster employs a pre-trained DGCNN  to it-
+eratively group furniture parts with similar geometric
+features into a single assembly step. Compared to Sin-
+and multiple hierarchical levels.
+Results. As shown in Table X, understanding and interpret-
+ing manuals is a challenging task. Our VLM-guided approach
+effectively handles furniture manuals with up to 6 parts, a sig-
+nificant breakthrough where baselines struggle even in simpler
+cases. This 6 parts threshold reflects current VLM capa-
+bilities in complex visual-spatial reasoning tasks. Our frame-
+work is designed to be scalable, benefiting from rapid VLM
+advancements. We anticipate performance improvements as
+more powerful VLMs emerge. Table X also highlights the
+VLMs generalization ability: pre-assembly scene variations
+in Figure 4 minimally impact assembly graph generation
+all 102 furniture items. Figure 3 provides qualitative results for
+two furniture items, illustrating the advantages of our approach
+in greater detail.
+For ablation studies on the necessity of using and seg-
+menting manuals, see Appendix E. Failure cases are further
+explained in Appendix F. Additional results and prompt tem-
+plates are in Appendices D and K, respectively.
+B. Per-step Assembly Pose Estimation
+Data Preparation. We select three categories of furni-
+ture items from PartNet : chair, table, and lamp. For
+each category, we select 100 furniture items and generate
+10 parts selection and subassembly division for each piece
+of furniture. To generate the assembly manual images, we
+render diagrammatic images of parts at 20 random camera
+poses using Blenders Freestyle functionality. We provide more
+details about it in Appendix A. In general, we generate 12,000
+training and 5,200 testing data pieces for each category.
+Training Details. For the Image Encoder EI, we selected
+the encoder component of DeepLabV3, which includes Mo-
+bileNet V2 as the backbone and the atrous spatial pyra-
+mid pooling (ASPP) module. We made this choice because
+DeepLabV3 leverages atrous convolutions on the basis of
+Auto Encoder, enabling the model to capture multi-scale struc-
+tures and spatial information effectively [4, 5]. It generates
+a multi-channel feature map from the image I, and we use
+mean-max pool  to derive a global vector FI R256
+from the feature map. For the Point Clouds Encoder EP , we
+use the encoder part of PointNet . For each part and
+GNN EG, we use a three-layer graph transformer . The pose
+regressor R is a three-layer MLP. We provide more details of
+the mean-max pool for the image feature and our training
+hyperparameter setting in Appendix B.
+Baselines. We evaluate the performance of our method on
+our proposed per-step assembly pose estimation dataset. We
+compare our method with two baselines:
+Li et al.  proposed a pipeline for single image guided
+3D object pose estimation.
+Mean-Max Pool is a variant of our method, replacing
+GNN with a mean-max pool trick, similar to our approach
+of obtaining a one-dimensional vector from a multi-
+channel feature map, with details in Appendix B.
+Evaluation Metrics. We adopt comprehensive evaluation
+metrics to assess the performance of our method and baselines.
+Geodesic Distance (GD), which measures the shortest
+path distance on the unit sphere between the predicted
+and ground-truth rotations.
+Root Mean Squared Error (RMSE), which measures the
+Euclidean distance between the predicted and ground-
+truth poses.
+Chamfer Distance (CD), which calculates the holistic
+distance between the predicted and the ground-truth point
+Part Accuracy (PA), which computes the Chamfer Dis-
+tance between the predicted and the ground truth point
+clouds; if the distance is smaller than 0.01m, we count
+this part as correctly placed.
+Results. As shown in Table II, our method outperforms Li
+et al.  and the mean-max pool variant in all evaluation
+metrics and on three furniture categories. We attribute this
+to the effectiveness of our multi-modal feature fusion and
+GNN in capturing the spatial relationships between parts. We
+also provide qualitative results for each furniture category
+in Figure 5.
+Ablation. To assess the impact of equivalent parts, guided
+ablation studies on these components. We present the details
+and results in Appendix C.
+TABLE II: Quantitative Results of Pose Estimation.
+Li et al.
+Mean-Max Pool
+Ground Truth
+Li et al.
+Mean-Max Pool
+Fig. 5: Qualitative results on three furniture categories. We
+observe better pose predictions than baselines.
+C. Overall Performance Evaluation
+We evaluate the overall performance of our method by
+assembling furniture models in a simulation environment.
+We implement the evaluation process in the PyBullet
+simulation environment and test the entire pipeline. We source
+all test furniture models from the IKEA-Manuals dataset .
+Given these manuals along with 3D parts, we generate the pre-
+assembly scene images as described in IV-C, and our pipeline
+generates the hierarchical graphs. Then, we traverse the hier-
+archical graph to determine the assembly order. Following this
+sequence and the predicted 6D poses of each component, we
+implement RRT-Connect  in simulation to plan feasible
+motion paths for the 3D parts and subassemblies, ensuring they
+move towards their target poses. Note that, in this experiment,
+we focus on object-centric motion planning and omit robotic
+execution in our framework.
+Baselines. As the first to propose a comprehensive pipeline
+for furniture assembly, there is no direct baseline for compar-
+ison. So we design a baseline method that uses previous work
+to estimate the poses of all parts, with the guidance of an
+image of the fully assembled furniture, and adopt a heuristic
+order to assemble all parts. Specifically, given the predicted
+poses of all parts, we can calculate the distance between each
+pair of parts. The heuristic order is defined as follows: starting
+from a random part, we find the nearest part to it and assemble
+until we assemble all parts.
+Evaluation Metrics. We adopt the assembly success rate
+as the evaluation metric and define the following situations
+as a failure: 1) A part is placed at a pose that is too far
+from the ground truth pose. 2) A part collides with other parts
+when moving to the estimated pose. In other words, the RRT-
+Connect algorithm  finds no feasible path when mating
+it with other parts. 3) We place a part that is not near any
+other components, causing it to suspend in midair after each
+assembly step.
+TABLE III: Success Rate on 4 Furniture Categories()
+Li et al. Heuristic
+Results. We evaluate the overall performance on 50 furni-
+ture items from the IKEA-Manual dataset , each consisting
+of fewer than seven parts. These items fall into four categories
+(Bench, Chair, Table, Misc), and we report the success rate for
+each in Table III.
+Our system successfully assembles 29 out of 50 furniture
+framework achieves a success rate of 58, demonstrating the
+effectiveness of our proposed framework. The most common
+failure occurs when the VLM fails to generate a fully ac-
+curate assembly graph, leading to misalignment between the
+point cloud and the instruction manual images used for pose
+estimation.
+D. Real-world Assembly Experiments
+To evaluate the feasibility and performance of our pipeline,
+we conducted experiments in the real world using four IKEA
+furniture items: Flisat (Wooden Stool), Variera (Iron Shelf),
+Sundvik (Chair), and Knagglig (Box). Figure 7 illustrates our
+real-world experiment setup. We show the manual images,
+per-step pose estimation results, and real-world assembly
+process in Figure 6. We also attach videos of the real-
+world assembly process in the supplementary material. For
+detailed implementation of our real-world experiments, please
+check Appendix G. We evaluated all the assembly tasks with
+target poses provided by three different methods: Ground truth
+approach. The Ground truth Pose method uses the ground
+truth poses for each part to assemble the furniture. We use the
+Average Completion Rate (ACR) as the evaluation criterion
+and calculate it as follows:
+Pose Estimation Real World
+Pose Estimation Real World
+Fig. 6: Qualitative Evaluation on real IKEA furniture items. This figure illustrates the assembly process of various IKEA
+furniture items, including FLISAT, VARIERA, SUNDVIK, and KNAGGLIG, with our approach. For each item, we display
+the manual images, per-step 3D parts pose estimation results, and real-world assembly outcomes.
+Fig. 7: Real-World Setup. We use two UFactory xArm6 for
+assembly and a RealSense D435 camera for pose estimation.
+where N is the total number of trials, Sj is the number of
+steps completed in trial j, and Stotal denotes the total number
+of steps in the task.
+We perform each task over 10 trials with varying initial
+3D part poses. We present the results in Table IV, showing
+that our method outperforms the baseline and achieves a high
+success rate in real-world assembly tasks.
+These findings underscore the practicality and effectiveness
+of our approach for real-world implementation. The primary
+failure mode arises from planning limitations, particularly in
+handling complex obstacles. Failures occur when the RRT-
+Connect algorithm cannot find a feasible trajectory when the
+planned path results in collisions with the robotic arm or
+surrounding objects or due to suboptimal grasping poses. To
+improve robustness in real-world scenarios, we plan to develop
+a low-level policy for adaptive motion refinementsa topic we
+leave for future work.
+TABLE IV: Real World Success Rate () over 10 trials.
+KNAGGLIG
+Oracle Pose
+Mean-Max Pool
+E. Generalization to Other Assembly Tasks
+We design Manual2Skill as a generalizable framework ca-
+pable of handling diverse assembly tasks with manual instruc-
+tions. To assess its versatility, we evaluate the VLM-guided
+hierarchical graph generation method across three distinct
+assembly tasks, each varying in complexity and application
+domain. These include: (1) Assembling a Toy Car Axle (a
+low-complexity task with standardized components, represent-
+ing consumer product assembly), (2) Assembling an Aircraft
+Input Manual  Scene
+Fig. 8: Pipeline Extension Beyond Furniture Assembly.
+Model (a medium-complexity task, representing consumer
+product assembly), and (3) Assembling a Robotic Arm (a
+high-complexity task involving non-standardized components,
+representing research  prototyping assembly).
+For the toy car axle and aircraft model, we sourced 3D
+parts from  and reconstructed pre-assembly scene images
+using Blender. We manually crafted the manuals in their sig-
+nature style, with each page depicting a single assembly step
+through abstract illustrations. For the robotic arm assembly,
+we used the Zortrax robotic arm , which includes pre-
+existing 3D parts and a structured manual. These inputs were
+then processed through the VLM-guided hierarchical graph
+generation pipeline (described in Sec. V-A), yielding assembly
+graphs as shown in Figure 8. This zero-shot generalization
+achieves a success rate of 100 over five trials per task. The
+generated graphs align with ground-truth assembly sequences,
+confirming the generalization of our VLM-guided hierarchical
+graph generation across diverse manual-based assembly tasks
+and highlighting its potential for broader applications.
+VI. LIMITATIONS
+This paper explores the acquisition of complex manipulation
+skills from manuals and introduces a method for automated
+IKEA furniture assembly. Despite this progress, several limi-
+tations remain. First, our approach mainly identifies the objects
+that need assembly but overlooks other details on the manual,
+such as grasping position markings and precise connector
+locations (e.g., screws). Integrating a vision-language model
+(VLM) module to extract this information could significantly
+enhance robotic insertion capabilities. Second, the method
+does not cover the automated execution of fastening mecha-
+on force and tactile sensing signals. We leave these challenges
+as directions for future work.
+VII. CONCLUSION
+In this paper, we address the issue of learning complex
+manipulation skills from manuals, which is essential for robots
+to execute such tasks based on human-designed instructions.
+We propose Manual2Skill, a novel framework that leverages
+VLM to understand manuals and learn robotic manipulation
+skills from manuals. We design a pipeline for assembling
+IKEA furniture and validate its effectiveness in real scenarios.
+We also demonstrate that our method extends beyond the
+task of furniture assembly. This work represents a significant
+step toward enabling robots to learn complex manipulation
+skills with human-like understanding. It could potentially
+unlock new avenues for robots to acquire diverse complex
+manipulation skills from human instructions.
+REFERENCES
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Kevin Black, Noah Brown, Danny Driess, Adnan Es-
+A vision-language-action flow model for general robot
+control. arXiv preprint arXiv:2410.24164, 2024.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen
+Danny Driess, Avinava Dubey, Chelsea Finn, et al. Rt-2:
+Vision-language-action models transfer web knowledge
+to robotic control.
+arXiv preprint arXiv:2307.15818,
+Liang-Chieh Chen, George Papandreou, Iasonas Kokki-
+mantic image segmentation with deep convolutional nets,
+atrous convolution, and fully connected crfs. IEEE trans-
+actions on pattern analysis and machine intelligence, 40
+Liang-Chieh Chen, Yukun Zhu, George Papandreou,
+Florian Schroff, and Hartwig Adam.
+Encoder-decoder
+with atrous separable convolution for semantic image
+segmentation. In Proceedings of the European conference
+on computer vision (ECCV), pages 801818, 2018.
+Yun-Chun Chen, Haoda Li, Dylan Turpin, Alec Jacobson,
+and Animesh Garg. Neural shape mating: Self-supervised
+object assembly with adversarial shape priors. In Pro-
+ceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 1272412733,
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau,
+Yilun Du, Benjamin Burchfiel, Russ Tedrake, and Shuran
+Song. Diffusion policy: Visuomotor policy learning via
+action diffusion. The International Journal of Robotics
+Allan Costa, Manvitha Ponnapati, Joseph M. Jacob-
+Distillation of msa
+embeddings to folded protein structures with graph
+transformers.
+Erwin Coumans.
+Bullet physics simulation.
+SIGGRAPH 2015 Courses, page 1. ACM, 2015.
+Bian Du, Xiang Gao, Wei Hu, and Renjie Liao. Gener-
+ative 3d part assembly via part-whole-hierarchy message
+passing. In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition, pages 20850
+Hao-Shu Fang, Chenxi Wang, Hongjie Fang, Minghao
+grasp perception in spatial and temporal domains. IEEE
+Transactions on Robotics (T-RO), 2023.
+Zipeng Fu, Tony Z Zhao, and Chelsea Finn.
+bile aloha: Learning bimanual mobile manipulation with
+low-cost whole-body teleoperation.
+arXiv preprint
+Thomas Funkhouser, Hijung Shin, Corey Toler-Franklin,
+Antonio Garca Castaneda, Benedict Brown, David
+ing how to match fresco fragments. Journal on Comput-
+ing and Cultural Heritage (JOCCH), 4(2):113, 2011.
+Andrew Goldberg, Kavish Kondap, Tianshuang Qiu, Ze-
+han Ma, Letian Fu, Justin Kerr, Huang Huang, Kaiyuan
+erative design-for-robot-assembly using vlm supervision,
+physics simulation, and a robot with reset. arXiv preprint
+Jiayuan Gu, Sean Kirmani, Paul Wohlhart, Yao Lu,
+Montserrat Gonzalez Arenas, Kanishka Rao, Wenhao Yu,
+Chuyuan Fu, Keerthana Gopalakrishnan, Zhuo Xu, et al.
+trajectory sketches.
+arXiv preprint arXiv:2311.01977,
+Minho Heo, Youngwoon Lee, Doohyun Lee, and Joseph J
+mark for long-horizon complex manipulation.
+preprint arXiv:2305.12821, 2023.
+Haoxu Huang, Fanqi Lin, Yingdong Hu, Shengjie Wang,
+and Yang Gao.
+through spatial constraints of parts with foundation mod-
+els. arXiv preprint arXiv:2403.08248, 2024.
+Wenlong Huang, Chen Wang, Yunzhu Li, Ruohan Zhang,
+and Li Fei-Fei.
+relational keypoint constraints for robotic manipulation.
+arXiv preprint arXiv:2409.01652, 2024.
+Hanxiao Jiang, Binghao Huang, Ruihai Wu, Zhuoran Li,
+Shubham Garg, Hooshang Nayyeri, Shenlong Wang, and
+Yunzhu Li. Roboexp: Action-conditioned scene graph via
+interactive exploration for robotic manipulation. arXiv
+preprint arXiv:2402.15487, 2024.
+Benjamin Jones, Dalton Hildreth, Duowen Chen, Ilya
+A dataset and learning approach for automatic mating of
+cad assemblies. ACM Transactions on Graphics (TOG),
+Ananth Jonnavittula, Sagar Parekh, and Dylan P Losey.
+preprint arXiv:2404.17906, 2024.
+Simar Kareer, Dhruv Patel, Ryan Punamiya, Pranay
+Danfei Xu.
+egocentric video.
+arXiv preprint arXiv:2410.24221,
+Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla:
+An open-source vision-language-action model.
+preprint arXiv:2406.09246, 2024.
+Alexander Kirillov, Eric Mintun, Nikhila Ravi, Hanzi
+Spencer Whitehead, Alexander C. Berg, Wan-Yen Lo,
+Piotr Dollar, and Ross Girshick.
+Segment anything.
+Ross A Knepper, Todd Layton, John Romanishin, and
+Daniela Rus. Ikeabot: An autonomous multi-robot co-
+ordinated furniture assembly system.
+In 2013 IEEE
+International conference on robotics and automation,
+pages 855862. IEEE, 2013.
+James J Kuffner and Steven M LaValle.
+An efficient approach to single-query path planning. In
+Proceedings 2000 ICRA. Millennium Conference. IEEE
+International Conference on Robotics and Automation.
+Symposia Proceedings (Cat. No. 00CH37065), volume 2,
+pages 9951001. IEEE, 2000.
+Youngwoon Lee, Edward S Hu, and Joseph J Lim.
+Ikea furniture assembly environment for long-horizon
+complex manipulation tasks. In 2021 ieee international
+conference on robotics and automation (icra), pages
+Xiaoqi Li, Mingxu Zhang, Yiran Geng, Haoran Geng,
+Yuxing Long, Yan Shen, Renrui Zhang, Jiaming Liu, and
+Hao Dong. Manipllm: Embodied multimodal large lan-
+guage model for object-centric robotic manipulation. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition, pages 1806118070,
+Yichen Li, Kaichun Mo, Lin Shao, Minhyuk Sung, and
+Leonidas Guibas.
+Learning 3d part assembly from a
+single image. In Computer VisionECCV 2020: 16th Eu-
+ropean Conference, Glasgow, UK, August 2328, 2020,
+Yichen Li, Kaichun Mo, Yueqi Duan, He Wang, Jiequan
+joint 3d shape assembly. In Proceedings of the IEEECVF
+Conference on Computer Vision and Pattern Recognition,
+Shilong Liu, Zhaoyang Zeng, Tianhe Ren, Feng Li, Hao
+with grounded pre-training for open-set object detection.
+In European Conference on Computer Vision, pages 38
+55. Springer, 2025.
+Yunong Liu, Cristobal Eyzaguirre, Manling Li, Shubh
+4d grounding of assembly instructions on internet videos.
+arXiv preprint arXiv:2411.11409, 2024.
+Kaichun Mo, Paul Guerrero, Li Yi, Hao Su, Peter Wonka,
+Niloy Mitra, and Leonidas J Guibas.
+Hierarchical graph networks for 3d shape generation.
+arXiv preprint arXiv:1908.00575, 2019.
+Kaichun Mo, Shilin Zhu, Angel X Chang, Li Yi, Subarna
+large-scale benchmark for fine-grained and hierarchical
+part-level 3d object understanding. In Proceedings of the
+IEEECVF conference on computer vision and pattern
+Charles Ruizhongtai Qi, Li Yi, Hao Su, and Leonidas J
+Guibas. Pointnet: Deep hierarchical feature learning
+on point sets in a metric space.
+Advances in neural
+information processing systems, 30, 2017.
+Gianluca Scarpellini, Stefano Fiorini, Francesco Giuliari,
+Pietro Moreiro, and Alessio Del Bue. Diffassemble: A
+unified graph-diffusion model for 2d and 3d reassem-
+In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition, pages 28098
+Silvia Sellan, Yun-Chun Chen, Ziyi Wu, Animesh Garg,
+and Alec Jacobson.
+Breaking bad: A dataset for ge-
+ometric fracture and reassembly.
+Advances in Neural
+Information Processing Systems, 35:3888538898, 2022.
+Haochen Shi, Huazhe Xu, Samuel Clarke, Yunzhu Li,
+and Jiajun Wu. Robocook: Long-horizon elasto-plastic
+object manipulation with diverse tools. arXiv preprint
+Lucy Xiaoyang Shi, Zheyuan Hu, Tony Z Zhao, Ar-
+chit Sharma, Karl Pertsch, Jianlan Luo, Sergey Levine,
+and Chelsea Finn.
+Yell at your robot: Improving
+on-the-fly from language corrections.
+arXiv preprint
+Sumedh Sontakke, Jesse Zhang, Seb Arnold, Karl
+Laurent Itti. Roboclip: One demonstration is enough to
+learn robot policies.
+Advances in Neural Information
+Processing Systems, 36, 2024.
+Francisco Suarez-Ruiz, Xian Zhou, and Quang-Cuong
+Can robots assemble an ikea chair?
+Priya Sundaresan, Quan Vuong, Jiayuan Gu, Peng Xu,
+Ted Xiao, Sean Kirmani, Tianhe Yu, Michael Stark,
+Ajinkya Jain, Karol Hausman, Dorsa Sadigh, Jeannette
+imitation learning from hand-drawn sketches, 2024. URL
+Chen Tang, Ben Abbatematteo, Jiaheng Hu, Rohan Chan-
+reinforcement learning for robotics: A survey of real-
+world successes. Annual Review of Control, Robotics,
+and Autonomous Systems, 8, 2024.
+Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+open-source generalist robot policy.
+arXiv preprint
+Yunsheng Tian, Jie Xu, Yichen Li, Jieliang Luo, Shinjiro
+Assemble them all: Physics-based planning for general-
+izable assembly by disassembly. ACM Transactions on
+Graphics (TOG), 41(6):111, 2022.
+Yunsheng Tian, Karl DD Willis, Bassel Al Omari,
+Jieliang Luo, Pingchuan Ma, Yichen Li, Farhad Javid,
+Edward Gu, Joshua Jacob, Shinjiro Sueda, et al. Asap:
+Automated sequence planning for complex robotic as-
+sembly with physical feasibility. In 2024 IEEE Interna-
+tional Conference on Robotics and Automation (ICRA),
+pages 43804386. IEEE, 2024.
+Sai H Vemprala, Rogerio Bonatti, Arthur Bucker, and
+Ashish Kapoor. Chatgpt for robotics: Design principles
+and model abilities. IEEE Access, 2024.
+Ruocheng Wang, Yunzhi Zhang, Jiayuan Mao, Chin-Yi
+to a machine-executable plan. In European Conference
+on Computer Vision, pages 677694. Springer, 2022.
+Ruocheng Wang, Yunzhi Zhang, Jiayuan Mao, Ran
+Seeing shape assembly step by step. Advances in Neural
+Information Processing Systems, 35:2842828440, 2022.
+Yue Wang, Yongbin Sun, Ziwei Liu, Sanjay E Sarma,
+Michael M Bronstein, and Justin M Solomon. Dynamic
+graph cnn for learning on point clouds. ACM Transac-
+tions on Graphics (tog), 38(5):112, 2019.
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Chain-of-thought prompting elicits reasoning in
+large language models. Advances in neural information
+processing systems, 35:2482424837, 2022.
+Bowen Wen, Wei Yang, Jan Kautz, and Stan Birchfield.
+of novel objects.
+In Proceedings of the IEEECVF
+Conference on Computer Vision and Pattern Recognition,
+Ruihai Wu, Chenrui Tie, Yushi Du, Yan Zhao, and
+Hao Dong.
+Leveraging se (3) equivariance for learn-
+ing 3d geometric shape assembly.
+In Proceedings of
+the IEEECVF International Conference on Computer
+Zonghan Wu, Shirui Pan, Fengwen Chen, Guodong
+survey on graph neural networks. IEEE transactions on
+neural networks and learning systems, 32(1):424, 2020.
+Jianwei Yang, Hao Zhang, Feng Li, Xueyan Zou, Chun-
+yuan Li, and Jianfeng Gao.
+Set-of-mark prompting
+unleashes extraordinary visual grounding in gpt-4v. arXiv
+preprint arXiv:2310.11441, 2023.
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak
+Synergizing reasoning and acting in language models.
+arXiv preprint arXiv:2210.03629, 2022.
+Shukang Yin, Chaoyou Fu, Sirui Zhao, Ke Li, Xing Sun,
+Tong Xu, and Enhong Chen. A survey on multimodal
+large language models. arXiv preprint arXiv:2306.13549,
+Mingxin Yu, Lin Shao, Zhehuan Chen, Tianhao Wu,
+Qingnan Fan, Kaichun Mo, and Hao Dong. Roboassem-
+a novel multi-robot contact-rich simulation environment.
+arXiv preprint arXiv:2112.10143, 2021.
+Maryam Zare, Parham M. Kebria, Abbas Khosravi, and
+Saeid Nahavandi.
+A survey of imitation learning: Al-
+Transactions on Cybernetics, 54(12):71737186, 2024.
+Jiahao Zhang, Anoop Cherian, Cristian Rodriguez, Wei-
+jian Deng, and Stephen Gould. Manual-pa: Learning 3d
+part assembly from instruction diagrams. arXiv preprint
+Minghua Zhang, Yunfang Wu, Weikang Li, and Wei
+Learning universal sentence representations with
+mean-max
+attention
+autoencoder.
+preprint
+Zirui Zhao, Wee Sun Lee, and David Hsu.
+language models as commonsense knowledge for large-
+scale task planning.
+Advances in Neural Information
+Processing Systems, 36, 2024.
+Denny Zhou, Nathanael Scharli, Le Hou, Jason Wei,
+Nathan Scales, Xuezhi Wang, Dale Schuurmans, Claire
+Least-to-most
+prompting enables complex reasoning in large language
+models. arXiv preprint arXiv:2205.10625, 2022.
+Yifeng Zhu, Abhishek Joshi, Peter Stone, and Yuke Zhu.
+with object proposal priors.
+In Conference on Robot
+Zuyuan Zhu and Huosheng Hu.
+Robot learning from
+demonstration in robotic assembly: A survey. Robotics,
+Zortrax Library. Zortrax robotic arm, n.d. URL https:
+library.zortrax.comprojectzortrax-robotic-arm.
+APPENDIX
+A. Per-step Assembly Pose Estimation Dataset
+We build a dataset for our proposed manual guided per-
+step assembly pose estimation task. Each data piece is a tuple
+(Ii, {P}j, {T}j, Ri), where Ii is the manual image, {P}j
+is the point clouds of all the components involved in the
+assembly step, {T}j is the target poses for each component,
+and Ri is the spatial and geometric relationship between
+components.
+Subassemblies Camera Views
+Fig. 9: Manual images of our proposed dataset. There are
+variations in furniture shapes, subassemblies, and camera
+Instruction manuals in the real world come in a wide
+variety. To cover as many scenarios as we might encounter
+in real-life situations, we considered three possible varia-
+tions of instruction manuals when constructing the dataset,
+as shown in Figure 9. Our dataset encompasses a variety of
+furniture shapes. For each piece of furniture, we randomly
+selected some connected parts to form different subassemblies.
+camera perspectives for taking manual photos. This definition
+enables our dataset to cover various manuals that we might
+encounter in real-world scenarios.
+select m connected parts to form a subassembly. Denoted as
+Psub  {P1, P2,    , Pm}, here each Pi is a atomic part. Then,
+we randomly group the m atomic parts into n components
+while keeping all parts within the same group are connected,
+denoted as Psub
+where each i represents the number of atomic parts in i-
+th component, and thus P
+i i  m. We sample the point
+cloud for each component to consist of the point cloud of the
+data piece. We can also take photos of the subassembly from
+different perspectives.
+We also provide annotations for equivalent parts in the aux-
+iliary information. In this paper, we propose new techniques
+to leverage the auxiliary information for each assembly step,
+which significantly enhances the precision and robustness of
+our pose estimation model.
+B. Pose Estimation Implementation
+1) Loss Functions for Pose Estimation:
+Rotation Geodesic Loss: In 3D pose prediction tasks,
+we commonly use the rotation geodesic loss to measure the
+distance between two rotations
+. Formally, given the
+ground truth rotation matrix R SO(3) and the predicted
+rotation R SO(3), the rotation geodesic loss is defined as:
+Lrot  arccos
+tr(RT R) 1
+where tr() denotes the trace of a matrix and RT is the
+transpose of R.
+Translation MSE Loss: Following , we use the mean
+squared error (MSE) loss to measure the distance between the
+ground truth translation t and the predicted translation t:
+Ltrans  t t2
+Chamfer Distance Loss: This loss function minimizes the
+holistic distance between each point in the predicted and
+ground truth point clouds. Given the ground truth point cloud
+S1  RP  t and the predicted point cloud S2  RP  t, it
+is defined as:
+yS2 x y2
+yS1 y x2
+where S1 is the point cloud after applying the ground truth 6D
+pose transformation, and S2 is the point cloud after applying
+the predicted 6D pose transformation.
+Pointcloud MSE Loss: We supervise the predicted rotation
+by applying it to the point of the component and use the MSE
+loss to measure the distance between the rotated point and the
+ground truth point:
+Lpc  RP RP2
+Equivalent Parts: Given a set of components, we might
+encounter geometrically equivalent parts that we must assem-
+ble in different locations. Inspired by
+, we group these
+geometrically equivalent components and add an extra loss
+term to ensure we assemble them in different locations. For
+each group of equivalent components, we apply the predicted
+transformation to the point cloud of each component and then
+compute the Chamfer distance (CD) between the transformed
+point clouds. For all pairs (j1, j2) within the same group, we
+compute the Chamfer distance between the transformed point
+clouds Pj1 and Pj2, encouraging the distance to be large:
+CD( Pj1, Pj2)
+sum of the above loss terms:
+Ltotal  1Lrot  2Ltrans  3Lcham  4Lpc  5Lequiv (13)
+2) Mean-Max Pool: The core mechanic of the mean-max
+pool is to obtain the mean and maximum values along one
+dimension RC of a set of vectors or matrices with the
+same dimensions and concatenate them into a one-dimensional
+vector in R2C to obtain a global feature. For one-dimensional
+sequence length dimension. For two-dimensional matrices, we
+take the mean and maximum values along the height  width
+Fglobal  [avg; max] R2F
+In the setting of our work, we set F to 128.
+We use this trick twice in this work. One instance is when
+we obtain a one-dimensional vector with a channel dimension
+from a multi-channel feature map, thus obtaining a one-
+dimensional feature vector for the image. In this case, we can
+express the mean-max pool as follows:
+X  (Xc,h,w)C,H,W
+max  (max
+Where X is the multi-channel feature map of image Ii with di-
+mensions channels(C)height(H)width(W), avg and max
+denote one-dimensional vectors of length channels. Thus,
+Fglobal of the multi-channel feature map is a C-dimensional
+The other instance is when we compare the baseline. To
+aggregate point cloud features on a per-part basis and obtain a
+one-dimensional global feature for the shape, we express the
+mean-max pool in the following form:
+max  max
+F {Fj} RF
+each part in this baseline, we concatenate the one-dimensional
+image feature FI, the global point cloud feature Fglobal (both
+obtained by mean-max pool), and the part-wise point cloud
+feature Fj to form a one-dimensional cross-modality feature.
+We then use this feature as input for the pose regressor MLP.
+3) Hyperparameters in Training of Pose Estimation: We
+train our pose estimation model on a single NVIDIA A100
+40GB GPU with a batch size of 32. Each experiment runs
+for 800 epochs (approximately 46 hours). We set the learning
+rate to 1e 5 and employ a 10-epoch linear warm-up phase.
+learning rate. We also set the weight decay to 1e 7. The
+optimizer configuration for each component of the model is
+as shown in Table V.
+C. Pose Estimation Ablation Studies
+To evaluate the effectiveness of each component in our
+TABLE V: Optimizer Corresponding to Each Component
+Component
+Optimizer
+Image Encoder
+Pointcloud Encoder
+Pose Regressor
+We show the quantitative results in Table VI and the qualitative
+results in Figure 10. First, we remove the image input and
+only use the point cloud input to predict the pose. The
+performance drops significantly, indicating that the image
+input is crucial for pose estimation. Second, we remove the
+permutation mechanism for equivalent parts(Equation (12)).
+As shown in the visualizations, the model fails to distinguish
+between equivalent parts, placing two legs in similar positions.
+TABLE VI: Pose Estimation Ablations.
+wo Image
+wo Permutations
+Ground Truth
+wo Image
+wo Permutations
+Fig. 10: Qualitative Results of Ablations. We observe salient
+performance drops in ablated settings.
+Previous works usually train and predict only fully assem-
+bled shapes. In contrast, our pose estimation dataset includes
+per-step data (i.e., subassemblies). We conduct an ablation
+study comparing two settings:
+wo Per-step: Training and testing on a dataset of fully
+assembled shapes.
+testing on fully assembled shapes.
+TABLE VII: wo Per-step vs. Per-step
+wo Per-step
+Per-step (Ours)
+As shown in Table VII, adding per-step data improves
+assembly prediction accuracy, demonstrating that per-step in-
+ference enhances robot assembly performance.
+D. Additional VLM Plan Generation Results
+Besides using the Success Rate metric defined in Sec-
+tion V-A for evaluating VLM assembly graph generation, we
+also provide additional analysis using evaluation metrics in the
+IKEA-Manuals dataset . These include Precision, Recall,
+F1 Score, Simple Matching, and Hard Matching as seen in
+Table VIII. For detailed descriptions of these metrics, we refer
+readers to . Furthermore, we categorized the full set of 102
+furniture items

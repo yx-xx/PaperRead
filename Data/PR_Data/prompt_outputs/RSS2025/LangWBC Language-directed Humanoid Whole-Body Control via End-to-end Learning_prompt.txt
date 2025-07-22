@@ -1,0 +1,688 @@
+=== PDF文件: LangWBC Language-directed Humanoid Whole-Body Control via End-to-end Learning.pdf ===
+=== 时间: 2025-07-22 15:42:08.312001 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Whole-Body Control via End-to-end Learning
+Yiyang Shao
+Xiaoyu Huang
+Bike Zhang
+Qiayuan Liao
+Yuman Gao
+Yufeng Chi
+Zhongyu Li
+Sophia Shao
+Koushil Sreenath
+University of California, Berkeley
+We propose a language-directed humanoid whole-body control framework that translates natural language commands into continuous robot actions
+through a Conditional Variational Autoencoder (CVAE). The structured latent space brought by the CVAE enables smooth transitions between diverse and
+agile behaviors, as shown in the sequence where the robot seamlessly transitions from walking to running, concluding with a hand-waving motion prompted
+by the corresponding text commands. See more experiments at
+AbstractGeneral-purpose humanoid robots are expected to
+interact intuitively with humans, enabling seamless integration
+into daily life. Natural language provides the most accessible
+medium for this purpose. However, translating language into
+humanoid whole-body motion remains a significant challenge,
+primarily due to the gap between linguistic understanding
+and physical actions. In this work, we present an end-to-end,
+language-directed policy for real-world humanoid whole-body
+control. Our approach combines reinforcement learning with
+policy distillation, allowing a single neural network to interpret
+language commands and execute corresponding physical ac-
+tions directly. To enhance motion diversity and compositionality,
+we incorporate a Conditional Variational Autoencoder (CVAE)
+structure. The resulting policy achieves agile and versatile whole-
+body behaviors conditioned on language inputs, with smooth
+transitions between various motions, enabling adaptation to
+linguistic variations and the emergence of novel motions. We
+validate the efficacy and generalizability of our method through
+extensive simulations and real-world experiments, demonstrating
+robust whole-body control. Please see our website at Lang-
+WBC.github.io for more information.
+I. INTRODUCTION
+Humanoid robots hold immense potential for integration
+into human environments due to their anthropomorphic design,
+particularly in areas such as healthcare, personal assistance,
+and interactive services. For such robots to be truly effective,
+especially for users with limited technical proficiency such
+as the elderly, intuitive interaction modalities are essential.
+Natural language stands out as the most accessible and natural
+medium for human-robot communication, enabling users to
+convey complex instructions effortlessly.
+robots remains a significant challenge. The fundamental chal-
+lenge stems from two interconnected aspects: First, as a motion
+generation problem, the system needs to produce diverse and
+generalizable movements that accurately reflect the intent of
+varied natural language commands. Second, as a real-world
+control problem, it must ensure these generated motions are
+physically executable while maintaining balance and stability
+under environmental uncertainties and disturbances. These two
+aspects are tightly coupled  generated motions must be phys-
+ically realizable, while the control strategy must be flexible
+enough to accommodate the diversity of language-commanded
+behaviors. While prior works on language-directed real-world
+humanoid control have shown success by decoupling the
+problem into kinematic motion generation and whole-body
+tracking control [34, 10, 25], this hierarchical approach has
+key limitations. The generated motions are often physically
+implausible  e.g., lower-body floating in the air or upper-
+body exceeding stability margins  forcing the tracking policy
+to trade off between accurately tracking these motions and
+maintaining balance. Moreover, these methods are restricted
+to fixed-duration motions, limiting their ability to handle
+disturbances or ensure smooth transitions between motions.
+In this work, we introduce LangWBC, a framework that
+addresses these dual challenges through a single end-to-end
+generation and physical feasibility. This approach enables
+humanoid robots to execute agile and diverse whole-body mo-
+tions from natural language commands with flexible duration,
+smoothly transition between sequential actions, and synthesize
+diverse and novel motions through latent space interpolation.
+LangWBC uses a two-stage training process. First, a teacher
+policy is trained via reinforcement learning to track retargeted
+motion capture (MoCap) data, acquiring a rich repertoire
+of dynamic and physically plausible behaviors. Then, a stu-
+dent policy based on a Conditional Variational Autoencoder
+(CVAE)  is trained via behavior cloning to learn the
+mapping from natural language commands and proprioceptive
+history directly to control actions, forming a joint distribution
+of language and actions within a structured and unified latent
+We demonstrate the capabilities of LangWBC through ex-
+tensive simulations and real-world experiments. The robot
+successfully executes agile motions, including running and
+quickly turning around, as well as expressive motions like
+waving and clapping. It also exhibits robustness to distur-
+tual commands. Furthermore, our framework enables smooth
+transitions between motion clips and generates novel motions
+through interpolation, demonstrating generalization beyond the
+training data.
+Our key contributions are summarized as follows:
+We propose a novel framework that maps natural lan-
+guage commands directly to whole-body robot actions in
+a closed-loop control setup, achieving agile and robust
+performance suitable for real-world deployment.
+Our method enables the generation of diverse motions,
+smooth transitions, and adaptability to a wide range of
+textual inputs, including the synthesis of novel behaviors
+through latent space interpolation using the CVAE archi-
+tecture.
+We validate our approach extensively on a physical
+humanoid robot, demonstrating its practical applicability,
+robustness to disturbances, and ability to execute complex
+whole-body motions from natural language commands.
+II. RELATED WORK
+This work explores the intersection of learning-based hu-
+manoid whole-body control and generative action modeling.
+A. Learning-based Humanoid Whole-body Control
+Learning-based controllers have demonstrated the ability to
+perform complex whole-body control for humanoid robots. In
+physics-based animation, robots have learned various dynamic
+tasks [28, 29, 38, 16], object interactions [43, 24, 7], and even
+full-body motions from the AMASS dataset [23, 39, 14].
+ware faces challenges due to the sim-to-real gap. As a result,
+prior work has largely focused on specialized controllers for a
+limited set of agile motions on bipedal robots, such as walk-
+ing [4, 21, 31, 8, 22], jumping [19, 42], and running [20, 37].
+More recent efforts aim to scale up the range of feasible
+humanoid motions. For example, [1, 15, 5] incorporate dozens
+to a few hundred motions, while [11, 10, 6, 12] focus on a
+curated subset of the AMASS dataset. Unlike policies trained
+for specific skills, these approaches treat motion generation as
+a tracking problem: the policy learns to track kinematic trajec-
+tories but does not inherently compose them into downstream
+tasks. Instead, an additional high-level planner is required to
+execute specific motions at test time. In contrast, our work
+directly learns a text-conditioned motion generation policy,
+enabling both robust sim-to-real transfer and the ability to
+generate and execute diverse motions as a downstream task
+within a single framework.
+B. Generative Action Modeling
+Prior approaches to model actions with a generative model
+can be broadly categorized into two approaches: hierarchical
+kinematics-based tracking and end-to-end action generation.
+1) Hierarchical Kinematics-based Tracking: A common
+approach is to use a hierarchical framework, where a high-
+level generative model produces diverse kinematic motions
+conditioned on inputs such as text [40, 35], keyframes ,
+learns to follow these trajectories. Most prior works adopt
+this scheme. For example, OmniH2O  uses a pre-trained
+fixed-length MDM model  for text-conditioned motion
+uses behavior cloning to learn a high-level policy from human
+tele-operation to output target poses for downstream tasks.
+Exbody2  separately trains a CVAE to generate kinematic
+motions autoregressively, but lacks text conditioning.
+While hierarchical methods have proven effective, they
+require complex frameworks and often suffer from artifacts or
+physically infeasible motions in generated trajectories, such
+as floating bodies, foot sliding, and penetration. To address
+these challenges, Robot MDM  incorporates a learned Q-
+function to refine motion generation and enhance feasibility.
+2) End-to-end Action Generation:
+An alternative is to
+model control actions directly using a generative approach,
+eliminating the gap between kinematics generation and track-
+ing. While this method offers advantages in continuity and
+particularly in high-dimensional dynamic control.
+In robotic manipulation, diffusion-based policies [2, 41]
+have demonstrated this approach for quasi-static manipulators.
+For legged robots, DiffuseLoco  extends it to dynamic con-
+trol but is limited to state-based commands and quadrupedal
+robots. A more recent work, UH-1 , introduces text-to-
+action generation but only supports open-loop control, making
+it less robust to real-world disturbances. In this work, we
+present a fully functional text-conditioned end-to-end gen-
+erative controller for humanoid robots. Our model not only
+A person walks
+Teacher Training
+Student Training
+Deployment
+Structured
+Abstract
+Behavior
+Real world
+Physics Simulator
+Training
+Training
+Tracking keypoint
+Retargeted
+Mocap Dataset
+Mocap Dataset
+Retarget
+The Overview of the Training Framework. The training process includes a motion-tracking teacher training phase and a language-directed student
+training phase. We first retarget the MoCap dataset and train a teacher policy via reinforcement learning. Then, a student policy, leveraging a CVAE architecture,
+jointly models high-level linguistic instructions and low-level physical actions of the teacher policy in a unified latent space. During deployment, we use the
+student policy for zero-shot sim-to-real transfer on hardware, demonstrating diverse behaviors.
+enables robust real-world deployment but also generates novel,
+unseen motions while generalizing to similar text commands.
+III. METHODS
+In this section, we present LangWBC, an end-to-end frame-
+work that jointly models high-level linguistic instructions and
+low-level physical actions, enabling robots to execute complex
+whole-body motions directly from language commands.
+We begin by training a language-agnostic teacher policy
+to learn and track a diverse set of human motions. A CVAE
+student policy is then used to align these physically-plausible
+motions with language inputs, forming a unified latent space
+that captures the joint distribution of language and actions.
+This latent space facilitates generalization, smooth interpola-
+training the CVAE with behavior cloning, we transfer the
+privileged teacher policy to the student policy that operates
+solely on proprioceptive inputs, enabling zero-shot sim-to-real
+transfer using onboard sensors without additional training. An
+overview of this framework is illustrated in Fig. 2.
+A. Motion-Tracking Teacher Policy
+The teacher policy is designed solely as a motion-tracking
+policy to track complex human motions without language
+understanding. The training process of the teacher policy
+involves two stages, motion retargeting and motion tracking.
+1) Motion Retargeting: To ensure the MoCap trajectories
+are kinematically feasible for the teacher policy to track, we
+perform motion retargeting by applying inverse kinematics
+(IK) based on the LevenbergMarquardt (LM) algorithm .
+We formulate the retargeting as a nonlinear least squares opti-
+mization problem that minimizes the position and orientation
+errors between the robot and MoCap keypoints, while incor-
+porating smoothness constraints to ensure natural transitions
+between frames. The optimization is solved using the LM
+algorithm with joint limit constraints, yielding kinematically
+feasible motions that closely match the original MoCap data.
+The detailed formulation and implementation are provided in
+Appendix B.
+2) Motion Tracking: The primary objective of the teacher
+policy is to accurately track the retargeted MoCap trajectories
+without language information. Therefore, we employ a simple
+neural network architecture consisting of a multi-layer percep-
+tron (MLP) with layer sizes of 512, 256, and 128 units.
+The teacher policy can be formulated as:
+t  teacher(st, sref
+where st R175 represents robot states, including both pro-
+prioceptive states and privileged information (friction, mass,
+external perturbations, and motor properties) available only
+in simulation , and sref
+R141 is the reference motion,
+frame and reference joint positions from the retargeted motion.
+The inclusion of privileged information (in st) enhances the
+policys ability to master complex dynamic skills by providing
+additional context about the environment and the robots
+physical properties. The definition of each specific input state
+can be found in Appendix A. The action output aT
+corresponds to the desired joint positions for the low-level PD
+controllers. We apply domain randomization for the teacher
+Since MoCap datasets contain highly agile motions that
+are difficult to track in the early stages of training, including
+the entire datasets often leads to high gradient variance and
+slow convergence. To improve training efficiency, we design a
+motion curriculum that gradually increases motion complexity,
+allowing the policy to adapt progressively to more challenging
+motions.
+We categorize the motions into two levels of difficulty:
+a) Easy motions: static or quasi-static movements, typically
+characterized by low-speed motions.
+b) Hard motions: agile motions that require more dynamic
+whole-body coordination, including actions such as sudden
+turns or rapid running.
+Training begins with easy motions, and gradually we add
+hard motions as tracking performance improves. With this
+skills required for executing diverse motions.
+The teacher policy is trained using Proximal Policy Opti-
+mization (PPO)  to minimize the discrepancy between the
+robots movements and the reference motions. To encourage
+symmetry in the learned policy, we also incorporate symmetry-
+based data augmentation and an additional symmetry loss.
+t ), we generate its
+mirrored counterpart (sm
+) through left-right reflection.
+The augmented training objective is formulated as
+Lteacher  LPPO  symLsym,
+where sym is a weighting coefficient, and Lsym encourages
+consistent policy outputs for mirrored states, i.e.,
+Lsym  EstD
+teacher(st) M(teacher(sm
+symmetry constraint helps the policy learn more balanced and
+natural movements while reducing the sample complexity of
+training. The tracking reward formulation is summarized in
+Table I. The teacher policy runs at 50 Hz.
+REWARD FUNCTION COMPONENTS FOR TEACHER POLICY
+Expression
+Z linear vel penalty
+XY angular vel penalty
+Joint torque penalty
+Joint acc penalty
+Joint action rate penalty
+Energy cost
+Termination penalty
+Iterminated
+Joint limit penalty
+Ii [min,max]
+Orientation penalty
+Feet slide penalty
+I(Ffeet > 100N)  P vfeet
+Hip joint deviation
+P hip default
+Leg joint deviation
+P leg default
+Keypoint tracking
+pkeypref2
+Joint tracking
+Single stance reward
+ref >0.05
+tstance[0.1,0.5]
+: joint torque, : joint angle, v: velocity, : angular velocity,
+B. Language-Directed Student Policy
+To enable the robot to interpret and act on natural language
+encodes textual instructions and physical actions into a unified
+latent space, using only language inputs and proprioceptive
+readings.
+The input of the student policy consists of two parts:
+1) Text Caption Embedding: We utilize the CLIP text
+encoder  to convert the input natural language com-
+mand ctext
+into a fixed-length embedding vector
+fCLIP(ctext
+This embedding captures the semantic meaning of the
+text command.
+2) History of Proprioceptive Observations: Instead of
+providing the full privileged state used in the teacher
+ot R90 to the student policy, which encapsulate joint
+angular velocities, and projected gravity. We input a
+sequence of historical observations and actions, sampled
+at 10 Hz over a 2-second window, yielding a 20-step
+trajectory of input-output pairs.
+The encoder processes the concatenated textual and obser-
+vational inputs to produce the parameters of a latent Gaussian
+covariance matrix represented by  R128. This architecture
+models the conditional distribution of robot motions given text
+commands through the latent space, where the text embedding
+serves as a conditioning signal that shapes the latent distribu-
+tion. During training, we sample the latent vector z using the
+standard reparameterization trick:
+(ot, ..., ot20, vtext
+zt  t  t t,
+t N(0, I),
+t  student
+(zt, ot),
+where denotes element-wise multiplication, student
+student encoder, and student
+denotes the decoder. This repa-
+rameterization allows gradients to flow through the sampling
+process. The decoder then takes the sampled latent vector zt
+along with the latest state observation to output the action.
+We use an MLP with layer sizes of 2048, 1024, and 512
+units for the encoder, and an MLP with layer sizes of 512,
+simply use the mean t of the encoded distribution as the latent
+behavior. The student policy is applied with the same domain
+randomization as the teacher.
+We employ the Dataset Aggregation (DAgger)
+rithm  to train the student policy from the teacher pol-
+icy with language labels. The training objective follows the
+variational lower bound
+Lstudent  aT
+2  KL DKL(q(ztot20:t, vtext
+)p(zt)),
+where DKL is the KL-Divergence operator, and KL balances
+reconstruction quality in behavior cloning with the structural
+regularization of the latent space.
+The training process consists of five steps:
+1) Data Collection: We simulate 1,024 parallel environ-
+ments. At each time step, the student is given the
+language command and its history observation.
+2) Teacher Action Query: For each state encountered by
+the student, the corresponding optimal action is obtained
+by querying the teacher policy.
+3) Experience Buffer Construction: We insert the col-
+lected students observations and the teachers actions
+to a buffer of 1024  512 ( 500, 000) state-action pairs.
+4) Loss Computation: In the early stage of training, the
+student policy results in large accumulated errors that
+push the teacher policy out of its training distribution.
+To mitigate this, instead of tracking absolute positions,
+the student policy tracks displacement relative to past
+positions. Let pt be the robots root position at time
+over interval t, and pref,t  pref,tpref,tt denoting
+the reference displacement. The robots tracking objec-
+tive then becomes minimizing the error between its own
+displacement and the reference displacement
+min pt pref,t2.
+This mitigates deviations from the reference motion and
+preserves the quality of teacher demonstrations.
+5) Policy Update: We update the student with the loss in
+(8). We use a batch size of 1024  64 and a learning
+rate of 1  105, with one epoch per iteration. We then
+use the students actions to step the environment.
+Robustness to External Disturbances. The humanoid robot
+demonstrates robust stability while executing a hand-waving motion under
+external perturbations. When subjected to kicks (top row) and pushes (bottom
+row), the robot maintains balance and continues the commanded motion,
+showcasing effective disturbance rejection capabilities without interrupting
+the primary task.
+We repeat the iterative process, where the student pro-
+gressively learns to replicate the teachers behavior while
+understanding both language inputs and its own observation
+history. The student policy also runs at 50 Hz.
+IV. EXPERIMENTS
+We conduct extensive experiments to evaluate our frame-
+work for language-directed humanoid whole-body control with
+a Unitree G1 humanoid robot. We begin with an overview
+and demonstrate diverse motions enabled by our approach. We
+then analyze the learned latent space and its contribution to
+the policys generalization to unseen commands, highlight key
+features such as smooth transitions and latent interpolation,
+and follow up with an ablation study on core design choices.
+Isaac Lab  for training.
+A. Diverse Humanoid Motions
+In order to learn a diverse set of motions, we utilize
+the HumanML3D dataset  in training the teacher policy,
+which provides human MoCap data annotated with textual
+descriptions. For deployment, we use an AMD Ryzen 9
+CPU for inference. As shown in Fig. 3 and 4, the robot
+successfully executes a diverse range of upper- and lower-
+body motions in response to natural language commands,
+including walking in different directions, turning, performing
+hand gestures, and executing more complex whole-body move-
+as heavy kicks and pushes. For a diverse set of whole-body
+these demonstrations, our framework exhibits zero-shot sim-
+to-real transfer capabilities, effectively addressing both core
+challenges through a unified network  generating diverse,
+Teacher Reference
+Student test
+Teacher Reference
+Student test
+Teacher Reference
+Student test
+Real World Demonstration. Conditioned on text commands, our framework is able to learn a diverse distribution of whole-body motions in action
+generation directly, and can be zero-shot deployed on real-world robots. More results are shown in the accompanying video.
+language-aligned motions while maintaining robust control
+under real-world conditions and disturbances.
+B. Latent Space Analysis
+One key advantage of using a CVAE as the student pol-
+icy  rather than a simple MLP network as in previous
+works [10, 15]  is that it provides a structured latent space.
+This structured latent space aligns language inputs and motion
+actions to the same latent codes, enabling the model to
+learn disentangled representations where each latent variable
+captures both semantic meaning and motion dynamics. As a
+motion styles and transitions but also to meaningful differences
+in language instructions. This allows for better generalization
+to unseen commands, smoother motion interpolation, and more
+coherent transitions between behaviors.
+To verify this property, we apply the t-SNE algorithm to
+embed the high-dimensional latent codes of various motions
+into a 2D plane. As shown in Fig. 5, we plot nine different
+motions from four categories (walking, raising the left or right
+From the visualization, we see that the latent space has
+several interpretable features. First, motions in each category
+form distinct clusters, reflecting clear separation by motion
+type. Second, there is a striking symmetry: raising the left
+hand versus the right hand appears mirrored about the center
+of the latent space, near which more symmetric motions (e.g.,
+walking or clapping with both hands) are located. Third, all
+motions exist in a common region near the origin, which we
+interpret as the standing latent code  every motion begins
+and ends in a standing pose. Overall, this analysis confirms
+that the CVAE learns a meaningful latent manifold, which we
+t-SNE Analysis of Latent Space. The plot shows 9 motions from
+4 categories of motion, as shown in the legend. We see that similar motions
+(in the same color band) are closer than dissimilar ones. The axes suggest an
+interpretable structure: lateral symmetry (leftright motions mirrored across
+the y-axis) and vertical hierarchy (upper-body motions cluster at higher y-
+share a common region near the origin (0,0), likely representing a typical
+standing posture.
+can leverage to perform smooth transitions between motions
+and generate novel, unseen motions.
+C. Generalization to Unseen Texts
+Understanding language variations is key to human commu-
+as well. Since our CVAEs latent space is inherently structured,
+where semantically similar commands cluster together while
+remaining distinct from dissimilar ones, we hypothesize it pro-
+vides robustness to unseen yet contextually similar commands.
+To verify this hypothesis, we qualitatively evaluate the
+policys response to three semantically similar text commands,
+as illustrated in Fig. 6. We find the policy performs forward
+motion in a consistent speed and style despite phrasing dif-
+ferences like move vs. walk, demonstrating robustness to
+linguistic variation.
+the CLIP text encoder itself. To isolate the contribution of the
+CVAE architecture, we compare our approach (CLIPCVAE)
+to a baseline that pairs an MLP with a CLIP encoder alone
+(CLIPMLP). We evaluate the generated motion quality of
+both models on a test set of 15 unseen commands spanning
+three categories:
+1) Similar (e.g., Walk slowly),
+2) Moderately different (e.g., Walk into store),
+3) Semantically distant (e.g., Jump).
+Shown in Table II, both variants perform similarly on
+commands close to the training data. However, as commands
+become more unfamiliar, CLIPCVAE consistently produces
+higher-quality motions. We posit that it is because, while the
+Seen Command: A person walks forward
+Unseen Command: A person moves ahead
+Unseen Command: A person moves forward
+Rollouts of Unseen Text Commands. Our method can generalize
+to unseen text commands with similar semantical meanings. Of the three,
+only one command A person walks forward (a) is included in the training
+dataset.
+TABLE II
+MOTION QUALITY METRIC ON UNSEEN COMMANDS.
+Moderate
+Different
+CLIPCVAE
+The Motion Quality Metric is a weighted sum of keypoint and joint errors,
+normalized by an exponential function to (0, 1] (see Table I).
+CLIP encoder handles minor linguistic variations well, it pro-
+duces significantly different encodings for out-of-distribution
+from. In contrast, the CVAEs structured joint latent space
+reduces the effective distance between novel and seen com-
+more plausible motions for out-of-distribution commands.
+Summarizing the results, we conclude that our CVAE-based
+approach generalizes more effectively to language variation,
+compared to non-structured MLP baselines. This makes it
+well-suited for integration with large language models (LLMs)
+in more complex reasoning tasks, as shown in Section IV-G.
+D. Smooth Transitions Between Agile Motions
+is the ability to transition smoothly between motions. We
+demonstrate this capability through examples of agile motion
+in Fig. 1, the robot seamlessly transitions from walking to
+hand. In another rollout shown in Fig. 7, the robot performs
+an upper-body movement (waving its hand), then begins
+Smooth Transitions between Different Text Commands. The
+humanoid robot seamlessly executes a sequence of actions: waving its right
+another hand wave. The policy demonstrates the ability to handle diverse
+motion transitions within a single execution, without requiring resets between
+different actions.
+dynamics of humanoid motion, achieving smooth and coherent
+transitions  such as running, stopping, and switching to limb
+movements  within a single policy, without requiring resets, is
+a significant challenge that has not been demonstrated in prior
+works. These results underscore the diversity and robustness
+of our method, as well as its ability to generalize to transition
+motions that were underrepresented in the training dataset.
+transition from the end of a motion back to its beginning,
+enabling seamless looping. As shown in Fig. 4a, where the
+reference consists of a single turn, the policy can perform two
+consecutive turns without interruption. Although the starting
+and ending poses can be quite different, the policy success-
+fully infers the correct timing for transitioning to ensure a
+continuous motion.
+E. Interpolation in Latent Space
+Since the CVAE creates a smooth and continuous latent
+motions via a meaningful interpolation between latent codes.
+This is achieved by encoding the current observation and
+CLIP-encoded text into latent codes via the CVAE encoder,
+and then interpolating them in the CVAE latent space and
+decoding to generate the corresponding action.
+To illustrate, we show an example of interpolation between
+the two distinct commands: a man walks forward briskly
+and a person shuffles from left to right, then shuffles back
+to the left. As shown in Fig. 8, the policy generates a
+novel yet intuitive motion - blending forward walking with
+lateral shuffling - despite the absence of such behavior in the
+training data. This interpolated movement emerges naturally as
+a result of latent space blending, demonstrating the capacity
+to synthesize new behaviors from learned patterns. Moreover,
+the robots movement stays agile and stable, demonstrating the
+frameworks robustness to unseen latent codes.
+TABLE III
+ABLATION STUDY ON THE PROPOSED ARCHITECTURE, SYMMETRY LOSS,
+AND STUDENT TRACKING OBJECTIVES
+Motion Quality
+Stability
+Imitation Loss
+All metrics are reported after 10k iterations. The Motion Quality metric is
+defined in Table II, the Stability metric indicates success rate over 1000
+steps under perturbations, while the Imitation Loss is the students final loss
+in training.
+Similar to the ablation in Section IV-C, since both the CLIP
+encoder and CVAE architecture have interpolatable latent
+for interpolating diverse motion commands, or does the CVAE
+provide essential capabilities? To answer this question, we
+again isolate the effectiveness of the CVAE latent space
+by comparing its interpolation performance against a CLIP-
+only MLP baseline, assessing which latent mixing generates
+meaningful novel behaviors.
+Interpolating directly in the CLIP textembedding space
+(CLIP Interpolation).
+Interpolating in the CVAE latent space learned by the
+student (CVAE Interpolation, Ours).
+As shown in Fig. 9, we see that, with the help of the
+CVAE architecture, the interpolated motion results in a smooth
+diagonal walk, whereas the baseline with the CLIP encoder
+alone produces noticeable jitter and difficulty in walking (as
+seen by the orange CoM trajectory). This result highlights that
+the CVAE induces a smoother and more structured latent space
+than the CLIP encoder alone, enabling better generalization to
+unseen motions through meaningful motion interpolation.
+These results highlight the strength of our CVAE-based
+architecture in capturing motion space structure, enabling
+novel motions from dataset diversity. This allows our proposed
+method to generate flexible, diverse motions and generalize
+beyond explicit training examples.
+F. Ablation Study
+In the ablation study, we comprehensively evaluate the
+effectiveness of the three core design choices in our proposed
+(iii) the CVAE architecture of the student policy. Below, we
+summarize our full framework alongside the ablation baselines
+used to assess the contribution of each component. We conduct
+the ablations in simulation.
+1) LangWBC (CVAE, Ours): Our proposed method, in
+which the teacher is trained with a symmetry loss, and
+the student leverages a CVAE architecture trained using
+the relative-tracking objective.
+2) No Teacher Symmetry (No-Symm): A variant of Lang-
+WBC in which the symmetry loss is removed from the
+teachers training, while all other components remain
+unchanged.
+Interpolation in the Latent Space. The CVAE gives a structured latent space, enabling the policy to generalize to interpolated command. Here,
+interpolating between walking (Command 1) and side stepping (Command 2) produces walking to the side, a whole-body motion that does not exist in the
+training distribution.
+Latent Space Interpolation: CLIPCVAE vs. CLIP Alone
+Comparison of motion quality when interpolating between forward and side-
+ways walking. The CLIPCVAE model (left) produces smooth and coherent
+diagonal walking, while the CLIP-only baseline (right) results in jittery
+motions.
+3) No Relative Tracking (No-Rel): A variant where the
+student is trained without the relative-tracking objective,
+while all other components remain unchanged.
+4) MLP Student (MLP): A variant that replaces the
+students CVAE architecture with an MLP, while all
+other components remain unchanged.
+The quantitative results, summarized in Table III, indicate
+that our full framework outperforms all ablation baselines,
+confirming the contribution of each proposed component to
+efficient learning and high-quality motion generation. Notably,
+the CVAE architecture not only enhances generalization, as
+discussed earlier, but also improves motion tracking accuracy
+and robustness compared to the MLP baseline.
+A man waves his left hand
+A person walks forward
+briskly then stops
+There is a friend 3 meters in front of you,
+what should you do?
+Fig. 10.
+LLM-guided Humanoid Motion Sequence. Given the social
+scenario There is a friend 3 meters in front, the LLM decomposes this high-
+level instruction into primitive motion commands, which the robot executes
+by walking forward, stopping, and greeting with a hand wave.
+G. Integrating LLMs for Complex Tasks
+To handle abstract instructions and social scenarios, we
+integrate our framework with a large language model (LLM)
+as a high-level planner, as shown in Fig. 2(b). The LLM
+translates unstructured natural language inputs into structured
+command sequences executable by our end-to-end policy.
+tically similar to, but not identical to the training data. Thus,
+the generalization to similar text commands provided by the
+CVAE becomes critical in this task.
+We prompt the LLM to decompose abstract tasks into
+motion primitives similar to the training dataset, using the
+structure (Text Command): (Duration in Seconds). Given the
+social scenario There is a friend 3 meters in front of you, what
+should you do?, the LLM generates an intuitive sequence of
+timed commands:
+A person walks forward briskly then stops: 4.0
+A man waves his right hand: 5.0
+During deployment, we run the CLIP encoder at a lower
+frequency and reuse its embedding across multiple control
+steps. As shown in Fig. 10, the robot successfully performs this
+socially appropriate sequence, demonstrating our frameworks
+ability to execute high-level, context-aware instructions.
+V. LIMITATIONS
+We have demonstrated a set of humanoid whole-body mo-
+tions directed by natural language commands. However, the
+number of language-conditioned motions remains limited to
+only several dozens of motions due to compute constraints. Ex-
+panding the range of language-directed humanoid motions on
+a larger scale could further validate and enhance our approach.
+locomotion-oriented whole-body control due to the absence
+of a vision module. In future work, we aim to incorporate
+more whole-body motions that can be leveraged in agile loco-
+manipulation tasks critical for the deployment of humanoid
+robots. Due to the limited expressiveness of the variational
+autoencoder model, we experience some sim-to-real gap which
+could have been improved via incorporating a more expressive
+generative model, such as diffusion models

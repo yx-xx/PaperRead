@@ -1,0 +1,561 @@
+=== PDF文件: Prompting with the Future Open-World Model Predictive Control with Interactive Digital Twins.pdf ===
+=== 时间: 2025-07-22 15:42:36.323882 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Prompting with the Future: Open-World Model
+Predictive Control with Interactive Digital Twins
+Chuanruo Ning
+Kuan Fang
+Wei-Chiu Ma
+Cornell University
+Observations
+Instruction
+Interactive
+digital twin
+Simulate outcomes of
+sampled actions
+Action optimization
+Value map
+Keypoints
+Previous Methods
+Prompting with the Future
+Prompting with current observations
+Prompting with plotted actions
+Prompting with
+simulated results
+Pair the running
+shoes on the rack
+Prompting with the Future. We enable VLM-driven motion planning conditioned on free-form instructions by
+prompting with simulated future outcomes generated from an interactive digital twin. In contrast, previous methods [20, 13, 31]
+prompt VLMs with current observations and hand-defined action primitives, demanding implicit physical reasoning that VLMs
+often struggle to perform reliably. Please use Adobe Acrobat Reader to view embedded video demonstrations.
+AbstractOpen-world robotic manipulation requires robots to
+perform novel tasks described by free-form language in unstruc-
+tured settings. While visionlanguage models (VLMs) offer strong
+high-level semantic reasoning, they lack the fine-grained physical
+insight needed for precise low-level control. To address this gap,
+we introduce Prompting with the Future (PWTF), a model-
+predictive control framework that augments VLM-based policies
+with explicit physics modeling. PWTF builds an interactive digital
+twin of the workspace from a quick handheld video scan, enabling
+prediction of future states under candidate action sequences. In-
+stead of asking the VLM to predict actions or results by reasoning
+renders them as visual prompts with adaptively selected camera
+viewpoints that expose the most informative physical context.
+A sampling-based planner then selects the action sequence that
+the VLM rates as best aligned with the task objective. We
+validate PWTF on eight real-world manipulation tasks involv-
+ing contact-rich interaction, object reorientation, and clutter
+state-of-the-art VLM-based control methods. Through ablation
+that explicitly modeling physics, while still leveraging VLM
+semantic strengths, is essential for robust manipulation.
+Equal advising.
+I. INTRODUCTION
+General-purpose
+specified tasks in unstructured, highly varied settings. Recent
+visionlanguage models (VLMs) have made impressive strides
+in high-level semantic reasoning and zero-shot visual question
+answering [2, 11, 20]. Yet their understanding of fine-grained
+physical interactions is typically cannot support he precise,
+low-level control required in real-world manipulation. Take
+the seemingly simple job of tidying a cluttered shoe rack
+(Figure 1). The robot need to, detect and identify each shoe,
+infer the desired final arrangement, and plan and execute
+gripper motions that achieve accurate translations and rotations
+while avoiding collisions. Achieving open-world manipulation
+thus hinges on seamlessly fusing semantic reasoning with
+the fine-grained, physics-aware control that real-world tasks
+Recent works have investigated various ways to employ
+VLMs for robotic control. Fine-tuned on massive demonstra-
+tion trajectories through imitation learning, VLMs can serve
+as the backbone of policies to ground language instructions in
+visual observations [7, 25, 34]. However, robotics datasets re-
+main orders of magnitude smaller than the question-answering
+datasets used to train VLMs, limiting the generalization of
+learned policies to novel environments and tasks. Alternatively,
+an increasing number of works propose to employz VLMs
+in zero-shot settings either with the observed images  or
+sampled actions overlaid on the images as visual prompts
+[13, 31]. While these approaches show promise in simple
+struggling with more complex scenarios involving intricate
+understanding.
+In this work, we propose a fundamentally different ap-
+proach to address this challenge by decoupling semantic
+understanding from physical reasoning. In contrast to prior
+works which require VLM to implicitly reason dynamics, we
+employ interactive digital twins of the real-world environment
+to complement the VLMs capabilities. Through physical
+the manipulation scene, providing reliable predictions of result
+states under diverse actions. By rendering the images of the
+simulated outcomes, we enable the VLM to interface directly
+with the predicted future observations before they occur, which
+allows the VLM to bypass physical reasoning and instead
+focus on the semantic understanding and evaluation that it
+excels in.
+To this end, we present Prompting with the Future (PWTF),
+an approach that solves open-world manipulation in a model-
+predictive control (MPC) manner by integrating a VLM and
+an interactive digital twin. As shown in Figure 1, given a
+video scan of the real-world environment, our method first
+builds an interactive digital twin with a controllable robot and
+interactable objects to enable physical simulation of possible
+outcomes of sampled actions. In a sampling-based planning
+their outcomes within the digital twin, and utilizes the VLM to
+evaluate the resulting future states. Rather than requiring the
+VLM to reason about physics directly, we render RGB images
+from the digital twin to provide observations of predicted out-
+comes as visual prompts to the VLM. Unlike prior work that
+relies on fixed camera viewpoints, we adaptively adjust camera
+poses to optimize the visual inputs for the VLM, facilitating
+more effective spatial reasoning. We design a visual prompting
+mechanism that enables the VLM to assess the feasibility and
+desirability of different action outcomes, enabling planning of
+the optimal actions to solve the task, Thereby, we enhance
+physical reasoning in VLM-driven robotic control without
+requiring additional robot data collection, VLM fine-tuning,
+or any in-context examples.
+We evaluate PWTF in eight real-world manipulation tasks
+specified by natural language instructions. Our approach
+demonstrates to be able to effectively solve these tasks with
+success rates superior to baseline methods that use VLM for
+robotic control. Additionally, we conduct thorough ablation
+studies and failure analysis to investigate the key factors
+contributing to our frameworks performance and robustness.
+II. RELATED WORK
+VLM-based robotic control.
+Recent advances in VLMs
+have opened pathways toward open-world robot manipula-
+tion without any robotic demonstration by leveraging their
+strengths in semantic understanding and common-sense rea-
+answering tasks, often struggle to reason about the physical
+effects of interactions necessary for motion planning. To
+address this limitation, prior works have explored diverse
+intermediate representations, such as reward functions, 2D
+outputs for VLMs. While these approaches show promising
+tion. Another line of work involves carefully designed chain-
+of-thought processes [11, 30, 49], which decompose tasks
+into smaller, predefined steps. Although effective for specific
+cannot be easily divided into such reasoning procedures and
+is limited by the inherent weaknesses of VLMs.
+In contrast, we aim to make open-world manipulation an
+in-distribution task for VLMs by leveraging digital twins
+to simulate future results. This allows VLMs to focus on
+evaluating possible future observations, aligning seamlessly
+with their strengths in description and evaluation.
+Model Predictive Control. Model Predictive Control (MPC)
+is a widely adopted optimization-based control strategy that
+has proven highly effective in robotics [14, 12, 16, 32, 29].
+MPC fundamentally consists of two key components: a
+dynamic model capable of predicting future system states
+given a sequence of actions, and an optimization process
+that determines the optimal action sequence by minimizing
+a predefined cost function. Recent MPC methods for open-
+world motion planning usually use images from a video
+generation model to predict the future results given different
+actions [50, 19, 51], leveraging the prior from the large-scale
+pre-training. However, video generation introduces artifacts
+and fails to generalize to complex scenarios that are far
+from the training distribution. Besides, generated video cannot
+guarantee to be precisely conditioned on the low-level actions.
+In this paper, we introduce physically grounded dynamic
+models of by building digital twins of the real-world envi-
+ronments. Besides, compared with the traditional method of
+designing a cost function for each task, we employ VLMs
+for flexible and comprehensive evaluation over the results,
+enabling open-world manipulation on a wide range of tasks.
+3D scene reconstruction for robot control. 3D reconstruction
+neural implicit surfaces [45, 46, 33], and Gaussian Splat-
+ting [18, 23], have revolutionized 3D scene modeling by en-
+abling photorealistic rendering and dense geometry reconstruc-
+tion. These methods provide a lot of potential for application
+in robot motion planning [47, 41, 24, 26, 37]. Previous work
+leveraging scene reconstruction for motion planning either
+tries to distill 2D features generated by foundational models
+into 3D for spatial perception or enhance the demonstration
+to enable few-shot learning. However, these works usually
+assume the scene to be static and do not handle interactions
+over the reconstructed representation.
+Building digital twins from the real-world scenes, as a
+special branch of 3D scene reconstruction, enables a lot of
+applications in manipulation (i.e., real-to-sim-to-real method).
+twin as a virtual playground for collecting manipulation
+data [36, 48, 22] or training robot policy through reinforcement
+learning [43, 35, 8, 42, 5], which are then transferred to the
+real world for manipulation.
+In this work, we aim to enable dynamic and interactive
+modeling between the robot and its environment. To achieve
+and realistic rendering, with mesh for accurate physical mod-
+eling. Our hybrid representation leverages the strengths of both
+trol applications. This enables dynamic, physically grounded
+interactions in real-world scenarios, bridging the gap between
+static scene reconstruction and interactive manipulation. We
+leverage digital twin as a world model that can provide results
+of actions that have not happen yet in the real world. By
+combining with VLM as a critic, we enable a zero-shot setting
+for real-to-sim-to-real manipulation.
+III. PROBLEM FORMULATION
+Our goal is to enable robots to perform manipulation tasks
+involving unseen objects and diverse goals. We focus on
+complex scenarios that involve intricate contact, dynamics,
+and motion. These setups require robots to possess a thorough
+physical and semantic understanding of the environment. We
+do not assume access to task-specific training data, in-context
+work [20, 27, 13, 25]. We consider a table-top setting with
+one robotic arm. The frameworks input consists of a natural
+language instruction l specifying the task, and an RGB video
+scan v of the scene. The output is an action sequence {a}T 1
+for achieving the task goal. Each action at R7 is defined as
+the 6-DoF gripper pose and the finger status (open or closed).
+Central to our framework is a pre-trained visionlanguage
+model (VLM). The model processes an ordered sequence
+of interleaved text and RGB images and returns a textual
+response. We employ the VLM for various purposes with
+designed prompts.
+IV. METHOD
+We propose to tackle open-world motion planning by com-
+plementing VLMs semantic reasoning ability with explicit
+modeling of dynamics through digital twins. Our framework
+builds two key components: 1) We introduce a pipeline to
+automatically build interactive digital twins to support accurate
+modeling of diverse physical interactions and photorealistic
+rendering of the simulation outcomes.
+Section IV-A. 2)
+We formulate open-world manipulation as a model predictive
+control problem by prompting the VLM with futures provided
+Video scan
+Gaussians
+Movable mesh
+Unproject
+Robot URDF
+Movable Gaussians
+Motion following
+Transformation
+Geometry
+Rendering
+Mesh representation
+Gaussian representation
+Simulator
+Simulation
+Interactive digital twin
+Fig. 2: Construction of interactive digital twins. Starting
+from a video scan of the environment, we construct an
+interactive digital twin that combines mesh-based simulation
+and Gaussian-based rendering. The resulting twin enables
+photorealistic rendering and accurate simulation of object
+dynamics conditioned on robot actions.
+by the digital twin, enabling adaptive observation and action
+optimization. Section IV-C.
+A. Construction of Interactive Digital Twins
+To complement the semantic reasoning of the VLM with
+grounded physical predictions, we construct interactive dig-
+ital twins that enable both accurate physical simulation and
+photorealistic rendering of future outcomes. As shown in
+Figure 2, our construction pipeline consists of two key stages:
+(1) reconstructing scenes with accurate geometry and visual
+robot actions and environment dynamics.
+Unlike prior work, which often focuses solely on static
+reconstruction [40, 24], our method produces dynamic, action-
+conditioned digital twins by combining mesh-based physical
+modeling with efficient Gaussian splatting for rendering. This
+hybrid design supports fine-grained simulation of physical
+interactions while maintaining high-quality visual fidelity.
+Hybrid reconstruction: Given a video scan of the real-world
+that achieves both geometric accuracy and photorealistic ap-
+pearance (Figure 2). We apply 2D Gaussian Splatting  to
+create a Gaussian representation G supervised by the extracted
+RGB frames. To recover precise scene geometry, we convert G
+into a mesh representation M through TSDF volume integra-
+Interactive objects: To model dynamics for robotic manipu-
+Starting from M, we render multi-view images of the scene
+Water the plant with the cup.
+Multi-view observations of current step
+Current subtask is 1. Grasp the cup.
+Future observations of sampled actions
+Change to the
+front view.
+Model Predictive Control
+VLM evaluation
+The second
+result is better.
+Action optimization
+Adaptive rendering
+High-level planning
+Different views
+Different actions
+Fig. 3: Model Predictive Control through Simulation-Informed Prompting. Given a free-form instruction, our framework
+first performs high-level planning by generating structured subtasks from multi-view observations. At each step, the interactive
+digital twin simulates future states for candidate actions and render the outcomes multiple viewpoints. The VLM adaptively
+selects the most informative view for renderding and evaluates the predicted outcomes for sampling-based motion planning.
+and use Molmo , a vision-language model (VLM), to
+identify key movable objects based on task instructions l.
+Given Molmos 2D keypoints, we employ SAM2  to track
+segmentation masks across views. These 2D masks are then
+projected back to 3D, labeling mesh vertices and segmenting
+out movable object meshes within M.
+Realistic rendering: In addition to movable meshes for ge-
+ometric information, we also need high visual fidelity and
+ensure realistic rendering in accordance with object movement.
+To achieve realistic and responsive rendering, we enable the
+Gaussians G to dynamically follow the movement of their
+associated object meshes. Specifically, we first associate each
+Gaussian point with the nearest movable mesh based on the
+Euclidean distance between their centers. During simulation,
+the anchored Gaussians inherit the translation and rotation
+of their corresponding meshes, ensuring that the rendered
+appearance remains consistent with object motions.
+Physical simulation: Finally, we integrate a physics simulator
+S  equipped with the robots URDF U to model dynamics
+under interaction. The simulator computes physically plausible
+state transitions when applying diverse candidate actions, en-
+suring the digital twin can predict action-conditioned outcomes
+with high fidelity.
+Through this construction pipeline, we obtain an interactive
+digital twin where the mesh representation provides physical
+implementation details are provided in the supplementary
+material.
+B. Simulation and Rendering for Visual Prompting
+We simulate and render future outcomes in the digital twin
+to generate visual prompts for the vision-language model
+(VLM). Given a robot action a R7, the simulator S predicts
+the resulting transformation of the robot and scene objects
+within the mesh representation M, denoted as T  S(M, a).
+We apply this transformation T to the Gaussian scene repre-
+sentation G, obtaining an updated state G(T ) that encodes the
+physical consequences of the action.
+While VLMs operate purely on 2D images and inherently
+lack strong spatial reasoning, we facilitate 3D understanding
+by synthesizing multi-view observations of each predicted
+future. Given the updated state G(T ), we render background
+scene images from a set of camera configurations C, produc-
+ing Ig  Render(G(T ), C), which depict the environment
+without the robot. Separately, we render the robot executing
+action a using the simulator and its URDF model, yielding
+Ir  Render(S(U, a)). The background and robot images are
+composited based on depth information to generate the final
+multi-view observations I  Ii RW H3. These synthe-
+sized observations allow the VLM to perceive the manipulation
+scene from diverse viewpoints, enhancing its ability to reason
+about future states and improving the accuracy of action
+selection.
+C. Motion Planning via Simulation-Informed Prompting
+We formulate the control problem as a model predictive
+control (MPC) framework, where the vision-language model
+(VLM) serves exclusively as an evaluator of predicted future
+states. Our approach decomposes tasks into subgoals, adap-
+tively selects viewpoints to facilitate VLM reasoning, and
+optimizes actions through sampling-based planning.
+Subgoal Decomposition. We first leverage the semantic rea-
+soning capabilities of the VLM to decompose complex tasks
+into structured subgoals. Given initial multi-view observations
+I0 and a task instruction l, the VLM generates a set of subtasks
+each planning step t, the VLM is prompted with the current
+observations It and the subtask set , and selects the active
+subgoal i corresponding to the agents current progress. This
+Instruction
+Success Criteria
+Water plant
+Water the plant with the cup
+The cup is over the plant pot with tilting action
+Play drum
+Hit the drum with the drum stick
+The head of the drum stick contacts the drum
+Clean up
+Wipe the tea with the sponge
+The sponge makes contact with the spilled tea
+Press spacebar
+Press the space on the keyboard
+The spacebar is pressed
+Cucumber basket
+Put the green cucumber into the basket
+The cucumber is in the basket
+Pair up shoes
+Pair up the shoes
+Corresponding shoes are next to each other in parallel
+Unplug charger
+Unplug the charger
+The charger is no longer plugged into the power strip
+Lowest tune
+Play the lowest pitch with the drum stick
+The head of the drum stick contacts the lowest key
+TABLE I: Definition of tasks. We list the text instructions for prompting VLM and the success criteria of each task.
+decomposition localizes the optimization objective, improving
+sample efficiency and enhancing planning robustness.
+Adaptive Viewpoint Selection. Since robot actions are de-
+fined in SE(3) space but the VLM operates solely on 2D
+visual inputs, spatial reasoning critically depends on viewpoint
+selection. At each planning step, we render observations of
+the updated scene G(T ) under a set of candidate camera
+configurations C. Conditioned on i and It, the VLM se-
+lects the viewpoint Ct that provides the most informative
+observation for distinguishing between action outcomes. This
+adaptive rendering procedure strengthens the VLMs ability to
+reason about geometric and physical variations essential for
+task success (see Figure 3).
+Sampling-Based Planning. With the active subgoal i and
+selected viewpoint Ct determined, the framework proceeds
+to low-level action generation. We employ the Cross-Entropy
+Method (CEM)  for structured action optimization, by
+leveraging the digital twins to explicitly model the dynamics
+and the VLM to evaluate the predicted outcomes. To select
+the action, candidate actions ak are initially sampled from
+a multivariate Gaussian distribution and simulated within the
+digital twin to obtain their corresponding future observations
+the subgoal i, and the VLM selects the outcome that best
+advances the subgoal. The corresponding elite actions are then
+used to update the sampling distribution. This sampling and
+refinement process is repeated for three iterations, after which
+the mean of the final distribution is taken as the optimized
+action at.
+V. EXPERIMENTS
+To validate the effectiveness of our framework, in this
+require 6 DoF control, semantic understanding, and diverse
+manipulation skills. We compare our approach against prior
+works on open-world manipulation that leverage VLMs or
+train on large-scale robotic data. Additionally, we conduct
+ablation experiments to evaluate the contribution of each
+component to the overall performance.
+A. Experimental setup
+Tasks. As shown in Table I, we introduce eight manipula-
+tion tasks that require intricate understanding of the physical
+world and diverse manipulation skills: water plant, play
+up. For each task, we construct five manipulation scenes,
+featuring randomized object layouts and different distractors.
+Please see the supplementary material for more details about
+task design.
+Baselines. We compare our model against several state-of-
+the-art methods. VoxPoser  leverages a VLM to predict
+3D value map for motion optimization. We enhance it by
+providing ground-truth segmented object point clouds from
+our digital twin, significantly improving its perception accu-
+racy. MOKA  chooses the 2D keypoints as intermediate
+representations for VLM to predict, which are then converted
+into actions based on the depth information from a depth
+camera. OpenVLA  is a 7B-parameter open-source vision-
+language-action model fine-tuned from a VLM using 970k
+real-world robot demonstrations . 0 , a state-of-the-
+art vision-language-action model trained on diverse robot
+demonstrations. For both OpenVLA and 0, we report their
+performances under a zero-shot setting and after task-specific
+fine-tuning on 20 expert demonstrations for each task.
+Metrics. We use the success rate as the evaluation metric.
+A task is considered a failure if the robot causes irreversible
+results or if the maximum step budget or time limit is reached.
+The task is successful if the success criteria are met. Please
+see the supplementary material for more details.
+Implementation details. We adopt GPT-4o  for both our
+method and the baselines. During inference, we render four
+camera views and allow VLM to select observations from
+these perspectives. For the CEM optimization, we use 3
+iterations with 90 samples per iteration. The planning policies
+are rolled out twice per scene to consider the randomness in
+VLM planning, resulting in 10 trials per task in total. Please
+see the supplementary material for more details about task and
+baseline design.
+B. Quantitative results
+Table II compares the success rates of our method against
+those of the baselines. Since Voxposer and MOKA rely on
+open-vocabulary detectors to detect objects before manipula-
+specific object parts, such as the spacebar on a keyboard
+Water plant
+Play drum
+Press spacebar
+Pair up shoes
+Cucumber basket
+Lowest tune
+Unplug charger
+Clean up
+Voxposer
+OpenVLA-finetuned
+0-finetuned
+TABLE II: Comparison against baselines. PWTF better leverages the reasoning ability of VLM and improves the performance
+on most of the tasks. Besides, our image-based evaluation on results provides more flexibility than value map or key points,
+enabling challenging tasks that are hard to be parametrized by previous representations (e.g., play the lowest tune).
+Optimized action distribution
+Initially sampled actions
+CEM iteration
+wipe the spilled tea
+Fig. 4: Example on action optimization. We show the action
+optimization results of one planning step in subtask wipe the
+spilled tea. Our digital twin could simulate diverse results
+with accurate motion and collision of the sponge in initial
+sampling and VLM could effectively optimize the action
+distribution to move the sponge towards the tea.
+or the lowest key on a xylophone. In contrast, our method
+directly leverages the VLM to comprehend and reason about
+simulated future states, eliminating the need for a perception
+module and resulting in greater robustness. As for OpenVLA
+and 0, while they can perform zero-shot on simple tasks
+due to their training on large-scale robotic datasets, their
+generalization is limited by the coverage of the training data,
+making them less effective for complex tasks. Even with task-
+specific demonstrations, the trained methods still struggle to
+generalize to unseen layouts. We hypothesize that more data is
+needed for trained methods. In contrast, our method benefits
+from the commonsense reasoning capabilities of the VLM,
+enabling broader task coverage and adaptability. We particu-
+larly excel in tasks requiring precise gripper pose alignment,
+as our approach allows for simulation-based rehearsal before
+execution.
+C. Qualitative results
+We visualize the action optimization process for a single
+planning step in the clean up task in Figure 4. Initially,
+the digital twin simulates a diverse set of actions with precise
+dynamics (e.g., object rotating due to grasping, object dropping
+due to collisions, etc.) and photorealistic rendering. Based on
+the simulation results and the task instruction, the VLM selects
+the results that better align with the target objective. An action
+distribution is fit to the selected elite actions, from which new
+actions are resampled for further simulation in the digital twin.
+This iterative process leads to an optimized action distribution
+that aligns more closely with the goal of wiping the spilled
+tea using the sponge.
+Figure 5 shows some examples of the rollout trajectories
+planned by our framework in both digital twins and the real
+world. By mirroring possible interactions in the simulated
+VLMs to guide the motion of the robot on diverse tasks in an
+open-world environment. The digital twin and the real world
+are aligned based on planning steps. We highlight key planning
+steps where VLM chooses to change the observation view to
+better assess the results, showing the benefits of our adaptive
+rendering design. Please see the supplementary material for
+more visualization and videos.
+D. Ablation study
+To assess the contribution of each component in our frame-
+each component in turn. In the wo views setting, we fix the
+camera to a static top-down perspective instead of allowing
+the VLM to select a view for each planning step. For wo
+each planning step rather than first generating subtasks. In the
+wo CEM setting, we simply take the mean value of the
+selected actions without optimizing the action distribution or
+resampling.
+As shown in Table III, while performance varies across dif-
+ferent tasks due to their diverse requirements, our full method
+achieves the best results in most of the tasks. Multi-view ob-
+Press spacebar, Play the drum). Dividing tasks into subtasks
+Real world
+Digital twin
+Real world
+Digital twin
+Real world
+Digital twin
+Real world
+Digital twin
+Planning steps
+Real world
+Digital twin
+Water plant
+Press space
+Pair up shoes
+Lowest tune
+Clean up
+VLM changes view to cross-validate the optimal action
+Fig. 5: Example trajectories. Example trajectories planned by our framework in both digital twin and real world (aligned).
+We highlight some key steps wh

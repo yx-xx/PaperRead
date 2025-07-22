@@ -1,0 +1,802 @@
+=== PDF文件: CREStE Scalable Mapless Navigation with Internet Scale Priors and Counterfactual Guidance.pdf ===
+=== 时间: 2025-07-22 16:12:30.863134 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Internet Scale Priors and Counterfactual Guidance
+Arthur Zhang, Harshit Sikchi, Amy Zhang, Joydeep Biswas
+The University of Texas at Austin
+Fig. 1: CRESTE learns a perceptual encoder1,2 and reward function3 to predict structured birds eye view (BEV) feature
+and reward maps for navigation. Our model inherits generalization and robustness from visual foundation models and learns
+expert-aligned rewards using our counterfactual-guided learning framework. We integrate CRESTE in a modular navigation
+system that uses coarse GPS guidance and rewards to reach navigation goals safely.
+AbstractWe introduce CRESTE, a scalable learning-based
+mapless navigation framework to address the open-world gener-
+alization and robustness challenges of outdoor urban navigation.
+Key to achieving this is learning perceptual representations that
+generalize to open-set factors (e.g. novel semantic classes, ter-
+costs from limited demonstrations. CRESTE addresses both
+these issues, introducing 1) a visual foundation model (VFM)
+distillation objective for learning open-set structured birds-eye-
+view perceptual representations, and 2) counterfactual inverse
+reinforcement learning (IRL), a novel active learning formulation
+that uses counterfactual trajectory demonstrations to reason
+about the most important cues when inferring navigation costs.
+We evaluate CRESTE on the task of kilometer-scale mapless nav-
+igation in a variety of city, offroad, and residential environments
+and find that it outperforms all state-of-the-art approaches with
+70 fewer human interventions, including a 2-kilometer mission
+in an unseen environment with just 1 intervention; showcasing its
+robustness and effectiveness for long-horizon mapless navigation.
+Videos and additional materials can be found on the project page:
+I. INTRODUCTION
+Mapless navigation is the task of reaching user-specified
+goals without high-definition (HD) maps and precise naviga-
+tion waypoints. Mapless approaches plan routes using egocen-
+tric sensor observations (e.g. RGB images, point clouds, GPS),
+coarse waypoints from public routing services, and satellite
+imagery. These solutions demonstrate promise as a scalable
+alternative to conventional map-centric approaches: enabling
+generalization to unforeseen factors (e.g. curb ramps and
+foliage) and dynamic entities (e.g. pedestrians and strollers)
+while reducing map maintenance overhead and reliance on
+pre-defined routes.
+Traditional geometric-only mapless solutions [3, 43] exhibit
+robust generalization when it is only necessary to consider
+costs for geometric factors like static obstacles. However,
+open-world navigation demands perception systems that per-
+ceive an open set of factors unknown apriori, ranging from
+terrain preferences (grass vs. concrete) to semantic cues (cross-
+walks and crossing signs). Furthermore, it requires the ability
+to identify the most salient features in the scene, and how they
+influence the choice of paths.
+Learning-based approaches are a scalable alternative that
+considers factors beyond geometry, but must overcome data
+similar reliability. These approaches broadly consist of single-
+factor perception, hand-curated multi-factor perception, end-
+to-end learning, and zero-shot pre-trained large language
+model (LLM)visual language model (VLM) transfer. While
+single-factor [20, 44, 43] and multi-factor [21, 33] methods
+learn representations that consider relevant navigation factors
+(e.g. geometry, terrain, semantics), they rely on a hand-curated
+list of semantic classes and terrains that limit generalization to
+unseen classes. End-to-end methods [34, 35, 36] alleviate this
+by jointly learning the representation and policy from expert
+demonstrations but are prone to overfitting without large-scale
+robot datasets. While recent works [45, 22] demonstrate that
+pre-trained LLMs and VLMs can reason about expert-aligned
+behavior without large-scale robot datasets, we empirically
+demonstrate that they are poorly attuned to urban navigation,
+leading to brittle zero-shot transfer in complex scenes.
+We address the aforementioned limitations with CRESTE,
+Counterfactuals for Reward Enhancement with Struc-
+tured Embeddings, a novel approach that learns open-set
+representations and navigation costsrewards for mapless ur-
+ban navigation. To learn open-set representations, CRESTE
+combines prior work on birds eye view (BEV) representation
+learning  and visual foundation models (VFMs) [25, 30]
+to learn BEV map representations with inherited real-world
+robustness and open-set semantic knowledge. We unify priors
+from multiple foundation models by distilling image features
+from Dinov2  and refining these features in BEV using
+SAM2  instance labels. CRESTE infers expert-aligned
+navigation costs without large-scale demonstrations by lever-
+aging counterfactuals to guide learning, where counterfactuals
+hold all other variables constant except for the path taken
+from the start to the end goal. Unlike conventional preference
+learning (IRL) objective explicitly minimizes rewards along
+paths that exhibit undesirable behavior (e.g. veering off cross-
+correct robot behavior by providing offline counterfactual
+feedback. We summarize the main contributions of our work
+as follows:
+Representation Learning Through Model Distillation.
+A new model architecture and distillation objective for
+distilling navigation priors from visual foundation models
+to a lightweight image to BEV map backbone.
+Counterfactually Aligned Rewards. An active learning
+framework and counterfactual IRL formulation for reward
+alignment using counterfactual and expert demonstra-
+We demonstrate our approachs effectiveness through real-
+world kilometer-scale navigation experiments in urban envi-
+ronments with off-road terrain, elevated walkways, sidewalks,
+evaluate in 6 distinct seen and unseen geographic areas
+and significantly outperform existing state-of-the-art imitation
+methods on the task of mapless navigation.
+II. RELATED WORK
+In this section, we position our work within the broader
+context of methods that perform mapless navigation by learn-
+ing representations and policies for safe local path planning.
+Underlying these methods are two key challenges: learning
+robust perceptual representations that encode an open set of
+navigation factors, and learning planning modules that can
+identify and reason about the most important factors to plan
+safe paths.
+Single [14, 20, 39] and multi-factor [9, 21, 33] approaches
+learn perceptual representations grounded in the planning
+horizon with elevation, terrain, and semantic factors, and rely
+on expert tuning to balance the relative costs of each factor.
+While this enables joint reasoning about multiple factors, it
+assumes the full set of semantic classes and terrains are known
+they require expert tuning of complex multi-objective cost
+functions for each environment.
+End-to-end methods jointly learn a representation and policy
+using either behavior cloning (BC), RL, or IRL. BC meth-
+ods [15, 35] learn task-specific representations for reasoning
+about how to mimic the expert policy. These approaches scale
+effectively given large-scale datasets with expert demonstra-
+IRL  methods also mimic the expert policy, but design
+handcrafted reward functions (e.g. minimize vibrations
+and likelihood of interventions ) or preference rank-
+ings [40, 7] to guide representation and policy learning. These
+methods efficiently learn expert-aligned behaviors at the cost
+of careful reward tuning or preference enumeration.
+An emerging class of methods [22, 45] leverages pre-trained
+factors present in VLMs and LLMs, large foundation models
+pre-trained on internet-scale data, zero-shot for navigation.
+These foundation models leverage geographic hints in the
+form of satellite imagery and topological maps, along with
+image observations and text instructions to predict safe lo-
+cal waypoints for analytical planning and control methods.
+While promising, it is not well understood how to best steer
+VLMsLLMs to reason about the most important navigation
+factors for navigation tasks.
+The aforementioned works either rely on large-scale robot
+datasets for open-set generalization or complex reward de-
+sign to learn expert-aligned behavior. However, constructing
+large robot datasets and expressive multi-term objectives is
+prohibitively difficult for open-world settings. In contrast,
+CRESTE learns open-set representations by directly distilling
+knowledge from VFMs, and expert-aligned reward functions
+by using counterfactuals as a unified language for conveying
+navigation constraints. Unlike counterfactual-based methods
+like VRL-PAP , our counterfactuals specify arbitrary nav-
+igation constraints beyond terrains and can be readily obtained
+with additional deployments. Importantly, our reward learning
+approach is distinct from preference-learning methods, as
+counterfactuals are a more specific form of feedback than
+III. THE MAPLESS URBAN NAVIGATION PROBLEM
+We now develop the mapless navigation problem for urban
+environments. We first formulate the path planning problem
+in this context in Sec. III-A and then discuss the problem
+of learning general expert-aligned costs in Sec. III-B. Fi-
+formulation that this work addresses. In this work, we refer to
+costs as negated rewards and use them interchangeably.
+A. Path Planning for Mapless Navigation
+For each timestep, we assume the robot has access to
+the current observation ot and pose xt X in the global
+ground vehicles. The robot must plan a finite trajectory
+S  [xt, ..., xt:tS] from xt to goal G, either given by the
+user or obtained from public routing services. S consists of S
+current and future states x X which minimize the following
+objective function:
+S  argminxtS G  J (),
+where xtS G is the distance between the final state xtS
+and G, and J () is a cost function for path planning scaled by
+a relative weight . In mapless urban environments, the robot
+pose xt and goal G may be highly noisy, causing J ()s
+importance to vary dynamically across time.
+B. General Preference-Aligned Cost Functions
+To properly define our cost function J (), we first need
+to introduce the notion of an observation function  : O
+T that maps observations ot to a joint embedding space T
+that encapsulates a set of relevant factors for navigation in the
+world. In general, the sufficient set of factors is unknown but
+can be approximated for each environment. Let T : X T be
+a function that maps a robot pose x X to a feature  T ,
+where  captures the relevant set of factors necessary to reason
+about J (). The relationship and set of relevant factors may
+consist of geometric, semantic, and social costs as follows:
+J ()  (Jgeometric(), Jsemantic(), Jsocial())
+where  is a function that combines individual cost terms.
+We assume the operator has an underlying true cost function
+real-valued costs based on their preferences. Let H H,
+where H is the continuous space of underlying cost functions.
+In general, H is unknown and often depends on the robot
+we define this task to be goal-reaching.
+C. Open Challenges
+In this work, we are concerned with learning both (ot)
+and J (). This is difficult as the sufficient set of factors
+for navigating diverse, urban environments is unknown and
+the relationship between factors may be highly nonlinear. Our
+approach to learning (ot) distills features from VFMs, which
+provide a breadth of factors including but not limited to:
+joint distribution T sufficient for mapless urban navigation.
+for learning J (), which becomes important when dealing
+with complex feature distributions T and nonlinear relation-
+ships between factors .
+IV. APPROACH
+CRESTE is a modular approach with two key components
+that can be trained end-to-end: 1) A perceptual encoder
+(orgb, t, odepth, t) that takes the robots current RGB and
+sparse depth observation and predicts a completed depth
+image ydepth, t and structured BEV feature map ybev, t; 2) A
+reward function r(ybev, t) that takes ybev, t and outputs a BEV
+scalar reward map yreward, t. In the remainder of this section,
+we describe the following: 1) Sec. IV-A - The CRESTE
+model architecture and 2) Sec. IV-B - The CRESTE training
+objective for  and Sec. IV-B2 presents counterfactual IRL
+and our active reward learning framework for learning r.
+A. CRESTE Model Architecture
+1) Perceptual Encoder Model Architecture: Our 25.5M
+parameter perceptual encoder  draws inspiration from the
+TerrainNet  backbone, which trains a RGB-D encoder frgbd
+to predict a latent feature map zrgbd using an EfficientNet-
+B0  encoder and a completed depth map ydepth using a
+depth completion head fdepth(zrgbd). Like TerrainNet, we train
+a lift-splat module fsplat(zrgbd, ydepth) to lift latent features to 3D
+and splat them to an unstructured BEV feature map zbev, splat.
+that uses a shared U-Net  encoder and separate decoders
+to predict a structured feature map consisting of separate
+semantic and elevation layers.
+Building on TerrainNet, we make two key architec-
+tural modifications. Our first modification, semantic decoder
+tures by regressing image features from Dinov2  using
+latent image features zrgbd. This design is analogous to model
+distillation  and allows our RGB-D encoder frgbd to inherit
+properties from VFMs like robustness to perceptual aliasing
+and open-set semantic understanding.
+Our second modification stems from the observation that
+Dinov2 features alone lack the entity understanding needed
+to backproject and inpaint features in heavily occluded urban
+scenes with noisy depth predictions. Thus, we supplement
+fbev with two panoptic map decoders fbev,static and fbev,dynamic
+to ensure that predicted BEV feature maps ybev are con-
+sistent with BEV instance maps from SegmentAnythingv2
+(SAM2) . We use Supervised Contrastive Loss  to
+optimize ybev such that features belonging to the same instance
+are closer in embedding space than features belonging to
+different instances. Combined with fsemantic, our modifications
+synergistically unify the strengths of Dinov2 and SAM2 to
+learn open-set semantic, geometric, and instance-aware repre-
+sentations grounded in the local planning horizon. Altogether,
+our structured BEV feature map ybev consists of three layers
+stacked along the channel dimension: 1) Static panoptic feature
+map ybev, static, 2) Dynamic panoptic feature map ybev, dynamic,
+and 3) Elevation map ybev, elev.
+2) Reward Function Model Architecture: To ensure our
+reward function enforces spatial invariance and considers
+multi-scale features, we implement r using a 0.5M parameter
+Multi-Scale Fully Convolutional Network (MS FCN) first
+used by Wulfmeier et al. . We supervise r using our
+counterfactual IRL loss, which we describe along with our
+training procedure for  in the next section.
+B. CRESTE Training Procedure
+We train CRESTE by first optimizing  and freezing the
+parameters before training r using our counterfactual-based
+Fig. 2: Model architecture and training procedure for the CRESTE perceptual encoder . Using a RGB and sparse depth image,
+frgbd extracts image features zrgbd and performs depth completion. Next, we lift and splat zrgbd to an unstructured BEV feature
+map before predicting continuous static panoptic, dynamic panoptic, and elevation features. Finally, we stack the predicted
+features to construct a structured BEV feature map for our learned reward function. We supervise  using semantic feature
+label generator. We define the dimensions for important feature maps in the Feature Dimension Legend on the bottom right.
+active reward learning framework. Altogether, our full learning
+objective is:
+LCRESTE  Lrgbd  Lbev  LIRL
+where Lrgbd and Lbev supervise  and LIRL supervise r.
+Sec. IV-B1 breaks down the our training and label generation
+procedure for supervising  and Sec. IV-B2 defines our
+counterfactual IRL objective LIRL and active reward learning
+framework for training r.
+1) Training the Perceptual Encoder : We jointly train
+frgbd via backpropagation from fsemantic and fdepth. The se-
+mantic decoder head fsemantic is supervised via an MSE loss
+that minimizes the error between the predicted and ground
+truth feature maps ysemantic and ysemantic. The depth completion
+head fdepth is supervised using a cross-entropy classification
+loss LCE, where the ground truth depth ydepth is uniformly
+discretized into bins. Empirically, this captures depth discon-
+tinuities better than regression . Altogether, the training
+objective for the RGB-D backbone is:
+Lrgbd  1l2(ysemantic, ysemantic)  2LCE(ydepth, ydepth)
+where 1 and 2 are tunable hyperparameters.
+We supervise fbev with three losses, one for each BEV
+decoder head, using ground truth static instance maps ybev, static,
+dynamic instance maps
+for training fbev, static and fbev, dynamic to predict continuous
+feature maps from discrete instance labels ybev, static and
+regression loss. Our full training objective for fbev is:
+Lbev  1Lcontrastive(ystatic, ystatic)
+2Lcontrastive(ydynamic, ydynamic)  3l1(yelev, yelev)
+where 1, 2, and 3 are tunable hyperparameters. We refer
+readers to Appendix Sec. X-B for additional training details.
+To scalably obtain training labels for , we design a
+distillation label generation module that leverages VFMs to
+automatically generate training labels. As shown in Fig. 2,
+our label generator only requires sequential SE(3) robot poses
+and synchronized RGBpoint cloud pairs (orgb, 1:t, ocloud, 1:t) to
+generate the training labels described next.
+i) Label Generation for RGB-D Encoder fsemantic. We
+generate training labels for the semantic decoder fsemantic by
+passing orgb, t through a frozen Dinov2 encoder and bilinearly
+interpolating the spatial dimension of our output feature map
+to match the spatial resolution of ysemantic. We generate depth
+completion labels ydepth by projecting ocloud, t to the image
+and applying bilateral filtering  for edge-aware inpainting,
+producing a dense depth map that respects object boundaries.
+ii) Label Generation for BEV Inpainting Backbone
+fbev. To train fbev, we first generate ybev, dynamic by prompting
+SAM2 with bounding boxes of common dynamic classes
+(e.g., vehicles, pedestrians), backproject the masks to 3D
+using ocloud, t, and apply DBSCAN  clustering at multiple
+Fig. 3: Framework for Active Reward Learning with Counterfactuals. Before reward learning, we train and freeze the perceptual
+encoder  and use the output BEV feature map ybev with r to predict BEV reward maps yreward. In phase I, we train r using
+our counterfactual IRL objective LIRL using only expert demonstrations E. In phase II, we plan goal-reaching paths using
+yreward and identify samples that align poorly with human preferences. We generate alternate trajectories for these samples and
+query the operator to select counterfactual demonstrations S using orgb for context. In phase III, we retrain r using LIRL,
+this time with E and S. We repeat phases II and III to iteratively improve r until it is aligned with human preferences.
+density thresholds. The dynamic BEV map retains clusters
+with sufficient IoU overlap with the SAM2 instance labels.
+This procedure mirrors prior works  that leverage SAM2
+for learning instance-aware 3D representations. To generate
+overlaps with dynamic masks to isolate static segments (gen-
+erating dynamic masks as before), and apply a greedy IoU-
+based merging strategy across frames to maintain instance
+consistency across frames. The merged static masks are then
+projected and accumulated in BEV using known robot poses.
+We refer readers to the Appendix Sec. X-A for our algorithmic
+formulation describing the merging procedure. Lastly, we
+generate ybev, elev by accumulating static 3D points across
+sequential frames using robot poses (generating static masks
+as before), assign each 3D point to a grid cell, and compute
+each cells minimum elevation by averaging the N lowest 3D
+points that fall into that cell.
+2) Training the Reward Function r: After freezing ,
+we train r using our counterfactual-based reward learning
+objective LIRL, where counterfactuals hold all other variables
+constant with the expert except for the path taken to the
+end goal. LIRL optimizes the reward function such that the
+likelihood of counterfactual trajectories is minimized and
+the likelihood of expert trajectories is maximized, which we
+observe improves the sample efficiency, expert alignment, and
+interpretability of the learned rewards.
+To understand LIRL, we formally refer to counterfactuals
+as suboptimal trajectories and define a state-action visitation
+distribution to be the discounted probability of reaching a state
+s under a policy  and taking action a: (s, a)  (1
+) P tp(st  s, at  a). We define each state s to be an
+xy location on the local BEV grid and our actions a along the
+8 connected grid. Under this formulation, the Counterfactual
+IRL objective is simple: For each BEV observation ybev, given
+state-actions sampled from the experts visitation distribution
+E and state-actions sampled from the suboptimal visitation
+distribution S; we obtain a reward function and policy by
+solving the following optimization problem:
+EE[r(s, a, ybev)]
+(ES[r(s, a, ybev)]  (1 )E[r(s, a, ybev)])
+where  denotes current policy visitation and  is a tunable
+hyperparameter that balances the relative importance between
+suboptimal and expert demonstrations.
+relationship
+rewrite Eq. 6 in terms of the state-action visitation distribution
+to obtain our Counterfactual IRL training objective:
+LIRL  E(s, a) (S(s, a)  (1 )E[(s, a)])r (7)
+Assuming non-trivial rewards, which can be enforced using
+gradient regularization techniques , the above objective
+learns a reward function such that the difference between the
+experts return and agent policys return is minimized while
+ensuring suboptimal counterfactuals have a low return. Next,
+we describe our active learning framework for learning r
+from counterfactuals and how we generate these counterfactual
+annotations. We conclude by deriving the reward learning
+objective using the Bradley-Terry model of preferences and
+show connections to Inverse Reinforcement Learning (IRL).
+Active Reward Learning from Counterfactuals. Our
+reward learning framework uses Counterfactual IRL to learn a
+mapping from BEV features in ybev to their scalar utilities. Our
+framework trains r in multiple phases, iteratively prompting
+expert operators for counterfactual annotations in underper-
+forming scenarios until the learned rewards are sufficient for
+planning trajectories similar to expert demonstrations. Fig. 3
+illustrates this framework, which we describe next:
+Phase I: Warmstart We obtain a base reward function by
+training r using only expert demonstrations. This can be done
+simply by setting  equal to zero in LIRL.
+Phase II: Synthetic Counterfactual Generation We rollout
+a policy using the learned rewards from phase I and select
+training samples needing refinement using the Hausdorff dis-
+tance between the policy rollouts and expert demonstrations.
+For samples exceeding a distance threshold, we accumulate
+RGB observations to BEV and generate candidate trajectories
+sharing startend points with the expert. A human annotator
+using our counterfactual annotation tool in Fig. 8 to select
+trajectories that violate their preferences (e.g., collisions, un-
+desirable terrain) as counterfactuals, which are used in phase
+III to retrain the reward function using LIRL.
+Phase III: Counterfactual Reward Alignment We retrain r
+using LIRL using phase IIs counterfactual annotations and the
+original expert demonstrations. We set  to be nonzero to
+balance their relative importance. We repeat phases II and III
+until the learned policy converges with expert behavior.
+Counterfactual Generation Details. Counterfactual IRL
+relies on being able to sample counterfactual trajectories that
+visit a diverse set of states between the start and goal. To do
+trajectory to obtain these counterfactuals. Given the expert
+trajectory E
+regular intervals along E
+We perturb each control state according to a non-zero mean
+Gaussian distribution centered at each control state N(s, )
+before planning a kinematically feasible path that reaches
+the start, goal, and perturbed control states. Practically, we
+implement this using Hybrid A  - however, any kinematic
+planner will suffice. We repeat this process twice using positive
+and negative  terms to sample paths (10) on both sides
+of the expert before passing these paths to the operator for
+counterfactual labeling. For additional implementation details
+regarding generating alternate trajectories, we refer readers to
+Appendix Sec. X-C.
+Counterfactual IRL Derivation LIRL. IRL methods [50,
+23] allow for learning reward functions r, parameterized by
+, given expert demonstrations. However, they provide no
+mechanism to incorporate suboptimal trajectories. Suboptimal
+trajectories are easy to obtain and enable a data flywheel for
+navigation; the BEV observations obtained from expert runs
+can simply be relabeled with suboptimal or unsafe trajectories
+offline without any more environmental interactions. Moti-
+vated by this idea, we derive LIRL, a general and principled
+way to learn from suboptimal and expert trajectories jointly
+under a single objective.
+Our approach builds on the ranking perspective of imitation
+learning  which uses visitation distributions to denote
+long-term behavior of an agent. We denote (s, a), E(s, a),
+S(s, a) to be the agent, expert, and suboptimal state-action
+visitation distributions respectively. We assume the reward
+function is conditioned on ybev as before, but drop it from the
+derivation for conciseness. Under this notation the problem of
+return maximization becomes finding a visitation induced by
+a policy  that maximizes the expected return given by:
+J(r)  max
+E(s,a)[r(s, a)].
+The reward function of the expert should satisfy the ranking
+(s, a) E(s, a), which implies that the experts visitation
+distribution obtains a return that is greater or equal to any
+other policys visitation distribution in the environment:
+(s, a) E(s, a) E(s,a)[r(s, a)]
+EE(s,a)[r(s, a)].
+This property extends to any suboptimal visitations, and as
+a consequence of linearity of expectations, to any convex
+combination of the current policys visitation and any other
+suboptimal visitation distribution. Mathematically, this is:
+a number of pairwise preferences by choosing a suboptimal
+visitation and a particular . We turn to the Bradley-Terry
+model of preferences to satisfy these pairwise preferences
+which assumes that preferences are noisy-rational and that the
+probability of a preference can be expressed as:
+P(E(s, a) (s, a)  (1 )S(s, a))
+eJE(r)  eJ(r)(1)JS(r)
+1  e(JS(r)JE(r))(1)(J(r)JE(r)) .
+Finding a reward function implies maximizing the like-
+lihood of observed preferences while the policy optimizes
+the learned reward function. Since, the convex combination
+holds for all values of  [0, 1], we consider optimizing
+against the worst-case to obtain the following two-player
+counterfactual IRL objective, where the reward player learns
+to satisfy rankings against the worst-possible :
+and the policy player maximizes expected return:
+In practice, optimizing for worst-case  for each BEV
+scene ybev can quickly make solving the optimization objective
+challenging due to the large number of scenes we train the
+reward function on. We make two mild approximations that we
+observed to make learning more efficient and tractable: First,
+we replace the worst-case  with a fixed , and second, we
+consider maximizing a pointwise monotonic transformation
+to the Bradley Terry loss function that directly maximizes
+(JS(r) JE(r))  (1 )(J(r) JE(r)) instead of
+its sigmoid transformation. With these changes, we can rewrite
+our practical counterfactual IRL objective as:
+JE(r) (JS(r)  (1 )J(r))
+This objective reveals a deeper connection between ap-
+prenticeship learning (Eq 6 ) obtained by setting  to 0
+and learning from preferences  obtained by setting  to
+1. The loss function goes beyond the apprenticeship learning
+objective that only learns from expert by incorporating sub-
+optimal demonstrations. Second, it goes beyond the offline
+nature of prior algorithms that learn from preferences alone
+by instead learning a policy that attempts to match expert
+visitation making use of the suboptimal demonstrations.
+V. IMPLEMENTATION DETAILS
+In this section, we cover implementation details for our
+local planning and control modules depicted in Fig. 1. For
+additional information regarding model training hyperparame-
+ters and generating counterfactual annotations, please refer to
+Appendix Sec. X.
+1) Global and Local Planning and Controls: Our global
+planning module plans a global path and identifies the next
+local subgoal for our local planner to plan local paths.
+Given a user-specified GPS end goal GN, we use Open-
+StreetMap  to obtain a semi-dense sequence of coarse
+GPS goals G  [G1, ..., GN] spaced 10 meters apart. To
+select the next GPS subgoal, we compute the set of distances
+D  {g GN  g G {Gt}}, where D contains the
+distance of the robot Gt from GN and the distance of each
+GPS subgoal in G from GN. From the set of subgoals with a
+smaller distance to GN than Gt, we select the farthest subgoal
+to use as the next subgoal. We project this subgoal on the edge
+of the local planning horizon, a 6 meter circle around the robot,
+giving us a carrot for local path planning.
+We adopt a DWA  style approach to local path planning,
+where we enumerate a set of constant curvature arcs (31 in
+our case) from the egocentric robot frame. We compute learned
+cost for each trajectory by sampling points along each each
+arc and computing the discounted cost at each point using
+our predicted reward map. We simply invert and normalize
+our reward map to the range [0, 1] to convert it to a costmap.
+the arc with the local carrot to obtain a goal-reaching cost.
+We multiply the learned and goal-reaching costs by tunable
+weights before selecting the trajectory with the lowest cost.
+low-level actions to follow this trajectory. Empirically, we find
+that sampling 30 points and using a discount factor of 0.95 is
+sufficiently dense. We find that that tuning the goal-reaching
+cost to be 110th the importance of the learned cost achieves
+good balance between goal-reaching and adhering to operator
+preferences.
+VI. EXPERIMENTS
+In this section, we describe our evaluation methodology for
+CRESTE and answer the following questions to understand
+the importance of our contributions and overall performance
+on the task of mapless urban navigation.
+(Q1) How well does CRESTE generalize to unseen urban
+environments for mapless urban navigation?
+(Q2) How important are structured BEV perceptual rep-
+resentations for downstream policy learning?
+(Q3) How much do counterfactual demonstrations im-
+prove urban navigation performance?
+(Q4) How well does CRESTE perform long horizon
+mapless urban navigation compared to other top state-
+of-the-art approaches?
+Fig. 6: Mobile robot test-
+platform
+world experiments. We
+annotate the locations of
+monocular
+3D LiDAR, and cellu-
+lar phone (not visible) on
+our testing platform, the
+Clearpath Jackal.
+We investigate Q1 by com-
+paring CRESTEs performance
+against other methods in unseen
+environments.
+evaluate the relative performance
+between different input modali-
+ties and observation encoders for
+CRESTE. To answer Q2 and
+ies that isolate the methodological
+contribution in question. Finally,
+we evaluate Q4 by conducting a
+kilometer-scale experiment com-
+paring CRESTE against the top-
+performing baseline.
+A. Robot Testing Platform
+We conduct all experiments us-
+ing a Clearpath Jackal mobile
+robot. We observe 512612 RGB
+images from a 110field-of-view
+camera and point cloud observa-
+tions from a 128-channel Ouster LiDAR. We obtain coarse
+GPS measurements and magnetometer readings from a cellular
+smartphone. We use the open source OpenStreetMap
+routing service to obtain coarse navigation waypoints. Our
+onboard compute platform has an Intel i7-9700TE 1.80 GHz
+CPU and Nvidia RTX A2000 GPU. We run CRESTE at 20
+Hz alongside our mapless navigation system, which operates
+at 10Hz.
+B. Training Dataset
+We collect a robot dataset with 3 hours of expert navigation
+demonstrations spread across urban parks, downtown centers,
+residential neighborhoods, and college campuses. Our dataset
+consists of synchronized image LiDAR observation pairs and
+ground truth robot poses computed using LeGO-LOAM ,
+a LiDAR-based SLAM algorithm. We train all methods on the
+same dataset for 150 epochs or until convergence.
+C. Testing Methodology
+We evaluate all questions through physical robot experi-
+ments performing the task of mapless urban navigation in
+urban environments. We present aerial images in Fig. 4
+depicting the urban environments where we perform short
+horizon (100m) quantitative experiments. These consist of
+six challenging seen and unseen environments with trails, road
+hazards. For locations 1-5, we repeat the same experiment
+twice for each approach. For location 6, we repeat the same
+experiment five times for each approach. We evaluate the
+highest performing methods on a long-horizon quantitative
+Fig. 4: Satellite image of testing locations for short horizon mapless navigation experiments. We evaluate baselines across 2
+seen (green) and 4 unseen (red) urban locations. Our testing locations consist of residential neighborhoods, urban shopping
+trajectory and navigate to the opposite end of the trajectory. We denote each locations ID with a numerical superscript.
+Fig. 5: Satellite image of our 2 kilometer long-horizon testing area, with examples with front view RGB image observations
+and CRESTEs predicted BEV costmap (converted from the predicted BEV reward map). We annotate successful examples in
+green with a brief description of the situation. We annotate unsuccessful examples in red, present the observation right before
+the intervention, and provide a brief description of the cause of failure.
+shown in Fig. 5. We pre-emptively terminate the long-horizon
+experiment if the baseline is unable to complete the mission
+within a predefined time. Next, we explain evaluation metrics
+1 to 3, which we use for the short-horizon experiments, and
+evaluation metrics 4 and 5, which we use exclusively for the
+long-horizon experiments.
+Our evaluation metrics are defined as follows: 1) Average
+Subgoal Completion Time (AST) - the average time to complete
+each subgoal where all subgoals are evenly spaced 10 meters
+apart 2) Percentage of Subgoals Reached (S) - the percentage
+of subgoals reached by the end of the mission 3) Normalized
+Intervention Rate (NIR) - the number of operator interventions
+required for every 100 meters driven 4) Total Distance Driven
+(Dist. (m)) - the total distance driven before mission failure or
+completion 5) Total Interventions (Total Int.) - the total number
+of interventions required per mission. During evaluation, we
+only consider interventions that were incurred by the method
+(e.g. overrides performed to give right of way to vehicular
+traffic are not considered interventions).
+D. Baselines
+We supplement all baselines with the same analytical ge-
+ometric avoidance module to prevent catastrophic collisions.
+Even with this module, operators preemptively intervene when
+the baseline deviates from general navigation preferences
+(e.g. stay on sidewalks, follow crosswalk markings, etc). All
+computations using onboard compute to fairly evaluate real-
+time performance. Next, we describe our evaluation baselines.
+For questions 1 and 3, we compare CRESTE against
+four existing navigation baselines and six variations of the
+CRESTE architecture. We first describe the existing baselines:
+In Distribution
+Out of Distribution
+Location
+Sherlock North
+Woolridge Square
+Sherlock South
+Trader Joes
+Hemphill Park
+Geometric Only
+CRESTE - cfs - st
+CRESTE - cfs
+CRESTE - st
+CRESTE (ours)
+TABLE I: Quantitative evaluation comparing CRESTE against existing navigation baselines for short horizon mapless
+navigation experiments. In distribution locations are present in the training dataset while out-of-distribution locations are
+absent from the training data. We bold the best performing method for each metric in each location, and annotate each metric
+with an up or down arrow to indicate if higher or lower numbers are better. We define the following evaluation metrics in the
+evaluation metric section of this work and denote their abbreviations as: AST - average subgoal completion time (s), S -
+percentage of subgoals reached in mission, NIR - Number of interventions required per 100 meters driven.
+Out of Distribution
+Location
+Blanton Museum
+CRESTE-RGB-FROZEN
+CRESTE-RGB
+CRESTE-STEREO
+CRESTE (ours)
+TABLE II: Quantitative evaluation comparing the impact
+of different input modalities and observation encoders on
+CRESTE. All baselines are evaluated on the same experiment
+area. We compute the mean and standard deviation over 5
+trials and bold the best performing method for each metric in
+each location. We annotate each metric with an up or down
+arrow to indicate if higher or lower numbers are better.
+1) ViNT  - a foundation navigation model trained on goal-
+guided navigation 2) PACERGeometric  (PACERG) - a
+multi-factor perception baseline that considers learned terrain
+and geometric costs in a dynamic window  (DWA) style
+approach 3) Geometric-Only - a DWA style approach that
+only considers geometric costs 4) PIVOT  - a VLM-
+based navigation method that uses the latest version of GPT4o-
+mini  to select local goals from image observations.
+We test six variations of CRESTE to evaluate the effect of
+different observation encoders and sensor modalities. These
+consist of 1) CRESTE-RGB, the same RGB encoder but
+using only monocular RGB images, 2) CRESTE-STEREO,
+the same RGB encoder with a stereo processing backbone
+that fuses features from stereo RGB images, 3) CRESTE-
+frozen Dinov2  encoder that only uses monocular RGB
+images. The remaining variations ablate our methodological
+counterfactual demonstrations, but otherwise identical to the
+inpainting backbone, but otherwise identical to the original,
+6) CRESTE-cfs-st, our model trained without counterfactual
+demonstrations or the BEV inpainting backbone. For archi-
+tectures 5 and 6, we directly pass the unstructured BEV
+feature map zbev, splat to the reward function r and train the
+splat module fsplat using expert demonstrations. We still freeze
+the RGB-D backbone frgbd when training r. For additional
+Location
+Mueller Loop
+Dist. (m)
+Total Int.
+CRESTE (ours)
+TABLE III: Quantitative evaluation for long horizon mapless
+navigation experiments. All baselines are evaluated on the
+same 1.9 kilometer urban area. We bold the best performing
+method for each metric in each location, and annotate each
+metric with an up or down arrow to indicate if higher or
+lower numbers are better. We define the following evaluation
+metrics in the evaluation metric section of this work and denote
+their abbreviations as: AST - average subgoal completion time
+(s), S - percentage of subgoals reached in mission, NIR -
+Number of interventions required per 100 meters driven, Dist.
+(m) - total distance driven in meters, Total Int. - total number
+of interventions required for the entire mission.
+details regarding the CRESTE architecture variations, we refer
+readers to Appendix Sec. X-D2. Next, we will describe high-
+level implementation details for each non-CRESTE baseline.
+Since ViNT is pre-trained for image goal navigation, we
+are unable to deploy this model in unseen environments where
+image goals are not known apriori. Thus, we finetune ViNT by
+freezing the pre-trained ViNT backbone and changing the goal
+modality encoder to accept 2D xy coordinate goals rather than
+images. We follow the same model architecture and match the
+training procedure from the original paper for reaching GPS
+goals. We reproduce the PACER and PIVOT models faithfully
+to the best of our abilities as no open-source implementation
+is available.
+E. Quantitative Results and Analysis
+We present the quantitative results of the short horizon and
+long-horizon experiments in Table I, Table II, and Table III
+the following section.
+1) Evaluating Generalizability to Unseen Urban Environ-
+ments.: Comparing CRESTE against all other baselines in Ta-
+ble I, we find that our approach achieves superior performance
+in all metrics for both seen and unseen environments. We
+present qualitative analysis for each learned baseline in Ap-
+pendix Sec. X-D. Quantitatively, PACERG, the next best ap-
+in seen environments and five times more interventions in
+unseen environments. Furthermore, we find that PIVOT, our
+VLM-based navigation baseline, performs poorly relative to
+other methods, corroborating our claim that VLMs and LLMs
+are not well attuned for urban navigation despite containing
+internet-scale priors. We hypothesize this is because naviga-
+tion requires identifying which priors are most important for
+pre-training. Notably, we achieve an intervention-free traversal
+in one unseen environment (Hemphill Park), a residential
+park with diverse terrains, narrow curb gaps, and crosswalk
+markings. From these findings, we conclude that CRESTE is
+remarkably more generalizable for mapless urban navigation
+than existing approaches.
+In Table II, our approach performs most favorably us-
+ing RGB and LiDAR inputs, followed by stereo RGB and
+monocular RGB respectively. This occurs because LiDAR
+offers robustness to severe lighting artifacts like lens flares
+that affect costmap prediction quality. We present qualitative
+examples of this in Fig. 10. Interestingly, we find that distilled
+Dinov2 features perform favorably compared to frozen Dinov2
+features. Prior works corroborate this observation [48, 49]
+and verify that Dinov2 features contain positional embedding
+artifacts that disrupt multi-view consistency. We postulate that
+our distillation objective enables our RGB-D encoder frgbd
+to focus on learning artifact-free features while the semantic
+decoder fsemantic learns how to reconstruct these artifacts. For
+additional analysis comparing these architectural variations,
+we refer readers to Appendix Sec. X-D1.
+2) Evaluating the Importance of Structured BEV Percep-
+tual Representations.: We assess the impact of structured
+perceptual representations by evaluating CRESTE-cfs-st and
+CRESTE-st against CRESTE in Table I, where the only dif-
+ference is whether structured representations and counterfac-
+tuals are used. Without structured representations, CRESTE-
+st incurs 28 more interventions on average across all envi-
+ronments. Performance further deteriorates without structured
+representations or counterfactuals, incurring 41 more inter-
+ventions on average across all environments. We hypothesize
+that this occurs because structured representations encode
+higher-level features that are more generalizable and easier
+for policies to reason about compared to lower-level features
+that capture less generalizable high-frequency information.
+3) Evaluating the Importance of Counterfactual Demon-
+strations.: We compare CRESTE against CRESTE-cfs, the
+exact same approach but without using counterfactuals to train
+the reward function. On average, we find in Table I that using
+counterfactuals reduces the number of interventions by 70
+in seen environments and 69 in unseen environments. Both
+of these baselines distill the same features for navigation from
+informative perceptual representations, it is important to lever-
+age our counterfactual-based objective to properly identify and
+reason about the most salient features for navigation.
+4) Evaluating Performance on Kilometer-Scale Mapless
+Navigation.: Table III compares CRESTE against the top-
+performing baseline from Table I, PACERG, on long hori-
+zon mapless navigation. Fig. 5 show qualitative examples of
+CRESTEs predicted BEV costmaps along the route. While
+PACERG still drives over a kilometer before timing out, it
+requires significantly more interventions to do so. We observe
+that the majority of PACERG failures that occur result from
+either not adequately considering geo

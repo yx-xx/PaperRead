@@ -1,7 +1,7 @@
 === PDF文件: Geometric Gait Optimization for Kinodynamic Systems Using a Lie Group Integrator.pdf ===
-=== 时间: 2025-07-22 10:00:10.501786 ===
+=== 时间: 2025-07-22 16:07:17.664569 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -610,4 +610,231 @@ TS (TTS)  (n)
 p0(t0)  pTS(TTS)  p1(t1)
 rTS(t) R,
 t [0, TTS]
-where t0 and t1 are the phases
+where t0 and t1 are the phases of the two gaits connected by
+the polynomial, TTS represents the transition duration, and pTS
+is the change in momentum relative to the initial momentum
+at the beginning of the transition. The objective function
+minimizes orientation drift during the transition, ensuring
+consistency in the translational motion direction between the
+two gaits while accounting for orientation oscillations within
+each gait. Constraints (25b) and (25c) define the 5th-order
+polynomial coefficients based on the shape position, velocity,
+and acceleration of the gaits before and after the transition.
+Constraint (25d) enforces momentum continuity between the
+two gaits. Constraints (25e) and (25f) address joint limits
+and power consumption. During execution, the transition is
+triggered once the acceleration gait reaches the energy level
+of the steady-state gait.
+The same approach can be adapted for transitions at the
+start or end of motion. To initiate acceleration from rest at
+the nominal shape, we fix 0(t0) and p0 to the initial state.
+1(t1) is fixed to the gliding shape, and the momentum
+constraint is relaxed.
+D. Turning Gait Optimization
+In the previous section, we discussed gait optimization and
+motion planning for maximizing translational velocity in a
+single direction, but did not address motion in other directions.
+As demonstrated in [48, 36, 41], these kinodynamic systems
+exhibit small-time local controllability in all three directions,
+enabling the design of gaits and motion plans for lateral motion
+or rotation using the same approach.
+rarely move sideways or rotate on the spot, and similarly,
+fish seldom swim sideways. Instead, they typically accelerate
+to accumulate momentum and then use this momentum to
+turn toward the desired direction. Therefore, in this section,
+we extend the transition gait optimization to turning motions,
+thereby extending the motion planning capabilities.
+Turning gait optimization is introduced as an exten-
+sion of transition gait optimization, where the turning gait,
+T(t0, t1, TT), is preceded and followed by the same steady-
+Illustration of the optimal gaits and transitions for the snakeboard
+(top) and their demonstration on the robot (middle: acceleration-transition-
+steady-state gait; bottom: steady-state-left-turn-steady-state and steady-state-
+right-turn-steady-state gaits). The thickness of the gait cycles indicates the
+pacing of the gait, with thick lines representing slower shape changes and thin
+lines representing faster changes. Black arcs with arrows denote the direction
+of the gait. In the demonstration, the dashed line represents the robots position
+each point.
+state gait and satisfies the requirement that the orientation
+change equals the desired turning angle:
+gS(t1) gT(TT)
+T (TT)  (n)
+rT(t) R,
+t [0, TT]
+where  represents the desired turning angle, and the third
+constraint ensures that the directional change across the turn-
+ing gait equals the turning angle. Mgg(t1) denotes the inner
+product weighted by the inertia matrix, evaluated at the steady-
+state gait shape at t1. Because turning by gliding inevitably
+leads to energy loss, momentum continuity before and after
+the turn cannot be enforced. Instead, the objective function
+minimizes the difference in body velocity between the steady
+state and the post-turn state, weighted by the inertia matrix,
+effectively measuring the kinetic energy loss.
+It is also possible to formulate a steering gait by enforcing
+zero energy loss and nonzero rotational displacement. A
+straightforward approach involves modifying the steady-state
+gait using the same transition formulaadding a segment to
+introduce rotational displacement without energy loss. How-
+and the achievable steering angle is inherently limited.
+E. Implementation Details
+We solve the optimization using fmincon in MATLAB
+with the interior-point method, providing the cost and gradient
+from our method and approximating the Hessian via the
+Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm. Our
+approach is also compatible with other nonlinear programming
+solvers.
+As with any nonlinear optimization, the solution depends on
+the initial guess and may converge to a local minimum. For
+steady-state gait optimization, we choose a gait in which the
+shape variables oscillate sinusoidally out of phase and with an
+offset (tracing a circle in the shape space centered on the mean
+joint values) and its corresponding steady-state momentum as
+the initial guess to maintain the heading angle and respect
+joint limits. Then we seed the acceleration gait with the
+optimal steady-state gait. For transition, turning, start, and
+end gaitsparameterized by polynomials with fewer decision
+variableswe perform a grid search for initial guesses of the
+gait percentiles and initialize the period with the average of
+the adjacent gaits.
+The computational complexity scales with the system di-
+mension and discretization density. For high-dimensional sys-
+in (19), which scales as O(n2). In our implementation, dis-
+cretizing the gait cycle into 100 segments allows each gaits
+optimization to complete in less than one minute. Because gait
+optimization is performed offline and online execution only
+requires retrieving solutions from a pre-computed library, our
+method scales well to higher-dimensional systems.
+V. SIMULATION RESULTS
+To evaluate the proposed approach, we apply it to all the
+three representative example systems to calculate a compre-
+hensive motion plan involving start from the rest, accelerat-
+ing to the steady-state energy level, transition between the
+acceleration and the steady-state gait, turning left and right,
+and smoothly end the run by resting at a nominal shape. For
+gait optimization, the steady-state and acceleration gaits are
+parameterized as fourth-order Fourier series.
+A. Roller Racer
+The roller racer is modeled based on the physical robot.
+The robot has a total weight of approximately 2.5 kg, with
+the rear cart weighing 1.7 kg and the front cart 0.8 kg. The
+distances from the joints to the center of mass are about 0.13
+meters for the front cart and 0.05 meters for the rear cart.
+The wheels are spaced 0.07 meters apart laterally. The viscous
+friction coefficient was calculated based on the experimental
+data. The actuator force limit is set according to the hardware
+datasheet. The actuator range limits are set to avoid the center
+of mass extending beyond the supporting polygon.
+Fig. 4 illustrates the optimal gaits and transitions for the
+roller racer and their demonstration. Because the system has
+only one actuated degree of freedom, most of the gaits
+resemble sinusoidal waves, except for the start and acceleration
+edges. These gaits are specifically designed to accelerate as
+quickly as possible while maintaining the heading angle under
+increasing momentum. The turning gait exhibits the largest
+wave magnitude to steer the front cart effectively, utilizing
+the accumulated momentum to achieve turns with minimal
+energy loss. Notably, the two turning gaits show symmetry
+in shape space. For all other gaits, the wave amplitude
+gradually decreases as momentum increases. This reflects a
+design principle where higher drive amplitudes are required
+for acceleration, while more compliant control is necessary to
+sustain high speeds in the steady state. The start, transition,
+and end gaits, ensure smooth transitions between the nominal
+zero shape and the cyclic gaits. These transitions are achieved
+using a half-period wave with a shape similar to the cyclic gaits
+being connected and an appropriate magnitude, facilitating
+heading angle maintenance and momentum matching.
+The first row of Fig. 7 illustrates the position trajectory and
+momentum history of the simulation results of a roller racer
+executing the comprehensive motion plan starting from rest.
+Because the motion plan was also designed for experimental
+cycle from the duration required to reach 90 of the steady-
+state velocity to accommodate environmental size constraints.
+Despite this adjustment, the resulting trajectory demonstrates
+promising performance, including starting the robot from the
+nominal zero shape, accelerating to the desired energy level,
+smoothly transitioning to the steady-state gait, performing left
+and right turns for a quarter corner, and finally gliding at the
+nominal zero shape. The momentum trajectory highlights key
+differences between the acceleration and steady-state cycles
+and illustrates the minimal energy loss during the turning
+B. Snakeboard
+The snakeboard physics model is based on , with a total
+mass of 6 kg and inertias of 0.06, 0.167, and 0.00167 kg  m2
+for the body, rotor, and wheelsets, respectively. The board has
+a total length of 0.6 m, and the viscous friction coefficient is
+assumed to be 0.15. The range of rotor rotation is constrained
+to one cycle, and the range of wheel rotation mimics that of
+ankle joints.
+Fig. 5 illustrates the optimal gaits and transitions for the
+snakeboard in the shape space, along with their demonstration
+on the robot. Due to the limited range of both shapes, the
+gaits resemble circular cycles with varying radii and local-
+ized deformations. Unlike the roller racer, the acceleration
+and steady-state gaits for the snakeboard are distinct. This
+difference arises because the relative arrangement of the multi-
+rigid bodies and the direction of the constraints are decoupled
+into two degrees of freedom: the rotor and the wheel truck
+joints. This decoupling has two key implications. First, the
+efficiency of acceleration can be enhanced by alternating the
+rotation of the rotor and wheels to pump energy with the
+help of constraint forces. Second, in the steady state, energy
+savings can be achieved by applying compliant control to the
+wheel oscillations. Similar to the roller racer, the magnitude of
+oscillation decreases as momentum increases. The two turning
+the steady-state gaits to direct momentum for turning with
+minimal energy loss. In the demonstration, the turning motion
+occurs in two stages. The first stage serves as a preparatory
+the second stage, the actual large-angle turn is executed by
+turning both the wheel and rotor to the opposite side. Other
+gait transitions, including the start, transition, and end gaits,
+converge to the corresponding cyclic gaits using half cycles of
+appropriate amplitudes to maintain heading angles and match
+momentum.
+The second row of Fig. 7 presents the position trajectory and
+momentum history of the simulation results of a snakeboard
+executing the comprehensive motion plan starting from rest.
+During the acceleration phase, significantly larger oscillations
+are observed in both position and momentum compared to the
+steady-state phase, corresponding to the distinction between
+energy pumping and compliant control. The decoupled inertial
+manipulation and constraint direction control enable the snake-
+board to achieve higher efficiency than the roller racer, but it
+also requires a longer acceleration time. Overall, these results
+demonstrate that the proposed method performs effectively in
+planning complex motions for the snakeboard.
+C. Intermediate Reynolds Number Swimmer
+The intermediate Reynolds number swimmer is modeled
+as a three-link swimmer neutrally buoyant in the fluid with
+a total length of 0.6 meters. Each link is modeled as a
+cylindrical shape with a slenderness ratio of 1:5. Together with
+the actuator limits, this configuration results in swimming at a
+Reynolds number approximately between 2104 and 3105.
+Hydrodynamics are modeled using Morisons equation, with
+quadratic drag coefficients of 1.2 in the lateral direction
+and 0.008 in the axial direction . Fluid-added mass is
+calculated based on the cylinders cross-sectional geometry.
+Fig. 6 illustrates the optimal gaits and transitions for the
+swimmer in shape space and their demonstration on the robot.
+Similar to the snakeboard, the swimmer uses a larger-radius
+cycle for efficient acceleration and transitions to a streamlined
+steady-state gait to minimize drag. Notably, both the acceler-
+ation and steady-state gaits exhibit a larger amplitude for the
+tail joint (r1) compared to the head joint (r2). This difference
+likely arises from the need to maintain the heading angle by
+Fig. 6. Illustration of the optimal gaits and transitions for the intermediate
+Rynolds number swimmer (top) and their demonstration on the robot (middle:
+acceleration-transition-steady-state gait; bottom: steady-state-left-turn-steady-
+state and steady-state-right-turn-steady-state gaits). The thickness of the gait
+cycles indicates the pacing of the gait, with thick lines representing slower
+shape changes and thin lines representing faster changes. Black arcs with
+arrows denote the direction of the gait. In the demonstration, the dashed
+line represents the robots position trajectory, with its color indicating the
+corresponding gait being executed at each point. For clearer visualization, the
+swimmers dimensions are scaled down from actual size.
+stabilizing the head while propelling forward with larger tail
+swings. Such behavior aligns with physical observations and
+analyses of fish propulsion, where wave amplitude increases
+toward the tail . As shown in the demonstration, turning
+is ach

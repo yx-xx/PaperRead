@@ -1,7 +1,7 @@
 === PDF文件: PINGS Gaussian Splatting Meets Distance Fields within a Point-Based Implicit Neural Map.pdf ===
-=== 时间: 2025-07-22 10:00:32.944717 ===
+=== 时间: 2025-07-22 16:13:25.887604 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -580,4 +580,171 @@ birds eye view rendering from the radiance eld built by PINGS, with
 a detailed zoom-in of the Campus scene. The robot car traversed each
 area twice in opposite directions with lane-level lateral displacement.
 The black trajectory provided images for training (sampled) and in-
-sequence testing (unsampled), while the red trajectory pro
+sequence testing (unsampled), while the red trajectory provided out-
+of-sequence testing views.
+data was collected using a handheld system equipped with
+three global-shutter cameras and a 64-beam LiDAR.
+2) Parameters and Implementation Details: For mapping
+lution vp to 0.3 m, and maximum sample offset for consistency
+loss max to 0.5 vp. The training data pool Qd has a capacity
+of 2  107 SDF-labeled sample points, and Qi has a capacity
+of 200 images. During map optimization, we use Adam
+with learning rates of 0.002 for neural point features, 0.001 for
+The neural point feature dimensions Fg and Fa are set to
+32 and 16, respectively. All decoders use shallow MLPs with
+one hidden layer of 128 neurons. Each neural point spawns
+K  8 Gaussian primitives. For decoder activations, we use
+sigmoid for SDF decoder Dd and color decoder Dc, tanh for
+offset decoder Do and opacity decoder D, and exponential
+for scale decoder Ds. The Gaussian spawning offset is scaled
+to [2vp, 2vp], and the scale output is clamped to a maximum
+of 2vp. The rotation decoder Dr output is normalized to valid
+unit quaternions. The weights for different loss terms are set
+area  0.001, and d
+cons  0.02.
+For training and testing, we use image resolutions of 512
+Spires dataset. The experiments are carried out on a single
+NVIDIA A6000 GPU.
+B. Novel View Rendering Quality Evaluation
+We evaluate novel view rendering quality on ve subse-
+quences from the in-house car dataset. For quantitative evalu-
+LPIPS  to assess photorealism, along with Depth-L1 error
+to measure geometric accuracy. We compute these metrics
+TABLE I: Quantitative comparison of rendering quality on the in-house car dataset. We evaluate rendering photorealism using PSNR, SSIM,
+and LPIPS metrics, and geometric accuracy using Depth-L1 error (in m). Best results are shown in bold, second best are underscored.
+Sequence
+In-Sequence Testing View
+Out-of-Sequence Testing View
+Depth-L1
+Depth-L1
+Neural Point  3DGS
+Neural Point  GGS
+PINGS (Ours)
+Residential Area
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+Roundabout
+Neural Point  3DGS
+Neural Point  GSS
+PINGS (Ours)
+PINGS (Ours)
+Neural Point  GSS
+Neural Point  3DGS
+PINGS birds-eye view
+Fig. 5: Qualitative comparison of rendering quality on the in-house car dataset. Left: Birds eye view rendering of the Church scene,
+showing the training view trajectory (black line) and the test viewpoint for comparison (green camera frustum). Right: RGB and normal map
+renderings from different methods at the test viewpoint, with detailed comparison of curb and sidewalk rendering in the highlighted box.
+for both in-sequence and out-of-sequence testing views. We
+consider the following methods for comparison:
+tialized with LiDAR measurements and supervised with
+the depth rendering loss Ldepth as dened in Sec. III-C.
+2D Gaussian representation using surfels instead of 3D
+ellipsoids. It uses the same setup as the 3DGS baseline but
+adds the depth-normal consistency loss from GSS .
+Neural Point3DGS: Our extension of Scaffold-GS
+that enables incremental training and adds supervision of
+neural point geometric features through the SDF branch,
+as detailed in Sec. III-C.
+Neural PointGSS: A variant that replaces the 3D Gaus-
+sian in Neural Point3DGS with 2D Gaussian surfels.
+PointGSS by introducing geometric consistency loss
+Lcons into the joint training, as described in Sec. III-D.
+For fair comparison, we disable the localization part and
+use the ground truth pose for all the compared methods. For
+3DGS and GSS, we initialize their Gaussian primitive density
+to match the total number of Gaussians spawned by PINGS.
+We show the quantitative comparison on ve sequences
+in Tab. I as well as show the qualitative comparison of the
+RGB and normal map rendering results on the church scene
+at a novel view in Fig. 5. Our method PINGS achieves
+TABLE II: Quantitative evaluation of surface reconstruction quality on the Oxford-Spires dataset. We use the metrics include accuracy error
+(in m), completeness error (in m), and Chamfer distance (in m), as well as precision, recall and F-score (with 0.1 m threshold).  denotes
+methods requiring ofine batch processing. Best results are shown in bold, second best are underscored.
+Sequence
+Accuracy
+Completeness
+Chamfer Distance
+Precision
+Blenheim Palace 05
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Christ Church 02
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Keble College 04
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Observatory Quarter 01
+Nerfacto
+VDB-Fusion
+PIN-SLAM
+PINGS (Ours)
+Blenheim Palace
+Christ Church
+Keble College
+Observatory Quarter
+Fig. 6: Qualitative results of the surface mesh reconstruction by PINGS on the Oxford-Spires dataset. The meshes are extracted using
+marching cubes algorithm from the SDF with a resolution of 0.1 m.
+superior performance in both photorealistic rendering quality
+and depth rendering accuracy on the in-house car dataset, and
+consistently outperforms the baselines for both in-sequence
+and out-of-sequence testing views. Analysis of the results
+reveals several insights: (i) The adoption of GSS over 3DGS
+leads to improved geometric rendering quality and enhanced
+out-of-sequence rendering photorealism; (ii) Our approach of
+spawning Gaussians from neural points and jointly training
+with the distance eld provides better optimization control
+and reduces oating Gaussians in free space, resulting in
+superior rendering quality; (iii) The addition of geometric
+consistency constraints from SDF enables better surface align-
+ment of Gaussian surfels, further enhancing both geometric
+accuracy and photorealistic rendering quality, as evidenced by
+the smoother normal maps produced by PINGS compared to
+Neural PointGSS. These improvements are less signicant
+in the Roundabout scene, where the dense viewpoint coverage
+from the vehicles circular trajectory provides strong multi-
+view constraints, reducing the benet of additional geometric
+constraints from the SDF.
+In sum, this experiment validates that PINGS achieves better
+RGB and geometric rendering at novel views by constraining
+the Gaussian splatting radiance eld using the SDF.
+C. Surface Reconstruction Quality Evaluation
+We evaluate surface reconstruction quality on four se-
+quences from the Oxford-Spires dataset. We follow the bench-
+mark  to report the metrics including accuracy error,
+completeness error, and Chamfer distance, as well as precision,
+recall and F-score calculated with a threshold of 0.1 m. We
+compare the performance of PINGS with ve state-of-the-art
+parison of geometric mapping quality, we disable the local-
+ization modules of PIN-SLAM and PINGS and use ground
+truth poses across all methods. For GSS, after completing the
+radiance eld mapping, we render depth maps at each frame
+and apply TSDF fusion  for mesh extraction. Results of
+the vision-based ofine processing methods (OpenMVS and
+Nerfacto) are taken from the benchmark . For the remain-
+ing methods (GSS, VDB-Fusion, PIN-SLAM, and PINGS),
+TABLE III: Localization performance comparison of PINGS against
+state-of-the-art odometrySLAM methods on the in-house car dataset.
+We report average relative translation error (ARTE) [] and absolute
+trajectory error (ATE) [m]. Odometry methods are shown above the
+second best are underscored.
+Seq. 1 (5.0 km)
+Seq. 2 (3.7 km)
+KISS-ICP
+PIN odometry
+PINGS odometry
+PIN-SLAM
+PINGS (Ou

@@ -1,0 +1,1478 @@
+=== PDF文件: Demonstrating MuJoCo Playground.pdf ===
+=== 时间: 2025-07-22 15:46:40.591833 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Demonstrating MuJoCo Playground
+Kevin Zakka,1, Baruch Tabanpour,2, Qiayuan Liao,1, Mustafa Haiderbhai,3, Samuel Holt,4,
+Jing Yuan Luo2, Arthur Allshire1, Erik Frey2, Koushil Sreenath1, Lueder A. Kahrs3,
+Carmelo Sferrazza,1, Yuval Tassa,2, and Pieter Abbeel,1
+1UC Berkeley
+2Google DeepMind
+3University of Toronto
+4University of Cambridge
+Equal contributions
+Equal advising
+A cartoon of MuJoCo Playgrounds diverse environments that were successfully transferred to real hardware, including Berkeley
+AbstractWe introduce MuJoCo Playground, a fully open-
+source framework for robot learning built with MJX, with
+the express goal of streamlining simulation, training, and sim-
+to-real transfer onto robots. With a simple pip install
+single GPU. Playground supports diverse robotic platforms,
+including quadrupeds, humanoids, dexterous hands, and robotic
+and pixel inputs. This is achieved through an integrated stack
+comprising a physics engine, batch renderer, and training en-
+vironments. Along with video results, the entire framework is
+freely available at playground.mujoco.org.
+I. INTRODUCTION
+Reinforcement learning (RL)  with subsequent transfer
+to hardware (sim-to-real) , is emerging as a leading
+paradigm in modern robotics [26, 30, 40]. The benefits of
+simulation are obvious  safety and cheap data. The recipe
+involves four steps:
+1) Create
+simulated
+environment
+the real world.
+2) Encode desired robot behavior with a reward function.
+3) Train a policy in simulation.
+4) Deploy to the robot.
+The key enabler of this approach is a simulator that is
+The realism requirement is self-evident, the digital twin of
+step 1 demands a minimal level of fidelity . Convenience
+and usability are equally critical, streamlining the creation,
+tification) of simulated robots.
+The importance of speed is less obvious  why does it matter
+if training takes ten minutes or ten hours? The answer lies in
+reward design (step 2), which cannot be easily automated:
+what the robot ought to do is an expression of human
+preference. Even if reward design is semi-automated , the
+process remains iterative: RL excels at finding policies that
+obtain reward, but the resulting behavior is often irregular in
+unexpected ways. Since steps 2 and 3 (and occasionally step
+4) must be repeated , time-to-robot becomes critical: the
+time from when you ask the robot to do something until you
+see what it thinks you meant.
+RL is computationally intensive, requiring an enormous
+number of agent-environment interactions to train effective
+policies . GPU-based simulation can significantly accel-
+erate this process for two key reasons. First, the median GPU
+is far more powerful than the median CPU , and while
+high core-count CPUs exist, they are uncommon. Second, by
+keeping the entire agent-environment loop on device, we can
+harness the high-throughput, highly parallel architecture [13,
+39]. This is especially true for on-policy RL [3, 51], which
+employs GPU-friendly, wide-batch operations. Locomotion
+and manipulation tasks which previously required days of
+training on multi-host setups [4, 59], can now be solved within
+minutes or hours on a single GPU [19, 50].
+With this work, we aim to further advance and make sim-
+to-real robot learning even more accessible. We introduce
+MuJoCo Playground, a fully open-source framework for robot
+learning designed for rapid iteration and deployment of sim-to-
+real reinforcement learning policies. We build upon MuJoCo
+XLA  (MJX), a JAX-based branch of the MuJoCo physics
+engine that runs on GPU, enabling training directly on device.
+Besides physics and learning, we leverage the open-source
+nature of our ecosystem to incorporate on-device rendering
+through the Madrona batch renderer , facilitating training
+of vision-based policies end-to-end, without teacher-student
+distillation . With a straightforward installation process
+(pip install playground) and cross-platform support,
+users can quickly train policies on a single GPU. The entire
+pipelinefrom environment setup to policy optimization
+can be executed in a single Colab notebook, with most tasks
+requiring only minutes of training time.
+MuJoCo Playgrounds lightweight implementation greatly
+simplifies sim-to-real deployment, transforming it into an
+interactive process where users can quickly tweak parameters
+to refine robot behavior. In our experiments, we deployed both
+state- and vision-based policies across six robotic platforms
+in less than eight weeks. We hope that MuJoCo Playground
+becomes a valuable resource for the robotics community and
+expect it to continue building on MuJoCos thriving open-
+source ecosystem.
+Our work makes three main contributions:
+1) We develop a comprehensive suite of robotic environ-
+ments using MJX , demonstrating sim-to-real trans-
+fer across diverse platforms including quadrupeds, hu-
+2) We integrate the open-source Madrona batch GPU ren-
+derer  to enable end-to-end vision-based policy train-
+ing on a single GPU device, achieving zero-shot transfer
+on manipulation tasks.
+3) We provide a complete, reproducible training pipeline
+with notebooks, hyperparameters, and training curves,
+enabling rapid iteration between simulation and real-
+world deployment.
+II. ENVIRONMENTS
+MuJoCo Playground contains environments in 3 main cat-
+motion and manipulation environments are tailored to robotic
+use-cases and we show zero-shot sim-to-real transfer in many
+of the available environments. Playground directly utilizes
+MuJoCo Menagerie  which offers a suite of robot assets
+and configurations tailored to run in MuJoCo.
+A. DM Control Suite
+The majority of RL environments from  are re-
+implemented in MJX, and serve as entry-level tasks to fa-
+miliarize users with MuJoCo Playground (Figure 3).
+B. Locomotion
+Locomotion environments in MuJoCo Playground are im-
+plemented for multiple quadrupeds and bipeds (Figure 2 left).
+The quadrupeds include the Unitree Go1, Boston Dynamics
+the Berkeley Humanoid , Unitree H1 and G1, Booster
+implement a joystick environment that learns to track a veloc-
+ity command consisting of base linear velocities in both the
+forward and lateral directions, as well as a desired yaw rate.
+On the Unitree Go1, we additionally implement fall recovery
+and handstand environments. A complete list of locomotion
+environments is provided in Table V in the appendix.
+We demonstrate sim-to-real transfer in two main sets of
+experiments. First, on the Unitree Go1, we deploy joystick,
+fall recovery, and handstand policies. Second, we demonstrate
+joystick-based locomotion on the Berkeley Humanoid, the
+Unitree G1, and the Booster T1. More details on these sim-
+to-real experiments can be found in Section IV-B.
+C. Manipulation
+Manipulation environments in MuJoCo Playground are
+implemented for both prehensile and non-prehensile tasks
+(Figure 2 right). With the Leap Hand  robot, we demon-
+strate contact-rich dexterous re-orientation of a block. Using
+the Franka Emika Panda and Robotiq gripper, we show re-
+orientation of a yoga block using high frequency torque
+control. We implement a simple vision-based pick-cube envi-
+ronment on a Franka arm using the Madrona batch renderer. A
+few additional environments, such as bi-arm peg-insertion with
+the Aloha robot , are also available. We refer to Table VIII
+in the appendix for a full set of environments.
+We demonstrate sim-to-real transfer on the Leap Hand and
+Franka arm robots, including an environment trained from
+vision for the pick-cube task. More details on the sim-to-real
+experiments are available in Section IV-C.
+Fig. 2: A preview of locomotion and manipulation environments available in MuJoCo Playground.
+III. BATCH RENDERING WITH MADRONA
+MuJoCo Playground enables vision-based environments
+through an integration of MJX with Madrona . Madrona is
+a GPU-based entity-component-system (ECS), which contains
+GPU implementations of high throughput rendering .
+Madrona provides two rendering backends: a software-based
+batch ray tracer written in CUDA (used for the experiments
+in this work) and a Vulkan-based rasterizer. The raytracing
+backend supports features including complex lighting scenar-
+for examples of rendered images using the batch ray tracer.
+Some features such as deformable materials, moving lights,
+and terrain height fields will be added in the future.
+The Madrona Batch Renderer is integrated with MJX
+through low-level JAX  primitives that connect to the
+initialization and render functions exposed by Madrona. These
+JAX primitives allow for Madrona to interact seamlessly
+with JAX transformations such as jit and vmap. Mujoco
+Playground provides two examples: (cartpole-balance
+and PandaPickCubeCartesian) to showcase the imple-
+mentation of vision-based environments and training of vision-
+based policies.
+The Madrona MJX integration also supports customization
+of each environment instance, allowing for domain random-
+ization  of visual properties such as geometry size, color,
+lighting conditions, and camera pose. These randomizations
+play a crucial role in the sim-to-real transfer of vision-based
+IV. RESULTS
+In this section, we report RL and sim-to-real results for
+environments in MuJoCo Playground. Sim-to-real experiments
+(see some examples in Figure 5) are performed for locomotion
+and manipulation environments from both proprioceptive state
+and from vision. We briefly discuss RL training on different
+hardware devices and RL libraries.
+A. DM Control Suite
+We train state-based policies for all available tasks, with
+most environments training in under 10 minutes on a single
+GPU device. More details on the training process can be found
+in Section B.2. All available environments in the MJX port
+of the DM Control Suite, including any modifications, are
+detailed in Section B.1.
+Using the batch renderer, we also implement pixel-based
+observations for the CartpoleBalance environment. These ob-
+servations are generated on the GPU, allowing us to keep
+other DM Control Suite environments can also be rendered
+with Madrona, we demonstrate end-to-end RL training on only
+one task, leaving a more comprehensive exploration for future
+work. Section E provides more information on how Cartpole-
+Balance was modified and trained for pixel observations.
+Fig. 3: Several DM Control Suite environments.
+B. Locomotion
+We present sim-to-real locomotion results on both a
+quadruped (Unitree Go1) and three humanoid platforms
+(Berkeley Humanoid,Unitree G1, and Booster T1). Further de-
+tails on the MDP formulation, including rewards, observation
+Fig. 4: Sample renders from the Madrona batch renderer for the
+Panda and Aloha environments. Left-most images are the original
+environments. The remaining images highlight the the support for
+randomize these parameters during training.
+1) Quadruped Locomotion:
+a) Task definition: We implement a joystick locomotion
+task as in [25, 50], where the command is specified by three
+values indicating the desired forward velocity, lateral velocity,
+and turning rate of the robots root body. Additionally, we
+design policies for handstand and footstand tasks, in which the
+robot balances on the front or hind legs, respectively, while
+minimizing actuator torque. For fall recovery, we follow [30,
+58], enabling the robot to return to a stable home posture
+from arbitrary fallen configurations.
+b) Hardware: We deploy on the Unitree Go1, which is a
+quadruped robot with four legs, each possessing three degrees
+of freedom. Trained policies run on real-world outdoor terrain
+(grass and concrete) and indoor surfaces with different friction
+properties.
+c) Training: We domain randomize for sensor noise,
+dynamics properties and task uncertainties. We firstly train the
+policy in flat ground with restricted command ranges within 5
+minutes (2x RTX 4090). and finetune it in rough terrain with
+wider ranges. See Section C for more detail.
+d) Results: All four policies (joystick, handstand, foot-
+to reality, coping with uneven terrain and moderate external
+perturbations without additional fine-tuning. Videos of these
+deployments are provided on our project website.
+2) Humanoid Locomotion:
+a) Task definition: We implement the same joystick
+locomotion task as shown for the quadruped environment.
+b) Hardware: We perform sim-to-real experiments on
+three different humanoid platforms: a) Berkeley Humanoid
+, a low-cost, lightweight bipedal robot with 6 DoF per leg,
+b) Unitree G1, a humanoid robot featuring 29 DoF in total,
+and c) Booster T1, a small-scale humanoid robot with 23 Dof.
+All systems are evaluated in indoor environments, with slight
+variations in surface friction and ground compliance.
+c) Training: We follow the domain randomization and
+finetuning strategies of the quadruped robot. Training on flat
+ground lasts under 15 minutes for the Berkeley Humanoid,
+and under 30 minutes for the Unitree G1 and the Booster T1
+on two RTX 4090.
+d) Results: We successfully deploy joystick-based lo-
+comotion on the Berkeley Humanoid, demonstrating robust
+tracking of velocity commands on surfaces ranging from rigid
+floors to soft and slippery terrains. On the Unitree G1 and
+Booster T1, our zero-shot policy similarly achieves stable
+walking and turning on standard indoor floors. Although
+minor tuning for each platforms unique dynamics may further
+enhance performance, these results confirm that our approach
+generalizes across a range of legged robot morphologies.
+C. Manipulation
+In this section, we present sim-to-real results for a broad
+range of manipulation tasks, including dexterous in-hand
+grasping. These tasks illustrate Playgrounds ability to address
+a diverse segment of the manipulation spectrum and highlight
+its robust deployment in real-world settings.
+1) In-Hand Cube Reorientation:
+a) Task definition: We implement an in-hand cube re-
+orientation task using the low-cost, dexterous LEAP hand
+manipulation [4, 19]. The task involves reorienting a 7 cm cube
+repeatedly from random initial poses to new target orientations
+in SE(3) without dropping it. Further task details are provided
+in Section D.4.
+b) Hardware: We employ the same hardware configura-
+tion as in , mounting the LEAP hand on an 8020 frame
+with a 3D-printed bracket that tilts the palm downward by
+20. A single Intel RealSense D415 camera, positioned above
+the workspace, provides pose estimates of the cube via a
+pretrained detector . Although occlusions can introduce
+observation noise, we leave multi-camera extensions to future
+work. The policy operates at 20 Hz, which remains comfort-
+ably below the USB-Dynamixel control bandwidth.
+c) Training: To promote sim-to-real transfer, we apply
+domain randomization on the robot parameters as well as
+cube mass and friction. We also include sensor noise, and
+we finetune with a progressive curriculum to increase both
+noisy pose estimates and action regularization. The policy
+trains within 30 min on two RTX 4090 GPUs. Further training
+details are provided in Section D.4.
+d) Results: As summarized in Table I, our learned policy
+demonstrates early signs of robust in-hand reorientation with
+MuJoCo Playground. The most frequent failure occurs when
+Fig. 5: Footage from four of our deployed policies. a) Go1 joystick policy recovering from a kick while travelling at 2ms, b) Berkeley
+humanoid joystick policy tracking an angular velocity command on a slippery surface. c) In-Hand Cube Reorientation transitioning between
+two target poses. d) Non-prehensile policy issuing torque commands to rotate a block by 180 degrees.
+TABLE I: In-hand reorientation results on the LEAP hand over
+10 trials, reporting the number of consecutive successful rotations
+before failure. The final two columns show the median and mean of
+the Rotations metric.
+Rotations
+the cube becomes wedged in the space present between the
+fingers and the palm of the LEAP hand, causing the policy
+to stall. Although less common, we also observe accidental
+interlocking of the index and thumb, attributed to physical flex
+in the low-cost hardware. Videos of real-world deployments
+can be found on our project page. We note that improved
+camera coverage and more accurate collision geometries could
+mitigate these edge-case failures, which we leave for future
+2) Non-Prehensile Block Reorientation:
+a) Task definition: We present a sim-to-real setup for
+non-prehensile reorientation of a yoga block on a commonly
+available Franka Emika Panda robot arm with a Robotiq
+moving a yoga block from a random initial pose in the robots
+workspace to a fixed goal pose. A trial is deemed successful if
+the agent reorients the block within 3 cm of the goal position
+and within 10 of the desired orientation.
+b) Hardware:
+The policy receives estimates of the
+blocks position and orientation from an open-source camera
+tracker . We use direct high-frequency torque control at
+200 Hz, where the RL policy outputs motor torques for the
+arms seven joints (with the gripper closed). By learning to
+control torques rather than joint positions, the agent develops
+control at high frequencies poses learning challenges . This
+c) Training: Robust zero-shot transfer is enabled by
+stochastic delays and progressive curriculum learning. Each
+training episode injects randomization into initial poses, joint
+vation stochastic delays to mirror practical hardware latency.
+A simple curriculum gradually increases the blocks displace-
+ment and orientation range upon each success, preventing
+overfitting to easier conditions. Training takes 10 minutes on
+16x A100 devices.
+d) Results: These techniques, combined with 200 Hz di-
+rect torque control, produce a policy resilient to real-world per-
+turbations. The agent reliably reorients the block on hardware
+with no additional fine-tuning as shown in Table II. Videos of
+real-world deployments are provided on our project website.
+Additional implementation details are given in Section D.5.
+3) Pick-Cube from Pixels:
+a) Task definition: We demonstrate sim-to-real transfer
+with pixel-based policies on a Franka Emika Panda robot. The
+robot must reliably grasp and lift a small 2  2  3 cm block
+from a random location on the table and move it 10 cm above
+TABLE II: Sim-to-real reorientation performance on the Franka
+Emika Panda robot, evaluated across 35 hardware trials. Each metric
+is reported as the median and mean (with a 95 confidence interval).
+The success rate is bolded to highlight final task performance. The
+training was done on 16x A100 GPUs.
+Mean  95 Confidence Interval
+Real Success ()
+Position Error (cm)
+Rotation Error ()
+the surface. The policy receives a 64  64 RGB image as
+input and outputs a Cartesian command, which is processed
+by a closed-form inverse kinematics solution to yield joint
+commands. To simplify the task, we restrict the end-effector
+to a 2D Y-Z plane (while always pointing downward) and
+provide a binary jaw openclose action.
+b) Hardware: We use a Franka Emika Panda robot with
+a single Intel RealSense D435 camera mounted to capture top-
+down RGB images. The policy operates at 15 Hz, and we run
+inference on an RTX 3090 GPU. Our setup ensures that the
+block starts within the field of view over a 20 cm range along
+the y-axis.
+c) Training: To bridge the sim-to-real gap, we apply
+domain randomization across visual properties such as light-
+random brightness post-processing, and introduce a stochastic
+gripping delay of up to 250 ms. We choose a reduced action
+dimension of three (Y-movement, Z-movement, and discrete
+jaw control) for training sample efficiency, but we have found
+that the task can also be solved in full Cartesian or joint
+space given additional camera perspectives and more training
+samples. Training in simulation takes ten minutes on a single
+RTX 4090.
+d) Results: Our policy achieves a 100 success rate in
+12 real-world trials, robustly grasping the block and lifting
+it clear of the table. It demonstrates resilience to moderate
+variations in lighting and minor camera shaking, as shown
+in the videos on our project website. These findings high-
+light MuJoCo Playgrounds capacity for training pixel-based
+policies that transfer reliably to real hardware in a zero-shot
+manner. Additional implementation details are described in
+Section E.
+D. Training Throughput
+Across our sim-to-real studies, we used several GPU hard-
+ware setups and topologies, including NVIDIA RTX 4090,
+training performance of the LeapCubeReorient environment on
+different configurations for a fixed set of RL hyper-parameters,
+demonstrating that MJX is effective on both consumer-grade
+and datacenter graphics cards. We see that GPUs with higher
+theoretical performance and larger topologies can reduce train-
+ing time by a factor of 3x on a contact-rich task like in-hand re-
+orientation. We leave optimization of topology-specific hyper-
+parameters as future work (e.g. the number of environments
+should ideally increase for larger topologies to maximize
+in data per epoch). In Table IV, Table VII, and Table IX
+Wallclock Time (s)
+Episode Reward
+LeapCubeReorient
+Fig. 6: Training wallclock time for LeapCubeReorient on different
+GPU device topologies. 1x 4090 takes 2080 (s) to train and 8x
+H100 takes 670 (s) to train. All runs use the same hyperparams
+(e.g. 8192 num envs); we leave tuning hyperparams per topology as
+a future exercise.
+Image Resolution
+CartpoleBalance
+Image Resolution
+PandaPickCubeCartesian
+Fig. 7: Environment steps per second on the single-camera Cartpole-
+Balance and PandaPickCubeCartesian environments with pixel-based
+observations from our on-device renderer.
+in the appendix, we report RL training throughput for all
+environments in MuJoCo Playground on a single A100 GPU.
+1) Training Throughput with Batch Rendering: Figure 7
+highlights the throughput of stepping two of our environments
+with pixel observations at different resolutions. By pairing
+MJX physics with Madrona batch rendering, our Cartpole and
+Franka environments unroll at roughly 403,000 and 37,000
+steps per second respectively. Note that our Franka physics are
+over 20x more costly than Cartpoles, resulting in the lower
+sensitivity of FPS to image resolution.
+volves four main components: physics simulation, observation
+encapsulates the former two and is not fully indicative of
+overall training throughput.
+We find that in the context of a PPO training loop, physics,
+of the Cartpole and Franka total training times, respectively,
+with most of the time spent updating the expensive CNN-based
+Steps (1e6)
+Episode Reward
+PPO on Go1JoystickFlatTerrain
+Fig. 8: Reward curves for PPO trained with RSL-RL and brax on
+an RTX-4090 GPU for 3 seeds each on the Unitree Go1.
+networks. Hence, compared to traditional on-policy training
+to processing it. Training bottlenecks are further discussed in
+Section E.3 under Table X and Table XI. Further performance
+benchmarking and a rough comparison against prior simulators
+are in Section E.2.
+2) RL Libraries: While MuJoCo Playground primarily uses
+a JAX-based physics simulator, practitioners are able to use
+both JAX and torch-based RL libraries for training RL agents.
+In Figure 8, we show reward curves for PPO agents trained
+using both Brax  and RSL-RL  implementations. Each
+corresponding RL library is trained with custom hyperparam-
+eters tailored to the corresponding PPO implementation. Both
+libraries are able to achieve successful rewards and gaits within
+similar wallclock times. All other results in this paper were
+obtained using the Brax PPO and SAC implementations.
+V. RELATED WORK
+a) Physics simulation on GPU: The PhysX GPU im-
+plementation  has been heavily relied on for robotic
+sim-to-real workloads via IsaacGym  and more recently
+Isaac Lab . The PhysX GPU implementation, however, is
+closed-source  and researchers lack the ability to extend
+the simulator for their specific tasks or workloads. Several
+GPU-based physics engines are open-source, such as MJX
+[43, 63], Brax , Warp , and Taichi . Only a
+limited set of robot environments [52, 66] leverage these open-
+source counterparts, in contrast to the wide range of robotic
+sim-to-real results that were achieved with IsaacGym and
+Isaac Lab. Most recently, Genesis  provides a rigid-body
+implementation similar to MJX implemented using Taichi, that
+allows for dynamic constraintscontacts. However, sim-to-real
+results are still limited to a few locomotion policies.
+b) Sim-to-real RL: A variety of locomotion and manip-
+ulation policies have successfully been deployed in the real
+world zero-shot [9, 10, 33, 36, 47, 57, 70]. We complement
+these results by demonstrating zero-shot sim-to-real on the
+Leap Hand, Unitree Go1, Berkeley Humanoid, Unitree G1,
+Booster T1, and Franka arm using MuJoCo rather than closed-
+source simulators. Similar to [39, 41], we provide code for
+environments and training.
+c) Vision-based RL: State-of-the-art algorithms such as
+, TD-MPC2 , and EfficientZeroV2  have pushed
+pixel-based RL performance over the years. Transferring these
+advances to the real world is appealing, as visual control loops
+offer precise positioning and robust behaviour in uncontrolled
+in-the-wild scenarios . The limitation of training directly
+from pixel data is the large visual sim-to-real gap between
+simulation and reality, which is often overcome using domain
+randomization . However, such training methods require
+exponentially more training samples. As as result, policies
+are typically trained with proprioceptive observations in sim-
+ulation and subsequently distilled into vision-based policies
+offline [8, 9, 16], or trained with smaller exteroceptive observa-
+tions [1, 40]. With Madrona, we are able to train vision-based
+policies directly in simulation without a distillation step using
+high-throughput batch rendering, similar to  and .
+VI. LIMITATIONS
+MuJoCo Playground inherits the limitations of MJX due
+to constraints imposed by JAX. First, just-in-time (JIT) com-
+pilation can be slow (1-3 minutes on Playgrounds tasks).
+like the number of active contacts in the scene, but like the
+number of possible contacts in the scene. This is due to JAXs
+requirement of static shapes at compile time. This limitation
+can be overcome by using more flexible frameworks like
+Warp  and Taichi . This upgrade is an active area
+of development. Finally we should note that the vision-based
+training using Madrona is still at an early stage.
+VII. CONCLUSION
+MuJoCo Playground is a library built upon the open-
+source MuJoCo simulator and Madrona batch renderer with
+implementations across several reinforcement learning and
+robotics environments. We demonstrate policy training on
+various GPU topologies using JAX and pytorch-based rein-
+forcement learning libraries. We also demonstrate sim-to-real
+deployment on several robotic tasks and embodiments, from
+locomotion to both dexterous and non-prehensile manipulation
+from proprioceptive state and from pixels. We look forward
+to seeing the community put this resource to use in advancing
+robotics research and its applications.
+ACKNOWLEDGMENTS
+We thank Jimmy Wu, Kyle Stachowicz, Kenny Shaw, and
+Zhongyu Li for help with hardware. We thank Dongho Khang
+and Yunhao Cao for help with locomotion. We thank Rushrash
+Hari for help with hardware. We thank Luc Guy Rosenzweig,
+Brennan Shacklett and Kayvon Fatahalian for their extensive
+support in integrating the Madrona project into MJX. We thank
+Ankur Handa for help with manipulation. We thank Laura
+Smith and Philipp Wu for always being there to help with any
+problem and answer any question. We thank Lambda labs for
+sponsoring compute for the project. We thank Stone Tao for
+discussions on manipulation environments in MJX. We thank
+Erwin Coumans for introducing us to the Madrona team. We
+thank Kevin Bergamin and Michael Lutter for fruitful technical
+discussions and paper draft feedback. We thank Brent Yi for
+fruitful technical discussions and help with the website. We
+thank Lambda Labs for supporting this project with cloud
+compute credits.
+This work is supported in part by The AI Institute. K.
+Sreenath has financial interest in Boston Dynamics AI Institute
+LLC. He and the company may benefit from the commercial-
+ization of the results of this research.
+This work was supported in part by the ONR Science of
+Autonomy Program N000142212121 and the BAIR Industrial
+Consortium. Pieter Abbeel holds concurrent appointments as
+a Professor at UC Berkeley and as an Amazon Scholar. This
+paper describes work performed at UC Berkeley and is not
+associated with Amazon.
+REFERENCES
+Ananye Agarwal, Ashish Kumar, Jitendra Malik, and
+Deepak Pathak. Legged locomotion in challenging ter-
+rains using egocentric vision.
+In Conference on robot
+Jorge ALOHA 2 Team, Aldaco, Travis Armstrong,
+Robert Baruch, Jeff Bingham, Sanky Chan, Kenneth
+Spencer Goodrich, et al.
+Aloha 2: An enhanced low-
+cost hardware for bimanual teleoperation. arXiv preprint
+Marcin Andrychowicz, Anton Raichuk, Piotr Stanczyk,
+Manu Orsini, Sertan Girgin, Raphael Marinier, Leonard
+learning? a large-scale empirical study. arXiv preprint
+Alex Ray, et al. Learning dexterous in-hand manipula-
+tion. The International Journal of Robotics Research, 39
+Matthew James Johnson, Chris Leary, Dougal Maclaurin,
+George Necula, Adam Paszke, Jake VanderPlas, Skye
+transformations of PythonNumPy programs, 2018.
+Ken Caluwaerts, Atil Iscen, J Chase Kew, Wenhao Yu,
+Tingnan Zhang, Daniel Freeman, Kuang-Huei Lee, Lisa
+robots. arXiv preprint arXiv:2305.14654, 2023.
+Yevgen Chebotar, Ankur Handa, Viktor Makoviychuk,
+Miles Macklin, Jan Issac, Nathan Ratliff, and Dieter
+Fox. Closing the sim-to-real loop: Adapting simulation
+randomization with real world experience.
+International Conference on Robotics and Automation
+(ICRA), pages 89738979. IEEE, 2019.
+Tao Chen, Jie Xu, and Pulkit Agrawal. A system for
+general in-hand object re-orientation. In Conference on
+Robot Learning, pages 297307. PMLR, 2022.
+Xuxin Cheng, Kexin Shi, Ananye Agarwal, and Deepak
+Pathak. Extreme parkour with legged robots. In 2024
+IEEE International Conference on Robotics and Automa-
+tion (ICRA), pages 1144311450. IEEE, 2024.
+Yoonyoung Cho, Junhyek Han, Yoontae Cho, and
+Beomjoon Kim.
+tation for nonprehensile manipulation of general unseen
+objects. arXiv preprint arXiv:2403.10760, 2024.
+ONNX Runtime developers.
+Onnx runtime.
+onnxruntime.ai, 2021. Version: x.y.z.
+T. Flayols, A. Del Prete, P. Wensing, A. Mifsud, M. Be-
+ple estimators for humanoid robots. In 2017 IEEE-RAS
+17th International Conference on Humanoid Robotics
+(Humanoids), pages 889895, 2017.
+HUMANOIDS.2017.8246977.
+C Daniel Freeman, Erik Frey, Anton Raichuk, Sertan
+differentiable physics engine for large scale rigid body
+Genesis-Authors.
+physics engine for robotics and beyond, December 2024.
+Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and
+Sergey Levine.
+Soft actor-critic: Off-policy maximum
+entropy deep reinforcement learning with a stochastic
+actor. In International conference on machine learning,
+pages 18611870. PMLR, 2018.
+Tuomas Haarnoja, Ben Moran, Guy Lever, Sandy H
+Roland Hafner, et al. Learning agile soccer skills for a
+bipedal robot with deep reinforcement learning. Science
+Danijar Hafner, Jurgis Pasukonis, Jimmy Ba, and Timo-
+thy Lillicrap. Mastering diverse domains through world
+models. arXiv preprint arXiv:2301.04104, 2023.
+Mustafa Haiderbhai, Radian Gondokaryono, Andrew Wu,
+and Lueder A. Kahrs.
+Sim2real rope cutting with a
+surgical robot using vision-based reinforcement learning.
+Transactions on Automation Science and Engineering,
+Ankur Handa, Arthur Allshire, Viktor Makoviychuk,
+Aleksei Petrenko, Ritvik Singh, Jingzhou Liu, Denys
+Balakumar Sundaralingam, et al.
+of agile in-hand manipulation from simulation to reality.
+In 2023 IEEE International Conference on Robotics and
+Automation (ICRA), pages 59775984. IEEE, 2023.
+Nicklas Hansen, Hao Su, and Xiaolong Wang. Td-mpc2:
+Yanhao He and Steven Liu. Analytical inverse kinematics
+for franka emika panda  a geometrical solver for 7-
+dof manipulators with unconventional design. In 2021
+9th International Conference on Control, Mechatronics
+and Automation (ICCMA), pages 194199, 2021. doi:
+Samuel Holt, Todor Davchev, Dhruva Tirumala, Ben
+las Heess.
+Evolving control: Evolved high frequency
+control for continuous control tasks. In CoRL Workshop
+on Safe and Robust Robot Learning for Operation in the
+Real World, 2024.
+idgzADUWLD9X.
+Yuanming Hu, Luke Anderson, Tzu-Mao Li, Qi Sun,
+Nathan Carr, Jonathan Ragan-Kelley, and Fredo Durand.
+ulation. arXiv preprint arXiv:1910.00935, 2019.
+Julian Ibarz, Jie Tan, Chelsea Finn, Mrinal Kalakrishnan,
+Peter Pastor, and Sergey Levine.
+How to train your
+robot with deep reinforcement learning: lessons we have
+learned. The International Journal of Robotics Research,
+Gwanghyeon Ji, Juhyeok Mun, Hyeongjun Kim, and
+Jemin Hwangbo. Concurrent training of a control policy
+and a state estimator for dynamic and robust legged
+locomotion. IEEE Robotics and Automation Letters, 7
+Elia Kaufmann, Leonard Bauersfeld, Antonio Loquercio,
+Matthias Muller, Vladlen Koltun, and Davide Scara-
+muzza. Champion-level drone racing using deep rein-
+forcement learning. Nature, 620(7976):982987, 2023.
+Jens Kober, J Andrew Bagnell, and Jan Peters. Reinforce-
+ment learning in robotics: A survey. The International
+Journal of Robotics Research, 32(11):12381274, 2013.
+Nathan Koenig and Andrew Howard.
+Design and use
+paradigms for gazebo, an open-source multi-robot sim-
+In 2004 IEEERSJ international conference on
+intelligent robots and systems (IROS)(IEEE Cat. No.
+04CH37566), volume 3, pages 21492154. Ieee, 2004.
+Michael Laskin, Kimin Lee, Adam Stooke, Lerrel Pinto,
+Pieter Abbeel, and Aravind Srinivas.
+Reinforcement
+learning with augmented data. arXiv:2004.14990.
+Joonho Lee, Jemin Hwangbo, and Marco Hutter. Robust
+recovery controller for a quadrupedal robot using deep re-
+inforcement learning. arXiv preprint arXiv:1901.07517,
+leggedrobotics. rsl rl: Fast and simple implementation of
+rl algorithms, designed to run fully on gpu.
+comleggedroboticsrsl rl, 2023. Accessed: January 10,
+Albert Hao Li, Preston Culbertson, Vince Kurtz, and
+Aaron D. Ames.
+online planning. arXiv preprint arXiv:2409.14562, 2024.
+Available at:
+Zhongyu Li, Xue Bin Peng, Pieter Abbeel, Sergey
+forcement learning for versatile, dynamic, and robust
+bipedal locomotion control. The International Journal
+of Robotics Research, page 02783649241285161, 2024.
+Jacky Liang, Viktor Makoviychuk, Ankur Handa, Nut-
+tapong Chentanez, Miles Macklin, and Dieter Fox. Gpu-
+accelerated robotic simulation for distributed reinforce-
+ment learning. In Conference on Robot Learning, pages
+Qiayuan Liao, Bike Zhang, Xuanyu Huang, Xiaoyu
+arXiv preprint arXiv:2407.21781, 2024.
+Junfeng Long, Junli Ren, Moji Shi, Zirui Wang, Tao
+Learning hu-
+manoid locomotion with perceptive internal model. arXiv
+preprint arXiv:2411.14386, 2024.
+Yecheng Jason Ma, William Liang, Guanzhi Wang, De-
+An Huang, Osbert Bastani, Dinesh Jayaraman, Yuke Zhu,
+Linxi Fan, and Anima Anandkumar.
+level reward design via coding large language models.
+arXiv preprint arXiv:2310.12931, 2023.
+Miles Macklin. Warp: A high-performance python frame-
+work for gpu simulation and graphics. In NVIDIA GPU
+Technology Conference (GTC), 2022.
+Viktor Makoviychuk, Lukasz Wawrzyniak, Yunrong
+performance
+gpu-based
+physics simulation for robot learning.
+arXiv preprint
+Takahiro Miki, Joonho Lee, Jemin Hwangbo, Lorenz
+robust perceptive locomotion for quadrupedal robots in
+the wild. Science robotics, 7(62):eabk2822, 2022.
+Mayank Mittal, Calvin Yu, Qinxi Yu, Jingzhou Liu,
+Nikita Rudin, David Hoeller, Jia Lin Yuan, Ritvik Singh,
+Yunrong Guo, Hammad Mazhar, et al. Orbit: A unified
+simulation framework for interactive robot learning envi-
+ronments. IEEE Robotics and Automation Letters, 8(6):
+Volodymyr Mnih, Koray Kavukcuoglu, David Silver,
+Andrei A. Rusu, Joel Veness, Marc G. Bellemare,
+Alex Graves, Martin Riedmiller, Andreas K. Fidjeland,
+Georg Ostrovski, Stig Petersen, Charles Beattie, Amir
+Human-level control through deep reinforcement learn-
+nature14236. URL
+MuJoCo XLA Authors. MuJoCo XLA (MJX). https:
+mujoco.readthedocs.ioenstablemjx.html.
+December 16, 2024.
+Scott Niekum and Isaac I.Y. Saito. ar track alvar, 2016.
+URL  track alvar.
+Aleksei Petrenko, Arthur Allshire, Gavriel State, Ankur
+dexterous manipulation for hand-arm systems with pop-
+ulation based training. RSS, 2023.
+Lerrel Pinto, Marcin Andrychowicz, Peter Welinder, Wo-
+jciech Zaremba, and Pieter Abbeel. Asymmetric actor
+critic for image-based robot learning. RSS, 2018.
+Ilija Radosavovic, Sarthak Kamat, Trevor Darrell, and
+Jitendra Malik.
+Learning humanoid locomotion over
+challenging terrain.
+arXiv preprint arXiv:2410.03654,
+Prajit Ramachandran, Barret Zoph, and Quoc V. Le.
+Searching for activation functions, 2017.
+URL https:
+arxiv.orgabs1710.05941.
+Luc Guy Rosenzweig, Brennan Shacklett, Warren Xia,
+and Kayvon Fatahalian. High-throughput batch rendering
+for embodied ai. 2024.
+Nikita Rudin, David Hoeller, Philipp Reist, and Marco
+Learning to walk in minutes using massively
+parallel deep reinforcement learning. In Conference on
+Robot Learning, pages 91100. PMLR, 2022.
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+algorithms. arXiv preprint arXiv:1707.06347, 2017.
+Carmelo Sferrazza, Dun-Ming Huang, Xingyu Lin,
+Youngwoon Lee, and Pieter Abbeel.
+Simulated humanoid benchmark for whole-body locomo-
+tion and manipulation. Robotics: Science and Systems
+Brennan Shacklett, Luc Guy Rosenzweig, Zhiqiang Xie,
+Bidipta Sarkar, Andrew Szot, Erik Wijmans, Vladlen
+many-world simulation. ACM Transactions on Graphics
+Brennan Shacklett, Luc Guy Rosenzweig, Zhiqiang Xie,
+Bidipta Sarkar, Andrew Szot, Erik Wijmans, Vladlen
+many-world simulation.
+ACM Trans. Graph., 42(4),
+Yecheng Shao, Yongbin Jin, Xianwei Liu, Weiyan He,
+Hongtao Wang, and Wei Yang. Learning free gait tran-
+sition for quadruped robots via phase-guided controller.
+IEEE Robotics and Automation Letters, 7(2):12301237,
+Kenneth Shaw, Ananye Agarwal, and Deepak Pathak.
+Leap hand: Low-cost, efficient, and anthropomorphic
+hand for robot learning. Robotics: Science and Systems
+Ritvik Singh, Arthur Allshire, Ankur Handa, Nathan
+policies to grasp anything with dexterous hands. arXiv
+preprint arXiv:2412.01791, 2024.
+Laura Smith, J Chase Kew, Xue Bin Peng, Sehoon Ha,
+Jie Tan, and Sergey Levine.
+Legged robots that keep
+on learning: Fine-tuning locomotion policies in the real
+world. In 2022 International Conference on Robotics and
+Automation (ICRA), pages 15931599. IEEE, 2022.
+Jie Tan, Tingnan Zhang, Erwin Coumans, Atil Iscen,
+Yunfei Bai, Danijar Hafner, Steven Bohez, and Vincent
+Vanhoucke. Sim-to-real: Learning agile locomotion for
+quadruped robots.
+arXiv preprint arXiv:1804.10332,
+Stone Tao, Fanbo Xiang, Arth Shukla, Yuzhe Qin,
+Xander Hinrichsen, Xiaodi Yuan, Chen Bao, Xinsong
+parallelized robotics simulation and rendering for gener-
+alizable embodied ai. arXiv preprint arXiv:2410.00425,
+Yuval Tassa, Yotam Doron, Alistair Muldal, Tom Erez,
+Yazhe Li, Diego de Las Casas, David Budden, Abbas
+mind control suite.
+arXiv preprint arXiv:1801.00690,
+Josh Tobin, Rachel Fong, Alex Ray, Jonas Schneider,
+Wojciech Zaremba, and Pieter Abbeel.
+Domain ran-
+domization for transferring deep neural networks from
+simulation to the real world. In IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+Emanuel Todorov, Tom Erez, and Yuval Tassa. Mujoco:
+A physics engine for model-based control.
+IEEERSJ international conference on intelligent robots
+and systems, pages 50265033. IEEE, 2012.
+Shengjie Wang, Shaohuai Liu, Weirui Ye, Jiacheng You,
+and Yang Gao. Efficientzero v2: Mastering discrete and
+continuous control with limited data.
+arXiv preprint
+Yuxin Wang, Qiang Wang, Shaohuai Shi, Xin He, Zhen-
+heng Tang, Kaiyong Zhao, and Xiaowen Chu. Bench-
+marking the performance and energy efficiency of ai
+accelerators for ai training.
+In 2020 20th IEEEACM
+International Symposium on Cluster, Cloud and Internet
+Computing (CCGRID), pages 744751. IEEE, 2020.
+Haoru Xue, Chaoyi Pan, Zeji Yi, Guannan Qu, and
+Guanya Shi. Full-order sampling-based mpc for torque-
+level locomotion control via diffusion-style annealing.
+arXiv preprint arXiv:2409.15610, 2024.
+Denis Yarats, Rob Fergus, Alessandro Lazaric, and Lerrel
+Mastering visual continuous control: Improved
+data-augmented reinforcement learning. arXiv preprint
+Kevin Zakka, Yuval Tassa, and MuJoCo Menagerie Con-
+tributors.
+MuJoCo Menagerie: A collection of high-
+quality simulation models for MuJoCo, 2022.
+menagerie.
+Wenshuai Zhao, Jorge Pena Queralta, and Tomi Wester-
+lund. Sim-to-real transfer in deep reinforcement learning
+for robotics: a survey. In 2020 IEEE symposium series on
+computational intelligence (SSCI), pages 737744. IEEE,
+Ziwen Zhuang, Zipeng Fu, Jianren Wang, Christo-
+pher Atkeson, Soeren Schwertfeger, Chelsea Finn, and
+Hang Zhao.
+Robot parkour learning.
+arXiv preprint
+Appendix
+Table of Contents
+Appendix A: Author Contributions
+Real World Experiments
+RL and Simulation
+Software Infrastructure
+Appendix B: DM Control Suite
+Environments
+RL Training Throughput
+Appendix C: Locomotion
+RL Training Throughput
+Real-world Setup
+Appendix D: Manipulation
+Environments
+RL Training Throughput
+Real-world Cube Reorientation with a Leap Hand
+Real-world Non-prehensile Block Reorientation with a Franka-Robotiq Arm . . . . . . . . . . . . . . .
+Real-world Franka PickCube from Pixels
+Appendix E: Madrona Rendering Environments
+Appendix F: Reinforcement Learning Hyper-parameters
+Locomotion
+APPENDIX A
+AUTHOR CONTRIBUTIONS
+Real World Experiments
+Qiayuan Liao and Kevin Zakka set up and iterated on all Go1 and Berkeley Humanoid tasks and real-world deployments.
+Qiayuan Liao, Kevin Zakka, and Carmelo Sferrazza set up, iterated on and deployed policies on the G1.
+Kevin Zakka and Arthur Allshire built and set up deployment on the open-source LEAP hand. Arthur implemented vision-
+based cube state estimation, enabling sim-to-real transfer.
+Kevin Zakka and Qiayuan Liao iterated on in-hand reorientation results.
+Mustafa Haiderbhai and Jing Yuan Luo designed the visual Panda Pick Cube experiments and deployed them on real
+hardware.
+Samuel Holt and Baruch Tabanpour designed the non-prehensile manipulation task and deployed it on real hardware. Samuel
+Holt built and setup deployment for both the robot controller in C and vision-based block state estimation pipeline for
+the Franka-Robotiq arm, calibration, and iterated the task and setup to enable reliable sim-to-real transfer, through accurate
+tracking and latency optimization in the real setup.
+RL and Simulation
+Baruch Tabanpour implemented the first Barkour joystick task and helped replicate the Barkour results on the Go1.
+Kevin Zakka implemented various joystick and fall-recovery tasks for multiple platforms, including Unitree Go1, G1, Berkeley
+Carmelo Sferrazza iterated on tasks for Berkeley Humanoid, H1, and G1, achieving the first implementation and walking
+gaits for G1.
+Baruch Tabanpour implemented the first open-source manipulation environment: Franka Pick Cube.
+Kevin Zakka implemented the LEAP hand rotation and re-orientation tasks, with contributions from Baruch Tabanpour for
+basic reward structure and sweeps.
+Arthur Allshire significantly improved the LEAP hand task results.
+Samuel Holt implemented the first version of the Panda Push Cube task including domain randomization, which was refactored
+and improved from contributions from Baruch Tabanpour for improved rewards, sweeps and domain randomization.
+Jing Yuan Luo implemented the Open Cabinet task and adapted Pick Cube for orientation targets.
+Erik Frey implemented the first version of the ALOHA task, with tuning and finalization by Baruch and Andrew.
+DM Control Suite:
+Kevin Zakka ported over the DM Control Suite tasks and tuned the first RL baseline using SAC.
+Baruch Tabanpour added the PPO baseline and ran hyperparameter sweeps for both RL baselines.
+Jing Yuan Luo implemented and tuned the Vision Cartpole Task.
+PyTorch Integration
+Arthur Allshire led and implemented the integration of Playground with PyTorch and rsl rl.
+Miscellaneous
+Baruch Tabanpour advised and improved simulation speed for both manipulation and locomotion tasks.
+Jing Yuan Luo worked on paper figures and writing.
+Samuel Holt contributed the figure plotting code.
+Mustafa Haiderbhai worked on Madrona-MJX feature development.
+Mustafa Haiderbhai and Jing Yuan Luo worked on Madrona-MJX integration into Playground.
+Jing Yuan Luo benchmarked Madrona-MJX.
+Erik Frey and Baruch Tabanpour contributed to early versions of Madrona-MJX.
+Software Infrastructure
+Baruch Tabanpour and Kevin Zakka led the development and release of MuJoCo Playground.
+Baruch Tabanpour advised on brax and MuJoCo MJX, enabling upstream changes.
+Kevin Zakka added the asymmetric actor-critic implementation to the brax PPO codebase.
+Jing Yuan Luo added vision support to the brax PPO codebase.
+Kevin Zakka wrote MJX-to-MuJoCo sim2sim deployment code, with contributions from Carmelo Sferrazza for the joystick
+interface.
+Kevin Zakka and Jing Yuan Luo developed the Brax Flax to ONNX conversion script.
+Project Management
+Kevin Zakka and Baruch Tabanpour conceived and led the project.
+Baruch Tabanpour led the paper writing effort.
+Carmelo Sferrazza, Erik Frey, Yuval Tassa, and Pieter Abbeel advised and guided the project.
+Carmelo Sferrazza and Yuval Tassa contributed significantly to paper writing.
+Pieter Abbeel, Erik Frey, Koushil Sreenath and Yuval Tassa provided resource support and feedback.
+APPENDIX B
+DM CONTROL SUITE
+Environments
+In Table III, we show the environments from DM Control Suite () that were re-implemented in MuJoCo Playground.
+Certain XMLs were modified for performance and are shown in the table.
+XML Modifications
+acrobot-swingup
+acrobot-swingup sparse
+ball in cup-catch
+cartpole-balance
+cartpole-balance sparse
+cartpole-swingup
+cartpole-swingup sparse
+cheetah-run
+finger-spin
+ls iterations8,
+max contact points4,
+max geom pairs2,
+cylinder collision
+finger turn easy
+finger turn hard
+fish-upright
+fish-swim
+hopper-stand
+hopper-hop
+humanoid-stand
+timestep0.005, max contact points8, max geom pairs8
+humanoid-walk
+humanoid-run
+pendulum-swingup
+timestep0.01, iterations4, ls iterations8
+point mass-easy
+reacher-easy
+timestep0.005, iterations1, ls iterations6
+reacher-hard
+swimmer-swimmer6
+timestep0.003, iterations4, ls iterations8, contypeconaffinity set to 0
+swimmer-swimmer15
+walker-stand
+timestep0.005,
+ls iterations5,
+max contact points4,
+max geom pairs4
+walker-walk
+walker-run
+manipulator-bring ball
+manipulator-bring peg
+manipulator-insert ball
+manipulator-insert peg
+dog-stand
+dog-walk
+dog-trot
+dog-fetch
+TABLE III: DM Control Suite Environments ported to MJX. Where specified, XML modifications were made to the solver
+RL Training Results
+For all DM Control Suite environments ported to MuJoCo Playground, we train both PPO  and SAC  using the RL
+implementations in  and we report reward curves below. In Figure 9 we report environment steps versus reward and in
+Figure 10 we report wallclock time versus reward. All environments are run across 5 seeds on a single A100 GPU.
+RL Training Throughput
+We report training throughput on all DM Control Suite environments in Table IV by dividing the number of environment
+steps by wallclock time, as reported in Section B.2, for each RL algorithm.
+Env Steps
+Episode Reward
+AcrobotSwingup
+PPO Mean
+SAC Mean
+Env Steps
+Episode Reward
+AcrobotSwingupSparse
+Env Steps
+Episode Reward
+BallInCup
+Env Steps
+Episode Reward
+CartpoleBalance
+Env Steps
+Episode Reward
+CartpoleBalanceSparse
+Env Steps
+Episode Reward
+CartpoleSwingup
+Env Steps
+Episode Reward
+CartpoleSwingupSparse
+Env Steps
+Episode Reward
+CheetahRun
+Env Steps
+Episode Reward
+FingerSpin
+Env Steps
+Episode Reward
+FingerTurnEasy
+Env Steps
+Episode Reward
+FingerTurnHard
+Env Steps
+Episode Reward
+FishSwim
+Env Steps
+Episode Reward
+HopperHop
+Env Steps
+Episode Reward
+HopperStand
+Env Steps
+Episode Reward
+HumanoidRun
+Env Steps
+Episode Reward
+HumanoidStand
+Env Steps
+Episode Reward
+HumanoidWalk
+Env Steps
+Episode Reward
+PendulumSwingup
+Env Steps
+Episode Reward
+PointMass
+Env Steps
+Episode Reward
+ReacherEasy
+Env Steps
+Episode Reward
+ReacherHard
+Env Steps
+Episode Reward
+SwimmerSwimmer6
+Env Steps
+Episode Reward
+WalkerRun
+Env Steps
+Episode Reward
+WalkerStand
+Env Steps
+Episode Reward
+WalkerWalk
+Fig. 9: Reward vs environment steps for PPO and SAC on the full DM Control Suite environments in MuJoCo Playground. We run PPO
+for 60M steps, with a few selected environments running on 100M steps. SAC runs for 5M steps. All settings are run with 5 seeds on a
+single A100 GPU device.
+Wallclock Time (s)
+Episode Reward
+AcrobotSwingup
+PPO Mean
+SAC Mean
+Wallclock Time (s)
+Episode Reward
+AcrobotSwingupSparse
+Wallclock Time (s)
+Episode Reward
+BallInCup
+Wallclock Time (s)
+Episode Reward
+CartpoleBalance
+Wallclock Time (s)
+Episode Reward
+CartpoleBalanceSparse
+Wallclock Time (s)
+Episode Reward
+CartpoleSwingup
+Wallclock Time (s)
+Episode Reward
+CartpoleSwingupSparse
+Wallclock Time (s)
+Episode Reward
+CheetahRun
+Wallclock Time (s)
+Episode Reward
+FingerSpin
+Wallclock Time (s)
+Episode Reward
+FingerTurnEasy
+Wallclock Time (s)
+Episode Reward
+FingerTurnHard
+Wallclock Time (s)
+Episode Reward
+FishSwim
+Wallclock Time (s)
+Episode Reward
+HopperHop
+Wallclock Time (s)
+Episode Reward
+HopperStand
+Wallclock Time (s)
+Episode Reward
+HumanoidRun
+Wallclock Time (s)
+Episode Reward
+HumanoidStand
+Wallclock Time (s)
+Episode Reward
+HumanoidWalk
+Wallclock Time (s)
+Episode Reward
+PendulumSwingup
+Wallclock Time (s)
+Episode Reward
+PointMass
+Wallclock Time (s)
+Episode Reward
+ReacherEasy
+Wallclock Time (s)
+Episode Reward
+ReacherHard
+Wallclock Time (s)
+Episode Reward
+SwimmerSwimmer6
+Wallclock Time (s)
+Episode Reward
+WalkerRun
+Wallclock Time (s)
+Episode Reward
+WalkerStand
+Wallclock Time (s)
+Episode Reward
+WalkerWalk
+Fig. 10: Reward vs wallclock time for PPO and SAC on the full DM Control Suite environments in MuJoCo Playground. All settings are
+run with 5 seeds on a single A100 GPU device.
+PPO Steps per Second
+SAC Steps Per Second
+AcrobotSwingup
+AcrobotSwingupSparse
+BallInCup
+CartpoleBalance
+CartpoleBalanceSparse
+CartpoleSwingup
+CartpoleSwingupSparse
+CheetahRun
+FingerSpin
+FingerTurnEasy
+FingerTurnHard
+FishSwim
+HopperHop
+HopperStand
+HumanoidRun
+HumanoidStand
+HumanoidWalk
+PendulumSwingup
+PointMass
+ReacherEasy
+ReacherHard
+SwimmerSwimmer6
+WalkerRun
+WalkerStand
+WalkerWalk
+TABLE IV: Training throughput is displayed for all the DM Control Suite environments on an A100 GPU device across 5
+seeds using brax PPO and the RL hyperparameters in Appendix Section F. We report the 95th percentile confidence interval.
+APPENDIX C
+LOCOMOTION
+Environment
+In Table V we show all the locomotion environments available in MuJoCo Playground, broken down by robot platform and
+available controller.
+Environment
+Google Barkour
+Quadruped
+Berkeley Humanoid
+Joystick
+Unitree G1
+Joystick
+Booster T1
+Joystick
+Unitree Go1
+Quadruped
+Unitree H1
+Joystick
+Boston Dynamics Spot
+Quadruped
+TABLE V: Locomotion environments implemented in MuJoCo Playground by robot platform.
+RL Training Details
+Observation and Action: We use a unified observation space across all locomotion environments:
+(a) Gravity projected in the body frame,
+(b) Base linear and angular velocity,
+(c) Joint positions and velocities,
+(d) Previous action,
+(e) (Optional) User command for joystick-based tasks.
+For humanoid locomotion tasks, a phase variable  is introduced to shape the gait. This phase variable cycles between
+and  for each foot, representing the gait phase. To capture this information effectively, the cos and sin of the phase
+variable for each foot are included in the observation space. This representation provides a continuous and smooth encoding
+of the phase, enabling the policy to synchronize its actions with the desired gait cycle.
+The action space is defined differently depending on the task. For joystick tasks, we use an absolute joint position with a
+default offset:
+where ka is the action scale. For all other tasks, we use a relative joint position:
+The desired joint position is mapped to torque via a PD controller:
+where kp and kd are the proportional and derivative gains, respectively.
+Domain Randomization: To reduce the sim-to-real gap, we randomize several parameters during training:
+Sensor noise: All sensor readings are corrupted with noise.
+Dynamic properties: Physical parameters that are difficult to measure precisely (e.g., link center-of-mass, reflected inertia,
+joint calibration offsets).
+Task uncertainties: Ground friction and payload mass.
+Reward and Termination: In Table VI, cmdv,xy and cmd,z represent the commanded linear velocity in the xy-plane
+and angular velocity around the z-axis, respectively. vxy and z are the actual linear and angular velocities. Ts and Ta represent
+the time of the last touchdown and takeoff of the feet. pf,z and pdes
+the horizontal foot velocity.  is the torque, q is the joint position, and q is the joint velocity.
+The total reward rtotal is calculated as the weighted sum of all the reward terms:
+the robot inverts (e.g., ends up upside down). For other tasks, we employ the full collision model approximated using geometric
+primitives.
+TABLE VI: Reward Functions
+Expression
+Linear Velocity Tracking
+rv  kv exp
+Angular Velocity Tracking
+r  k exp
+Feet Airtime
+rair  clip ((Tair Tmin)  Ccontact, 0, Tmax Tmin)
+Feet Clearance
+rclear  kclear  pf,z pdes
+Feet Phase
+rphase  kphase  exp
+Feet Slip
+rslip  kslip  Cf,i  vf,xy2
+Orientation
+rori  kori  body,xy2
+Joint Torque
+Joint Position
+rq  kq  q qnominal2
+Action Rate
+rrate  krate  at at12
+Energy Consumption
+renergy  kenergy  q
+Pose Deviation
+rpose  kpose  exp
+q qdefault2
+Termination (Penalty)
+rtermination  ktermination  done
+Stand Still (Penalty)
+rstandstill  kstandstill  cmdv,xy
+Linear Velocity in Z (Penalty)
+rlin z  klin z  vz2
+Angular Velocity in XY (Penalty)
+rang xy  kang xy  x,y2
+Network Architecture: We employ an asymmetric actorcritic  setup, in which the policy network (actor) and
+the value network (critic) receive different observation inputs. The policy network is fed with the aforementioned observations,
+while the value network additionally receives uncorrupted versions of these signals and extra sensor readings such as contact
+Both the policy and value networks use a three-layer multilayer perceptron (MLP) with hidden sizes of 512, 256, and 128.
+Each hidden layer uses the Swish  activation function. A full set of hyper-parameters is available in Section F.
+Joystick policy:
+1) Train for 100 M timesteps with a command range of {1.5, 0.8, 1.2}.
+2) Finetune for 50 M timesteps with a command range of {1.5, 0.8, 2}.
+3) Finetune on rough terrain for 100 M timesteps.
+Getup policy:
+1) Train with a power termination cutoff of 400 W.
+2) Finetune with a joint velocity cost.
+Handstand and footstand policies:
+1) Finetune with a joint acceleration and energy cost.
+2) Progressively reduce the power termination budget from 400 W to 200 W.
+rough terrain is modeled as a heightfield generated from Perlin noise.
+RL Training Results
+For all locomotion environments implemented in MuJoCo Playground, we train with PPO using the RL implementation
+from  and we report reward curves below. In Figure 11 we report environment steps versus reward and in Figure 12 we
+report wallclock time versus reward. All environments are run across 5 seeds on a single A100 GPU.
+RL Training Throughput
+In Table VII we show training throughput for all locomotion envs. In Figure 13 we show training throughput of the
+Go1JoystickFlatTerrain environment. Different devices and topologies do not make material difference in training wallclock
+Env Steps
+Episode Reward
+BarkourJoystick
+PPO Mean
+Env Steps
+Episode Reward
+BerkeleyHumanoid
+JoystickFlatTerrain
+Env Steps
+Episode Reward
+BerkeleyHumanoid
+JoystickRoughTerrain
+Env Steps
+Episode Reward
+G1JoystickFlatTerrain
+Env Steps
+Episode Reward
+G1JoystickRoughTerrain
+Env Steps
+Episode Reward
+Go1Footstand
+Env Steps
+Episode Reward
+Go1Getup
+Env Steps
+Episode Reward
+Go1Handstand
+Env Steps
+Episode Reward
+Go1JoystickFlatTerrain
+Env Steps
+Episode Reward
+Go1JoystickRoughTerrain
+Env Steps
+Episode Reward
+H1InplaceGaitTracking
+Env Steps
+Episode Reward
+H1JoystickGaitTracking
+Env Steps
+Episode Reward
+Op3Joystick
+Env Steps
+Episode Reward
+SpotFlatTerrainJoystick
+Env Steps
+Episode Reward
+SpotGetup
+Env Steps
+Episode Reward
+SpotJoystickGaitTracking
+Fig. 11: Reward vs environment steps for Brax PPO. All settings are run with 5 seeds on a single A100 GPU device.
+Wallclock Time (s)
+Episode Reward
+BarkourJoystick
+PPO Mean
+Wallclock Time (s)
+Episode Reward
+BerkeleyHumanoid
+JoystickFlatTerrain
+Wallclock Time (s)
+Episode Reward
+BerkeleyHumanoid
+JoystickRoughTerrain
+Wallclock Time (s)
+Episode Reward
+G1JoystickFlatTerrain
+Wallclock Time (s)
+Episode Reward
+G1JoystickRoughTerrain
+Wallclock Time (s)
+Episode Reward
+Go1Footstand
+Wallclock Time (s)
+Episode Reward
+Go1Getup
+Wallclock Time (s)
+Episode Reward
+Go1Handstand
+Wallclock Time (s)
+Episode Reward
+Go1JoystickFlatTerrain
+Wallclock Time (s)
+Episode Reward
+Go1JoystickRoughTerrain
+Wallclock Time (s)
+Episode Reward
+H1InplaceGaitTracking
+Wallclock Time (s)
+Episode Reward
+H1JoystickGaitTracking
+Wallclock Time (s)
+Episode Reward
+Op3Joystick
+Wallclock Time (s)
+Episode Reward
+SpotFlatTerrainJoystick
+Wallclock Time (s)
+Episode Reward
+SpotGetup
+Wallclock Time (s)
+Episode Reward
+SpotJoystickGaitTracking
+Fig. 12: Reward vs wallclock time for Brax PPO. All settings are run with 5 seeds on a single A100 GPU device. Notice that the initial
+flat region measures the compilation time for the training  environment code.
+PPO Steps per Second
+BarkourJoystick
+BerkeleyHumanoidJoystickFlatTerrain
+BerkeleyHumanoidJoystickRoughTerrain
+G1Joystick
+Go1Footstand
+Go1Getup
+Go1Handstand
+Go1JoystickFlatTerrain
+Go1JoystickRoughTerrain
+H1InplaceGaitTracking
+H1JoystickGaitTracking
+Op3Joystick
+SpotFlatTerrainJoystick
+SpotGetup
+SpotJoystickGaitTracking
+TABLE VII: Training throughput is displayed for all the Locomotion environments on an A100 GPU device across 5 seeds
+using brax PPO and the RL hyperparameters in Section F. We report the 95th percentile confidence interval.
+Wallclock Time (s)
+Episode Reward
+Go1JoystickFlatTerrain
+Fig. 13: Training wallclock time for Go1JoystickFlatTerrain on different GPU devices and topologies.
+Real-world Setup
+All locomotion deployments are based on ros2-control and are written in C with real-time guarantees. The Unitree
+interfaces. These same interfaces are also used in Gazebo  to facilitate sim-to-sim verification.
+Different RL policies can be loaded and executed within the same processwhether operating on physical hardware or
+in simulationby receiving sensor readings and issuing control commands via the hardware interface. Each policy model
+is inferenced at 50 Hz using ONNX Runtime , alongside a model-based estimator. In addition, a separate model-based
+estimator  runs at the hardware interfaces maximal communication frequency (5002000 Hz), providing linear velocity
+observations and other diagnostic information.
+APPENDIX D
+MANIPULATION
+Environments
+Environment
+SinglePegInsertion
+Franka Emika Panda
+Franka Emika Panda, Robotiq Gripper
+PushCube
+Leap Hand
+TABLE VIII: Manipulation environments implemented in MuJoCo Playground by robot platform.
+RL Training Results
+For all manipulation environments implemented in MuJoCo Playground, we train with PPO using the RL implementation
+from  and we report reward curves below. In Figure 14 we report environment steps versus reward and in Figure 15 we
+report wallclock time versus reward. All environments are run across 5 seeds on a single A100 GPU.
+Env Steps
+Episode Reward
+AlohaSinglePegInsertion
+PPO Mean
+Env Steps
+Episode Reward
+LeapCubeReorient
+Env Steps
+Episode Reward
+LeapCubeRotateZAxis
+Env Steps
+Episode Reward
+PandaOpenCabinet
+Env Steps
+Episode Reward
+PandaPickCube
+Env Steps
+Episode Reward
+PandaPickCubeCartesian
+Env Steps
+Episode Reward
+PandaPickCubeOrientation
+Env Steps
+Episode Reward
+PandaRobotiqPushCube
+Fig. 14: Reward vs environment steps for brax PPO. All settings are run with 5 seeds on a single A100 GPU device.
+RL Training Throughput
+We show RL training throughput for all manipulation environments below in Table IX. In Figure 16 we show reward versus
+wallclock time on different GPU devices and topologies for the LeapCubeReorient environment.
+PPO Steps per Second
+AlohaSinglePegInsertion
+LeapCubeReorient
+LeapCubeRotateZAxis
+PandaOpenCabinet
+PandaPickCube
+PandaPickCubeCartesian
+PandaPickCubeOrientation
+PandaRobotiqPushCube
+TABLE IX: Training throughput is displayed for all the Manipulation environments on an A100 GPU device across 5 seeds
+using brax PPO and the RL hyperparameters in Section F. We report the 95th percentile confidence interval.
+Wallclock Time (s)
+Episode Reward
+AlohaSinglePegInsertion
+PPO Mean
+Wallclock Time (s)
+Episode Reward
+LeapCubeReorient
+Wallclock Time (s)
+Episode Reward
+LeapCubeRotateZAxis
+Wallclock Time (s)
+Episode Reward
+PandaOpenCabinet
+Wallclock Time (s)
+Episode Reward
+PandaPickCube
+Wallclock Time (s)
+Episode Reward
+PandaPickCubeCartesian
+Wallclock Time (s)
+Episode Reward
+PandaPickCubeOrientation
+Wallclock Time (s)
+Episode Reward
+PandaRobotiqPushCube
+Fig. 15: Reward vs wallclock time for brax PPO. All settings are run with 5 seeds on a single A100 GPU device. Notice that the initial
+flat region measures the compilation time for the training  environment code.
+Wallclock Time (s)
+Episode Reward
+LeapCubeReorient
+Fig. 16: Training wallclock time for LeapHandReorient on different GPU devices and topologies.
+Real-world Cube Reorientation with a Leap Hand
+In this section, we present the technical details of our real-world cube reorientation task using the LEAP Hand, covering
+the simulation environment, training process, hardware interface, and camera-based object pose estimation.
+Simulation Environment: The in-hand reorientation environment is designed to sequentially re-orient a cube within
+the palm of a robotic hand, without dropping the cube. The cube is initialized randomly above the palm of the hand. The policy
+then receives the joint angle measurements, estimated cube pose, and previous action. Upon reaching a target orientation within
+a 0.4 rad tolerance, a new orientation is sampled and the success counter is incremented. We continue re-sampling new target
+orientations until the cube is dropped or the hand becomes stuck for over 30 s.

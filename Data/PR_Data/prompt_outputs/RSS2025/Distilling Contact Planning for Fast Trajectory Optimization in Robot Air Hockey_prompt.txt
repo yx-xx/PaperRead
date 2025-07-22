@@ -1,0 +1,508 @@
+=== PDF文件: Distilling Contact Planning for Fast Trajectory Optimization in Robot Air Hockey.pdf ===
+=== 时间: 2025-07-22 15:45:34.109855 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Distilling Contact Planning for
+Fast Trajectory Optimization in Robot Air Hockey
+Julius Jankowski, Ante Maric, Puze Liu, Davide Tateo, Jan Peters, Sylvain Calinon
+Idiap Research Institute, Martigny, Switzerland
+cole Polytechnique Fdrale de Lausanne (EPFL), Switzerland
+Intelligent Autonomous Systems, TU Darmstadt, Germany
+German Research Center for AI (DFKI)
+Centre for Cognitive Science, Hessian.AI
+AbstractRobot control through contact is challenging as it
+requires reasoning over long horizons and discontinuous system
+dynamics. Highly dynamic tasks such as Air Hockey addition-
+ally require agile behavior, making the corresponding optimal
+control problems intractable for planning in realtime. Learning-
+based approaches address this issue by shifting computationally
+expensive reasoning through contacts to an offline learning phase.
+and dynamic constraints can be challenging if operating in
+proximity to such constraints is desired. This paper explores the
+combination of distilling a stochastic optimal control policy for
+high-level contact planning and online model-predictive control
+for low-level constrained motion planning. Our system learns to
+balance shooting accuracy and resulting puck speed by leveraging
+bank shots and the robots kinematic structure. We show that
+the proposed framework outperforms purely control-based and
+purely learning-based techniques in both simulated and real-
+world games of Robot Air Hockey.
+I. INTRODUCTION
+Planning and control through non-prehensile contacts is
+an essential skill for robots to interact with their environ-
+ment. Model-based approaches enable robots to anticipate
+the outcome of contact interactions given a candidate action,
+allowing them to find an action with the desired outcome.
+Although model-based planning approaches have been shown
+to be successful in generating contact-rich plans for slow
+tasks [24, 13], highly dynamic tasks require the agent to
+regenerate contact plans at a sufficiently high rate to react
+to inherent perturbations. These tasks have historically been
+used as a testbed for hardware and algorithms in robotics,
+with different types of games and sports, such as ball-in-a-
+cup [14, 17], juggling [26, 25], and diabolo . Dynamic
+tasks that involve contact, such as soccer , tennis ,
+table tennis [22, 5], and air hockey [19, 20], are typically
+approached with reinforcement learning methods to off-load
+computationally expensive reasoning through contacts to an
+offline exploration phase. Yet, these tasks have in common that
+contact with the ball or puck is instantaneous, resulting in a
+jump in the object state. Reasoning about the contact between
+the robot and the object of interest can therefore be divided
+Equal contribution
+Corresponding author: ante.maricidiap.ch
+The proposed control framework enables our robot to autonomously
+play matches of air hockey. The dynamic game requires the robot to predict
+puck trajectories, plan the best contact, and coordinate its joints to generate
+high velocities without hitting a wall or lifting the mallet from the table.
+into three segments of the planning horizon: i) Moving the
+robot into contact, ii) the contact itself at a single time instance,
+and iii) the passive trajectory of the object after contact.
+This paper exploits such separability in the highly dynamic
+game of air hockey (Fig. 1) by combining a learning-based
+approach for contact planning with model-based control for
+moving the robot into contact. We show that distilling a
+stochastic optimal control policy enables us to effectively
+reduce the planning horizon required to generate desired
+by producing various shooting behaviors through different
+formulations of the optimal control cost, while exploiting the
+kinematic structure of the robot.
+Fig. 2 illustrates the online control framework that consists
+of state estimation, a learning-based contact planner (shooting
+policy), and a subsequent model-based robot controller (MPC).
+For state estimation and prediction, we learn a stochastic
+model of contact between the robot and the puck from data
+as a mixture of linear-Gaussian modes. Based on the learned
+optimal w.r.t. a stochastic optimal control objective, and distill
+the resulting policy through behavioral cloning. During the
+online phase, we retrieve optimal contact plans from the
+Overview of the interplay between puck state estimation  and robot
+control  for closed-loop agile robot air hockey. The contact planner uses
+the estimated puck state to predict the puck trajectory based on the learned
+model. It subsequently plans a shooting angle that is used to construct an
+optimal control objective solved within a model-predictive controller. Robot
+trajectories are computed at a control rate of 50 Hz.
+distilled policy using derivative-free inference in realtime.
+model-predictive controller  that enforces the execution
+of the contact plan while respecting safety constraints such
+as collision avoidance with the walls. We summarize our key
+contributions as follows:
+We present an approach for learning the parameters of a
+stochastic model for discontinuous contact dynamics in
+robot air hockey as a mixture of linear-Gaussian modes.
+We formulate contact planning for robot air hockey as a
+chance-constrained stochastic optimal control problem.
+We propose an approach for distilling an optimal contact
+policy by training an implicit model to allow for planning
+in real-time.
+After presenting our technical contributions, we provide exper-
+imental comparisons to control-based and reinforcement learn-
+ing baselines. Our approach has furthermore outperformed all
+other approaches tested in a competitive setting .
+II. RELATED WORK
+The air hockey task has been part of the robotics literature
+for a long time . One of the first works using the air
+hockey task as a benchmark focused on skill learning of a
+humanoid robot [2, 3]. In more recent years, this benchmark
+has been used in combination with planar robots due to high-
+speed motion requirements [23, 27, 11, 28], and the possibility
+of adapting the playing style against the opponent . This
+benchmark has been recently extended to the cobot setting,
+where a 7-DoF robotic arm controls the mallet and maintains
+the table surface while striking [1, 18, 7].
+Another use of the robot air hockey setting is as a testbed
+for learning algorithms. In , deep reinforcement learning
+techniques are used to learn on planar robots, while in ,
+both the planar 3-DoF and the 7-DoF cobot air hockey tasks
+are used to learn control policies in simulation. More recent
+techniques directly use the real 7-DoF air hockey setting
+as a testbed for learning algorithms: in , the authors
+use learning-to-plan techniques to generate air hockey hitting
+trajectories in a real-world setting, while in , this task is
+used to perform real-world reinforcement learning.
+In general, existing solutions to the robot air hockey prob-
+lem can be categorized in two main directions: learning-
+based approaches [3, 29, 20], and control-based approaches
+[28, 1, 18]. Generally speaking, pure control-based approaches
+lead to better and faster solutions than learning-based methods
+but require considerable efforts in engineering and model
+and run at realtime control rates. Instead, pure learning-
+based approaches obtain a lower-quality solution but make
+it possible to obtain more robust behaviors by relying on
+domain randomization and fine-tuning on the real platform.
+We aim to combine the advantages of learning-based and
+control-based approaches. We exploit both the optimality of
+control-based approaches for controlling the robot without
+considering the puck and the robustness and flexibility of
+learning-based approaches to efficiently generate plans for
+the contact between the robot and the puck to maximize the
+scoring probability.
+III. LEARNING A STOCHASTIC CONTACT MODEL
+Planning and controlling the contacts of the robot with the
+puck requires the anticipation of puck trajectories before and
+after contact. To enable this, we learn a simplified stochastic
+model of the puck dynamics for i) estimating the current state
+of the puck online, ii) predicting the trajectory of the puck
+to plan the next best contact between the robot and the puck.
+A. Mixture of linear-Gaussian Contact Dynamics
+Suppose that xp
+k R2 is the position of the puck w.r.t.
+the surface of the air hockey table at time step k. The robot
+interacts with the puck by making contact with its mallet,
+i.e. the circular part of the robots end-effector. The position
+of the mallet is denoted with xm
+R2 w.r.t. the surface
+of the air hockey table. We assume that the robot arm is
+controlled such that the mallet maintains contact with the table
+at all times. In order to efficiently perform rollouts of the
+puck dynamics, we impose a piecewise-linear structure on the
+model. Fig. 3 illustrates the three modes that we present in the
+Mallet Collision. To account for modeling errors introduced
+through the piecewise-linear structure, we model each mode
+as a conditional Gaussian distribution, resulting in a mixture of
+linear-Gaussian contact dynamics. In the following, we present
+the individual modes and their respective parameters that are
+learned subsequently.
+1) Floating: The first mode captures the dynamics of the
+puck when it is freely floating on the table and is not in
+collision with the wall or mallet. The prediction of the puck
+velocity is modeled stochastically with
+where 1, 1, 1 are parameters of the conditional Gaussian
+distribution.
+2) Puck-Wall Collision: The second mode models the dy-
+namics of the puck reflecting against the wall. The prediction
+of the velocity is modeled in a coordinate system C that is
+Illustration of three modes of the puck dynamics that are parameter-
+ized as linear-Gaussian modes. Mode 1) captures the dynamics of the puck
+when floating on the surface of the table. Mode 2) captures collisions between
+puck and walls. Mode 3) models collisions between puck and the mallet  in
+a contact-aligned frame C. The parameters for the nominal dynamics and the
+corresponding uncertainty are learned from data.
+aligned with the contact surface of the corresponding wall.
+The one-step prediction of the puck velocity is modeled with
+where c xp is the puck velocity in the contact-aligned coordi-
+nate system. 2, 2, 2 are parameters of this mode.
+3) Puck-Mallet Collision: As a third mode, we model the
+interaction between the puck and the mallet as a collision in
+which the velocity of the puck changes instantaneously at the
+time of contact. We also model this mode using a conditional
+Gaussian distribution
+The velocities of the puck
+c xp and of the mallet
+system C. The index k corresponds to time step k after
+applying the collision model, while kdescribes the instant
+right before the collision. The model parameters for the third
+mode are p
+B. Learning Model Parameters from Data
+Given recorded trajectories of the puck and the mallet,
+the data is fragmented into consecutive puck velocity pairs
+together with the mallet velocity, i.e. xp
+corresponding mode is assigned to each data sample. As a
+n0 for each
+mode i, where yi,n is the n-th velocity prediction sample for
+mode i, e.g. y1
+condition sample for mode i, e.g. 1
+k. To learn the
+parameters of the model, we fit a Gaussian distribution to
+the dataset for each mode modeling the joint probability
+distribution of prediction and condition with
+Pri(yi, i)  N
+Given the parameters of the joint probability distribution, the
+parameters of the linear-Gaussian models can be computed by
+conditioning the probability distribution on the input . Thus,
+the parameters are given by
+i  yi yii1
+i  yi yii1
+C. Piecewise-linear Kalman Filtering
+The learned linear-Gaussian models allow us to update
+the estimated state of the puck using the Kalman filter. As
+a result, an estimate of the puck state at time step k, i.e.
+, is obtained based on a noisy mea-
+surement of the puck position xp
+k. For this, the mode of
+the dynamics is detected at each time step such that the
+corresponding parameters are used within the Kalman filter
+update. The parameters are translated into linear-Gaussian
+state-space dynamics, i.e.
+Pri (sk1sk)  N (Aisk  bi, Qi) ,
+with system parameters Ai, bi and process noise covariance
+matrix Qi computed with
+diction of the puck position at the next time step given
+the current puck position and velocity. These parameters are
+derived using numerical integration and are constant.
+D. Probability of Hitting the Goal
+For the robot to anticipate whether a candidate shot may
+lead to scoring a goal, we predict the probability of hitting
+the goal based on the learned linear-Gaussian puck dynamics.
+Note that the probability of hitting the goal does not account
+for a defending opponent. Without loss of generality, suppose
+that the collision between mallet and puck happens at k
+0. Given the puck state at the time of collision s0and the
+corresponding mallet state xm
+after the collision is computed as defined in (3), resulting in
+the expected puck state s0. By rolling out the discretized
+stochastic model with
+sk1  Aik sk  bik,
+Pk1  AikPkA
+ik  Qik,
+a Gaussian distribution of puck states, i.e. sk N(sk, Pk) is
+obtained for each time step k > 0. The rollout is initialized
+with s0  s0 and P0  Q3, exploiting the separated
+stochastic model of collisions between mallet and puck.
+To evaluate the probability of scoring a goal, we perform
+the stochastic rollout as defined in (8) until the expected puck
+position xp
+k crosses the goal line. We denote this time step
+with kgoal. In the following, we denote the probability of
+scoring a goal, i.e. G  1, given a puck position as a Bernoulli
+distribution with
+Pr (G  1xp
+A qualitative comparison of the probability of hitting the goal G
+for different shooting angles and shooting speeds. The shooting angles are
+indicated by the mallet position  w.r.t. the puck position  at the time of
+contact. The shooting speed, i.e. the speed of the mallet at the time of contact,
+is 1.2 m
+s for a) and c), while the shooting speed is 2 m
+s for b).
+The subset in puck position space Xgoal represents the goal re-
+gion. Consequently, we can compute the probability of scoring
+a goal given the initial conditions of a shot by marginalizing
+over the puck position at time step kgoal with
+Pr (G  1s0, xm
+kgoal. (10)
+We compute the probability in (10) using Monte-Carlo approx-
+imation by sampling NG puck positions from the Gaussian
+distribution at prediction time step kgoal and counting the
+number of samples that would hit the goal
+Pr (G  1s0, xm
+kgoal). In the following, we denote the
+approximated probability of hitting the goal, corresponding to
+the right-hand side of (11), with G.
+Fig. 4 illustrates stochastic rollouts for various initial con-
+ditions of a shot. Evaluating G as defined in (11), we observe
+that those initial conditions have a significant effect even if
+the expected puck trajectory hits the center of the goal for all
+conditions. Fast shots (Fig. 4-b) accumulate less uncertainty
+compared to slow shots (Fig. 4-a) since the modeled process
+noise is constant over time. Direct shots accumulate less
+uncertainty during rollout than bank shots, as collisions with
+a wall add significant process noise (Fig. 4-c).
+IV. IMPLICIT CONTACT PLANNING UNDER UNCERTAINTY
+The learned dynamics model enables the prediction of
+uncertain puck trajectories for contact planning. In particular,
+we search for contact states of the mallet that result in desired
+puck trajectories after contact. The proposed contact planning
+module is based on stochastic optimal control, optimizing the
+mallets state at contact. We combine this optimization with a
+model-based robot controller driving the robot to the desired
+contact state at the desired time (cf. Fig. 2).
+A. Stochastic Optimal Control for Shooting
+Given the desired time of contact and the corresponding
+estimate of the puck state s0at that time, we pose contact
+planning for shooting as a stochastic optimal control problem
+searching for the mallet state xm
+0 at the time of contact.
+For this, we aim to maximize a tradeoff between the prob-
+ability of hitting the goal G and the expected puck speed
+vpuck at the goal line. The expected puck speed is computed
+as the norm of the mean puck velocity at kgoal according to
+Sec. III-D. While the probability of hitting the goal G does
+not account for a defending opponent, we use the speed of the
+puck as a measure of the difficulty of defending against the
+shot. The stochastic optimal control problem is given as
+1 G  2vpuck
+where we deploy an additional chance constraint to enforce the
+probability of hitting the goal to be higher than a threshold
+based on the learned stochastic model. The weights 1 and
+2 are used for tuning for the desired behavior. Based on the
+qualitative comparison illustrated in Fig. 4, we expect that
+solely optimizing for the probability of hitting the goal results
+only in direct shots, as bank shots induce uncertainty. Yet,
+due to the kinematics of the robot, the puck speed may be
+increased with bank shots. Thus, depending on the puck state,
+the tuned objective can produce both straight shots and bank
+B. Shooting Angle as Reduced Action Space
+The goal of the shooting policy is to find the optimal mallet
+state at the time of contact, i.e. xm
+Due to the underlying contact geometry and constraints, for
+a given puck position xp
+0 we parameterize the mallet position
+as a shooting angle u U between the mallet and puck. Note
+that a shooting angle of u  0 corresponds to a straight shot
+that is parallel to the side walls of the table. We reduce the
+dimensionality of the action space further by imposing two
+heuristic constraints on the mallet velocity xm
+velocity at the time of contact aligns with the shooting angle,
+such that xm
+0  v(cos u, sin u)with scalar velocity v > 0
+encoding the norm of the mallet velocity. While this constraint
+excludes shooting angles that are not aligned with the mallet
+from the robot to the puck. ii) We impose that the norm of the
+mallet velocity is maximal given a shooting configuration q0
+of the robot and velocity limits Q of the joints of the robot,
+such that
+veu  J(q0) q0,
+Note that the unit vector eu R3 encodes the shooting
+direction including zero contribution in the z-direction. Ac-
+the Cartesian position of the mallet.
+Examples of differently tuned shooting plans and corresponding energy landscapes. Shooting direction and mallet speed are displayed for varying
+initial puck positions. Instance a) evaluates only scoring probability (1  1, 2  0,   0.5); b) adds additional weight on expected puck speed at the
+goal line (1  1, 2  0.2,   0.5); c) evaluates only the expected puck speed at the goal line (1  0, 2  1,   0.5). The energy landscape and
+sampling process at timesteps j {1, 12, 25} are visualized for an example shot denoted in red. All pucks are static at j  0.
+As a result, the shooting angle u is the action that we
+optimize for. With the imposed constraints, a shooting angle
+uniquely maps to a mallet state at the time of contact. Thus,
+in the following, we denote the probability of scoring a goal
+as a function of the shooting angle with Pr (G  1s0, u).
+C. Distilling an Optimal Contact Policy
+The long-horizon predictions required to plan shooting
+actions make it difficult to operate at a rate that is sufficient
+for agile behavior. We address this challenge by training an
+implicit model to generate solutions to the stochastic optimal
+shooting problem (12) in realtime. Since the stochastic policy
+we aim to capture is multimodal, we opt for an implicit policy
+representation due to its ability to learn multimodal action
+distributions [8, 6]. In the case of air hockey, example modes
+correspond to the number of reflections against the bank of the
+shots with multiple reflections. To learn the implicit policy,
+we use an energy-based model (EBM) . Access to the
+learned energy1 landscape allows us to accommodate various
+sampling strategies without retraining, enabling a balance
+between optimality and computational efficiency.
+We train the EBM by solving the computationally expensive
+shooting angle optimization offline and using the results as
+training data. Namely, we first generate a dataset of shooting
+angles for N different puck states at time of contact {si}N
+Due to the one-dimensional parametrization of the action space
+introduced in Sec. IV-B, we efficiently explore the space of
+shooting angles for each initial puck state by sampling M
+candidate shooting angles {uj
+j1. Subsequently, we compute
+the stochastic rollout of the puck trajectory as presented in
+1In this paper, the term energy refers to the negative logarithm of the
+unnormalized probability density function that we want to model.
+Sec. III-D and evaluate the objective and chance constraint
+from (12). The best-performing sample ui is then used as a
+positive example for training the implicit behavioral cloning
+examples. This results in a dataset of M  N state-action
+pairs {si, ui, {uj
+E(s, u) using an InfoNCE-style  loss
+LInfoNCE
+In the above, counter-examples {uj
+are used to compute
+the likelihood p as follows:
+eE(si,ui)
+eE(si,ui)  PM1
+j1 eE(si,ui
+The described loss function reduces energy E(s, u) for shoot-
+ing angles that solve the optimization problem in (12), while
+increasing the energy of non-optimal shooting angles. Once
+the model is trained, this allows us to infer optimal shooting
+angles using sampling-based optimization.
+D. Online Inference with Warm-Starting
+To solve (12) given the estimated puck state s0, we search
+for a state-action pair that minimizes the learned energy, i.e.
+u  arg min
+E(s0, u).
+For realtime optimization, we leverage direct access to the
+learned energy landscape of the EBM by executing sampling
+iterations concurrently with other components of the control
+loop. This allows us to refine contact plans as the robot
+executes trajectories, while considering only the shrinking
+Algorithm 1: Shooting policy (EBM inference)
+i1 Multinomial(N, {pi}N
+i1 {ui}N
+i1 clip {ui}N
+i1 {E(s0, ui)}N
+i1 softmax({Ei}N
+u argmax({pi}, {ui})
+horizon from the current timestep to the time of contact.
+We base the online retrieval of optimal shooting angles
+on derivative-free optimization procedures from . As in
+the offline scenario, shooting actions are generated online
+by uniformly sampling N candidate actions, inferring their
+energy values, and resampling with replacement to warm-
+start optimization in each subsequent timestep. To converge
+towards a solution with minimum implicit energy, reductions
+to the sampling variance are applied at each timestep, while
+keeping the optimal contact angle u as a reference for the
+mid-level trajectory planner. A full iteration of EBM inference
+is outlined in Alg. 1. We observe that the learned energy
+models and utilized optimization procedure efficiently retrieve
+multimodal contact plans to produce desired behaviors, as
+shown in Fig. 5.
+V. EXPERIMENTAL EVALUATION
+This section details the simulated and real-world experi-
+ments used to validate our approach in an online contact
+planning setting. We evaluate the shooting performance of a
+robot arm controlled by our framework and compare it against
+state-of-the-art approaches for robot air hockey.
+A. Implementation Details
+1) Data Collection for Puck Dynamics: We use data col-
+lected in a physics-based simulator to learn model parameters
+of puck dynamics as presented in Sec. III. One set of data
+is collected by randomly moving the robots end-effector into
+contact with the puck and the other set of data is collected
+without moving the robot and by initializing the puck with a
+high random velocity. In total, the training set consists of 100
+episodes with 50 time steps each, which corresponds to a total
+of 100 seconds of observations of the puck dynamics.
+2) EBM Architecture and Training:
+The energy-based
+shooting model consists of a multilayer perceptron with 2
+is trained on N 3000 initial puck states, with M 100 action
+samples. For each action sample, the corresponding state
+action pair is evaluated using the stochastic dynamics model
+learned from simulated data (Sec. III), and the optimal control
+cost (Sec. IV). Training required 500 epochs to converge for
+satisfactory performance using the Adam  optimizer with
+a decaying learning rate.
+The automated experimental setup consists of a robot placing the
+puck at a pre-defined grid of positions (left image). After releasing the puck,
+the KUKA robot executes the shooting policy (right image). We measure the
+speed of the puck at the goal line and whether the puck hit the goal as quality
+metrics.
+B. Experimental Setup
+The experiment is conducted with a KUKA iiwa14 LBR
+manipulator equipped with a mallet end-effector that is at-
+tached to a passive joint for seamless contact with the table
+surface. Experiments are carried out in a simulated MuJoCo
+environment and on a real-world setup (cf. Fig. 6) for eval-
+uation of sim2real transfer. We evaluate three instances of
+the proposed approach by using different parameters for the
+chance-constrained optimization problem in (12). Ours 1:
+a conservative policy that prioritizes accuracy (1  1, 2
+between accuracy and puck speed (1  1, 2  0.2,   0.5);
+and Ours 3: an aggressive policy that prioritizes puck speed
+(1 0, 2 1,  0.5). Simulated results are also illustrated
+in Fig. 5 for initial puck velocities of zero. We compare the
+three instances of our contact planner with: CB, a baseline
+that utilizes conventional planning and control methods ;
+and ATACOM, a safe reinforcement learning approach for
+learning a robot policy . Note that the ATACOM policy is
+trained in simulation and deployed in the physical experiment
+without additional tuning or retraining.
+We perform 100 shots with each policy and report the
+accuracy score, puck speed at the goal line, and the number of
+bank reflections for successful shots. Each shot is initialized
+by placing the puck within a grid in front of the robot. Due
+to imperfect air flow on the air hockey table, the puck moves
+after release, requiring the robot to adapt for a good shot.
+C. Results
+Recorded metrics are reported in Table III for the simulated
+environment and in Table II for the real-world environment.
+Compared to CB and ATACOM, we observe that our frame-
+work is capable of achieving higher scoring accuracy and
+significantly higher puck speeds in both environments. It can
+be seen that different instances of our policy obtain either a
+high score or high puck speeds according to the corresponding
+parameters of the stochastic optimal control problem. For
+3 compromises scoring accura

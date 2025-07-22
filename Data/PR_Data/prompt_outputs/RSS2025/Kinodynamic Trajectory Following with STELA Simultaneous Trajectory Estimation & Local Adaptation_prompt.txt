@@ -1,7 +1,7 @@
 === PDF文件: Kinodynamic Trajectory Following with STELA Simultaneous Trajectory Estimation & Local Adaptation.pdf ===
-=== 时间: 2025-07-22 09:59:48.454087 ===
+=== 时间: 2025-07-22 15:49:05.302385 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -539,4 +539,232 @@ qiExp( qitz) and the error is hobservation(qi, qi)
 Log(Between(qpred
 , qz)). Observation factors using mea-
 surements of velocities or higher-order magnitudes can be
-integrated in a
+integrated in a similar scheme.
+The prior factor is a unary factor that penalizes devi-
+ations of some factor graph variable v from a given con-
+stant value vprior. The error is dened as: f prior(v)
+Log(Between(v, vprior)). Prior factors are added to qi, qi,
+and ti variables given the desired trajectory. They are not
+to STELA to adapt the future trajectory given the latest state
+estimates. Control variables are only initialized to the value
+corresponding to the desired trajectory.
+The obstacle factor introduces a notion of safety by push-
+ing states away from obstacles. While the SBMP trajectory
+initialization is collision-free, a robot may move dangerously
+close to obstacles due to the model gap and noise. Th factor,
+following the denition in , uses a distance function d()
+to obstacles (from the environment map) and an  threshold:
+hobstacle(qi)
+d(qi)  ,
+d(qi) > .
+Two obstacle factors are considered: one using a precomputed
+SDF and another using distance computations from a collision
+for precomputation of the environment and only considers
+the distance to the closest obstacle. The PQP factor can be
+called online and is dened per obstacle, allowing multiple
+factors to be active at the cost of increased computation.
+Given a reasonable threshold distance , even in a cluttered
+the error is zero in these cases, re-linearization is unnecessary.
+The limits factor penalizes values that exceed a predened
+value vlim. The error for an upper limit of a variable v is:
+hlimit(v)
+otherwise.
+Lower limits can be computed similarly. Multi-value limits
+are dened element-wise. Limit factors are applied to control
+variables ui to guarantee a feasible solution and the duration
+variables ti to keep them within a reasonable range.
+Fig. 5a shows the dynamics factor graph constructed from
+two SBMP-nodes and one SBMP-edge. Each SBMP-edge in-
+troduces one integration factor and one dynamics factor.
+Obstacle factors are added per conguration. Limit factors
+constraint ti > 0 and controls as the SBMP solution must
+(a) Dynamics Factor Graph
+(b) Compressed Dy-
+namics Factor Graph
+(c) STELA Trajectory
+Fig. 5: (Left) The dynamics factor graph corresponding to each edge of the desired trajectory with all associated factors. (Middle) For
+visualization purposes, the dynamics factor graph is also presented in a compressed form, which is symbolized by a hollow factor. (Right)
+A collision-free trajectory, consisting of a dynamic factor graph sequence, is shown.
+respect physical limits. Five prior factors are included, one per
+conguration q, one per velocity q, and one for the duration
+ti to penalize deviations from the desired trajectory. Finally,
+observation factors are added as new observations arrive.
+C. Inference over a Sliding Window
+A FG associated with the entire desired trajectory returned
+by the SBMP planner has at least 2N  2E FG-variables
+and 6N5E FG-factors. At runtime, the number of factors
+can further and quickly increase due to high-frequency obser-
+vations. A sliding window approach (Fig. 6) is proposed to
+alleviate the resulting computational cost of the optimization.
+The window is divided into a forward horizon using nfwd
+future nodes of the planned trajectory relative to the current
+state and a limited past history of nhist past variables.
+For the past history, STELA follows similar strategies for
+trajectory estimation as in the literature  (i.e., related to
+Section IV-A and Figure 2), so that p(T Ee) f T E
+jcurrnhist f integration
+f dynamics
+f observation
+, where curr
+is the current state. In contrast to previous approaches (Fig. 2),
+STELA only estimates the past nhist states, and the forward
+propagation process is modeled by the combination of the
+general integration and dynamics factors of the proposed FG.
+The prior, limit, and obstacle factors are not used for the
+trajectory estimation component of the optimization.
+For the forward horizon, STELA does not perform planning
+or control from scratch given a naive initialization as in
+Section IV-B and Fig. 3. Instead, STELA locally adapts the
+SBMP plan. Local adaptation refers to adapting the controls
+to minimize the error with the desired trajectory, respect the
+of the window performs a local adaptation given: p(LAe)
+Qcurrnfwd
+f integration
+f dynamics
+f obstacle
+f limits
+observation factors are not used for the local adaptation
+component of the optimization.
+STELA simultaneously performs trajectory estimation and
+local adaptation through the inference of:
+p(ST ELAe) f T Ef LA
+D. The STELA Algorithm
+Algorithm 1 STELA
+j max{curr nhist, 0}
+k min{curr  nfwd, length(FG )}
+for i {j, . . . , k} do
+Lookahead
+xi FG.estimate(i)
+Si FG.covariance(i)
+FG  f observation(qcurr, qcurr, znew)
+Add znew
+dtcurr FG.estimate(tcurr)
+ucurr FG.estimate(ucurr)
+Adapt control
+send control(ucurr)
+if (clock() - prev) > dtcurr then
+prev  clock()
+FG- {(qj, qj, uj, tj}
+Remove history
+Add to Forward Horizon
+f integration(qk1, qk, qk1, tk),
+f dynamics( qk1, qk, uk1, tk),
+f prior(qk1), f prior( qk1), f prior(tk),
+f limits(uk1), f limits(tk), f obstacle(qk1) }
+Move to next state
+At the beginning of the execution, the initial nfwd nodes of
+the desired trajectory Tsbmp are converted into a factor graph
+FG. At each iteration, while the goal has not been reached,
+STELA performs the following operations: lookahead, trajec-
+tory estimation, addition of observations, and local adaptation.
+Fig. 6: STELA with a sliding window in action: Ofine, the SBMP generates a graphical representation from which a feasible, collision-free,
+goal-reaching trajectory is obtained. At initialization, the factor graph converts forward-horizon nodes (image: nfwd  nhist  2 ) into a
+dynamics factor graph and starts execution. Running at a given frequency, at each iteration, STELA updates the factor graph, incorporating
+new observations and moving the window. The window update at time ti is determined by comparing the variable ti to the elapsed time
+since the last window update. Window updates incorporate the next node from the planned trajectory and (if necessary) delete history nodes.
+STELA seeks to exploit the incremental nature of the
+iSAM2 algorithm by locally updating and querying the factor
+graph as necessary. The lookahead step obtains the estimated
+states of the forward horizon alongside their associated error.
+New observations are added to the corresponding state, which
+may change the estimation of qi,qi1,ui or ti; obtaining the
+current estimate for ui and ti. When the estimated duration
+of the current edge ti elapses, STELA moves to the next node
+by a) deleting the history variables and associated factors to
+keep nhist forward variables, b) adding the next node from
+the planned trajectory and c) changing the current node.
+E. STELA vs Previous Factor Graph-based Approaches
+STELA can be seen as generalization of both STEAP
+and SCATE  but has also unique features.
+A. The formulations of STEAP and SCATE restrict their
+applicability to holonomic dynamical systems. In the case of
+STELAs formulation allows the use of general dynamical sys-
+tems expressed via rst or second-order analytical expressions.
+B. The prior approaches collapse q and qt into a single
+in a better exploitation of the sparsity characteristics of FGs.
+C. The sliding window mechanism keeps the number of
+factors in the FG relatively constant (up to the number of ob-
+servation factors). This allows for predictable, high-frequency
+updates and better performance over long trajectories and
+complex environments.
+D. STELA utilizes Lie operations for the integration factor,
+enhancing the approximation of dynamics and accelerating
+performance. This also renders STELA broadly applicable to
+a wide range of robotic systems.
+(a) Simple Obstacle
+(b) Forest
+(c) Bug Trap
+Fig. 7: Simulated environments used for experiments with the LTV-
+SDE and MuSHR models. Letters indicate candidate starts and goals.
+The Simple Obstacle environment is a basic setup. Forest evaluates
+performance among many obstacles with some narrow passages. The
+Bug Trap is challenging due to the long, narrow passage.
+E. Planning via an optimization approach requires contin-
+uously solving a Boundary Value Problem (BVP) (or access
+to a steering function). This can result in solutions with local
+minima or the inability to converge in systems with non-linear
+dynamics. A core insight behind STELA is that this challenge
+can be simplied if a feasible initiation from an SBMP is used,
+where the SBMP has explored the state space for high-quality,
+VI. EXPERIMENTS
+A. Experimental setup
+STELA is tested in simulation in the environments shown in
+Fig. 7 and with a real MuSHR  robot in the environments
+shown in Fig. 1 and 8. The system is tested against four levels
+of state space noise in simulation: xt  f(xt, ut)N(0, Ix
+and four levels of observation noise zt  h(xt)N(0, I z
+where I is the identity matrix of appropriate dimension.
+Simulated systems are implemented as factor graphs using the
+GTSAM  library. Initial feasible trajectories are obtained
+using the AO-RRT kinodynamic planner  from the ML4KP
+Multiple obstacles
+Movable boxes
+Fig. 8: Experiments on a real MuSHR. (Top) The robot navigates between (A-B), (C-A), and (D-B), avoiding obstacles. Initial poses in
+has movable obstacles. Similar to the Ramp experiment of Figure 1, this setup tests STELA under partial observability.
+(a) MuSHR (real) SysId
+(b) Observation Noise
+Fig. 9: (Left) System Identication results for the real MuSHR.
+The model closely predicts the behavior of the robot along constant
+control trajectories, but a gap is still present. (Right) Observations
+zt are camera estimates of the robots pose with the highest level of
+observation noise (z
+3) chosen to match the real-world setup.
+library. Both STELA and the comparison point SCATE are im-
+plemented via GTSAM with Threading Building Blocks ,
+allowing parallelization for specic functions. Both algorithms
+are executed in a server with 72 cores, but each experiment
+is limited to 8 cores (the number of cores found in most
+computers) for fair comparison.
+All experiments are performed in a ROS-based system,
+where STELA and the comparing approaches are implemented
+as standalone nodes. All communication within nodes and the
+environment (either simulated or real) is performed through
+ROS messages, introducing additional unmodeled noise as
+time delays or lost messages. The update functions in STELA
+and SCATE are implemented as ROS timers with a given fre-
+time for the algorithm or from external sources.
+The robot systems considered for experiments are:
+LTV-SDE adopted from  (eq. 50), q, q R2. The controls
+u [0.2, 0.2]  [0.2, 0.2] represent acceleration.
+MuSHR modeled as a second order system, where q
+SE(2) and q R3; the control u R2 corresponds to
+acceleration and steering angle.
+For the real MuSHR, a system identication process to
+close the model gap is rst performed. The parameters  to
+be identied are the acceleration gain and the angular velocity
+gain. In particular, using observed trajectories  of the system
+under a known plan p(T), the parameters  are estimated
+so that the predictions given by the model best match the
+observations. An additional step was needed for the steering
+steering angle vs the input. The system identication is solved
+via least squares optimization on a factor graph using the
+integration and dynamics factor. The controls correspond to
+the executed plan and are imposed via a prior factor. The
+steering angle in the trajectories is dened using a ve-
+degree polynomial, which is t from the same data. Figure 9a
+visualizes the raw data for the real platform and the prediction
+for constant control trajectories of xed duration after system
+identication. Asynchronous observations xi of the robots
+state are used for the sys. id process where  [0, 1] and
+assuming a noise distribution N(0, ), between states xi and
+xi1. The initial gue

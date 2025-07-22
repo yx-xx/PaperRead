@@ -1,0 +1,615 @@
+=== PDF文件: Self-supervised Multi-future Occupancy Forecasting for Autonomous Driving.pdf ===
+=== 时间: 2025-07-22 15:45:26.881656 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Self-supervised Multi-future Occupancy Forecasting
+for Autonomous Driving
+Bernard Lange, Masha Itkina, Jiachen Li and Mykel J. Kochenderfer
+Stanford University, University of California, Riverside
+AbstractEnvironment prediction frameworks are critical for
+the safe navigation of autonomous vehicles (AVs) in dynamic
+settings. LiDAR-generated occupancy grid maps (L-OGMs) offer
+a robust birds-eye view for the scene representation, enabling
+self-supervised joint scene predictions while exhibiting resilience
+to partial observability and perception detection failures. Prior
+approaches have focused on deterministic L-OGM prediction
+architectures within the grid cell space. While these methods have
+seen some success, they frequently produce unrealistic predictions
+and fail to capture the stochastic nature of the environment.
+modalities present in AVs. Our proposed framework, Latent
+Occupancy Prediction (LOPR), performs stochastic L-OGM
+prediction in the latent space of a generative architecture and
+allows for conditioning on RGB cameras, maps, and planned
+trajectories. We decode predictions using either a single-step
+or a diffusion-based batch decoder, which can further refine
+the decoded frames to address temporal consistency issues and
+reduce compression losses. Our experiments on the nuScenes and
+Waymo Open datasets show that all variants of our approach
+qualitatively and quantitatively outperform prior approaches.
+I. INTRODUCTION
+Accurate environment prediction algorithms are essential
+for autonomous vehicle (AV) navigation in urban settings.
+Experienced drivers understand scene semantics and recognize
+the intent of other agents to anticipate their trajectories and
+safely navigate to their destination. To replicate this process
+in AVs, many environment prediction approaches have been
+and modeling assumptions [21, 26, 42, 4, 6, 31, 27].
+The modern AV stack comprises a mixture of expert-
+designed and learned modules, such as 3D object detection,
+independently. In the case of learned systems, development
+involves using curated labels provided by human annotators
+and other perception systems. For environmental reasoning,
+object-based prediction algorithms are often used, which rely
+on the perception system to create a vectorized representation
+of the scene with defined agents and environmental fea-
+tures [4, 33]. However, this approach has multiple limitations.
+each individual agent, rather than a holistic scene prediction
+including agent interactions, which complicates integration
+with planning modules . Second, this approach does not
+take sensor measurements into account and depends solely on
+object detection algorithms that may fail in suboptimal con-
+ditions [7, 10]. Third, reliance on labeled data, sourced from
+Fig. 1: Latent Occupancy PRediction (LOPR) is a self-supervised
+stochastic prediction framework that forecasts occupancy grid maps
+within the latent space of a generative model. It consists of determin-
+istic and variational transformer modules conditioned on occupancy
+multiple plausible futures for the entire scene.
+both human annotators and perception systems, constrains the
+dataset size and incurs higher costs. These drawbacks render
+the AV stack susceptible to cascading failures and can lead to
+poor generalization in unforeseen scenarios. Such limitations
+underscore the need for complementary environment modeling
+approaches that do not rely on error-prone and expensive
+labeling schemes.
+In response to these challenges, occupancy grid maps gen-
+erated from LiDAR measurements (L-OGMs) have gained
+popularity as a form of scene representation for prediction. The
+popularity is due to their minimal data preprocessing require-
+to model the joint prediction of the scene with an arbitrary
+number of agents, and robustness to partial observability and
+detection failures [21, 26]. We focus on ego-centric L-OGM
+prediction generated using uncertainty-aware occupancy state
+estimation approaches . Due to its generality and ability
+to scale with unlabeled data, we hypothesize that L-OGM
+prediction alongside RGB video prediction could also serve
+as an unsupervised pre-training objective, i.e., a foundational
+The task of L-OGM prediction is typically framed as self-
+supervised sequence-to-sequence learning. ConvLSTM-based
+architectures have been used predominantly in previous work
+for this task due to their ability to handle spatiotemporal se-
+quences [21, 37, 26, 42]. These approaches are optimized end-
+to-end in grid cell space, do not account for the stochasticity
+present in the scene, and neglect other available modalities,
+e.g., RGB cameras around the vehicle, maps, and the planned
+trajectory. As a result, they often suffer from unrealistic and
+blurry predictions.
+In this work, we address the limitations of previous ap-
+proaches by proposing a stochastic L-OGM prediction frame-
+work that operates within the latent space of a generative
+model . Generative models are known for providing a
+compressed representation, while producing high-quality sam-
+ples [14, 25]. With the use of generative models, we can
+minimize redundancies in the representation, allowing the
+prediction network to focus computation on the most critical
+aspects of the task . Vector-quantized variational mod-
+els  combined with autoregressive transformers  have
+demonstrated significant success. However, it often comes
+at the expense of increased inference time, driven by the
+large number of discrete tokens needed to effectively capture
+the task . In this work, we leverage lower dimensional
+continuous representations to enable real-time performance.
+Within the latent space trained on L-OGMs, our framework
+employs an autoregressive transformer-based architecture con-
+sisting of two modules, called sequentially at each time step:
+a variational module that models the stochasticity of the scene
+and a deterministic module that predicts the next time step.
+Both are conditioned on past L-OGM encodings and other
+modalities if available, such as camera images, maps, and the
+planned trajectory, as shown in Fig. 1. Predictions are decoded
+one by one using a single-step decoder, which provides
+high-quality predictions in real-time that optionally can be
+refined with a diffusion-based batch decoder. The diffusion-
+based batch decoder addresses the temporal consistency issues
+associated with single-step decoders  and mitigates com-
+pression losses by conditioning on prior rasterized L-OGMs,
+at the cost of real-time feasibility.
+Experiments on nuScenes  and the Waymo Open
+Dataset  show quantitative and qualitative improvements
+over prior approaches, including recent state-of-the-art dis-
+crete transformer-based approaches. Our framework forecasts
+diverse futures and infers unobserved agents. It also leverages
+other sensor modalities for more accurate predictions, such
+as observing oncoming vehicles in a camera feed beyond the
+visible region of the L-OGMs. Our contributions are:
+We introduce a framework called Latent Occupancy
+PRediction (LOPR) for stochastic L-OGM prediction in
+the latent space of a generative model conditioned on
+other sensor modalities, such as RGB cameras, maps, and
+the planned AV trajectory.
+We propose a variational-based transformer model that
+captures the stochasticity of the surrounding scene while
+remaining real-time feasible.
+We define a diffusion-based batch decoder that refines
+single-frame decoder outputs to address temporal consis-
+tency issues and reduce compression losses.
+Through experiments on the nuScenes  and Waymo
+Open Dataset , we demonstrate that LOPR surpasses
+prior L-OGM prediction methods and highlight the pos-
+itive impact of incorporating additional input modalities.
+II. RELATED WORK
+OGM Prediction. The majority of prior work in OGM
+prediction generates OGMs with LiDAR measurements (L-
+OGMs) and uses an adaptation on the recurrent neural network
+(RNN) with convolutions [43, 44]. Dequaire et al.  tracked
+objects through occlusions and predicted future binary OGMs
+with an RNN and a spatial transformer. Schreiber et al.
+provided dynamic occupancy grid maps (DOGMas) with cell-
+wise velocity estimates as input to a ConvLSTM for environ-
+ment prediction from a stationary platform. Schreiber et al.
+then extended this work to forecast DOGMas in a moving
+ego-vehicle setting. Mohajerin and Rohani  applied a
+difference learning approach to predict OGMs as seen from the
+coordinate frame of the first observed time step. Itkina et al.
+used the PredNet ConvLSTM architecture  to achieve
+ego-centric OGM prediction. Lange et al.  reduced the
+blurring and the gradual disappearance of dynamic obstacles
+in the predicted grids by developing an attention augmented
+ConvLSTM mechanism. Concurrently, Toyungyernsub et al.
+addressed obstacle disappearance with a double-prong
+framework assuming knowledge of the static and dynamic
+obstacles. An alternative approach predicts occupancy grid
+maps from vectorized object data  or a mixture of vec-
+torized object data and sensor measurements . Similar to
+representations in common trajectory prediction techniques,
+these methods require substantial labeling efforts [12, 35, 41].
+Unlike prior work, we perform self-supervised multi-future
+L-OGM predictions in the latent space of generative models
+conditioned on additional sensor modalities without the need
+for manual labeling.
+Representation Learning in Robotics and Autonomous
+Driving. The objective of representation learning is to identify
+low-dimensional representations that make it easier to achieve
+the desired performance on a task. Many robotics applications
+use architectures such as the autoencoder (AE) , the
+variational autoencoder (VAE) , the generative adversarial
+network (GAN) , and the vector quantized variational
+autoencoder (VQ-VAE) . Latent spaces have been used
+to learn latent dynamics from pixels , output video pre-
+driving neural simulators [24, 19]. Large-scale video predic-
+tion architectures have used discrete representations provided
+by the VQ-VAE  with a causal transformer [46, 36, 19].
+and sample from due to large number of discrete tokens
+required. We present a method that performs multi-future L-
+OGM prediction entirely in the continuous latent space of
+VAE-GAN generative model in real time.
+III. LOPR: LATENT OCCUPANCY PREDICTION
+We propose the Latent Occupancy Prediction (LOPR)
+represented as ego-centric L-OGMs. A 2D L-OGM grid x
+RHW represents a birds-eye-view map with dimensions (H,
+W), where each cell encodes the probability of occupancy. The
+grid is generated using projected LiDAR sensor measurements
+Fig. 2: The LOPR framework, comprising sensor processing, stochastic inference, and prediction modules. The sensor processing module
+encodes all sensor modalities. The L-OGM and RGB camera encoders are pretrained as described in Section III-A and in Section III-D.
+The inference module captures the scenes stochasticity (Section III-B). In the prediction module, we forecast the next time steps L-OGM
+embedding. At each time step, the most recent predictions are autoregressively provided to the inference and prediction modules.
+with segmented ground. The task of stochastic prediction
+involves learning a distribution over future occupancy grids
+conditioned on the observed grids, p(x>TO  xTO), where
+TO denotes the observation horizon.
+LOPR separates the task into (1) learning an L-OGM
+representation and (2) making predictions in the latent space
+of a generative model. In the representation learning phase, a
+VAE-GAN is trained to learn an L-OGM latent space. During
+the prediction stage, our framework uses an autoregressive
+transformer-based architecture, comprising both deterministic
+and variational decoder models. At each time step, a sample is
+drawn from the variational transformer and then passed to the
+deterministic transformer to forecast the next L-OGM embed-
+ding. Predictions are conditioned on past L-OGMs encodings
+and other available modalities, such as camera images, maps,
+and the planned trajectory. The encoders for maps and planned
+trajectories are trained alongside the prediction framework,
+while for the image encoder, we use a pre-trained DINOv2-
+based model . Predictions are decoded using a single-step
+that optionally can be refined with a diffusion-based batch
+decoder. Fig. 2 summarizes the framework.
+A. Representation Learning
+The latent space for L-OGMs is obtained by training an
+encoder and a decoder. Given an L-OGM grid x, the encoder
+outputs a low-dimensional latent representation z Rchw
+with dimensions (h, w) and depth c. This representation is
+reconstructed by a decoder to x RHW . The framework
+integrates concepts from -VAE and GAN [28, 24]. In -VAE,
+the objective consists of the reconstruction and regularization
+LVAE  Eq(zx) [log p (x  z)]  DKL (q (z  x)  p (z)) ,
+where q (z  x) and p (x  z) are the outputs of the encoder and
+decoder respectively, p (z) is the unit Gaussian prior, and DKL
+represents the Kullback-Leibler divergence. The reconstruction
+loss is an average of the perceptual loss  and the mean
+squared error. In the GAN step, the same decoder serves as
+the generator, and a discriminator classifies whether samples
+originate from the training set. This framework uses minimax
+optimization for the following objective :
+LGAN  Expdata [log D(x)]  Expmodel [log (1 D(x))] , (2)
+where D is the discriminator. The final loss is Lrep  LVAE
+LGAN and follows the implementation described by Karras
+et al.  and Kim et al. .
+B. Stochastic L-OGM Sequence Prediction
+Given the pre-trained L-OGM latent space, we train a
+stochastic sequence prediction network that receives a history
+of observations and outputs a distribution over a potential
+future embedding p(zt  z<t), where z<t represents the com-
+pressed L-OGM representations over the last t time steps, and
+are the network weights. The environment prediction task is
+inherently multimodal, and the latent vectors contributing to
+this stochasticity are unobservable. We introduce a variable st
+to capture this stochasticity at timestep t of the sequence and
+extend our model to p(zt  z<t, st) . During training,
+we extract the true posterior using an inference network
+st q(st  zt) which has access to the zt, representation
+of L-OGM at timestep t. While at test time, we sample from
+a learned prior st p(st  z<t) as we are attemping to
+predict zt. This process is autoregressively repeated for TF
+future steps assuming access for TO past observations. The
+framework is optimized using the variational lower bound
+Eq(stzt) [log p (zt  z<t, st)]
+DKL (q (st  zt)  p (st  z<t)) ,
+where the prediction network and prior autoregressively re-
+ceive previous predicted embeddings, whereas the posterior
+takes in only the ground truth.
+LOPR is implemented using a transformer decoder-based
+inference networks Q and Q for the prior and posterior,
+respectively. The positional information is provided through a
+sinusoidal positional encoding . At each time step t, st
+is sampled from the inference network Q, which outputs the
+parameters of the Gaussian distribution:
+,   Q(zor <t)
+where st is drawn from Q at test time and from Q at
+training time, as explained above. Then zt1 is attended with
+st and provided to the deterministic decoder where all past
+representations are incorporated:
+zt  P(SelfAttn(z<t, st)).
+In the above operations, each zt Rchw is split along its
+spatial dimensions into k patches, which are then flattened .
+Each token has dimension chw
+attention and optimizing the parameter count in the attention
+layer. This operation is applied to both the deterministic
+decoder and the inference networks. In the final step, the pre-
+dicted compressed representations are concatenated, reshaped
+back to their original dimensions, and then provided to the
+decoder from Section III-A.
+C. Diffusion-based Batch Decoder
+We can decode each zt independently using the single-
+frame decoder outlined in Section III-A to obtain high-quality
+predictions in real time. However, this approach can lead to
+poor temporal consistency and compression losses . They
+manifest as unrealistic changes in the distribution of occupied
+cells over time and poor pixel-wise accuracy, particularly in
+the first predicted frames that should retain most of the static
+details from the observations.
+We address these issues by refining xt:t from the single-
+frame decoder in batches with a diffusion-based batch decoder,
+where is the number of frames. is fixed and is not a
+function of batch size used at inference. At train time, the
+batch decoder is conditioned on ground truth decoded frames
+xt1. We follow a standard video diffusion formulation
+that uses a 3D-UNet as a denoising model and minimizes the
+mean-squared error between the predicted and ground truth
+noises . The model is trained to refine the decoded ground
+truth frames xt:t to more closely match xt:t. At test
+reconstructed from predicted embeddings, with the exception
+of the first prediction, where the preceding frame is a rasterized
+the predicted sequence.
+D. Conditioning on Other Sensor Modalities
+LOPR can be conditioned on maps, the planned trajectory,
+and observed RGB camera images. We assume access to maps
+for the entire planned trajectory. Each input modality is first
+embedded as described below and then integrated into the
+Fig. 3: Vision Transformer-based RGB Camera Encoder. RGB cam-
+era data is processed through the pre-trained DINOv2 backbone,
+subsequently passing through a series of attention layers. These
+layers aggregate information within each view (image layer), across
+different views (spatial layer), and throughout all observed timesteps
+(temporal layer). The spatial and temporal layers also include the
+learned positional embedding and are conditioned on the L-OGM
+embeddings and the planned trajectory, respectively.
+framework using the self-attention mechanism before being
+provided to deterministic and inference networks.
+Maps and Planned AV Trajectory. The map m
+R3W H comprises the drivable area, stop lines, and pedes-
+trian crossings within the ego frame, represented using a
+rasterized format. The planned trajectory tr R3T includes
+position (x, y, z) for the entire sequence, normalized with
+respect to the ego position. Maps and the planned trajectory
+are processed with commonly used convolutional and fully
+connected networks.
+RGB Camera. The camera observation, denoted as ct
+RN3W H, encompasses views from N RGB cameras sur-
+rounding the vehicle. They offer important semantic infor-
+mation not available in L-OGMs. They can: 1) distinguish
+whether occupied cells are dynamic agents (like cars), includ-
+ing their type and orientation, or static environmental elements,
+and 2) provide insights into the state of the environment
+beyond the area observed in the fixed-size L-OGM.
+porating RGB inputs into the self-supervised perception task
+is challenging due to the limited size of the AV perception
+datasets. To address this, we use the pretrained DINOv2
+backbone and finetune the module on a short deterministic L-
+OGM prediction task. The model is conditioned on observed
+L-OGMs and planned trajectory embeddings, which accel-
+erates convergence. We also observe that adding trajectory
+embeddings significantly reduces uncertainty in future ego
+tuning. This approach encourages the extraction of visual
+information useful for downstream stochastic prediction. We
+note that DINOv2 is pre-trained on unlabeled data, aligning
+with the motivation of this work, unlike the commonly used
+ResNet-based backbones from object detection, which rely on
+manually labeled datasets.
+Fig. 3 shows the image processing module I. Each image
+is embedded using a DINOv2 backbone. It is followed by
+a series of attention modules: 1) The image layer, which
+aggregates tokens from a single view. 2) The spatial layer,
+which collects embeddings from each perspective around the
+vehicle along with a corresponding L-OGM embedding. 3)
+The temporal layer, which aggregates information across all
+observed time steps and the planned AV trajectory. We found
+that adding planned AV trajectory is beneficial but not neces-
+sary. Finally, the tokens from each time step are concatenated
+along the spatial dimensions and then processed through a
+convolutional layer to produce zcam. The output tokens are
+then segmented back into patches, flattened, and integrated
+into the framework using the self-attention mechanism.
+E. Conditioning on Other Information
+Locations.
+Considering
+diversity
+locations
+gapore or USA) to the start of the observations sequence.
+Sequence
+Augmentation. The open-source perception
+datasets are relatively small compared to vectorized trajectory
+datasets. To increase the number of samples, we implement a
+series of augmentations (e.g. mirror reflections, rotations, and
+reversing the sequence). Recognizing that these augmentations
+might adversely affect the prediction correctness (e.g. poten-
+tially resulting in predictions that do not adhere to driving
+rules), we attach a one-hot encoding of the augmentation type
+at the beginning of the sequence.
+F. Prediction Extrapolation
+We extend the prediction horizon at test time using a
+sliding-window approach, treating the last predicted frames as
+observations and repeating the process. However, unlike maps
+and planned trajectory modalities, we neither have access to
+nor predict future camera observations. Hence, we randomly
+drop out the image embeddings enabling robust extrapolation
+beyond the training-time prediction horizon.
+IV. EXPERIMENTS
+We evaluate our framework by analyzing the pre-trained
+latent space, evaluating its performance in environment pre-
+diction tasks, and examining the impact of additional sensor
+modalities on the predictions quality.
+A. Dataset
+We use the nuScenes Dataset  and the Waymo Open
+Dataset . nuScenes contains 5.5 hours of data collected
+in Boston and Singapore. Waymo Open Dataset  provides
+6.4 hours of data compiled in San Francisco, Phoenix, and
+Mountain View. Both datasets include measurements from
+RGB cameras around the vehicle, LiDAR(s), and maps.
+Data Representation: We generate L-OGMs in the ego
+vehicle frame using a ground-segmented LiDAR point cloud.
+The OGM dimensions are H  W  128  128 with a 0.3 m
+images and maps are downscaled to 224  224 and 128  128
+respectively. During sequence prediction training, we provide
+5 past L-OGMs (0.5 s) as observations alongside other sensor
+We also extend the prediction horizon to 30 frames (3.0 s) to
+evaluate the extrapolation capabilities of our framework.
+B. Architecture and Training Details
+Architectures. We incorporate a convolutional network
+for all modules except the transformer-based ones and the
+trajectory encoder. The discriminator architecture is multi-
+scale and multi-patch, inspired by prior work . The di-
+mension of the latent vector is set at z R6444 which
+is split in 4 patches resulting in the flattened embedding
+size of 256. For the prediction network, the decoder and
+variational modules each consist of 6 layers and 6 heads,
+collectively comprising 16.1 million parameters. The image
+module employs a DINOv2 ViT-S14 backbone . Within
+this module, the image, spatial, and temporal layers comprise
+number of parameters for the image head is 27.4M. For the
+diffusion-based decoder, we leverage an implementation by
+HuggingFace . In the results section, we use a single-step
+Model Training. We used the AdamW optimizer  with
+lr  4  104. For representation learning, we used three
+NVIDIA TITAN X 24 GB for 360k steps with a total batch
+size of 30. We trained the L-OGM-only prediction models on
+a single NVIDIA TITAN RTX 24GB GPU and the multimodal
+model and batch decoder on two NVIDIA L40 48GB GPUs.
+The models were trained with a total batch size of 40 until
+convergence. For the stochastic prediction component, we use
+a KL annealing with   2  106 for the first 10 epochs
+followed by a linear increase to 0.2 over 50k training steps.
+C. Evaluation
+Baselines. We benchmark our approach against methods
+commonly used in L-OGM prediction, including PredNet [30,
+21] and TAAConvLSTM . Additionally, we compare
+against OccWorld , a state-of-the-art network for 3D se-
+mantic occupancy prediction adapted for the 2D L-OGM task.
+OccWorld uses the latent space of VQ-VAE and incorporates
+a customized transformer to enhance inference efficiency. To
+ensure a fair comparison, we increase its latent space size
+to match the reconstruction performance of our method. We
+further evaluate our approach against state-of-the-art real-time
+video prediction models, including SimVP V2 , PredRNN
+convergence. As an additional baseline, we include a naive
+method that repeats the last observed frame across the entire
+prediction horizon, providing a reference for assessing the
+models ability to capture the scenes motion dynamics.
+(IS) metric  across the 1.5 s and 3.0 s prediction horizons.
+For stochastic predictions, we sample 10 predictions and eval-
+uate the best one. IS calculates the smallest Manhattan distance
+between two grid cells with the same thresholded occupancy,
+capturing the spatial error of predictions. It determines the grid
+distance between matrices m1 and m2 :
+d(m1, m2, c)  d(m2, m1, c)
+d(m1, m2, c)
+m1[p]c min{md(p1, p2)m2[p2]  c}
+The set of discrete values C possibly assumed by m1 or m2
+of map m1 at position p  (x, y). md(p1, p2)  x1 x2
+y1 y2. c(m1)  {p1  m1[p1]  c} is the number of
+cells in m1 with value c.
+V. RESULTS
+A. Latent Space Analysis
+The latent space trained during the representation learning
+stage is crucial for facilitating accurate predictions. If an agent
+in the observed frames is lost during the encoding phase,
+the prediction network struggles to recover this information,
+leading to incorrect forecasts. We examine the impact of
+different representation learning losses on reconstruction and
+prediction performance in Table I. Our results highlight a
+trade-off between single-grid reconstruction performance and
+prediction performance. The simple autoencoder performs well
+in reconstruction and short-term prediction but suffers in
+prediction accuracy as the horizon extends. In contrast, incor-
+porating KL and adversarial components reduces reconstruc-
+tion performance but enhances long-term prediction capability,
+aligning with the primary objective of this work. We also
+report the performance of our representation learning approach
+with all augmentations, demonstrating its positive impact on
+all metrics. For context, we provide randomly selected L-
+OGMs and their reconstructions in Fig. 4, which illustrate that
+the encoder-decoder setup effectively reconstructs the scenes.
+Fig. 4: Our encoder-decoder effectively reconstructs the L-OGMs,
+with the IS score reflecting differences in the distribution of occupied
+cells (e.g., IS of 2.13 and 3.69). In rare instances (e.g., rotation with
+many agents, IS5.04), it might lose some detail. White represents
+occupied cells, black denotes free space, and shades of gray capture
+values between 0 and 1.
+TABLE I: The impact of representation learning objective on the
+reconstruction (ISrecon) and prediction performance (IS5X) on
+nuScenes with no augmentation during representation learning. VAE-
+GAN (KL  Adv) excels at long-term prediction horizon. We also
+report VAE-GAN performance with the augmented dataset.
+Recon KL Adv
+ISrecon()
+No augmentations in representation learning
+With augmentations in representation learning
+TABLE II: Quantitative evaluation of the prediction performance. The
+best results are bolded, and the second-best results are underlined.
+indicates a stochastic model. In Ours,  indicates the addition of a
+feature to a model that includes all modifications listed in the rows
+above. We also report the frequency and CUDA memory consumption
+for generating a single 15-frame prediction.
+NuScenes Dataset
+Waymo Open Dataset
+T (Hz) M (GB)
+PredRNN V2
+Sim.VP V2
+OccWorld-2D
+Fixed Frame
+Deterministic
+Diff. Dec.
+B. Prediction Task
+General Performance: We compare our framework against
+the baselines in Table II. The integration of dataset aug-
+diffusion decoder each contribute to notable improvements.
+LOPR outperforms previous methods on both datasets, with
+improvements becoming more pronounced as the prediction
+horizon extends. We visualize examples of predictions rolled
+out for 3.0 s, extending beyond the prediction horizon used
+during training, in Figs. 5 and 6. Our framework generates
+results while remaining real-time feasible.
+from the unknown intents of other agents in the scene and
+partial observations. Our framework models the multimodal
+distribution of future agents positions. It is capable of infer-
+ring hypothetical, previously unobserved agents (see Fig. 7)
+and capturing the varying motion dynamics of observed agents
+(see Figs. 5 to 7). As shown in Table II, modeling stochasticity
+has a positive quantitative impact compared to the determin-
+istic framework. The variational module enables high-quality
+and semantically meaningful multi-future reasoning about the
+behaviors of both observed and unobserved agents.
+Ground Truth
+Ours (IS3.71)
+Ours (IS5.79)
+Occ2D (IS19.16)
+Ground Truth
+Our (IS9.46)
+Ours (IS10.82)
+Occ2D (IS53.76)
+Fig. 5: Examples of LOPR and OccWorld-2D predictions with visualized front camera observations from the nuScenes dataset. The predictions
+are generated with the single-step decoder. LOPR is conditioned on all cameras around the vehicle, maps, and the planned trajectory. We
+report IS scores for each sample. (Left) Prediction of an oncoming vehicle (red) visible only in the front camera. Each LOPR sample
+captures a realistic hypothetical evolution of the scene, such as variations in the velocity of the oncoming car. (Right) Correct forecasting of
+an oncoming vehicle and a static road layout (orange). Both examples demonstrate that our framework is capable of multi-future reasoning
+and leveraging multi-modal observations.
+Ground Truth
+Ours (IS6.44)
+Ours (IS8.91)
+Occ2D (IS15.17)
+Ground Truth
+Ours (IS3.39)
+Ours (IS4.09)
+Occ2D (IS6.71)
+Fig. 6: Examples of LOPR and OccWorld-2D predictions with visualized front camera from the nuScenes dataset. The prediction setting is
+the same as in Fig. 5. (Left) Accurate prediction of the static road layout and a parked vehicle (green) visible only in the front camera. Each
+LOPR sample provides a realistic occupancy representation of the parked car and the environments layout. (Right) Accurate prediction of
+a parked truck (blue).
+Impact of trajectory, map, and camera conditioning:
+LOPR leverages additional input modalities to enhance its
+understanding of the surroundings and the ego vehicles intent,
+enabling more accurate predictions. This includes accurately
+inferring static elements of the environment, such as road
+layouts and parked vehicles, as well as dynamic components
+like oncoming vehicles. These features, while visible in the
+cameras and maps, lie beyond the observable area in L-OGMs
+(see Figs. 5 and 6). In Table III, we evaluate the impact of
+incorporating trajectory conditioning, maps, and cameras as
+input modalities. Our results demonstrate that each modality
+contributes to significant numerical improvements, with the
+best performance achieved when all available input modalities
+are combined. Furthermore, we observe a positive impact of
+DINO-based camera module finetuning on the deterministic
+occupancy prediction task.
+Diffusion-based Decoder: Known weaknesses of making
+predictions in the latent space of generative models include
+poor temporal consistency and compression losses. We address
+TABLE III: Impact of trajectory, map, and camera modalities on
+the prediction performance. denotes a camera module without
+finetuning on the deterministic task. All models were trained for 40
+Traj. Maps Cameras IS515() IS530()
+these concerns with a diffusion-based batch decoder which
+leads to significant improvements in temporal consistency and
+the maintenance of detail that is often lost due to compression,
+as shown in Fig. 8. Numerically, it also results in significant
+Ground Truth
+Fig. 7: Visualization of stochastic predictions using a single-step
+decoder conditioned solely on L-OGMs, with the IS score averaged
+over the entire sequence. The scenario depicts multiple agents moving
+along a road, with the bottom three rows (alongside their IS scores)
+representing different samples from the variational model. Our model
+captures diverse motion patterns of observed vehicles and can even
+infer the presence of unobserved ones. It is marked with red in the
+ground truth and correctly inferred in the first sample (IS  4.38).
+Ground Truth
+Batch (IS3.90)
+Single (IS6.25)
+Fig. 8: Visualization of generated predictions decoded with a single-
+step decoder (IS6.25) and further refined with a diffusion-based
+batch decoder (IS3.90). The batch decoder increases temporal
+consistency between frames and reduces compression losses. In red,
+we highlight trees on the side of the road that are recovered with our
+batch decoder.
+the preservation of static details. However, this comes at the
+cost of real-time feasibility. While our approach with the
+single-step decoder and all baselines generate a full sequence
+of predictions at a rate of 3 38 Hz, decoding predictions with
+a diffusion decoder takes minutes. Although it is not currently
+feasible for real-time applications, recent advancements i

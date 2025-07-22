@@ -22,5 +22,6 @@ def preprocess_texts(keywords):
         words = jieba.lcut(text.strip())
         filtered = [word for word in words if len(word) > 1 and word not in stopwords]
         processed.append(" ".join(filtered))
-    
+
+    # 每个元素是空格分隔的有效词语字符串
     return processed

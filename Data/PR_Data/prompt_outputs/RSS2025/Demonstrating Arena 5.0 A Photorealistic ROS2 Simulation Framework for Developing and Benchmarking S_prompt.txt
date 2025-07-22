@@ -1,0 +1,543 @@
+=== PDF文件: Demonstrating Arena 5.0 A Photorealistic ROS2 Simulation Framework for Developing and Benchmarking S.pdf ===
+=== 时间: 2025-07-22 15:42:33.060933 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Demonstrating Arena 5.0: A Photorealistic ROS2 Simulation
+Framework for Developing and Benchmarking Social Navigation
+Volodymyr Shcherbyna2,, Linh Kstner1,2,, Duc Anh Do1, Hoang Tung3,
+Huu Giang Nguyen2, Maximilian Ho-Kyoung Schreff3, Tim Seeger2,
+Eva Wiese2 Ahmed Martban2, Huajian Zeng3, An Tran1, Nguyen Quoc Hung2,
+Jonas Kreutz2, Vu Thanh Lam2, Ton Manh Kien2, Harold Soh1
+Equal Contribution
+1National University of Singapore (NUS), Singapore
+2Technical University Berlin (TUB), Germany
+3Technical University Munich (TUM), Germany
+AbstractBuilding upon the foundations laid by our previous
+of our framework for robotics social navigation development
+and benchmarking. Arena 5.0 provides three main contribu-
+enabling photorealistic simulations and more efficient training.
+It seamlessly incorporates Isaac Gym into the Arena platform,
+allowing the use of existing modules such as randomized
+environment generation, evaluation tools, ROS2 support, and
+the integration of planners, robot models, and APIs within Isaac
+Gym. 2) A comprehensive benchmark of state-of-the-art social
+navigation strategies, evaluated on a diverse set of generated
+and customized worlds and scenarios of varying difficulty
+levels. These benchmarks provide a detailed assessment of
+navigation planners using a wide range of social navigation
+metrics. 3) Extensive scenario generation and task planning
+modules for improved and customizable generation of social
+navigation scenarios, such as emergency and rescue situations.
+The platforms performance was evaluated by generating the
+aforementioned benchmark and through a comprehensive user
+efficiency compared to previous versions. Arena 5.0 is open
+source and available at
+I. INTRODUCTION
+Social navigation has gained increasing importance across
+various sectors such as healthcare, logistics, and assistive
+robotics. Despite its growing adoption, navigating human-
+centric environments remains a significant challenge. A
+major concern is bridging the gap between simulation-
+based research and industry-grade applications (sim2real) .
+comprehensive simulation platforms, as emerging approaches
+must be thoroughly tested and benchmarked prior to real-
+world deployment. Common issues include non-reproducible
+research findings and highly specialized outcomes that are
+difficult to generalize for practical applications. Moreover,
+many existing platforms continue to rely on legacy software
+(e.g., ROS1), complicating the transition from simulation to
+This research  project is supported by ASTAR under its National Robotics
+Programme (NRP) (Award M23NBK0053). This research is supported in
+part by the National Research Foundation (NRF), Singapore and DSO
+National Laboratories under the AI Singapore Program (Award Number:
+AISG2-RP-2020-017).
+Fig. 1: Sample scenes from the Arena 5.0 platform, which provides
+tools to develop social navigation approaches in highly dynamic and
+crowded environments. It focuses on social navigation and provides
+a number of modules to achieve realistic simulation of human-
+centric environments, developing and testing navigation algorithms
+on various robotic systems and setups, and simplified extension with
+new modules.
+reality and further widening the sim2real gap. This reliance
+impedes progress and underscores the necessity for updated
+simulation frameworks that better facilitate technology trans-
+fer to industry-grade systems .
+Most open-source benchmarking platforms concentrate on
+specific
+navigation
+addressing
+concerns such as real-robot integration, deployment, and
+practical applicability. Owing to varied setupsranging
+from in-house simulators to proof-of-concept demonstra-
+tionsnumerous approaches are overly simplified and chal-
+lenging to replicate in real-world scenarios. Additionally,
+many available simulation environments either cater to spe-
+cialized tasks (e.g., learning-based methods) or offer lim-
+ited functionality. In contrast, sophisticated state-of-the-art
+simulators such as Isaac Sim present substantial usability
+Fig. 2: Data flow of the Generation Stage and the Population Stage. The Generation Stage combines multiple SotA technologies to process
+text inputs into a floor plan image and room asset locations. 3DSGs are used as an intermediate data structure to divide the problem
+into a text transformation task solvable by an LLM, and a graph transformation task solvable by a spatial GNN. The Population Stage
+populates the floor plans asset zones with 3D models by employing the Asset Placer. A pre-built semantic vector Model Database is
+queried for a related model, which is arranged into the zone by a Fitter algorithm. After a final post-processing step, the end result is a
+finished environment consisting of 3D walls and models.
+a restricted user base , , .
+To address these issues, we introduced world generation
+capabilities and social interaction modules in Arena 3, fol-
+lowed by a platform-wide migration to ROS2 and extended
+world-generation functionalities in Arena 4.0. Building on
+these foundations, Arena 5.0 integrates Isaac Gym to offer
+photorealistic simulations, thereby aligning with both re-
+search and industry requirements. By providing an enhanced
+world and scenario generation process, as well as a direct
+link to Isaac Gym, Arena 5.0 enables more realistic and
+comprehensive evaluations, bridging a critical gap in social
+navigation research and deployment.
+The main contributions of this work are as follows:
+Full Integration of Isaac Gym into the Arena Frame-
+of Isaac Gym, facilitating seamless inter-operation with
+ROS-based systems. This integration aims to leverage
+Isaac Gyms advanced simulation capabilities within
+the Arena framework to enhance the development and
+testing of autonomous robots in realistic environments.
+for evaluating the performance of social navigation
+algorithms. This includes metrics for assessing accuracy,
+simulated human-centric environments.
+Automated and Customizable Scenario Generation
+pipelines that allow researchers to automatically create
+diverse and complex environments. This feature supports
+customization to address specific research needs and
+of navigation algorithms.
+II. RELATED WORKS
+Social navigation is increasingly critical for daily tasks, and
+a variety of research works have been conducted for the
+in social environments , , , . However, although
+many social navigation approaches continue to emerge, their
+assess due to highly specific settings, simulators, labs, and
+installation setups. In a recent studies, by Francis et al. and
+Singamaneni et al. ,  the lack of a unified benchmark
+for social navigation approaches is highlighted as one of
+the main bottlenecks in social navigation robotics research.
+Navigation benchmarks such as Bench-MR by Heiden et
+al. , Robobench by Weisz et al. , CommonRoad by
+Althoff et al. , and the Benchmarking Suite by Moll et
+al.  focus solely on 2D simulation and only consider static
+environments. Other benchmarks such as SocNavBench
+by Biswas et al., DynaBARN by Nair et al. , or So-
+cialGym by Holtz et al.  employ dynamic environments
+but contain simplistic and limited navigation approaches for
+proof of concepts. Other social navigation benchmarking
+platforms include SEAN and SEAN2.0 by Tsoi et al. ,
+, HuNavSim by Perez-Higueras et al. , MRPB 1.0
+by Wen et al. , SRPB by Karwowski et al. , or the
+Social Evaluation Platform by Gao et al. . However, they
+often face limitations in scenario diversity or robot variety.
+by their simulation capabilities or the scenarios they offer.
+other sensor modalities such as rgbd, sonar, imu sensors,
+and often utilize legacy software frameworks. Other social
+navigation benchmarks focus on incorporating multi-agent
+reinforcement learning, such as SAMARL by Wang et al.
+or Socialgym2.0 . However, they are limited to
+2D simplistic simulations and showcase proof-of-concepts
+approaches. As industry is shifting towards ROS2 usage,
+and with the advent of increased computational power, pho-
+torealistic simulators and more sensor modalities are often
+required to employ sophisticated approaches. Notably, Isaac
+Fig. 3: System Design of Arena 5.0: Our central modules are arenasimulationsetup and taskgenerator and, which provide
+interfaces for loading worlds, defining world semantics, providing scenarios and benchmarking configurations, managing robot and non-
+robot entities, interacting with the parameter server, interfacing the navigation stack, photorealistic simulators, pedestrian simulators. The
+Python-only modules are highly extensible and provide a convenient API that simplifies interactions with both Arena and the ROS2
+ecosystem. We provide additional tooling in the form of installers and buildversion management tools, building on top of widely used
+technologies colcon and vcstool. Our peripheral modules Arena-Gen and Arena-Evaluation are installed alongside the core
+modules and are interfaced directly and implicitly based on the users intentions. The lifecycle management of the system is tied together
+in our separate centralized module arenabringup.
+Gym  by Makoviychuk et al. has been making strides in
+generating diverse, complex, dynamic environments and has
+also been adopted by numerous laboratories. However, due
+to its recent release, the documentation and usability remain
+challenging and are primarily accessible to experts in the
+field. Additionally, it is not open source, limiting its availabil-
+ity to a wider audience. To address aforementioned issues,
+we propose Arena 5.0, which offers a variety of different
+simulation environments, sensor modalities, a comprehensive
+suite of robots and planners, as well as modules for complex
+world and scenario generation in social settings making it a
+useful platform for social navigation robotics research.
+III. OVERVIEW OF ARENA 5.0
+Building on our previous works, Arena 5.0 provides a
+modular software stack designed to support the development
+and benchmarking of social navigation methods. Figure 3
+illustrates the core concepts and modules of the Arena plat-
+humans and robots are spawned to create social scenarios.
+Researchers can then utilize Arenas benchmarking and task
+planning modules to conduct thorough testing and validation
+of their approaches.
+Arena 5.0 introduces three key contributions: (1) the integra-
+tion of Isaac Gym, (2) a comprehensive benchmarking suite
+for state-of-the-art social navigation methods incorporating
+multi-modal sensor data across various robotic platforms,
+and (3) novel world and scenario generation modules that
+employ generative AI and Large Language Models (LLMs)
+to facilitate the intuitive creation of social scenarios and
+environments.
+A. System Design of Arena 5.0
+Figure 3 provides an overview of the core concepts and
+functionalities of Arena 5.0. The platform comprises various
+ments within a diverse set of 3D photorealistic environments,
+such as Unity and Isaac Gym. Users have numerous options
+to create these worlds, including capabilities to spawn hu-
+mans and specify their behaviors. This flexibility enables
+the simulation of specific scenarios, such as emergency
+research.
+The system design is detailed subsequently, where the con-
+nections between each module are highlighted, illustrating
+the comprehensive integration within the platform. The most
+novel and significant module is the integration of Isaac Gym.
+This addition required several adaptations and new mod-
+ules to fully leverage the capabilities offered by the Arena
+framework. These enhancements enable users to create world
+Isaac Sim as a simulator, thereby expanding the platforms
+utility and effectiveness in realistic simulations.
+B. Isaac Gym Integration
+We have developed a wrapper around Isaac Gym to enhance
+its accessibility and integration within the Arena framework.
+Despite its widespread adoption across many institutions,
+Isaac Gym presents significant barriers to entry, primarily
+due to a lack of comprehensive documentation, tutorials, and
+support. By embedding Isaac Gym into the Arena framework,
+we significantly lower these hurdles, facilitating a more user-
+friendly environment for researchers and developers.
+This integration allows users to effortlessly generate social
+navigation scenarios that exhibit photorealistic behaviors. The
+Arena framework leverages Isaac Gyms advanced simulation
+environments where robotic systems can be tested under con-
+ditions that closely mimic real-world settings. This approach
+not only improves the utility of Isaac Gym but also expands
+Fig. 4: System Design and Data Flow of arenagen: (1) a user prompt (text or floorplan image) is converted into a 3DSG and edited by
+the user; (2) a floorplan is generated by the HouseDiffusion  and post-processed; (3) objects are placed into the rooms and realistically
+arranged by the MiDiffusion network, creating a world; (4) a scenario is generated and edited by the user, selecting specific tasks for that
+world; and finally exported to arenasimulationsetup for use in training and evaluation in the rest of the Arena ecosystem. The world
+consists of a classic map definition, as well as additional structural and semantic annotations used to load the world into a simulator and
+construct semantically relevant tasks.
+its applicability to a broader range of social navigation
+research scenarios, thereby contributing to the advancement
+of human-robot interaction studies.
+1) Pedestrian Simulation: In our developments, we utilize
+HuNavSim and have fine-tuned other social force models to
+be compatible with the latest versions of simulators, including
+Gazebo v2 and Isaac Sim. Moreover, we have incorporated
+human interactions among pedestrians to render scenarios
+more realistic and applicable to real-world social navigation
+contexts.
+Photorealistic visuals are a key feature of our platform,
+achieved through Isaac Sims extensive model repository,
+which includes models representing a diverse range of ages
+and roles, such as office workers and construction workers.
+When Arena spawns pedestrians, it selects appropriate mod-
+els to match the scenario requirements. Pedestrian anima-
+tions are realistically interpolated, with smooth transitions
+between small movements based on each evaluation of the
+Social Force Model (SFM). Furthermore, Arena dynamically
+switches animations on-the-fly according to the pedestrians
+behavior state, enhancing the realism of the simulation.
+To support integration and flexibility, an abstract Entity-
+Manager interface is implemented. This interface accom-
+modates different pedestrian simulators, such as HuNavSim,
+and various SFMs, like LightSFM. Behaviors are managed
+independently by the designated EntityManager, with Arena
+responsible for forwarding parameters and interpreting be-
+havior trees. This modular approach allows for seamless
+integration and management of complex behaviors within the
+simulation environment, paving the way for more detailed
+and varied social interaction studies in robotic navigation.
+C. World and Scenario Generation
+In Arena 5.0, we offer distinct worlds where randomized
+environments can be generated across multiple simulation
+platforms including Gazebo and Isaac Sim. These worlds
+encompass a variety of settings such as residential areas,
+method of gradual generation, capable of creating dynamic
+environments that include both static and dynamic obstacles.
+Arena-Gen
+introduced
+previous works and extended it with a refined scene
+(3dsgfromtext),
+diffusion
+for generating intricate worlds (population), as well as
+the complete integration into the Isaac Gym pipeline.
+The user can either upload a 2D floorplan or input a
+natural language prompt that describes an environment.
+machine-generated
+(prompt,
+objectsavailable)
+((rooms,doorways), rooms objects), which is used for
+the training of both LLMs. Our dataset has a total size of
+60000 entries, with some examples shown in Table IV.
+a) 3dsgfromtext: We used the pre-trained Google T5-
+Small  model and fine-tuned it into two sub-models to
+transform natural language descriptions of room layouts into
+the respective parts of a 3D Scene Graph. The architecture
+of this pipeline stage is shown in Figure 5, with practical
+examples in Figure 6. An overview of the training parameters
+is shown in Table III.
+Fig. 5: 3dsgfromtext architecture: The pipeline architecture fea-
+tures a staggered design that processes different parts of the prompt
+with different LLMs. Language Model 1 generates the 3DSG upper
+half (room and doorway lists) from the user prompt. Language
+Model 2 then infers the objects in the rooms from both the user
+prompt and semantic reasoning capabilities. The lists of possible
+room and asset types are provided as system prompts and can be
+changed without re-training.
+Fig. 6: Prompt Examples: Text prompts and generated graphs to
+illustrate the geometric and semantic reasoning capabilities of the
+3dsgfromtext stage. Our architecture is capable of understand-
+ing and consistently generating multiple graph types, while also
+retrieving objects from the prompts and inferring semantically sound
+objects at the same time. We achieve this with a divide and conquer
+approach by dividing both reasoning tasks between two separate
+b) Population: We employ the mixed diffusion model MiD-
+iffusion  to arrange a set of objects within each room.
+Combining the 3D Scene Graph with the output floorplan,
+the diffusion model successively places the objects into
+more realistic positions, until a highly realistic placement
+is finally reached. This process is repeated individually for
+each room and takes into account the room type. The result
+is an interactive world that guarantees pathways to exist to
+reach the objects in each room. This allows the simulation
+to have more structured human behavior based on human-
+object interactions. Additionally, robots now navigate a great
+number of realistic randomized environments, trained on real-
+world environments, which ensures a smaller sim-to-real
+gap for human-centric environments. Example placements
+illustrating the interactivity are shown in Figure 7.
+Fig. 7: Sample outputs of the population stage. Left, Center: Single-
+room inference for a given room type and a list of objects. The
+objects are placed in an intuitive way that allows humans to interact
+with objects in a realistic way. Right: Result of population stage
+applied to an entire residential floorplan. Different room types
+(bedrooms, living room) are populated alongside each other. The
+object positioning takes doorways into account and leaves walking
+space in every room.
+specific scenarios tailored to diverse environmental contexts
+such as emergency situations, normal operating hours, or un-
+expected scenarios like children in a warehouse or warehouse
+robots in a hospital setting. This feature also incorporates
+random behaviorshumans interacting unexpectedly with
+themto ensure a wide variety of situations. This versatility
+is crucial for training and testing algorithms to enhance their
+robustness against unforeseen events.
+Exemplary scenarios across all three worlds are illustrated
+in Figure 9. Within the graphical user interface (GUI), users
+have the option to select one of these predefined scenarios
+or customize their parameters to simulate different condi-
+tions. This flexibility allows researchers and developers to
+rigorously test and refine their navigation algorithms under
+controlled yet varied and realistic conditions.
+D. Benchmarking and Dataset Acquisition Modules
+We have incorporated a diverse array of sensors into our
+classes to integrate following sensors to work with all simula-
+tors including the newly integrated Isaac Gym simulator: 2D
+contact sensor. These enhancements render the tool excep-
+tionally well-suited for capturing large-scale, photorealistic
+datasets. moreover, by providing this set of diverse sensors, a
+wider variety of state of the art navigation approaches can be
+integrated and is not limited to 2D sensors like a majority of
+benchmarks. Furthermore, our automatic evaluation pipeline
+is designed to plot the results using a user friendly iPython
+notebook which is highly customizable. therefore, we also
+extended our metrics suite first presented in our previous
+work with more social metrics. A comprehensive overview
+of metric categories, metrics, and descriptions is listed in
+Table II.
+IV. DEMONSTRATIONS AND EXEMPLARY USAGE
+To demonstrate our platform and assess its functionalities,
+the following section will illustrate exemplary user stories
+using the provided web application for scenario generation.
+showcases the user story to generate customized worlds and
+scenarios using our Arena-Gen integrated modules. Contin-
+uing the tradition established in our previous research, we
+conducted a study involving participants who were asked
+to install and test specific modules of the platform. In the
+A. Creating Worlds and Scenarios Using the GUI
+Generating diverse environments is crucial for robustly
+benchmarking and testing approaches on robotic systems.
+We provide a web application in which the aforementioned
+Arena-Gen module is embedded. Figure 8 illustrates the step
+by step user story to generate a world and scenario. Note
+that the user can also decide to just create the world or
+scenario and doesnt necessarily need to provide pedestrians.
+a prompt or selecting a default prebuilt world (fig. step
+1). Afterwards, the 3D scene graph is generated (2) and
+subsequently the floorplan (3), then the user can generate
+a scenario with pedestrian behavior or spawn more static
+obstacles using this generated floor plan. If the user decides
+to use a default world, the 2D floor plan is provided. In the
+next step, the user can add pedestrians and set a customized
+Fig. 8: User Story of Arena-Gen Web App: We provide a web frontend for our Arena-Gen module, which provides a convenient way
+for users to create synthetic worlds in an interactive chat. The user is (1) prompted to either write an input prompt or upload a floor
+plan which is converted into a (2) 3D Scene Graph that can be edited by the user (changing room layout, adjusting obstacles). When
+satisfied with the resulting 3DSG, the user can (3) generate floorplans based on the 3DSG until a suitable layout is achieved, then the
+population stage places the desired objects into sound positions within the room. Once the user is satisfied with the world generated in
+step (3), a default scenario is machine-created and then edited by the user (4). In the final step, (5) benchmarking tasks for this world
+can be enabled and weighted based on possible world situations. Finally, the world and configurations can be downloaded or exported to
+Arena directly. Overall, the user has a compact web interface that combines access to the various technologies used across all pipeline
+stages. All functionalities are exposed through a stateless HTTP backend, with a central pipeline backend that takes a text prompt
+and automatically passes through all following steps, for use in our simple CLI client.
+each pedestrian individually. To simplify this process, the
+user can also select default behavior situations such as routine
+activity in a hospital, or emergency situations where there
+is a default preset of parameters. Finally, the user sets a
+benchmark count for each task mode (from Table V) which
+sets the amount of task runs for the robot in each benchmark,
+ultimately represented in Listing 1. An exemplary benchmark
+configuration file is showcased in Listing 1.
+B. Platform for Competition and Benchmarking
+Arena 5.0 significantly enhances evaluation capabilities by
+offering a suite of functions designed to facilitate the plat-
+forms use in unified benchmarking. The aforementioned
+Arena-Gen module has been extended to generate diverse
+worlds and scenarios, ensuring consistent and rigorous test-
+ing conditions, which is crucial for benchmarking (exam-
+ples are illustrated in Figure 9).The APIs provided enable
+seamless integration of various methods and new planning
+algorithms. This functionality allows users to rigorously test
+their approaches in predefined or custom scenarios tailored
+to specific requirements and challenges. As a result of these
+advanced features, Arena 5.0 has been selected as the official
+hosting platform for competitions, including the forthcoming
+SocialNav2025 workshop.
+To demonstrate the platforms benchmarking abilities, we
+benchmarked state-of-the-art social navigation approaches
+on a variety of generated worlds. Therefore, we utilized
+our platform to generate worlds of different difficulty, more
+specifically hospital, office, and warehouse world each 4
+levels are created. Subsequently, all planners  listed in
+Table Table I are run for 15 runs on each world and the
+average value of each metric is calculated.
+The results of the benchmark are illustrated in Figure 10,
+where each planners metric is displayed in various exemplary
+plotting styles. we also provide data preprocessing methods
+to calculate and plot the results effortlessly using an iPython
+notebook.
+1) User Study: We evaluated our platform through a user
+study with 20 participants from universities in Germany, the
+of robotics expertise. The group included individuals who had
+previously used Arena, social navigation researchers with no
+prior Arena experience, and students in computer science or
+engineering from multiple universities. Participants installed
+Fig. 9: Example worlds generated using the Arena-Gen module for benchmarking and competition purposes. The worlds were generated
+using the text "generate 4 difficulty levels of a [hospital, residential, office] environment". The assets are automatically taken from the
+arena model database and pedestrians spawned with HuNavSim. Notably, a large variety of worlds for each environment type and level
+can be generated, e.g. 500 environments of hospital level 2. This feature aids quantitative benchmarking and in training new models.
+Users can also customize room layouts, pedestrian interactions with each other, asset placements, and specific situations using the Arena
+Architect GUI (shown in the supplementary video).
+and interacted with the platform by completing tasks such
+as launching various task modes, initiating training runs, and
+testing different planners on multiple robots. They then filled
+out a questionnaire that assessed the platforms strengths,
+with Arena and background in robotics. All responses and
+information about the participants occupation and level of
+expertise are publicly available on Google Drive.
+The feedback primarily highlighted positive advancements in
+Arena 5.0 compared to earlier versions. Participants praised
+the new Isaac Gym integration and simplified wrappers,
+noting that they had previously avoided Isaac Sim due to
+limited documentation and complex setup. With Arenas
+benchmark approaches in Isaac Sim.
+Users also expressed favorable opinions about the web-based
+the previous JSON-based configuration workflow. The Arena-
+Gen modules were similarly well-received, with participants
+confirming that they effectively generate a variety of envi-
+ronments. However, some suggested expanding the current
+Generative AI pipeline beyond the three indoor environments
+(residential, office, and hospital) to include settings such as
+warehouses.
+Two participants reported occasional stability concerns, par-
+ticularly longer wait times for world generation prompts, and
+only a few instances involved incorrect floorplans resulting
+in unrealistic 3D worlds. Additionally, several users cited
+an increased demand for computational power due to the
+integration of Isaac Sim and questioned whether earlier
+simulators would remain supported. In this regard, Arenas
+modular and simulator-agnostic architecture ensures contin-
+ued compatibility across multiple simulation tools.
+V. LIMITATIONS
+Despite the potential and large variety of functionality this
+version offers, there are still limitations that are currently
+to be tackled. The primary limitation of Arena 5.0 is its
+increased computational requirements: photorealistic simu-
+lation incurs higher overhead and latency than lighter-weight
+simulators. However, we observe that performance scales
+more favorably with environment complexity and agent
+intensive to simulate than in Gazebo or Unity. Arenas ab-
+straction layer enables users to select the simulator best suited
+to their hardware and application needs. Human motion
+visualization remains dependent on pre-existing animation
+modeling expertise; we plan to address this by integrating
+motion-capture transfer methods into the Arena ecosystem.
+environment types (office, hospital, and warehouse), and
+expanding this coverage via globally sourced datasets is a
+priority for future work. While no simulation can perfectly
+replicate reality, Arena 5.0 represents a substantive advance
+toward narrowing the sim-to-real gap.
+Fig. 10: Example plots generated with Arena evaluation module for the conducted benchmark of all planners available in Arena 5.0,
+plotted on several social navigation metrics
+VI. CONCLUSION
+In this paper, we introduce Arena 5.0, a substantial enhance-
+ment over our previous works Arena 1.0 , Arena 2.0
+, Arena 3.0 , and Arena 4.0 , designed to support
+the dynamic generation of 3D environments for training,
+key upgrade in this version is the full integration of Isaac
+world and scenario generation process. These enhancements
+simplify and enable the development and benchmarking of
+social navigation approaches within a unified platform.
+transparency and extensive customization options through
+accessible APIs that allow users to integrate their own
+planners and extend the platforms capabilities. The platform
+also includes comprehensive benchmarking tools and has
+incorporated the Navigation2  (Nav2) stack, along with
+several state-of-the-art planners and the most commonly used
+robotic platforms.
+With its user-friendly graphical interfaces and faster process-
+ing times, Arena 5.0 has demonstrated significant improve-
+ments in functionalities and user experience. Future develop-
+ments aim to further expand the platforms functionalities by
+integrating more advanced planning approaches, extend the
+world generation capabilities to include outdoor worlds and
+weather conditions, and multi-agent reinforcement learning
+approaches. The forthcoming release of Arena-Web  will
+replicate most of the platforms features in a web-based
+a global audience.
+REFERENCES
+R. Mirsky, X. Xiao, J. Hart, and P. Stone, Conflict avoidance in
+social navigationa survey, ACM Transactions on Human-Robot
+P. T. Singamaneni, P. Bachiller-Burgos, L. J. Manso, A. Garrell,
+A. Sanfeliu, A. Spalanzani, and R. Alami, A survey on socially aware
+robot navigation: Taxonomy and future challenges, The International
+Journal of Robotics Research, p. 02783649241230562, 2024.
+A. Francis, C. Prez-dArpino, C. Li, F. Xia, A. Alahi, R. Alami,
+A. Bera, A. Biswas, J. Biswas, R. Chandra et al., Principles and
+guidelines for evaluating social robot navigation algorithms, arXiv
+preprint arXiv:2306.16740, 2023.
+W. Wang, L. Mao, R. Wang, and B.-C. Min, Srlm: Human-in-loop
+interactive social robot navigation with large language model and deep
+reinforcement learning, arXiv preprint arXiv:2403.15648, 2024.
+A. H. Raj, Z. Hu, H. Karnan, R. Chandra, A. Payandeh, L. Mao,
+P. Stone, J. Biswas, and X. Xiao, Rethinking social robot navigation:
+Leveraging the best of two worlds, in 2024 IEEE International
+Conference on Robotics and Automation (ICRA). IEEE, 2024.
+B. Chen, H. Zhu, S. Yao, S. Lu, P. Zhong, Y. Sheng, and J. Wang,
+Socially aware object goal navigation with heterogeneous scene
+representation learning, IEEE Robotics and Automation Letters, 2024.
+D. Song, J. Liang, A. Payandeh, X. Xiao, and D. Manocha, Socially
+aware robot navigation through scoring using vision-language models,
+arXiv preprint arXiv:2404.00210, 2024.
+P. T. Singamaneni, A. Favier, and R. Alami, Towards benchmarking
+human-aware social robot navigation: A new perspect

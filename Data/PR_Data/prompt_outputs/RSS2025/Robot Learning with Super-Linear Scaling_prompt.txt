@@ -1,0 +1,841 @@
+=== PDF文件: Robot Learning with Super-Linear Scaling.pdf ===
+=== 时间: 2025-07-22 15:45:10.843728 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Robot Learning with Super-Linear Scaling
+Marcel Torne, Arhan Jain, Jiayi Yuan, Vidaaranya Macha,
+Lars Ankile, Anthony Simeonov, Pulkit Agrawal, Abhishek Gupta
+Massachusetts Institute of Technology
+University of Washington
+Stanford University
+AbstractScaling
+learning
+requires
+collection
+pipelines that scale favorably with human effort. In this work, we
+propose Crowdsourcing and Amortizing Human Effort for Real-to-
+Sim-to-Real(CASHER), a pipeline for scaling up data collection
+and learning in simulation where the performance scales super-
+linearly with human effort. The key idea is to crowdsource digital
+twins of real-world scenes using 3D reconstruction and collect
+large-scale data in simulation, rather than the real-world. Data
+collection in simulation is initially driven by RL, bootstrapped
+with human demonstrations. As the training of a generalist policy
+progresses across environments, its generalization capabilities
+can be used to replace human effort with model-generated
+demonstrations. This results in a pipeline where behavioral data
+is collected in simulation with continually reducing human effort.
+We show that CASHER demonstrates zero-shot and few-shot
+scaling laws on three real-world tasks across diverse scenarios.
+We show that CASHER enables fine-tuning of pre-trained policies
+to a target scenario using a video scan without any additional
+human effort.
+I. INTRODUCTION
+Robot learning has the potential to revolutionize decision-
+making for robots by leveraging data to learn behaviors de-
+ployable in unstructured environments, showing generalization
+and robustness. Critical to the success of robot learning,
+beyond the algorithms and model architectures, is the training
+data. As in most machine learning, getting the right type,
+Robot learning is still grappling with the question of what the
+right type of data and how to obtain it at scale. The type of
+data we can train on is inherently tied to the abundance of this
+data - good data is both high-quality and abundant. This paper
+proposes a system for obtaining this diverse, high-quality data
+at superlinear scale with sublinear human effort.
+Unlike vision and language, data for learning is not available
+passively - there are relatively few robots that are already
+finding use in the world. This makes applying the same recipes
+we did in vision and language challenging, necessitating more
+careful consideration of how and where this data comes from.
+One option is to rely on teleoperation to collect this data.
+This approach is inherently limited by human effort, since the
+cost to collect data scales linearly with human involvement.
+Recent work [16, 30, 2] has attempted to scale the amount
+of teleoperation data however the quantity of data collected
+is still orders of magnitude smaller than the scale at which
+vision and language models show emergent capabilities.
+So where might we find data that scales superlinearly
+with human effort? Simulation offers a potential solution, at
+face value providing free data up to the limit of computing.
+reward creation per domain is non-trivial, and even with scenes
+despite the promise, simulation data isnt quite free of cost, and
+requires considerable amounts of human efforts for content and
+behavior creation per environment. While it is possible to gen-
+erate random environments procedurally, generating thousands
+of environments randomly is unlikely to cover the distribution
+of natural environments, and generating behaviors randomly
+is unlikely to lead to success.
+In this work, we propose a method to scale up continual
+data collection, ensuring human effort amortizes sublinearly
+with the number of environments. Our key idea is to leverage
+simulation for data scaling without the corresponding increase
+in content and behavior creation effort. For content scaling,
+we utilize 3D reconstruction methods, shifting the burden
+from designers to non-expert users and cheap data collection.
+For behavior generation, we employ techniques that leverage
+model generalization to reduce the required human data over
+time. The insight is that as we go across many simulated
+This generalization can be leveraged to continually reduce
+the amount of human data needed as new environments are
+encountered. CASHER (1) creates a data flywheel, where data
+begets more data through model generalization.
+Our contributions include 1) a novel continual data collec-
+tion system based on real-to-sim-to-real for training generalist
+for improving the accuracy of a generalist policy on a target
+environment without additional human demonstrations, 3) a
+detailed analysis of the scaling laws for zero-shot performance
+of our generalist policies, 4) evaluation of the few-shot per-
+formance of the resulting generalist policies.
+II. RELATED WORK
+Large Scale Data Collection for Robotics: Learning from
+real-world demonstrations has proven effective [6, 46, 29].
+To facilitate this, various studies have focused on improving
+hardware to ease the data collection process for teleoperators
+[46, 7, 43]. Efforts have also scaled up the volume of data from
+real-world demonstrations [30, 16, 2], staying nevertheless
+in the low-data regime. Moreover, real-world data collection
+is costly, requiring expert supervision and physical robots,
+which limits scalability. CASHER, instead, trains entirely
+Crowdsourced
+Real World Scanning
+Generalist
+Zero-shot transfer
+RL fine-tuning from demos
+Collect demos
+Generalist
+Scanned Deployment Fine-tuning
+Amortized Data Collection through Real-to-Sim-to-Real
+Human demos reduce
+as training progresses
+trajectories
+trajectories
+trajectories
+trajectories
+trajectories
+RL fine-tuning
+Sim-to-Real transfer
+Distillation
+Overview of CASHER, we propose a system for training generalist policies leveraging real-to-sim simulation on crowdsourced scans. These have
+zero-shot transfer and scanned fine-tuning capabilities.
+in simulation, using real-world scans obtained via standard
+smartphones. Additionally, while traditional teleoperation data
+collection scales linearly with human effort, CASHER reduces
+the human effort needed for subsequent learning steps by
+leveraging the knowledge acquired during training.
+Autonomous Learning: To improve scalability of robot
+learning and reduce the amount of human demonstrations
+and learning methods. One approach is reinforcement learn-
+ing (RL) in the real world [21, 19], but the standard RL
+techniques need for resets poses scalability issues, as it
+requires either human supervision or substantial engineering
+efforts for automating resets. Reset-free reinforcement learning
+[1, 45, 37, 11] offers a promising alternative, but it still
+requires occasional human intervention and struggles with
+high sample complexity for learning more challenging tasks,
+making it hard to learn in the real-world. Autonomous learning
+in the real world presents significant challenges that are
+mitigated in simulation, where resets are manageable and data
+collection is more abundant. In CASHER, we exploit these
+advantages of simulation while minimizing the sim-to-real gap
+through real-to-sim scene transfers. Continual learning also
+faces challenges, such as catastrophic forgetting, as discussed
+in prior work . We address this by decoupling the policy
+used to generate trajectories, which is fine-tuned with RL,
+from the final generalist policy, which is trained with imitation
+learning over the entire dataset.
+Prior work studies how to autonomously collect data in
+simulation by starting from a set of demonstrations and making
+certain assumptions to augment them . These assumptions
+are limiting such as free-space movement through linear
+interpolation between human-annotated subtasks, rigid objects,
+or object-gripper-centric demonstrations. These assumptions
+fail in tasks involves circular motion or moving objects in
+leverage VLMs to provide reward functions in simulation ;
+that do not transfer to the real world. CASHER addresses
+these challenges by using human demonstrations to induce
+more natural, transferable behaviors, and solves tasks with
+method more scalable.
+Procedural and Synthetic Data Generation: Creating
+realistic environments for robot learning in simulation is a
+significant challenge. To address this, prior work has proposed
+using large language models (LLMs) or heuristics to generate
+scene plans resembling the real world [40, 9, 26, 42], or
+utilizing real-world scans to replicate actual scenes [10, 5].
+Despite reducing human involvement, these methods often
+produce scenes that are unrealistic in appearance or object
+clutter. Generating procedurally accurate training environ-
+ments remains an open challenge. However, extracting digital
+twins from the real world mitigates this issue, as scans
+reflect the actual test distribution. Relevant to our work,
+automates the creation of simulatable environments from real-
+world scans, which could be integrated into our pipeline to
+scale up environment crowdsourcing. Once the environments
+are available, generating valid robot trajectories that solve the
+task is another challenge. An option becomes procedurally
+generating the motions using motion planning techniques .
+Real-to-Sim-to-Real Transfer for Robotics: Real-to-sim-
+to-real techniques have proven effective in learning robust
+policies for specific scenarios with minimal human supervision
+[39, 41]. However, these policies often fail to generalize to
+different scenarios, requiring significant human effort for each
+new environment. In this work, we address this limitation
+by learning generalist policies through a novel technique
+that amortizes the number of human demonstrations through
+training. Other research has tackled various challenges in real-
+world interaction data [23, 35, 3], and automatically generating
+articulations from images [5, 14, 27]. These complementary
+advancements make simulators more realistic and could reduce
+human effort further in CASHER. Additionally, real-to-sim
+techniques have shown promise in their use for simulated
+evaluation of real-world policies .
+III. AMORTIZED DATA SCALING FOR LEARNING
+GENERALIST POLICIES THROUGH REAL-TO-SIM-TO-REAL
+This work presents CASHER, a pipeline for large-scale
+continual data collection for robotic manipulation. The pri-
+mary challenge for data scaling in the realm of robotics is
+the absence of passive, easy-to-collect data from naturally
+language. While procedural generation in simulation can pro-
+vide large amounts of data, the distribution and diversity
+of the data does not overlap with real-world environments.
+In this work, we argue that a multi-task, multi-environment
+real-to-sim-to-real pipeline can enable large-scale data gen-
+effort sublinearly as increasing numbers of environments are
+encountered. This is opposed to typical human teleoperated
+data collection that requires considerable expertise, physical
+infrastructure and suffers from linear scaling in human effort.
+This approach enables the scaling laws necessary for large
+scale data collection and training of robotic foundation models,
+showing non-trivial zero-shot generalization performance as
+well as cheap and efficient fine-tuning in new environments.
+CASHER consists of three elements - 1) fast, accessible
+digital twin generation with 3-D reconstruction methods, 2)
+multi-environment model learning that amortizes the data col-
+lection process through autonomous data collection and model
+using 3-D scans, and minimal human demonstrations.
+A. Real-to-Sim Scene Synthesis
+Our proposed data collection pipeline adopts a real-to-sim-
+to-real approach, building digital twins of real-world scenes in
+simulation and collecting behavioral data in these simulations
+instead of the real world. This method offers several advan-
+tages - 1) data collection does not require a physical robot
+environments 2) it allows for safe, decentralized, and asyn-
+chronous data collection 3) digital twins capture the complex-
+ities of real-world scenarios more accurately than procedurally
+generated simulations. These advantages are crucial to the
+democratization and scalability of data collection as it is scaled
+up to thousands of non-experts and real environments beyond
+the lab. We leverage easily accessible mobile software[8, 32]
+for scene reconstruction from sequences of images to easily
+crowdsource simulated environments 1. These environments
+indicate the geometry, visuals and physics of diverse real-
+world scenes in simulation but do not have any demonstrations
+of the desired optimal behavior. We discuss how this can be
+obtained efficiently in the following section.
+B. Amortized Data Collection
+Algorithm 1 CASHER: Amortized Data Collection for Gen-
+eralist Policies
+Sample set of K digital twins from crowdsourced
+humans {EK1, EK2, . . . , E2K} C
+for Ei in EK, EK1, . . . , E2K do
+Te RolloutPolicy(Ei, G)
+T T FilterSuccessfulRollouts(Te)
+s RLFinetuning(T , {EK1, EK2, . . . , E2K})
+F FailedEnvironments({EK1, EK2, . . . , E2K}, s)
+for Ei in F do
+Th Th CollectDemos(Ei, H)
+h PPORLFinetuning(F, h)
+G TeacherStudentDistillation(E, G, s, h)
+Given the diversity of realistic simulation scenes available
+through the digital twin pipeline outlined in Section III-A,
+learning generalizable decision-making policies requires a
+large training set of visuomotor trajectories demonstrating
+optimal behavior for each distinct environment. Two natural
+alternatives for obtaining these trajectories are: 1) human-
+provided demonstrations and 2) optimal policies trained via
+reinforcement learning
+2. While tabula-rasa reinforcement
+learning can provide a robust set of trajectories with extensive
+state coverage without expensive human intervention, it faces
+considerable challenges related to exploration and reward
+design. On the other hand, human demonstrations avoid these
+issues but are expensive to collect at scale.
+A natural solution is to use sparse-reward reinforcement
+learning bootstrapped with human demonstrations [39, 13,
+1We provide further details about the real-to-sim pipeline in Appendix
+2Other techniques such as trajectory optimization or motion planning may
+be applicable as well
+Autonomously Data
+Collection in Sim
+RL Fine-tuning
+Distillation Fine-tuning
+Vision Policy
+Query human
+for demos
+Generalist
+Generalist
+fine-tuning
+Overview of the proposed continual data collection system for amortizing human data collection.
+34]3. This approach balances human effort for data collection
+and reward specification with state-space coverage. However,
+scaling it up to hundreds or thousands of scenes becomes
+the number of environments. In this work, we learn a gener-
+alist multi-environment policy to amortize the cost of human
+data collection across environments. We demonstrate that the
+capacity of such a multi-environment model to display non-
+trivial generalization allows the cost of continual human data
+collection to decrease as the number of training environments
+increases.
+This system, formally stated in the Algorithm 1 and depicted
+in Fig. 2, divides the total number of environments into
+batches of size K. For the first batch of K environments
+icy G randomnly initialized with no generalization capabil-
+ities. Thereafter, we initialize it with data from the first K
+human-provided demonstrations. Demonstration bootstrapped
+RL produces optimal visuomotor trajectories per environment
+eralist multi-environment policy G with visuomotor policy
+distillation  (Appendix VII-B2).
+Ei{E1,E2,...,EK}
+(st,at,rt)Ei(old)
+min( (atst)
+old(atst)
+old(atst), 1 , 1  ) At)
+Ei{E1,E2,...,EK}
+(st,V targ
+)Ei(old)
+(V(st) V targ
+(si,ai)T
+log (aisi)
+While human demonstrations are used to bootstrap the data
+generation and training of the first iteration of the generalist
+policy G on the first K environments, our key insight
+is that if G shows non-trivial level of generalization on
+visuomotor deployment in the next K simulation environments
+- EK1, . . . , E2K, then this policy G can be used to collect
+simulated demonstrations T
+where N is the number of demonstration for bootstraping RL,
+in place of a human demonstrator. We do so by deploying the
+visuomotor policy G(atot) using perceptual observations ot
+such as RGB point clouds, but since we are in the simulation
+we collect T with paired data of visual observations ot, actions
+at and low-dimensional privileged Lagrangian state st. These
+privileged state-based trajectories enable the usage of efficient
+demonstration-bootstrapped reinforcement learning of a state-
+based policy s rather than operating from high-dimensional
+perceptual observations. See Eq 1 and Appendix VII-B1 for
+3We refer readers to Appendix VII-B1 for details of demonstration boot-
+strapped reinforcement learning
+the state-based policy update using PPO  with a BC loss,
+where At is the estimator of the advantage function at step t
+, and V is the learned value function.
+covering optimal multi-environment policy s1(atst) for all
+learning. Nevertheless, in some environments, the policy may
+still perform poorly due to the occasional low-quality demon-
+strations from G. To address this, we define the set of
+environments where s1 achieves below r success rate as F
+{EK, EK1, . . . , E2K}. For these environments F, we fall back
+to querying the human demonstrator for high-quality demon-
+strations and learn a second state-based policy s2(atst) using
+demonstration-bootstrapped reinforcement learning on F.
+The two learned policies s1 and s2 can then be used
+for generating data on {EK1, EK2, . . . , E2K}F and F
+respectively with these new trajectories being added into D.
+first 2K environments with supervised learning (see Appendix
+Success Rate
+Success Rate
+Zero-Shot Scaling Laws
+Training environments
+Training Set (sim)
+Test Set (real)
+Training environments
+Zero-Shot Large-Scale
+Evaluation
+Robustness test (real)
+Success Rate in Real
+Success Rate in Sim
+Scaling in Sim
+Corresponds to Scaling in Real
+a) CASHERs zero-shot scaling laws on the task of pick and placing bowlcupmugs to sinks; b) in the proposed real-to-sim-to-real setup there is a
+linear relation between performance in sim and performance in real; c) evaluation on a broader set of environments confirms the robustness of the zero-shot
+policies.
+VII-B2 for implementation details).
+E(oi,ai)D [log G(aioi)]
+Then the process repeats for the next K environments.
+As the visuomotor generalist policy G is trained across
+more environments, it demonstrates increasingly non-trivial
+in more environments. This reduces the amount of human
+effort required for data collection as training progresses.
+need to achieve perfect success rates but should be sufficient
+to bootstrap a demonstration-augmented policy learning algo-
+rithm (Equation 1). This suggests an interesting scaling law
+- data collection becomes more human-efficient as training
+outline of the practical data collection pipeline, refer to Algo-
+rithm 1.
+C. Fine-tuning of Generalist Policies on Deployment
+The generalist policies G(atot) pretrained in Section
+may not achieve optimal performance in any one environment
+upon zero-shot deployment. However, these generalist policies
+can serve as a starting point for efficient fine-tuning at test
+time. In this section, we present an alternative for fine-tuning
+generalist policies G(atot) during deployment. We make the
+observation that we can follow the same procedure as model-
+bootstrapped autonomous data collection during training de-
+scribed in Section III-B. Given a scanned digital twin Etest of
+the testing environment in simulation, the pre-trained multi-
+environment model G(atot) shows some non-trivial zero-
+shot generalization, but may not achieve optimal performance
+in Etest. By executing the visuomotor policy G(atot) in
+consisting of (ot, at, st) tuples in simulation, without the need
+for any external human intervention. This model-generated
+data can then be used to train a robust, high-coverage state-
+based policy s(atst) using demonstration-bootstrapped re-
+Success Rate
+Percentage of envs
+requiring human demos
+Training environments
+Human demos
+Wall clock time in minutes to
+collect autonomous demos
+Training environments
+Ours amortized
+Ours non-amortized
+Zero-Shot Performance of Policies
+Quantity of Human Demos Needed
+Compute Time to Collect
+Autonomous Demos
+a) CASHER with continual data collection becomes more efficient
+in number of human demos and achieves higher performance than running
+CASHER uniquely from human demos. b) with continual data collection
+the number of human demos required decreases throughout training. c) even
+though CASHER relies on compute we observe the amount of compute
+needed also tends to decrease when scaling up this process.
+inforcement learning (Eq 1). Finally, for real-world transfer
+from visual observations this state-based policy s(atst) is
+distilled into a fine-tuned visuomotor policy Gf(atot), by
+collecting a set of successful rollouts D with s(atst) and
+fine-tuning the previously obtained generalist policy G(atot)
+as in Eq 2. This approach allows the model to retain the
+generalist capabilities of G while achieving high success in
+Etest. Importantly, this fine-tuning step is accomplished using
+only a video scan of the environment, without the need for
+human-provided demonstrations or feedback in the physical
+environment. (See Algorithm 2, in Appendix VII-C1). Finally,
+in the Appendix VII-C2, we propose a second technique
+involving few-shot supervised fine-tuning using a limited set
+of human-provided demonstrations.
+IV. EXPERIMENTAL EVALUATION
+Our experiments are designed to answer the following
+How much can we amortize the quantity of human data needed
+through learning without a loss in performance? (c) What are
+the few-shotscanned fine-tuning capabilities of the learned
+generalist policies? (d) Do these scaling laws hold across
+different tasks? (e) Do these generalist policies extrapolate to
+multi-object environments when trained with single object?
+To answer these questions, we design two different tasks:
+placing bowlsmugscups in sinks and placing boxes in shelves.
+We use a single-arm manipulator, the Franka Research 3 arm
+Success Rate
+Success Rate
+Object-to-Cabinet Few-Shot
+Training environments
+Training Set (sim)
+Test Set (real)
+Object-to-Sink Multi-Object
+Evaluation
+Number of placed objects
+BC (10 demos)
+Success Rate
+Open Cabinet Few-Shot
+Training environments
+Training Set (sim)
+Test Set (real)
+BC (10 demos)
+results on the task of pick and place mugbowlcups in the sink
+with 7 DoF and a parallel jaw gripper, see Appendix XII.
+We crowdsourced environment data collection, obtaining (a
+maximum of ) 56 and 36 different scenes for the two tasks,
+respectively. We evaluated the policies across two institutions
+on 8 and 2 real-world scenes not included in the training set.
+Further details on the hardware setup and tasks are provided
+in Appendix VIII and XII.
+A. Zero-Shot Scaling Laws Analysis
+In this section, we analyze the zero-shot performance of
+multiple generalist policies trained with varying amounts of
+training environments on the task of put a mugbowlcup in
+a sink. For fair comparison, we train these policies using
+human demonstrations in each environment. In Section IV-B,
+we compare this baseline to the autonomous data collection
+system presented in Section III-B.
+The first experiment involves a thorough real-world eval-
+uation of these policies across two institutions, using three
+different kitchens and six different objects, with six rollouts
+each (a total of 108 rollouts per policy). As shown in Figure
+3 a, we confirm the real-to-sim-to-real pipeline scaling law:
+as the number of trained environments increases, the zero-
+shot success rate also increases, reaching a 62 when trained
+on 56 environments. Furthermore, Figure 3 b shows a linear
+correlation between simulation and real world performance,
+indicating that our real-to-sim-to-real scaling approach in sim-
+ulation proportionally corresponds to improved performance in
+the real world.
+To verify the robustness of the learned policies, we ran
+evaluation on eight additional kitchens. The results highlight
+an improvement of 16 to 60 rate as the number of
+training environments increased from 9 to 56 (Figure 3 c).
+Figure 8 shows a sample of the objects and environments
+used for evaluation. Finally, we stress-tested against other
+types of robustness (Figure 3), including extreme lighting
+the policies suffer a drop in performance but keep obtaining
+success rates above 30 (see Appendix XI-B). On the same
+lines we evaluate the policy on multiple objects in the scene
+and observe that even though it was only trained to pick up
+one object, it still succeeds 10 of the times to clean a scene
+with 3 objects (See Figure 5 and Appendix XI-A).
+B. Amortized Human Data Needed Through Continual Data
+Collection
+In this section, we evaluate the amortization of number of
+human demonstrations needed as learning progresses across
+multiple environments. We compare two approaches: our
+proposed system using continual data collection performed
+in four sequential batches of 10 environments each, and
+another baseline providing human demonstrations for each
+environment individually. The evaluation is conducted in a
+single real-world kitchen with six different objects for the task
+of put a bowlmugcup in a sink, performing 6 rollouts per
+object. Figure 4(a) shows that the performance per number
+of demonstrations significantly increases as the policy starts
+developing generalization. Specifically, as shown in Figure
+4(b), the quantity of human demonstrations needed decreases
+as the policy improves with each subsequent batch. Although
+CASHER shifts the burden to compute rather than human
+creases as well when scaling up the system, since the success
+rate of the generalist policy is higher, the number of trials
+performed to reach the same number of successful rollout
+decreases. Finally, we observe that the performance of the
+continually learned policy is higher than of the policy learned
+solely from human demonstrations. We hypothesize that this
+is due to the multimodality in behaviors from the human
+demonstrations. When the policy autonomously collects the
+human-provided demonstrations may introduce more variabil-
+C. Fine-Tuning of Generalist Policies
+Unsupervised scanned deployment fine-tuning: To eval-
+uate the efficacy of unsupervised fine-tuning through a scan
+Ours Finetuned on Scanned Deployment
+Scanned Deployment
+Success Rate
+Ours-base
+Ours Few-shot fine-tuned
+Imitation Learning
+Success Rate
+Few-shot Fine-tuning
+Fine-tuning results. left: CASHER successfully improves its
+performance fine-tuning autonomously on a scanned deployment environment.
+performance of the generalist policy on the target scene.
+(Section III-C), we select two scenes for the task of placing
+a mugcupbowl in a sink where the policy trained on 36
+environments performs poorly (20). We then apply the
+scanned deployment fine-tuning algorithm as described in
+Section III-C. As shown in Figure 6, this results in an average
+performance increase of 55 without any additional human
+demonstrations.
+Few-shot supervised fine-tuning: We select three envi-
+ronments where the base policy trained on 36 environments
+performs poorly (20). We then collect 10 demonstrations
+for each environment and apply the few-shot fine-tuning pro-
+cedure described in Section III-C. This fine-tuning improves
+the performance of the base policy by an average of a 54 in
+success rate.
+D. Analysis of CASHER on More Tasks
+We attempt to solve two additional tasks, putting a box on a
+cabinet and opening a cabinet. The first is a more complicated
+manipulation task since it requires more precise grasping to
+not make the box fall, and the second shows how our proposed
+method works for articulated objects (see Appendix VII-A
+where we give more details on how the proposed real-to-sim
+pipeline can handle articulated objects). In these two tasks,
+we focus our analysis on few-shot fine-tuning as described in
+Section III-C. For putting a box on a cabinet, we crowdsourced
+36 environments, collected 10 demonstrations for each of
+three scenes, and reported the performance after fine-tuning
+with 10 demos. For opening a cabinet, we crowdsource
+10 environments, collect 10 demonstrations for a new test
+environment and report the performance after fine-tuning with
+these demos. In Figure 5, we show the performance increases
+with the number of training environments, without reaching a
+saturation point. Fine-tuning the policy trained on 36 and 10
+environments respectively resulted in a significant performance
+improvement of 36 and 30 compared to the imitation
+learning baseline, which had a 0 success rate. We expect
+the performance of the generalist policies to keep improving
+as we have not reached a saturation point.
+V. CONCLUSION
+In this work, we present a system for scaling up robot
+learning through crowdsourced simulation. We showed that
+through the learning of visual generalist policies, we are
+able to scale across environments with decreasing amounts of
+human effort. The resulting policies are shown to transfer to
+the real world, enabling both zero-shot and finetuning results.
+ear scaling of data with respect to human demonstrations, the
+burden shifts to compute. And even though we have shown
+a reduction in compute time with scaling, it still exceeds
+the time required for collecting real-world demonstrations.
+all real-world objects can be accurately simulated yet, such
+as liquids and deformable objects. However, contrary to the
+human teleoperation efforts, with advancements in compute
+resources and simulator research, systems like CASHER will
+benefit from these and further improve scalability. Conclusion:
+This work presents CASHER, a real-to-sim-to-real system
+that trains generalist policies with sublinear human effort. This
+research paves the way for building robotic foundation models
+in simulation with larger datasets and enhanced robustness.
+VI. ACKNOWLEDGEMENTS
+The authors would like to thank the Improbable AI Lab
+and the WEIRD Lab members for their valuable feedback and
+support in developing this project. Marcel Torne was partly
+supported by the Sony Research Award, the US Government,
+and the Hyundai Motor Company, and Arhan Jain was sup-
+ported by funding from the Army Research Lab.
+Author Contributions
+Marcel Torne led the project and jointly conceived the
+overall project goals and methods of CASHER. Led the
+technical development of the method. Marcel helped run some
+of the real-world experiments. Marcel wrote the paper and
+made the main figures of the paper. Marcel also led the design
+of the website.
+Arhan Jain jointly conceived the overall project goals and
+methods of CASHER. Made major technical contributions to
+the implementation of the method. Was responsible for part of
+the real-world experiments. Arhan made main contributions to
+the website, he is the author of the interactive web viewer.
+Jiayi Yuan led the large-scale training on the crowdsourced
+environments. Jiayi also helped with building the website,
+some figures in the paper, part of the real-world experiments,
+and writing the appendix.
+Vidaaranya Macha led the real-world experiments and data
+collection.
+Lars Ankile was involved in regular discussions about
+implementation challenges and when conceiving the paper.
+Anthony Simeonov was involved in conceiving the goals
+and motivation of the project and provided crucial advice
+throughout the project.
+Pulkit Agrawal was involved in conceiving the projects
+Abhishek Gupta was involved in conceiving the projects
+and was the main advisor of the project.
+REFERENCES
+Max Balsells, Marcel Torne, Zihan Wang, Samedh Desai,
+Pulkit Agrawal, and Abhishek Gupta.
+Autonomous
+robotic reinforcement learning with asynchronous human
+feedback. arXiv preprint arXiv:2310.20608, 2023.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yev-
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana
+control at scale. arXiv preprint arXiv:2212.06817, 2022.
+Yevgen Chebotar, Ankur Handa, Viktor Makoviychuk,
+Miles Macklin, Jan Issac, Nathan Ratliff, and Dieter
+Fox. Closing the sim-to-real loop: Adapting simulation
+randomization with real world experience.
+International Conference on Robotics and Automation
+(ICRA), pages 89738979. IEEE, 2019.
+Tao Chen, Megha Tippur, Siyang Wu, Vikash Kumar, Ed-
+ward Adelson, and Pulkit Agrawal. Visual dexterity: In-
+hand reorientation of novel and complex object shapes.
+Science Robotics, 8(84):eadc9244, 2023.
+Zoey Chen, Aaron Walsman, Marius Memmel, Kaichun
+constructing articulated simulation environments from
+real-world images.
+arXiv preprint arXiv:2405.11656,
+Cheng Chi, Siyuan Feng, Yilun Du, Zhenjia Xu, Eric
+fusion policy: Visuomotor policy learning via action
+diffusion. arXiv preprint arXiv:2303.04137, 2023.
+Cheng Chi, Zhenjia Xu, Chuer Pan, Eric Cousineau,
+Benjamin Burchfiel, Siyuan Feng, Russ Tedrake, and
+Shuran Song. Universal manipulation interface: In-the-
+wild robot teaching without in-the-wild robots.
+preprint arXiv:2402.10329, 2024.
+AR Code. Ar code.  2022.
+Matt Deitke, Eli VanderBilt, Alvaro Herrasti, Luca
+eration.
+Advances in Neural Information Processing
+Matt Deitke, Rose Hendrix, Ali Farhadi, Kiana Ehsani,
+and Aniruddha Kembhavi. Phone2proc: Bringing robust
+robots into our chaotic world.
+In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Abhishek Gupta, Justin Yu, Tony Z Zhao, Vikash Kumar,
+Aaron Rovinsky, Kelvin Xu, Thomas Devlin, and Sergey
+Reset-free reinforcement learning via multi-
+task learning: Learning dexterous manipulation behaviors
+without human intervention. In 2021 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Huy Ha, Pete Florence, and Shuran Song. Scaling up and
+distilling down: Language-guided robot skill acquisition.
+In Conference on Robot Learning, pages 37663777.
+Hengyuan Hu, Suvir Mirchandani, and Dorsa Sadigh.
+Imitation bootstrapped reinforcement learning, 2023.
+Zhenyu Jiang, Cheng-Chun Hsu, and Yuke Zhu. Ditto:
+Building digital twins of articulated objects from inter-
+action. In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition, pages 5616
+Bernhard Kerbl, Georgios Kopanas, Thomas Leimkuhler,
+and George Drettakis. 3d gaussian splatting for real-time
+radiance field rendering. ACM Transactions on Graphics,
+42(4), July 2023. URL
+3d-gaussian-splatting.
+Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ash-
+win Balakrishna, Sudeep Dasari, Siddharth Karam-
+Lawrence Yunliang Chen, Kirsty Ellis, et al. Droid: A
+large-scale in-the-wild robot manipulation dataset. arXiv
+preprint arXiv:2403.12945, 2024.
+Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla:
+An open-source vision-language-action model.
+preprint arXiv:2406.09246, 2024.
+Timothee Lesort, Vincenzo Lomonaco, Andrei Stoian,
+Rodrguez. Continual learning for robotics: Definition,
+lenges. Information fusion, 58:5268, 2020.
+Sergey Levine, Peter Pastor, Alex Krizhevsky, Julian
+Learning hand-eye coor-
+dination for robotic grasping with deep learning and
+large-scale data collection. The International journal of
+robotics research, 37(4-5):421436, 2018.
+Xuanlin Li, Kyle Hsu, Jiayuan Gu, Karl Pertsch, Oier
+Isabel Sieh, Sean Kirmani, Sergey Levine, Jiajun Wu,
+Chelsea Finn, Hao Su, Quan Vuong, and Ted Xiao.
+Evaluating real-world robot manipulation policies in sim-
+ulation. arXiv preprint arXiv:2405.05941, 2024.
+Jianlan Luo, Zheyuan Hu, Charles Xu, You Liang Tan,
+Jacob Berg, Archit Sharma, Stefan Schaal, Chelsea Finn,
+Abhishek Gupta, and Sergey Levine. Serl: A software
+suite for sample-efficient robotic reinforcement learning,
+Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Ire-
+tiayo Akinola, Yashraj Narang, Linxi Fan, Yuke Zhu,
+and Dieter Fox. Mimicgen: A data generation system
+for scalable robot learning using human demonstrations,
+2023. URL
+Marius Memmel, Andrew Wagenmaker, Chuning Zhu,
+Patrick Yin, Dieter Fox, and Abhishek Gupta.
+Active exploration for system identification in robotic
+manipulation. arXiv preprint arXiv:2404.12308, 2024.
+Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik,
+Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng.
+view synthesis.
+Mayank Mittal, Calvin Yu, Qinxi Yu, Jingzhou Liu,
+Nikita Rudin, David Hoeller, Jia Lin Yuan, Ritvik Singh,
+Yunrong Guo, Hammad Mazhar, et al. Orbit: A unified
+simulation framework for interactive robot learning envi-
+ronments. IEEE Robotics and Automation Letters, 2023.
+Soroush Nasiriany, Abhiram Maddukuri, Lance Zhang,
+Adeet Parikh, Aaron Lo, Abhishek Joshi, Ajay Man-
+of everyday tasks for generalist robots.
+In Robotics:
+Science and Systems (RSS), 2024.
+Neil Nie, Samir Yitzhak Gadre, Kiana Ehsani, and Shu-
+ran Song. Structure from action: Learning interactions
+for articulated object 3d structure discovery. arxiv, 2022.
+isaac-sim.
+May 2022.
+Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+Liang Tan, Lawrence Yunliang Chen, Pannag Sanketi,
+Quan Vuong, Ted Xiao, Dorsa Sadigh, Chelsea Finn, and
+Sergey Levine. Octo: An open-source generalist robot
+policy. In Proceedings of Robotics: Science and Systems,
+Abhishek Padalkar, Acorn Pooley, Ajinkya Jain, Alex
+Anant Rai, Anikait Singh, Anthony Brohan, et al. Open
+els. arXiv preprint arXiv:2310.08864, 2023.
+Songyou Peng, Michael Niemeyer, Lars Mescheder,
+Marc Pollefeys, and Andreas Geiger.
+Convolutional
+occupancy networks. In Computer VisionECCV 2020:
+16th European Conference, Glasgow, UK, August 2328,
+Polycam. Polycam.  2020.
+Antonin Raffin, Ashley Hill, Adam Gleave, Anssi
+plementations. Journal of Machine Learning Research,
+20-1364.html.
+Aravind Rajeswaran, Vikash Kumar, Abhishek Gupta,
+Giulia Vezzani, John Schulman, Emanuel Todorov, and
+Sergey Levine. Learning Complex Dexterous Manipula-
+tion with Deep Reinforcement Learning and Demonstra-
+tions. In Proceedings of Robotics: Science and Systems
+Fabio Ramos, Rafael Carvalhaes Possas, and Dieter Fox.
+tic inference for robotics simulators.
+arXiv preprint
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+algorithms. arXiv preprint arXiv:1707.06347, 2017.
+Archit Sharma, Ahmed M Ahmed, Rehaan Ahmad,
+and Chelsea Finn.
+Self-improving robots: End-to-end
+autonomous visuomotor reinforcement learning.
+preprint arXiv:2303.01488, 2023.
+Octo Model Team, Dibya Ghosh, Homer Walke, Karl
+open-source generalist robot policy.
+arXiv preprint
+Marcel Torne, Anthony Simeonov, Zechu Li, April Chan,
+Tao Chen, Abhishek Gupta, and Pulkit Agrawal. Rec-
+onciling reality through simulation: A real-to-sim-to-
+real approach for robust manipulation.
+arXiv preprint
+Lirui Wang, Yiyang Ling, Zhecheng Yuan, Mohit Shrid-
+Xiaolong Wang. Gensim: Generating robotic simulation
+tasks via large language models. In The Twelfth Interna-
+tional Conference on Learning Representations, 2023.
+Luobin Wang, Runlin Guo, Quan Vuong, Yuzhe Qin, Hao
+robust object grasping with neural surface reconstruction.
+In 2023 IEEE 19th International Conference on Automa-
+tion Science and Engineering (CASE), pages 18. IEEE,
+Yufei Wang, Zhou Xian, Feng Chen, Tsun-Hsuan Wang,
+Yian Wang, Katerina Fragkiadaki, Zackory Erickson,
+David Held, and Chuang Gan. Robogen: Towards un-
+leashing infinite data for automated robot learning via
+generative simulation, 2024. URL
+Philipp Wu, Yide Shentu, Zhongke Yi, Xingyu Lin, and
+Pieter Abbeel. Gello: A general, low-cost, and intuitive
+teleoperation framework for robot manipulators. arXiv
+preprint arXiv:2309.13037, 2023.
+Hongchi Xia, Zhi-Hao Lin, Wei-Chiu Ma, and Shenlong
+Wang. Video2game: Real-time, interactive, realistic and
+browser-compatible environment from a single video.
+arXiv preprint arXiv:2404.09833, 2024.
+Jingyun Yang, Max Sobol Mark, Brandon Vu, Archit
+tuning made easy: Pre-training rewards and policies for
+autonomous real-world reinforcement learning.
+preprint arXiv:2310.15145, 2023.
+Tony Z Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+Finn. Learning fine-grained bimanual manipulation with
+low-cost hardware.
+arXiv preprint arXiv:2304.13705,
+APPENDIX
+In the Appendix, we will cover the following details of our
+Method Details Appendix VII: Details about amortized
+data collection algorithms, real-to-sim transfer, and au-
+tonomous data collection used for fine-tuning and teacher-
+student distillation.
+Task Details Appendix VIII: Details of tasks used for
+evaluating CASHER.
+Implementation Details Appendix IX: Specification of
+hyper-parameters used in the network architectures, point-
+cloud processing, and dataset used in CASHER.
+Detailed Evaluation Result Appendix XI: Detailed re-
+sults of the evaluation, including robustness experiments,
+adding disturbance and distractors.
+Hardware Setup Appendix XII: Specification for hard-
+ware setup used for training and evaluating CASHER.
+Crowdsourcing Appendix XIII: Specification for crowd-
+sourcing real-world 3D scans.
+Compute Resources Appendix XIV: Specifications for
+compute resources used for data collection, training, and
+evaluating CASHER.
+VII. METHOD DETAILS
+A. Real-to-Sim Transfer of Scenes
+Unlike prior work [39, 5], our goal is not to accurately
+master a single environment, but rather to train a generalist
+agent capable of generalizing to new, unseen environments. To
+obtain a wide distribution of scenes with a variety of layouts,
+crowdsourcing contribution of 3D scans (See 

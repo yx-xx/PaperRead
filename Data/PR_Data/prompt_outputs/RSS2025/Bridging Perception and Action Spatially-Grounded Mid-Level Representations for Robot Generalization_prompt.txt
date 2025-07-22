@@ -1,0 +1,580 @@
+=== PDF文件: Bridging Perception and Action Spatially-Grounded Mid-Level Representations for Robot Generalization.pdf ===
+=== 时间: 2025-07-22 15:44:50.917394 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Bridging Perception and Action: Spatially-Grounded
+Mid-Level Representations for Robot Generalization
+Author Names Omitted for Anonymous Review. Paper-ID 750
+Fig. 1: Bimanual, dexterous manipulation requires task-specic grounding. The left depicts various axes for spatial grounding as well as
+qualitative categorizations of different mid-level representations. Different representations lead to different levels of improvement depending
+on the task.
+AbstractIn this work, we investigate how spatially-grounded
+auxiliary representations can provide both broad, high-level
+policy learning performance and generalization for dexterous
+tasks. We study these mid-level representations across three
+critical dimensions: object-centricity, pose-awareness, and depth-
+awareness. We use these interpretable mid-level representations
+to train specialist encoders via supervised learning, then use these
+representations as inputs to a diffusion policy to solve dexterous
+bimanual manipulation tasks in the real-world. We propose a
+novel mixture-of-experts policy architecture that can combine
+multiple specialized expert models, each trained on a distinct
+mid-level representation, to improve the generalization of the
+policy. This method achieves an average of 11 higher success
+rate on average over a language-grounded baseline and a 24
+higher success rate over a standard diffusion policy baseline for
+our evaluation tasks. Furthermore, we nd that leveraging mid-
+level representations as supervision signals for policy actions
+within a weighted imitation learning algorithm improves the
+precision with which the policy follows these representations,
+leading to an additional performance increase of 10. Our
+ndings highlight the importance of grounding robot policies
+with not only broad, perceptual tasks, but also more granular,
+actionable representations.
+I. INTRODUCTION
+Large pre-trained robotics models have made signicant
+progress in recent years towards improving robotic generaliza-
+tion capabilities by leveraging large-scale pre-training datasets.
+slight scene variations such as different spatial locations, un-
+seen objects, and different lighting conditions. An increasingly
+popular approach to address this challenge is explicitly estab-
+lishing deeper connections between robot policies and the ab-
+stract patterns and relationships that govern the physical world.
+For example, vision-language-action models (VLAs) make
+an attempt to benet from semantic and visual knowledge
+from vision-language models (VLMs) by ne-tuning these
+models with robot data. Other works use explicit mid-level
+representations such as low-level language instructions ,
+key-points [25, 36], or trajectories [14, 31, 38] to provide
+additional grounding to the robot policy. Despite the success
+of these methods, the generalization properties that these
+additional forms of grounding enable are still high-level in
+transfer to more complex tasks  ones that require further
+dexterity or object interactions.
+We hypothesize that the choice of mid-level representa-
+tions is highly dependent on task-specic requirements. For
+box may help locate a shirts general position but fails to
+provide actionable information on how to manipulate it. Simi-
+rich tasks such as handing over objects, but may be less
+important for overhead pick-and-place tasks. In order to give
+models stronger generalization capabilities for a wide variety
+of dexterous tasks, it is essential to explore representations
+that balance high-level abstraction and low-level actionable
+detail. These representations must not only encode spatial and
+geometric reasoning but also offer adaptability across diverse
+and dynamic environments.
+In this paper, we nd a set of mid-level representations
+that enhances the adaptability of a robot policy across a
+wide variety of environments. We rst systematically study
+these representations across four critical dimensions: object-
+of objects on the scene; motion-centricity or understanding
+of the future motion of the robot; pose-awareness, or un-
+derstanding of spatial orientations; and depth-awareness, or
+understanding about three-dimensional structure and geometry.
+Through these experiments, we identify how different forms
+of spatial grounding align with task-specic requirements.
+We then propose a method to leverage these representations
+through a diffusion policy-based model conditioned on multi-
+ple experts outputting interpretable representations. We show
+that while different mid-level representations excel at different
+achieve consistently higher performance on a wide range of
+environments.
+In addition, we further investigate how robot policies utilize
+the aforementioned representations. We nd that reliance on
+structured signals presents a trade-off: policies that depend
+heavily on these representations can become more susceptible
+to overtting and reduced robustness in noisy environments.
+To mitigate this, we introduce key architectural design choices
+that balance sensitivity to mid-level representations with re-
+silience against spurious noise in these representations. Finally,
+we incorporate these representations as additional training
+signal. We refer to the alignment of the demonstrations with
+these mid-level representation as self-consistency, which can
+provide a weighting scheme for weighted imitation learning
+upweighting data with self-consistent representations. This
+approach further renes the policys ability to execute mid-
+level plans with greater precision and reliability.
+Our policy, Mid-Level MoE, achieves a 24 higher success
+rate than a standard diffusion policy baseline and an 11
+improvement over a baseline using language representations
+across a series of bimanual, dexterous tasks. Furthermore,
+our weighted imitation learning method enhances the pol-
+icys reliance on mid-level representations while preserving
+robustness to perturbations, resulting in a 10 higher success
+rate compared to standard training. These results highlight
+that a deeper understanding of robot grounding can lead
+to signicant improvements in robot success in dexterous,
+bimanual environments.
+II. RELATED WORKS
+Training generalist robot policies has been typically ap-
+proached as a multi-task learning problem, where a single
+machine learning model is optimized for different behaviors
+and objectives. Many prior works have involved scaling up the
+breadth and diversity of robot data [8, 12, 21, 22, 26, 30, 40].
+A key challenge with the multi-task policy learning regime
+is in obtaining policies that generalize to new objects, task
+signicant body of work has focused on generalizing robot
+policies to grasp new objects [19, 28, 32]. In this work, we
+are interested in achieving a similar form of generalization for
+dexterous manipulation [6, 39]. Prior works in learning multi-
+task dexterous policies have struggled with generalizing to
+entirely new objects due to the high-dimensional observation
+and action spaces.
+While the typical recipe to obtaining generalizable poli-
+cies is to scale robot data, collecting such data remains
+prohibitively expensive. A promising alternative is to intro-
+duce structure into the end-to-end pixels-to-actions mapping.
+To provide robot models with a greater understanding of
+commonalities in robot tasks, planning, and behavior, several
+previous works have considered conditioning robot policies
+with higher-level representations of robot behavior [16, 27,
+of robot policies, many works have instead conditioned on
+explicit representations. These representations typically been
+specied either through goal images [9, 29], video demonstra-
+tions [11, 35] or language [13, 20, 41]. While many earlier
+works have used higher-level conditioning information at the
+task specication level, recent works have works towards
+getting robots to achieve more specic goals, often specied
+in language [1, 3, 17, 18].
+One potential drawback to the hierachical learning frame-
+work is its rigidity in structure. Recently, many works have
+started viewing adding structure between robot perception
+and action as adding a more general "grounding" to the
+policies. A modern instantiation of this class of methods
+has been distilling additional knowledge into robot policies
+in the form of auxiliary tasks. For instance, some methods
+pre-train robot policies using regularization tasks such as
+visual question-answering (VQA) [4, 7, 10, 23], language
+planning [15, 24, 34], or spatial reasoning . Other ap-
+proaches explicitly condition on higher-level representations,
+including language [2, 38] or image annotations [14, 25, 31].
+from the physics of a robots interaction with the world,
+and fail to capture the precise spatial and contextual details
+required for dexterous manipulation. For example, providing
+a language caption or object bounding box for a robots
+workspace is not particularly informative about the objects
+investigate spatial mid-level representations that bridge the gap
+between high-level inputs (e.g., language commands or simple
+object markers) and the low-level action space of a robot. By
+grounding policies in richer spatial details, we aim to achieve
+better generalization and more reliable performance across a
+wide range of environments and tasks.
+III. SPATIALLY-GROUNDED MID-LEVEL
+REPRESENTATIONS
+Robots that effectively generalize across diverse environ-
+ments require an understanding of broad, high-level abstrac-
+tions intrinsic to the real world, such as object geometry,
+spatial relationships, and motion dynamics. While one can
+hope to learn these relationships directly from end-to-end data,
+current large-scale robot policies that try to scale up imitation
+learning still struggle with performing dexterous tasks in
+environments that involve slight shifts in these properties. To
+address this issue, instead of implicitly relying on black-box
+feature extraction, we propose to explicitly incorporate repre-
+sentations that capture these mid-level abstractions, enabling
+robot policies to adapt more robustly to variations in real-world
+settings.
+{1, 2, . . . , n}, where each trajectory
+is a series of
+states and actions (s1, a1), (s2, a2), . . . , (st, at). While typi-
+cal end-to-end imitation learning aims at nding a mapping
+(as), we instead add a set experts that generate mid-
+level representations {Ei(s)}k
+specic type of grounding. We then aim to learn a policy
+(aE1(s), E2(s), . . . , Ek(s), s) which can leverage these rep-
+resentations to perform more robustly across diverse scenarios.
+What representations would lead to the best performance
+for robot policies? There exists a hierarchy of representations,
+spanning from low-level geometric features to high-level sym-
+bolic structures such as language-based subtasks. For instance,
+language subtasks provide exible, interpretable scaffolding
+that allows policies to be decomposed into modular instruc-
+In parallel, higher granularity representationslike identied
+grasp locationsprovide the precision required for dexterous
+manipulation and robust adaptation to slight variations in
+object geometry or environment layout. In this work, we
+concentrate on representations that hold the potential to en-
+hance both the versatility and generality with which robots can
+perform dexterous tasks. By focusing on mid-level abstractions
+that capture critical factorssuch as object geometry, spatial
+robots with the adaptability needed to handle subtle variations
+in real-world environments more robustly.
+We rst investigate the utility of representations on
+four main axes: object-centricity, motion centricity, depth-
+spatial grounding for robot policies. In addition,
+1) Object-Centric Representations: These experts focus
+on extracting information pertinent to each object in
+the scene, such as object poses, sizes, shapes, and
+Fig. 3: The sensitivity-robustness tradeoff. Policies need to follow
+their mid-level representations while being robust in erroneous noise
+to these representations.
+potential interaction points (e.g., grasp points, keypoints
+for alignment).
+2) Motion-Centric Representations: These experts cap-
+ture and interpret the dynamic aspects of the environ-
+ment by focusing on how objects, the robot, or other
+agents move and interact over time. For instance, they
+may encode object velocities, accelerations, potential
+collision points, or kinematic constraints.
+3) Depth-Aware Representations: These experts lever-
+age depth information to infer spatial relationships and
+physical constraints in the environment. For example,
+they can identify occlusions, measure distances be-
+tween objects, and compute volumetric properties. By
+incorporating depth-aware reasoning, we enable robots
+to make more accurate and reliable decisions in 3D
+environments.
+4) Pose-Aware Representations: These experts encode
+the relative and absolute poses of objects, as well as
+the robots own pose, in a way that supports precise
+manipulation tasks. For example, pose-aware experts can
+compute alignment requirements for assembly tasks or
+predict optimal congurations for stable grasps.
+These four axesobject-centric, motion-centric, depth-
+hensive spatial grounding for robot policies.
+IV. THE SENSITIVITY-ROBUSTNESS TRADEOFF
+Previous works have predominantly focused on how var-
+ious forms of grounding can enhance the performance of
+robotic policies. However, we argue that investigating mid-
+level relationshipsspecically, how policies adhere to and
+utilize their representationsis equally crucial. By analyzing
+this relationship, we can view the mid-level representations
+as a bridge between the sensory inputs of the policy and
+the lower-level joint actions. This enhances the interpretability
+of our policy by disentangling errors with the policys mid-
+level decision making processing with its lower-level action
+generation. Through exploring this relationship, we identify
+a fundamental tradeoff between the sensitivity with which a
+robot follows its representations and its robustness to errors in
+these representations.
+Consider a household robot tasked with cleaning kitchen-
+ferent experts E1, E2, . . . , Ek (see Figure 3). Suppose E1(s)
+provides the locations of objects of interest in the scene. A
+policy which utilizes these representations must consistently
+use these locations to output actions that move towards the
+correct target. The degree to which the policy follows this
+representation can be understood as sensitivity. If one of the
+representations has an error, such as E1 incorrectly detect-
+ing an object, the robot may attempt to interact with the
+wrong item, leading to improper handling or placement of
+kitchenware. The degree to which the policy is able to take
+reasonable actions in the prescence of these perturbations can
+be understood as robustness.
+This sensitivity-robustness tradeoff underscores the neces-
+sity of developing robot policies that balance adherence to
+mid-level representations with the ability to remain adaptable
+and resilient in the face of environmental variations. This
+balance ensures that, while policies leverage detailed, task-
+relevant information for precise manipulation, they do not
+become overly dependent on specic features that may change
+or vary in different contexts.
+Our usage of spatially-aware mid-level representations al-
+lows us to directly quantify the tradeoff between generalization
+and executability in robotic policies. We propose two key
+metrics to measure this tradeoff:
+1) Sensitivity Score (SS): The Sensitivity Score quanties
+the extent to which the policy adheres to the provided
+mid-level representations during task execution. Specif-
+the representations inuence the resulting trajectories of
+the robot. Formally, let f(s, E, ) represent a function
+that evaluates the adherence of the trajectory  to the
+representations E  {E1(s), E2(s), . . . , Ek(s)} given
+the state s. The Sensitivity Score is dened as:
+SS(E)  Es, [Adherence(E(s), )]
+where Adherence() is a metric quantifying the align-
+ment between the policys trajectory and a particular
+mid-level representation. A lower SS indicates that the
+policy closely follows the representations. Conversely,
+a higher SS implies that the policy is less reliant on
+specic representations. Further information on how
+Adherence() is computed for each representation can
+be found in Appendix C.
+2) Robustness Index (RI): The Robustness Index mea-
+sures the policys ability to maintain stable and effective
+performance when perturbations are introduced to the
+mid-level representations. For each state s in a trajectory
+, and for each mid-level representation Ei(s) generated
+by the experts, we apply a Gaussian perturbation:
+Ei(s)  Ei(s)  i,
+The perturbed representations Ei(s) are then used as
+inputs to the policy:
+Let P (perturb)
+() represent the policys performance un-
+der the j-th Gaussian perturbation with standard de-
+unperturbed representations. The Robustness Index is
+dened as the mean of the performance ratios across
+all perturbations:
+P (perturb)
+where m is the number of distinct Gaussian noise real-
+izations applied to the representations. A higher RI sig-
+nies that the policy remains resilient and maintains its
+effectiveness despite perturbations in the representations.
+to performance degradation when the representations are
+representations provided during training.
+V. ARCHITECTURE
+We implement our method on a diffusion policy similar
+to the one proposed in . The policy takes as input 4
+images from different viewpoints (2 third-person images and 2
+wrist images) and directly outputs 12 absolute joint positions
+6 for each armas well as a continuous gripper value per
+each gripper. Each image is fed through a separate ResNet50
+to obtain image embeddings. At each state, we denoise the
+decoder predicts t  10 action chunks simultaneously with a
+transformer. See Figure 4 for a depiction of our architecture.
+A. Mid-level Experts
+We design our architecture motivated by the sensitivity-
+robustness tradeoff. At each state, the robot must discern
+which representations are pertinent for the task at hand and
+output actions which follow these representations. Meanwhile,
+if any of the representations have noise, the policy must output
+reasonable actions that maintain task performance despite
+these disturbances. To achieve this, we employ three key
+design choices:
+1) Diverse Mid-level Experts We employ k  4 mid-
+level experts to output representations corresponding to
+our aforementioned axes of grounding. In particular,
+we have separate object-centric, motion-centric, pose-
+spond to bounding boxes, trajectory traces, grasp plans,
+and depth-aware traces.
+Fig. 4: Policy Architecture. Four images are passed into a transformer encoder. In addition, an image is fed into each individual mid-level
+expert. The results embeddings are passed into the transformer decoder through cross-attention.
+2) Attention-based Mid-level Gating: In order to com-
+bine our experts, we use multi-headed attention to
+provide an early form of gating. Specically, the em-
+beddings are processed into a multidimensional tensor
+z  MultiHead(R1, R2, R3, R4), where each Ri is
+the representation from expert Ei. This gating strategy
+dynamically weights each experts contribution based on
+the current state, enabling effective integration of diverse
+representations.
+3) Cross-Attention Mechanism: We then perform cross-
+attention between the processed mid-level embeddings
+z and the image embeddings. This allows the policy to
+further use information from its images to determine
+which representations to determine which representa-
+tions to emphasize for action selection. This ensures that
+the policy dynamically prioritizes the most relevant rep-
+resentations based on the current visual and contextual
+representations.
+B. Training
+To train our policy, we adopt a two-stage approach. In the
+rst stage, the expert mid-level representations are trained
+separately on data tailored to each representation. This data
+is purely relabeled from demonstrations and proprioception.
+For motion-centric representations, we use proprioception
+position and movement, to process the arms trajectories at
+future points in time. We utilize a trajectory length of 10
+these representations into the observation frame using the
+camera intrinsics and extrinsics. In simulation, these values
+are provided by the simulator, while in the real world, they
+are calibrated using an AprilTag board.
+We base our object-centric representations on an off-the-
+shelf OWL-ViT (153M params). The language prompts are
+carefully tuned for each task to minimize noise as much as
+possible. For pose-aware representations on top of bounding
+the arm comes into contact with objects. We then retrain
+ResNet34 models (21M params) on top of this relabelled data.
+We nd that that for more dexterous tasks, this is important in
+order to avoid signicant decreases in the frequency of robot
+control by using an OWL-ViT in-the-loop.
+Once the expert modules are trained independently, their
+parameters are frozen. Then, the policy network trained end-
+to-end with a noise prediction loss. During inference time,
+each of the expert models are executed asynchronously.
+C. Self-Consistency
+A primary challenge in integrating mid-level representations
+into robot policies lies in ensuring that the policy consis-
+tently follows the guidance provided by these representations.
+Object-centric attributes, depth-aware insights, or pose-aware
+signals serve as mid-level expert outputs that the policy is
+incentivized to replicate. However, direct supervision through
+standard behavioral cloning (BC) can lead to inconsistencies,
+especially when the mid-level predictions are noisy or only
+Fig. 5: Self-Consistency. On the left image, the robots achieved
+trajectory doesnt match its mid-level representation, which leads
+to a lower weight. In the right, the robot follows its representation,
+leading to a higher weight.
+partially correct. Such inconsistencies ultimately degrade the
+policys ability to effectively utilize the expert signals.
+Our proposed method is analogous to reinforcement learn-
+ing with a hand-crafted advantage function. In RL, the loss
+function typically incorporates an advantage term, given by:
+LRL  E(s,a)D [A(s, a)  LPG ((a  s))]
+where A(s, a) represents the advantage function, which mod-
+ulates the policy gradient loss LPG based on the estimated
+benet of selecting action a in state s. Similarly, our approach
+integrates mid-level expert outputs as implicit guidance in sce-
+narios where no explicit reward signal is available. Instead of
+an advantage function, we introduce self-consistency weights
+w(x), which serve to emphasize reliable expert guidance. The
+corresponding loss function is:
+Lpolicy  E(x,a)D [w(x)  LBC ((a  x), a)]
+where w(x) reects how well the mid-level expert outputs
+align with ground-truth or improve task success. Notably, our
+representations encode the policys desired future behavior,
+similar to how an advantage function models a policys
+expected future reward. By structuring policy learning in
+this way, our method ensures that mid-level expert outputs
+provide meaningful guidance, akin to an advantage function in
+reinforcement learning. This approach prioritizes high-quality
+lize expert-generated representations. By iteratively rening
+the training data and adjusting the weighting of consistent
+tighter self-consistency between policy actions and mid-level
+expert outputs. See Algorithm 1 for more details. The exact
+method to compute the weights can be viewed in Appendix ??
+VI. EXPERIMENTS
+Our goal is to evaluate the effectiveness of mid-level repre-
+sentations as grounding for training robotic policies, focusing
+on their ability to improve task performance across diverse
+scenarios. Specically, we aim to assess how different forms of
+spatial groundingobjectmotion-centricity, pose-awareness,
+and depth-awarenessimpact a robots ability to generalize,
+execute precise actions, and recover from noisy inputs.
+Algorithm 1 Weighted Self-Consistency Training
+Training dataset D  {(si, ai)}, Self-consistency thresh-
+Sample a minibatch of B statesactions {(si, ai)}B
+Compute mid-level outputs mi  fexpert(si) for each
+Determine self-consistency weights wi  W(mi, ai, si)
+1 exp (E  Adherence(E(s), ))
+Compute weighted BC loss:
+(si), ai
+Update policy parameters:     LBC
+Fig. 6: Simulation Tasks.
+1) Are mid-level representations effective in improving
+policy generalization performance across a range of
+tasks and environments?
+2) What types of tasks benet the most from specic mid-
+level representations, such as objectmotion-centricity,
+align with task-specic requirements?
+3) Can a policy effectively utilize multiple sources of
+mid-level representations, and how does the integration
+of these diverse signals impact task performance and
+generalization?
+4) Which policy architecture offers the best tradeoff be-
+tween responsiveness to structured mid-level represen-
+tations and robustness to noise or spurious inputs?
+5) Can mid-level representations be effectively used as
+supervision signals during training to enhance policy
+precision and generalization across tasks?
+A. Simulation Environment
+We evaluate our method on the Aloha Unleashed simulation
+environment . This environment consistent of a bimanual
+parallel-jaw gripper robot workcell. The observations contain
+images from 4 different points of view: the overhead camera,
+worms-eye camera (facing the robot), and two wrist cameras.
+Fig. 7: Simulation Results. Mid-level MoE achieves a 24 higher success rate over a standard diffusion policy baseline. It performs
+consistently well over different tasks by leveraging different representations.
+Single Insertion: The robot must pick up a peg with one
+it must align the peg with the block and insert it into the
+FMB Assembly: The robot must pick up a multiple
+blocks and place it into its appropriate slots. Each of the
+blocks must be placed in precise locations that require
+the robot to have good understanding of object geometry.
+Fruit Bowl: The robot must arrange a variety of fruits
+into a bowl, ensuring efcient use of space or adherence
+to a specic pattern. This task tests the robots ability
+to handle objects of different shapes and sizes while
+reasoning about spatial congurations.
+Pen Handover: The task requires the robot to perform a
+smooth and reliable pen handover to a human. This in-
+cludes grasping the pen, orienting it correctly for comfort-
+able use, and transferring it to the humans hand without
+dropping or misalignment. The task tests precision grip,
+human-robot interaction, and timing coordination.
+B. Real-World Environment
+We evaluate our method on a similar real-world environment
+consisting of two 6-DoF ViperX robot arms with parallel-
+jaw grippers. The observations perspectives are the same as
+in simulation.
+Kitchen Stack: The robot must organize and stack a set
+of kitchen items, such as bowls, plates, and cups, in an
+orderly manner on a designated shelf or surface. The
+task emphasizes spatial reasoning, stability prediction,
+and careful object placement.
+Cup Stacking: The robot must pick up multiple cups on
+the scene and stack the cups. This tasks tests the ability
+of the robot to generalize across different combinatorial
+object locations across the workstation.
+Shirt Hanging: The task requires the robot to hang a
+shirt on a hanger. The steps include attening the shirt,
+picking up a hanger from a rack, moving the shirt to a
+desirable location, placing the hangar onto the shirt, then
+picking up the hangar and putting it back onto the rack.
+Shoelace Tying: The robot must tie the laces of a shoe
+into a bow. This involves centering the shoe, straightening
+the laces, crossing them over, forming loops, and tight-
+ening the bow. The task emphasizes a robots ne motor
+control.
+C. Experiment Setup
+To evaluate the impact of a singular representation on our
+expert. In addition, we provide two ablations based on prior
+works investigating a single representation: a keypoints-based
+ablation based on MOKA  and a language baseline based
+on RT-H . In the keypoint ablation, we identify important
+points of interest in the image by querying a VLM. For RT-H,
+we relabel robot demonstrations with the language "move the
+arm leftrightupdown." For each environment in simulation
+and the real-world, we vary the object locations, add distractor
+VII. ANALYSIS
+A. Mid-level Representations have Task-Specic Benets
+Figures 7 and 9 present our experimental results in both
+simulation and real-world environments. We nd that while
+all representation ablations outperform the baseline with no
+task. More specically, we observe that motion-centric rep-
+resentations (trajectory trace) achieve higher success rates in
+Single Insertion and Cup Stack, object-centric representations
+(bounding box) perform better in Fruit Bowl and Kitchen
+and Shirt Hang, and depth-aware representations (trajectory
+and Shoelace Tying. These ndings are consistent with our
+Fig. 8: Real-World Results. There are clear differences in the benets that different representations provide for tasks in the real world.
+qualitative understanding of the grounding required for each
+task. For instance, tasks like Fruit Bowl and Kitchen Stack
+involve rearranging multiple objects within a cluttered scene,
+making object-centric representations particularly effective.
+In contrast, Pen Handover and Shoelace Tying necessitate a
+precise understanding of object relationships in 3D space,
+emphasizing the importance of depth-aware representations for
+accurate spatial reasoning and ne-grained manipulation.
+Representation
+Single Insertion
+Bounding Box 2D
+Grasp Plans
+Trajectory Trace 2D
+Trajectory Trace: Depth-Aware
+TABLE I: Performance Across Representations with Ground
+Truth. Even with ground-truth mid-level representation, the success
+rates policies with different mid-level experts differ by at least 12
+The advantages of different mid-level representations be-
+come more evident when analyzing their impact with ground-
+truth data depicted in Table I. For Bounding Box 2D and
+Grasp Plans, values are directly derived from the simulation,
+while for Trajectory Trace 2D and Trajectory Trace: Depth-
+robot arms current pose and the pose of the object it interacts
+with. Since trajectory estimation becomes more complex when
+multiple objects are involved, we evaluate performance in two
+representative tasks: Single Insertion and FMB. Our results
+show that in Single Insertion, motion-centric representations,
+such as trajectory traces, outperform object-centric representa-
+tions (94 average success rate vs 85. Meanwhile, in FMB,
+pose-aware representations like Grasp Plans yield signicantly
+better performance 67 success rate. This highlights the
+importance of selecting representations that align with task-
+specic requirements.
+B. Mid-Level MoE can effectively utilize multiple different
+representations to generalize across a broad range of tasks.
+Figures 7 and 9 also compare Mid-Level MoE to a language
+baseline with lower-level language commands similar to , a
+keypoints baseline with object-centric points of interest similar
+level representations. Our method has an average of 69.6
+success over all tasks compared to 45.1 success rate for
+the no-representation baseline, 51.5 success rate for the
+language baseline, and 58 success rate for the keypoints
+baseline. This

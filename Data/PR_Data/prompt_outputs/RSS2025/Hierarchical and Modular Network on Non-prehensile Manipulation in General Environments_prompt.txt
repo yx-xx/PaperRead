@@ -1,0 +1,1529 @@
+=== PDF文件: Hierarchical and Modular Network on Non-prehensile Manipulation in General Environments.pdf ===
+=== 时间: 2025-07-22 15:43:16.010852 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Hierarchical and Modular Network on
+Non-prehensile Manipulation in General
+Environments
+Yoonyoung Cho, Junhyek Han, Jisu Han, Beomjoon Kim
+Korea Advanced Institute of Science and Technology
+(b) Drawer
+(g) Circular bin
+(h) Table
+(c) Basket
+(e) Sink
+(a) Cabinet
+(d) Suitcase
+(f) Grill
+(i) Top of shelf
+Fig. 1: Illustration of our real-world domains. Our approach generalizes to diverse and unseen objects and environments. The
+object outlined in red represents the goal pose. Note how the environment geometry limits object and robot motions: in (a), the
+robot must reach and maneuver the object while avoiding the ceiling; in (b) and (c), the robot must circumvent walls to access
+the object; in (d), the robot must move the object over a barrier; in (e), the robot must first traverse the sink to contact under
+the crab, lift it across the sink wall, then reorient the crab to face forward; and in (i), the robot must consider its kinematics
+while manipulating the object on a high shelf. Each object and its pose are chosen so that it cannot be simply pick-and-placed.
+AbstractFor robots to operate in general environments like
+nipulation actions such as toppling and rolling to manipulate
+ungraspable objects. However, prior works on non-prehensile
+manipulation cannot yet generalize across environments with
+diverse geometries. The main challenge lies in adapting to varying
+environmental constraints: within a cabinet, the robot must
+avoid walls and ceilings; to lift objects to the top of a step,
+the robot must account for the steps pose and extent. While
+deep reinforcement learning (RL) has demonstrated impressive
+success in non-prehensile manipulation, accounting for such
+variability presents a challenge for the generalist policy, as
+it must learn diverse strategies for each new combination of
+constraints. To address this, we propose a modular architecture
+that uses different combinations of reusable modules based
+on task requirements. To capture the geometric variability in
+from CORN  to environment geometries, and propose a
+procedural algorithm for generating diverse environments to
+train our agent. Taken together, the resulting policy can zero-
+shot transfer to novel real-world environments despite training
+entirely within a simulator. We additionally release a simulation-
+based benchmark featuring nine digital twins of real-world
+scenes with 353 objects to facilitate non-prehensile manipulation
+research in realistic domains. Code, videos, and simulation
+benchmarks are available on the project website.
+I. INTRODUCTION
+Despite recent advances in robot manipulation, the practical
+deployment of robots in everyday environments like house-
+holds remains challenging. One key reason is the robots
+inability to manipulate ungraspable objects. While much of
+prior work on manipulation centers around prehensile ma-
+nipulation [55, 104, 26, 101], such approaches fall short in
+unstructured environments where objects are often ungraspable
+due to their geometry and the surrounding scene. To overcome
+as pushing, toppling, and rolling [43, 51, 16].
+have achieved several successes in non-prehensile manipu-
+lation [44, 118, 16, 106]. However, these works have been
+limited to fixed objects in fixed scenes , general objects
+on flat tabletops [118, 16], or minor variations in objects and
+environments . As such, no prior work addresses non-
+prehensile manipulation for novel objects and environments
+with arbitrary geometries as in Figure 1. Based on this
+Equal Contribution.
+Fig. 2: Illustration of computational structure for biological
+motor control (left) and our architecture (right). Each row
+compares analogous components in (1) acquiring sensory
+representing groups of co-activated neurons, and (4) compos-
+ing the modules to construct specific behaviors. The bar graphs
+denote the activation weight of each module.
+prehensile manipulation in such diverse setups.
+The key challenge here lies in training a policy that can
+adapt to the constraints imposed by the given scene. For
+the robot is presented with a unique set of constraints, which
+may also evolve during an episode (Figure 1e). This requires
+the policy to not only model multiple distinct behaviors, but
+also rapidly switch between behaviors in response to minor
+changes in state. For example, in the scenario depicted in
+Figure 1e, as soon as the toy crab is positioned above the
+a translation skill. However, standard networks struggle to
+learn such high-frequency functions, a phenomenon known as
+spectral bias [96, 4, 85].
+Human brains, on the other hand, are extremely adaptive,
+and their computational structure for actions differs signifi-
+cantly from that of standard artificial neural networks. The
+computation of our brain is organized modularly , where a
+motor cortex orchestrates neural activities at the level of motor
+to produce an action based on the current task [70, 98, 42]. By
+invoking different sets of modules in response to the current
+as reaching or grasping without interference . This is
+illustrated in Figure 2, left.
+Inspired by this, we propose a modular and hierarchical
+policy architecture (Figure 2, right). In our architecture, the
+modulation network assumes the role of the motor cortex
+which determines the activations of modules, each representing
+a group of co-activated network parameters. The weighted
+1Neurons connected to muscle fibers that trigger muscular contractions.
+Reorient-Ceil
+Lift-Left
+Translate-Ceil
+Reach-NoCeil
+Reorient-NoCeil
+Reach-Ceil
+Translate-NoCeil
+Lift-Ceil
+Fig. 3: Illustration of how distinct scenes map to distinct
+module activations that yield distinct behaviors, for a 5-layer
+network with 4 modules. The top-right colormap shows the
+activation of a particular module (column) for a particular layer
+(row): e.g., column 2, row 1 shows the activation of module 2
+for layer 1. Opacity indicates the strength of module activation.
+The red object denotes the current object pose, and the blue
+object indicates the goal object pose. Ceil and NoCeil indicate
+the existence of a ceiling.
+Number of modules
+Success rate
+TRANSFORMER
+Number of parameters (M)
+Fig. 4: Success rates per architecture by parameter counts for
+a monolithic architecture (MLP and transformer) (x-axis, top)
+and number of modules for HAMNET (x-axis, bottom)
+combinations of these modules are then used to define the
+parameters of a base network, which has a fixed architecture
+but the parameters are determined online by the modulation
+network based on the current context, such as the environ-
+mental constraints. Unlike standard neural networks, this com-
+putational structure enables a single base network to model
+multiple functions, allowing the policy to produce distinct
+behaviors in response to even subtle changes in context.
+We refer to our modular policy architecture as Hierarchical
+and Modular Network (HAMNET). We discovered that, when
+we train the policy with HAMNET, it autonomously discovers
+modules and their activations that correspond to distinct ma-
+nipulation strategies, such as reaching, lifting, or reorienting
+objects (Figure 3). Furthermore, as shown in Figure 4, we
+found that HAMNET scales much more gracefully with the
+number of parameters compared to a standard neural network
+in our simulated domains.
+Another challenge in generalizing across diverse environ-
+ments and objects is acquiring geometric representations from
+high-dimensional point cloud observations. One option is
+to use end-to-end training, yet jointly learning to encode
+point clouds incurs significant memory footprint, limiting its
+use with large-scale GPU-based simulators , which have
+become an essential tool for training RL policies for robotics.
+Pre-training representation models can mitigate this issue,
+but their effectiveness depends on the pretext task capturing
+features relevant to manipulation. Consequently, large off-the-
+shelf models are often unsuitable, not only from their high
+computational cost but also due to spurious geometric features
+that are irrelevant for contact-rich manipulation [115, 16].
+sentations tailored for manipulation based on a pretext task that
+predicts the presence and location of contact between a gripper
+and object. The key insight is for contact-rich manipulation,
+it is important to capture what forces and torques can be
+applied to an object in the given state, which in turn depends
+on the presence and location of the contact between the
+object and the gripper. While CORN restricts itself to gripper-
+object contacts, we also need object-environment contacts in
+our problems as we generalize over environments. So, we
+introduce Universal CORN (UNICORN) that generalizes to
+contact affordances between two arbitrary geometries, based
+on a Siamese pre-training pipeline where a single encoder
+learns the representations for both an object and environment,
+and a decoder predicts the contacts between each environment
+point cloud patch and the object.
+Our last contribution concerns domain design. To obtain a
+policy that generalizes to diverse environments, training en-
+vironments must encompass a range of geometric constraints,
+while affording fast simulation for practical training. This is
+a non-trivial problem: unlike objects, environment assets for
+simulated RL training are not widely available, and manually
+designing them is costly. Therefore, we propose a procedural
+generation algorithm for constructing environments based on
+cuboid primitives. Online rearrangement of cuboids at different
+poses and dimensions yields wide coverage of geometric
+features that exist in the real world, such as walls, ceilings,
+affords efficient dynamics simulation. Figure 3 shows example
+environments from our environment generation algorithm.
+We show that by leveraging our framework, we can train a
+non-prehensile manipulation policy that can operate in diverse
+and novel environments and objects in a data- and time-
+efficient manner. We train our policy entirely in simulation
+and zero-shot transfer to unseen environments and objects
+in the real world. Furthermore, we provide a simulation-
+based benchmark comprising 9 digital twins of real-world
+environments and 353 objects to serve as a benchmark for non-
+prehensile manipulation for general environments and objects.
+TABLE I: Comparison of generalization capabilities for non-
+prehensile manipulation.
+Object generalization
+General action space
+Environment generalization
+Wu et al.
+II. RELATED WORK
+A. Nonprehensile Manipulation
+1) Planning-based approaches: Prior works on planning-
+based non-prehensile manipulation use gradient-based opti-
+mization [64, 82, 65], graph-based search [54, 53, 63, 14, 47,
+13], or a hybrid of both [9, 72]. To address the discontinuous
+dynamics arising from contact mode transitions, optimization-
+based works employ soft contact variables  or complemen-
+tarity constraints [82, 65]. However, due to the imprecision
+of smoothed contact and the difficulty of precise constraint
+real world.
+On the other hand, graph-based methods [13, 39] can handle
+discrete dynamics transitions by representing the problem
+with a graph, where nodes represent robot states and contact
+This enables these methods to output more physically realistic
+motions for real-world deployment [14, 47]. However, to
+make the search tractable, these works restrict the diversity
+of motions, assuming quasi-static motions [13, 39] or prede-
+fined primitives [120, 47], limiting them to tasks with simple
+motions and sparse contact-mode transitions.
+Other works combine optimization and sampling to acceler-
+ate planning [9, 72], yet remain too slow for online use due to
+the cost of searching large hybrid spaces with discontinuous
+dynamics. Further, most planning methods require knowledge
+of system parameters like mass and friction, which are difficult
+to estimate in real-world scenarios with varying objects and
+2) Learning-based approaches: Recent works leverage re-
+inforcement learning (RL) to bypass the limitations of tra-
+ditional planners by learning a policy that maps actions
+directly from sensory inputs [50, 113, 78, 114, 30, 117, 44,
+of planning or the requirement of full system parameters,
+most of these works suffer from limited generalization across
+object geometries, since the policy is only trained on a
+single object [50, 113, 78, 114, 30, 117, 44]. Recent works
+incorporate point-cloud inputs [118, 16] or employ contact re-
+targeting  to facilitate generalization across diverse object
+problem of generalizing across diverse environments using the
+full action space of the robot, as summarized in Table I.
+To generalize across diverse objects, HACMan  pre-
+dicts an object-centric affordance map on its point cloud.
+While sample-efficient, this restricts robot motion to a hand-
+designed poking primitive, limiting their applicability in di-
+verse environments. CORN  learns a policy over the full
+joint space of the robot, and generalizes over objects with a
+contact-based object representation tailored for manipulation.
+to the lack of environment representation. Wu et al.
+retargets contacts from human demonstrations to determine
+robot actions for novel scenes, but their approach is limited to
+scenes similar to the original demonstration, as the actions are
+restricted to predefined skill sequences based on a primitive
+library. Like CORN, we train an RL policy over the full
+robot joint space to manipulate objects of general geometry.
+leveraging our extended contact-based representation, UNI-
+B. Multi-task Neural Architectures
+In multi-task learning, a single model learns to do a family
+of related tasks by leveraging task synergies for improved
+performance and training efficiency . As a single model
+must distinguish multiple tasks, it additionally takes context
+variables (e.g., task IDs) as conditioning inputs. The simplest
+approach for multi-task learning uses a monolithic architecture,
+which incorporates context inputs simply by concatenating
+them with network inputs. However, this design suffers from
+interference among tasks, as the neurons must handle multiple
+of base network f from context inputs. See, for example,
+Figure 5 (a) and (c) for a comparison of monolithic and
+context-adaptive architectures. This separation allows the neu-
+ral network to define a different function for each context,
+which mitigates interference . Our architecture, HAMNET,
+also falls into this category.
+Representative context-adaptive architectures include condi-
+tional normalization [79, 77, 62, 6], hypernetworks [36, 41],
+and modular architectures [33, 108, 94]. In conditional nor-
+malization  (Figure 5b), g takes the context variable z as
+input and applies feature-wise scale and bias {, }  g(z)
+to the intermediate features of the base network as y
+f(x) where denotes element-wise multiplication. While
+affine transforms, restricting its capacity . In hypernet-
+works  (Figure 5c), g affords broader expressivity, as it
+generates the entire set of base network parameters,   g(z),
+but suffer from poor training stability due to its large decision
+space over densely interacting parameters .
+HAMNET is an instance of modular architectures (Fig-
+ure 5d), where g only predicts sparse activation weights w of
+modules to determine . Specifically, in modular architectures,
+M denotes the number of modules, each of which is a
+network parameter, and the parameters of the base network
+are effectively formed as a weighted combination of these
+assume that z is given by the user and is discrete, such as pre-
+defined task IDs [81, 94, 108, 38]. In contrast, to generalize
+to novel, real-world environments in our problem, we need to
+(a) Monolithic architecture
+(c) Hypernetwork
+Context input
+State input
+Base Network
+Base Network
+Base Network
+(b) Conditional Normalization
+Activation
+Context input
+State input
+(d) Modular architecture
+Context input
+State input
+Context input
+State input
+Base Network
+Fig. 5: Conceptual illustration of how different architectures
+incorporate context inputs. L and J denote elementwise sum
+and multiplication, and L denotes number of layers. The base
+network that computes the output is indicated by f, while g
+is a separate network that determines  from the context. In
+our work, we adopt a variant of the modular architecture (d).
+infer z from sensory observations such as environment and
+object point clouds. To overcome this, we design geometric
+encoders that map high-dimensional sensory observations to
+Our architecture is most similar to Soft Modularization
+(SM) , with three key differences. Unlike SM, which
+predicts connectivities between all pairs of modules between
+neighboring layers, we directly predict module activations,
+which simplifies computation and reduces the output dimen-
+sions from M 2 connections to M module activations. We ad-
+ditionally improve the computational efficiency by predicting
+all module activation weights in parallel, instead of predicting
+in series while conditioning on the preceding layers module
+activations. Lastly, we incorporate a gating mechanism  to
+enhance expressivity and boost policy performance.
+C. Representation learning on point clouds
+To accelerate RL training with high-dimensional sensory
+to bootstrap RL agents. Different pretext tasks have been
+proposed for this purpose, such as point completion ,
+orientation and category estimation [11, 40], or contrastive
+learning . Inspired by the advances in natural language
+processing [21, 84] and image analysis , recent works
+adopt self-supervised learning (SSL) on patch-based trans-
+formers [112, 10, 73, 116, 1] for point cloud representation
+learning. These works reconstruct unseen geometric patches
+via either autoregressive prediction  or masking [112, 73,
+of-the-art results in shape classification and segmentation .
+Despite their success in general-purpose vision tasks, these
+representations are unsuitable for robot manipulation for two
+reasons. First, these models attempt to predict the missing
+patches in a point cloud, which forces the encoder to focus
+on encoding information about the objects shape. However,
+knowing the exact shape of the object is often sufficient but
+unnecessary for manipulation. For example, manipulating a
+toy crab in Figure 1e does not require knowledge of the
+exact shape between its legs, as that area is tightly confined
+and cannot be contacted by the robot or the environment.
+which degrades training efficiency [27, 91] and policy perfor-
+mance . In contrast, we extend CORN  to pre-train a
+representation to encode contact affordances among arbitrary
+geometry pairs, shown to be effective for robot manipulation.
+D. Modularity in biological networks
+Modularity in biological neural networks is a key principle
+underlying adaptation and learning . In vertebrate motor
+ules of movement that abstract muscle control, representing
+a coordinated contraction of a set of muscles to produce a
+desired behavior, such as the synchronized activation of the
+quadriceps and hamstrings for walking .
+Modularizing motor control in this way provides several
+benefits. When adapting to a particular context, the central
+nervous system (CNS) can dictate behaviors using sparse, low-
+dimensional signals that activate specific muscle groups .
+Compared to controlling individual motor neurons, this affords
+rapid switching between distinct motor skills like reaching
+and grasping depending on the context [70, 98]. Further,
+synergies can be reused across behaviors, producing diverse
+movements such as pinch- or power-grasps from a limited set
+of modules , which facilitates learning by recombining
+and adapting existing modules [17, 24]. In our work, we
+incorporate these principles to design our architecture.
+E. Skill discovery in RL
+In skill discovery, Unsupervised RL (URL) aims to find
+reusable skills using task-agnostic objectives like state cover-
+74]. However, without task-specific priors, such intrinsically
+motivated methods often fail to make meaningful interactions
+in high-dimensional domains without engineered bias [3, 99].
+While METRA  was shown to scale to pixel-based tasks,
+it remains prone to degenerate behaviors, such as lying still in
+varied poses in humanoid control domains . On the other
+the training domain, yielding interpretable skills that transfer
+to real-world robot manipulation.
+III. METHODOLOGY
+We consider the non-prehensile manipulation problem,
+where a robot arm with a fixed base moves an object to a
+target pose in environments of general geometry, e.g., kitchen
+as a Markov Decision Process (MDP), represented as a tuple
+(S, A, P, r, ) denoting state space S, action space A, state
+transition model P(st1at, st), reward model r(st, at, st1),
+and discount factor . Our objective is to obtain policy  that
+maximizes the return Rt  Eat(st)[P tr(st, at, st1)]
+via a sequence of non-prehensile actions.
+Figure 6 presents an overview of our framework. We lever-
+age deep RL in a parallel GPU-based simulation  to train
+Procedural
+Domain Generation
+(Section III.D)
+Representation
+Pre-training
+(Section III.C)
+Modular Policy
+Training via RL
+(Section III.B)
+Simulation-to-
+Real Transfer
+(Appendix C)
+Geometry
+Simulator
+Geometry
+Real world
+Fig. 6: Overall method overview. Our framework consists
+of four main components: a modular policy trained with
+domain generation scheme for environment geometries, and a
+simulation-to-real transfer method for real-world deployment.
+Dashed blocks indicate external inputs.
+a modular policy (Section III-B) using the pre-trained point
+cloud representation (Section III-C) on procedurally generated
+domains (Section III-D). We distill the resulting policy for
+real-world deployment via teacher-student distillation (Ap-
+pendix C). All pre-training, policy training, and distillation
+stages happen entirely in a simulation.
+A. MDP Design
+Our state space S consists of robot joint state xq
+effector pose xEE
+, object geometry Go, environment geometry
+receives physics parameters  and object state xo
+t. We repre-
+sent all poses as 3D translation and 6D orientation to facilitate
+the current object pose. Object and scene geometries are given
+as surface-sampled point clouds.
+Our action space A consists of joint residuals q R7 and
+controller gains, parameterized by proportional gains kp R7
+and the damping ratio  R7 that maps to the damping
+gain kd as
+for each joint is computed as
+kpq kd q. While
+prior works adopt Cartesian-space actions [118, 16], we adopt
+joint-space actions, which enables direct control of individual
+robot links to avoid collisions against the environment during
+manipulation.
+The reward r(st, at, st1) in our domain is defined as a sum
+of the task success reward rs, goal-reaching reward rr and the
+contact-inducing reward rc: r  rs  rrr  crc, where r
+and c are scaling coefficients for the respective rewards. Since
+rs  1suc is sparsely given, we incorporate shaping rewards
+rr and rc as potential functions of the form (s)(s) with
+the discount factor  [0, 1), which preserves policy optimal-
+ity . Specifically, we have r(s)  log (cg  do,g(s)  1)
+for rr, and c(s)  log (cr  dh,o(s)  1) for rc, where
+potential functions; do,g(s) is the relative distance between the
+current object and the goal pose, based on the bounding-box
+distance ; dh,o(s) is the hand-object distance between the
+object and the tip of the end-effector. Task success is achieved
+Modulation Network
+Activation
+(Linear)
+Feature-wise
+activation factor
+Modulation
+Embedding
+Module-wise
+activation factor
+(Linear)
+: Pre-trained
+blocks (Frozen)
+: Trained blocks
+Geometry Encoder
+Global scene cloud
+Base Network
+Attention
+Attention
+Attention
+Object State
+Phys. Params
+Joint State
+Prev Action
+Hand State
+Goal pose
+Non-geometric state Inputs
+[EMB] token
+[EMB] token
+[EMB] token
+Local scene cloud
+Current object point cloud
+Fig. 7: Overall architecture. Our model comprises three components  the geometry encoder (red), the modulation network
+(green), and the base network (blue). The geometry encoder embeds the point clouds, and the modulation network maps the
+embeddings and non-geometric state inputs to the base networks parameters . Conditioned on , the base network maps the
+state inputs and object geometry to actions and values. Input groups tagged with different numbers ( 1,
+3) indicate
+sets of non-geometric state inputs fed into different network parts. The inputs to cross-attention layers are concatenated and
+tokenized by a two-layer multi-layer perceptron (MLP).
+when the objects pose is within 0.1m and 0.1 radians of the
+target pose. The episode terminates if (1) the object reaches
+the goal, (2) the object is dropped from the workspace, or
+(3) the episode reaches the timeout of 300 simulation steps.
+Table VII summarizes our MDP design, and details on reward
+coefficients are in Table VIII.
+B. HAMNET-based architecture
+Our architecture, shown in Figure 7, consists of three main
+(green), and base network (blue). Our proposed modular
+networks. Since we use PPO, an actor-critic algorithm, our
+base network outputs both value and action.
+The geometry encoder processes three types of point cloud
+of the scene; the local scene cloud, detailing the nearby
+scene that surrounds the object; and the object point cloud,
+representing its surface geometry. Each cloud is patchfied,
+(Section III-C), yielding latent geometric embeddings z(G)
+tively. Details on point cloud acquisition are in Appendix E.
+The role of the modulation network (Figure 7, green) is to
+output the parameters of the base network, . It takes the ge-
+ometry embeddings z(G)
+and non-geometric states
+( 1and 3) as input. To extract scene geometry information
+relevant to the policys current state, we apply cross-attention
+on the scene geometry embeddings z(G)
+current robot and object states
+1as queries. The resulting
+vector is concatenated with object geometry embedding zO
+and full non-geometric state inputs
+an MLP to predict z, the modulation embedding. Finally,
+the module activation and gain headers map z to module
+activation weights w and gating values g respectively, for the
+L base network layers.
+We then use w and g to build the base network parameters .
+For each layer j [1 . . . L], w  {wi,j}L
+j1 RLM act as M
+module-wise weighting coefficients, passed through softmax
+to ensure PM
+i1 wi,j  1. The gating factor g  {gj}L
+RLDj is a feature-wise multiplier for each layer, with Dj de-
+noting the number of output dimensions of layer j. Together,
+is constructed as a weighted composition of modules followed
+by gating, such that   {(PM
+i1 wi,ji,j) gj}L
+The base network (Figure 7, blue) comprises actor and
+critic networks, where each network is an MLP. To produce
+the input for the base network, we first process the object
+embedding z(O)
+then concatenate the result with input group
+3. The actor
+network outputs the action, and the critic network outputs the
+state values, but instead of a single scalar value, it uses three
+heads to predict the value for each reward component in our
+the contributions from different reward terms, splitting the
+critic into multiple headers helps decrease the difficulty of
+value estimation [29, 52]. When training the actor network,
+we sum the advantages across reward terms to compute the
+policy gradients.
+Note that since the base network has both the actor and
+denoted {(a)
+i1 for layer j. Our module
+activation weights and gating factor also consist of weights for
+a value and action, w  {w(v), w(a)} and g  {g(v), g(a)}.
+To make a prediction, the base network gets instantiated twice
+for actor and critic; in the former case, the network uses the
+weight (a)
+network uses (v)
+j1. These details
+are omitted in the figure for brevity.
+Patchify
+Tokenize
+Shared weights
+Point cloud B
+Point cloud A
+Normalize
+Point patches
+Patch centers
+Positional
+embedding
+Geometry Encoder
+Local Patch
+Embeddings (zA      )
+Embedding (zB)
+Fig. 8: Our pre-training architecture consists of a geometry
+encoder (red) and a contact decoder (green). The same ge-
+ometry encoder operates on each point cloud A and B in a
+Siamese fashion to produce local patch embeddings zA
+N. The contact decoder
+(green) predicts contact between each patch zA
+N. The bottom block details the procedure to patchify and
+tokenize point clouds.
+Training UNICORN
+We design our representation pre-training task on estimating
+the presence and location of contact between two point clouds,
+A and B.
+1) Pre-training data generation : To acquire data for pre-
+represented as point clouds, and contact labels indicating the
+presence and location of contact. Using the objects from
+DexGraspNet dataset , we generate the data by (1)
+sampling near-contact object configurations, (2) creating the
+point clouds by sampling points from the surface of each
+fall within the other object. To account for possible scale
+variations between geometries, we sample the point clouds
+at varying densities and scales during this process. For details
+on the data generation pipeline, see Appendix A.
+2) Network Architecture : Figure 8 shows our pretraining
+network architecture, comprising the geometry encoder and
+the contact decoder. The encoder takes the point clouds of
+objects A and B, denoted xA, xB as inputs, mapping the
+patch-wise tokens from xA and xB and a learnable [EMB]
+token to local patch embeddings zA
+embeddings zA
+N. Afterward, the decoder takes (zA
+and predicts the presence of contact at each of i-th local patch
+of object A with object B. The overall network is trained
+via binary cross-entropy against the patch-wise contact labels.
+During training, we alternate the roles of A and B (i.e., A-B
+and B-A) to ensure that we also use the global embedding of
+A and predict the contact at a patch of B.
+Figure 8 (bottom) shows the procedure to tokenize the
+point clouds. In line with previous patch-based transformer
+architectures for point clouds [73, 10, 16], we first patchify
+Lateral Base Plates
+Longitudinal Base
+Vertical axis
+Lateral axis
+Longitudinal
+Interim Plate
+: Interior
+: Exterior
+Fig. 9: Our pipeline for environment generation composes dif-
+ferent environmental factors, such as walls, ceilings, and plates
+at different elevations for each axis, to construct geometrically
+diverse environments.
+the point cloud by gathering neighboring points from repre-
+sentative center points. These center points are selected via
+farthest-point sampling (FPS), and the points comprising the
+patches are determined as the k-nearest neighbors (kNN) of
+the patch center. These patches are normalized by subtracting
+their center coordinates, and a small MLP-based tokenizer
+embeds the shape of each patch. Afterward, we add sinusoidal
+positional embeddings of the patch centers to the patch tokens
+to restore the global position information of each patch.
+D. Procedural domain and curriculum generation
+To create diverse environments and support curriculum
+learning for training our policy, we develop a procedural gen-
+eration scheme for constructing environments as a composition
+of cuboidal primitives. Since we construct environments by dy-
+namically rearranging existing geometric entities, it integrates
+well with most GPU-based simulators [56, 32] that prohibit
+spawning new assets after initialization.
+Our procedural pipeline, shown in Figure 9, comprises two
+main components: domain interior and exterior generation.
+The interior includes planar and interim plates arranged
+laterally and longitudinally, where planar plates form ele-
+vated surfaces and interim plates form sloped ramps. Their
+produce diverse topographies, yielding features like bumps,
+and ceilings that impose accessibility constraints, where their
+randomly sampled. The proportion of ceiling types controls the
+difficulty of workspace accessibility, since the nominal ceiling
+is generated with sufficient clearance, whereas tight ceilings
+leave a narrow margin relative to the objects height. Details
+on the procedural generation pipeline are in Appendix B.
+As our procedural generation pipeline is fully parameter-
+can be dynamically adjusted during training. This enables
+curriculum learning, where task complexity is incrementally
+increased throughout training. Specifically, we employ a cur-
+riculum for robot initialization and ceiling types. To facilitate
+TABLE II: Comparison between baselines regarding architec-
+ture and representation.
+Model Name
+Model Architecture
+Representation
+UNICORN-HAMNET (OURS)
+UNICORN-HYPER
+Hypernetwork
+UNICORN-SM
+Soft-Modularization
+UNICORN-TRANSFORMER
+Transformer
+UNICORN-MONO
+POINTGPT-HAMNET
+PointGPT
+E2E-HAMNET
+End-to-end
+effector begins within a 0.1m radius of the object based on
+collision-free inverse kinematics solutions from CuRobo ;
+in the random configuration, a collision-free joint configu-
+ration is uniformly sampled within the robots joint limits.
+Early in training, we preferentially sample near initializations
+and nominal ceilings to encourage interaction with the object.
+As training progresses, we linearly increase the proportion
+of random initializations and tight ceilings, encouraging the
+policy to develop obstacle-aware maneuvers for approaching
+objects from arbitrary configurations.
+IV. EXPERIMENTAL RESULTS
+A. Overview
+Our goal is to evaluate the following claims: (1) our modular
+policy that generalizes over large domain diversity, compared
+to monolithic or hypernetwork architectures; (2) our contact-
+based representation, UNICORN, affords data-efficient train-
+ing for a robot manipulation policy in geometrically rich
+domains compared to an off-the-shelf self-supervised repre-
+sentation; (3) our framework affords real-world transfer and
+generalization to novel environment geometries despite only
+training in a simulator with synthetic environments.
+To evaluate our claims, we compare the performance of our
+proposed model (UNICORN-HAMNET) with the baselines
+summarized in Table II. These baselines explore alternative
+choices in network architecture or representation. UNICORN-
+HYPER uses a hypernetwork [48, 88] to predict base net-
+work parameters. UNICORN-SM is a variant of a modular
+architecture using Soft Modularization . We include two
+variants of standard monolithic architectures, UNICORN-
+MONO and UNICORN-TRANSFORMER, respectively using
+an MLP and a transformer. POINTGPT-HAMNET and E2E-
+HAMNET considers alternative choices in the representation,
+where the former replaces the pretrained UNICORN with a
+PointGPT encoder , while the latter jointly trains the rep-
+resentation model end-to-end. All architectures are configured
+to have a similar number of trainable parameters up to the
+architectural constraints. Additional details on the baselines
+are in Appendix F.
+B. Simulation experiment
+To train our policy, we use a Franka Research 3 (FR3)
+arm manipulating a subset of 323 objects from DexGraspNet
+Interactions
+Success rate
+UNICORN-HAMNET (OURS)
+UNICORN-SM
+POINTGPT-HAMNET
+UNICORN-HYPER
+UNICORN-MONO
+E2E-HAMNET
+UNICORN-TRANSFORMER
+Fig. 10: Training progression. For each baseline, we show the
+mean (solid) and standard deviation (transparent) of success
+rates across three seeds. The interaction steps are aggregated
+across 1024 parallel environments.
+dataset  on the procedurally generated environments as
+in Section III-D. We train each baseline using PPO
+with identical hyper-parameters, spanning 2 billion environ-
+ment interactions across 1024 parallel environments in Isaac
+Gym . Detailed hyperparameters for policy training are
+described in Appendix F. We consider two metrics: data
+efficiency and time efficiency.
+To support our claim on training efficiency, we consider the
+training progression plot in Figure 10. Overall, modular archi-
+tectures (UNICORN-HAMNET and UNICORN-SM) achieve
+the best data efficiency, with the mean success rates of 75.6
+and 70.9 after training. In contrast, monolithic architectures
+show lower performance, regardless of whether conditioning
+is given by concatenation (UNICORN-MONO, 49.8) or self-
+attention (UNICORN-TRANSFORMER, 43.9). UNICORN-
+HYPER performs best among non-modular architectures at
+56.5, indicating the adaptivity of the network expedites
+policy training. UNICORN-SM (70.9) further improves
+over hypernetworks, as its modularity affords reuse of network
+modules and reduces the learning complexity by predicting
+sparse module activations rather than parameters of individual
+neurons. Lastly, UNICORN-HAMNET (75.6) outperforms
+UNICORN-SM from the increased expressivity of the gat-
+ing mechanism. To evaluate the representational efficacy of
+HAMNET and POINTGPT-HAMNET. End-to-end training
+(E2E-HAMNET) degrades performance (47.9), emphasiz-
+ing the utility of pre-training; while POINTGPT-HAMNET
+performs better (66.0), it still underperforms UNICORN-
+HAMNET due to the overhead from spurious geometric details
+and increased embedding dimensions.
+Since all our training happens in simulation, training time
+is also an important factor. To evaluate the time-efficiency of
+each baseline, we measure the per-epoch training time in Fig-
+ure 11. While the monolithic MLP architecture (UNICORN-
+MONO) is the fastest (1.12s) due to its simplicity, mod-
+ular architectures (UNICORN-HAMNET and UNICORN-
+SM) follow closely at just 1.33s and 1.84s, which shows
+UNICORN-
+HAMNET (OURS)
+UNICORN-
+UNICORN-
+UNICORN-
+TRANSFORMER
+UNICORN-
+POINTGPT-
+Mean t  epoch (s)
+Fig. 11: Per-epoch training time comparison across all base-
+bars represent two standard deviations.
+that determining module-level activation adds minimal over-
+head; between the two, UNICORN-HAMNET achieves faster
+training than UNICORN-SM from the streamlined prediction
+of module activations. In contrast, UNICORN-HYPER takes
+the longest (5.31s) due to the cost of predicting the full set
+of base network parameters. To contextualize the overhead,
+a standard transformer (UNICORN-TRANSFORMER) takes
+around 3.30s. We also compare with representational base-
+encoder of POINTGPT-HAMNET significantly lags training,
+averaging 4.40s per epoch, about 3.3 times slower than
+UNICORN-HAMNET. While E2E-HAMNET uses the same
+encoder architecture as UNICORN-HAMNET, it suffers from
+2.9 slower training due to the overhead of co-training the
+representation model.
+C. Real world experiment
+TABLE III: Results on 9 unseen real-world domains.
+Success rate
+Success rate
+Bulldozer
+Top of cabinet
+Bulldozer
+Heart-Box
+Bulldozer
+Bulldozer
+Angled Cup
+Heart-Box
+Bulldozer
+Bulldozer
+Pencil case
+Circular bin
+Bulldozer
+Bulldozer
+Pineapple
+Suitcase
+Bulldozer
+Candy Jar
+To validate the real-world applicability and generalizability
+of our framework, we evaluate our policy in 9 real-world
+domains with novel everyday scenes and objects (Figure 1).
+We test two objects in each domain: one object (a toy
+bulldozer), shared across all domains, and one random object
+(Figure 12b), each with five trials at different initial and goal
+For each scene, we mount four RealSense D435 cameras to
+observe the point clouds from multiple viewpoints, ensuring
+sufficient visibility of the object during execution (Figure 12a).
+To distinguish the object cloud from the environment cloud,
+we use SAM  to designate the initial object segmentation
+mask and utilize Cutie  to track the object during manip-
+ulation. We use FoundationPose  to estimate the objects
+relative pose from the goal pose, using the view with the
+best visibility of the object (largest object segmentation mask)
+- Camera
+- Environment
+- Object
+(a) Example of our scene layout
+in the cabinet domain.
+(b) Our real-world objects, all un-
+seen during policy training.
+Fig. 12: Our real-world experimental setup.
+among the four cameras. We generate the environment point
+cloud by combining and filtering the point clouds from the
+depth cameras. We replaced the robots gripper to accommo-
+date narrow environments, wrapped with a high-friction glove
+to reduce slipping. Further details on the real-world setup are
+in Appendix H.
+Table III shows the results of our policy across 9 real-world
+domains. Overall, our policy demonstrates 78.9 success
+transfer to diverse, unseen real-world environments, despite
+only training in a simulation. The main failure modes of
+our policy are, in decreasing order of frequency: torque limit
+violation (5.56); policy deadlock (4.44); dropping objects
+(4.44); getting blocked by the environment (3.33); and
+perception error (3.33). Detailed descriptions of these failure
+modes are in Appendix H2.
+D. Emergence of skills in HAMNET
+We show that HAMNET automatically discovers different
+manipulation skills and learns to sequence them. To do this,
+we inspect the modulation embedding z (see Figure 7), which
+decides the activation weight of each module. We collect a
+dataset of z by running a trained policy in 25,000 randomly
+sampled episodes in simulation. Since the high-dimensional
+z is hard to interpret, we project z into a three-dimensional
+manifold using UMAP  to visualize its structure.
+To show that HAMNET discovers different skills, we apply
+HDBSCAN  to these projections of z. Figure 13 shows
+the result. The inner block of Figure 13 shows the extracted
+clusters with different colors. We find that, without any
+manually designed bias or knowledge, these clusters naturally
+emerge and have semantically interpretable behaviors, such
+as lifting (red), reaching (blue), reorienting with (yellow) and
+without a ceiling (bright yellow), translation with (purple) and
+without a ceiling (bright purple), and dropping objects (green).
+The outer blocks marked with numbers show the rendering
+of the situations in which these embeddings have been used.
+They show that our policy also learns when to use these skills
+based on the geometric constraint imposed by the environment,
+and the subgoal the robot is trying to achieve. For instance,
+to lift objects over platforms (Figure 13, 1), the policy must
+actively maintain contact between the object, wall, and the
+gripper. When dropping objects (Figure 13, 10
+), the robot
+must carefully prevent them from bouncing or rolling off the
+table. Similarly, the ceiling affects the policys reaching strate-
+Viewpoint
+Translate (No-Ceil)
+Reorient (No-Ceil)
+Translate (Ceil)
+Inner Block
+Reorient (Ceil)
+Domain Parameter
+ceilheight -ceilheight
+ceilheight
+-ceilheight
+right of
+away from
+Fig. 13: (inner block) UMAP projection of the modulation embedding z, colored by clusters from HDBScan. Unclustered
+points are in black. (outer block) Isolated view of each cluster, colored by a representative domain parameter, such as ceiling
+height or goal direction (to the left or right). The camera icon per each box denotes the viewpoint. The rendered scene shows
+a domain and state that generated an embedding in a cluster, with the red and blue objects indicating the current object pose
+and goal pose respectively.
+the object laterally (Figure 13, 8); in open environments, the
+robot can take overhand postures (Figure 13,
+4) instead.
+The outer blocks marked with alphabets in Figure 13 show
+that intra-cluster variation captures their behavioral variations
+within a skill For example, as you move horizontally within the
+lifting cluster (Figure 13, a) it models behavior that pulls the
+object towards or away from the robot
+direction maps to its left or right
+1. While subtler than the
+categorical differences across distinct skills like lifting and
+that HAMNET also learns to adjust the module activations to
+implement finer behavioral nuances.
+To check if HAMNET can use these skills in sequence,
+we analyze how z changes throughout a task. To highlight
+the transitions, we label z at each step of an episode based
+on the precomputed HDBScan clustering shown in Figure 13.
+Figure 14 shows that the agent switches between behavioral
+clusters based on its internal subgoal: in Figure 14a, the robot
+initiates with a reaching skill to approach the object while
+avoiding obstacles. Afterward, the robot transitions to lift the
+object to the top platform. After a successful lift, the robot
+reorients the object to match the target orientation. Lastly, the
+robot translates the object to its target pose. The sequence of
+z changes when the problem changes: when the robot has
+to drop an object to a lower platform instead (Figure 14b),
+the robot follows a different sequence (reach-drop-reorient-
+Reorient
+Translate
+(a) An episode where the agent lifts an object across a platform.
+Reorient
+Translate
+(b) An episode where the agent drops an object to a lower elevation.
+Fig. 14: Illustration of how our architecture learns to use
+different skills. Color bar in each subfigure shows the cluster
+labels of z at each step, and the bottom shows the domain
+rendering of representative keyframes. The red object is the
+current object pose, and the blue object is the goal pose.
+translate). This demonstrates that our architecture can (1)
+discover its own subgoals and (2) activate different modules
+to achieve different subgoals.
+E. Simulated Benchmark in Realistic Domains
+We release a simulated digital twin of our nine real-
+world setups as a benchmark for non-prehensile manipulation
+(Figure 15). The environment mesh is built using CAD,
+Fig. 15: Sample environments in our simulated benchmark.
+From the top left: sink, circular bin, suitcase, basket, grill,
+and cabinet. The axis on each object indicates its current pose,
+while the other axis represents the target pose.
+353 objects: 9 custom scans from the real world, 21 from
+object pair, we sample 5 stable initial- and goal-poses and
+128 random collision-free robot initializations to evaluate
+generality. Appendix G4 details domain configurations and
+provides baseline results.
+V. CONCLUSION
+In this work, we propose a novel framework for non-
+prehensile manipulation in general environments via deep
+reinforcement learning in a simulation. Our framework com-
+prises a modular architecture (HAMNET), a contact-based
+object and environment representation (UNICORN), and a
+procedural domain generation algorithm for diverse environ-
+ment geometries. Compared to conventional architectures and
+standard representations, our framework facilitates data- and
+time-efficient training of a policy that generalizes to diverse
+and unseen scenes. Despite solely training in synthetic en-
+vironments in a simulation, our policy zero-shot generalizes
+to unseen real-world environments and objects. Overall, our
+combined framework achieves state-of-the-art performance in
+non-prehensile manipulation of general objects in general
+environments.
+A. Limitations
+Despite promising results, our approach has several limita-
+tions that can be addressed in future work:
+Improved efficiency of HAMNET. In HAMNET, the
+parameters of the base network are updated at every step.
+triggers a change, such as a successful lift. Thus, reusing
+the predicted network parameters over multiple steps can
+potentially reduce the computational overhead.
+Dynamics-aware
+representation.
+CORN effectively represents object and environment geome-
+which are critical for maneuvering objects with unusual dy-
+tions. As such, one intriguing future research direction is to
+extend the representation to include dynamics information,
+potentially by incorporating memory [15, 35].
+Generating fine-grained environment features. Our pro-
+cedural generation pipeline relies on cuboidal primitives, lim-
+iting the diversity of fine-grained geometric features (e.g.,
+in the Grill, Drawer, and Circular Bin environments show
+that the policy can still adapt to uneven and curved surfaces,
+diversifying procedural generation through approaches like
+geometric generative models , may enhance the policys
+environmental generalization capability.
+ACKNOWLEDGEMENTS
+This work was supported by Institute of Information  com-
+munications Technology Planning  Evaluation (IITP) grant
+and National Research Foundation of Korea (NRF) funded
+by the Korea government(MSIT) (No.2019-0-00075, Artificial
+Intelligence Graduate School Program(KAIST)), (No.2022-0-
+ing Techniques for Contact-Rich Robotic Manipulation of
+Everyday Objects), (No. 2022-0-00612, Geometric and Phys-
+ical Commonsense Reasoning based Behavior Intelligence for
+Embodied AI), (No. RS-2024-00359085, Foundation model
+for learning-based humanoid robot that can understand and
+achieve language commands in unstructured human environ-
+ments), (No. RS-2024-00509279, Global AI Frontier Lab).
+REFERENCES
+Karim Abou Zeid, Jonas Schult, Alexander Hermans,
+and Bastian Leibe. Point2Vec for self-supervised repre-
+sentation learning on point clouds. German Conference
+on Pattern Recognition (GCPR), 2023.
+Arthur Allshire, Mayank MittaI, Varun Lodaya, Viktor
+Manuel Wuthrich, Stefan Bauer, Ankur Handa, and
+Animesh Garg.
+Transferring dexterous manipulation
+from gpu simulation to a remote real-world trifinger.
+In IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 1180211809. IEEE,
+Bowen Baker, Ingmar Kanitscheider, Todor Markov,
+Yi Wu, Glenn Powell, Bob McGrew, and Igor Mordatch.
+Emergent tool use from multi-agent autocurricula. In
+International Conference on Learning Representations,
+Ronen Basri, Meirav Galun, Amnon Geifman, David
+bias in neural networks for input of non-uniform den-
+In Hal Daume III and Aarti Singh, editors,
+Proceedings of the 37th International Conference on
+Machine Learning, volume 119 of Proceedings of Ma-
+chine Learning Research, pages 685694. PMLR, 13
+18 Jul 2020. URL
+basri20a.html.
+Emilio Bizzi and Vincent CK Cheung.
+The neural
+origin of muscle synergies. Frontiers in Computational
+Anthony Brohan, Noah Brown, Justice Carbajal, Yev-
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana
+Jasmine Hsu, Julian Ibarz, Brian Ichter, Alex Irpan,
+Tomas Jackson, Sally Jesmonth, Nikhil Joshi, Ryan
+Kuang-Huei Lee, Sergey Levine, Yao Lu, Utsav Malla,
+Deeksha Manjunath, Igor Mordatch, Ofir Nachum, Car-
+olina Parada, Jodilyn Peralta, Emily Perez, Karl Pertsch,
+Jornell Quiambao, Kanishka Rao, Michael S Ryoo,
+Grecia Salazar, Pannag R Sanketi, Kevin Sayed, Jaspiar
+Huong Tran, Vincent Vanhoucke, Steve Vega, Quan H
+for Real-World Control at Scale.
+In Proceedings of
+Yuri Burda, Harrison Edwards, Amos Storkey, and Oleg
+Exploration by random network distillation.
+In International Conference on Learning Represen-
+H1lJJnR5Ym.
+Rich Caruana. Multitask learning. Machine learning,
+Claire Chen, Preston Culbertson, Marion Lepert, Mac
+tory optimization meets tree search for planning multi-
+contact dexterous manipulation. In IEEERSJ Interna-
+tional Conference on Intelligent Robots and Systems
+(IROS), pages 82628268. IEEE, 2021.
+Guangyan Chen, Meiling Wang, Yi Yang, Kai Yu,
+Li Yuan, and Yufeng Yue. PointGPT: Auto-regressively
+generative pre-training from point clouds.
+In Thirty-
+seventh Conference on Neural Information Processing
+rqE0fEQDqs.
+Tao Chen, Megha Tippur, Siyang Wu, Vikash Ku-
+object shapes. Science Robotics, 8(84):eadc9244, 2023.
+science.orgdoiabs10.1126scirobotics.adc9244.
+Ho Kei Cheng, Seoung Wug Oh, Brian Price, Joon-
+Young Lee, and Alexander Schwing. Putting the object
+back into video object segmentation. In Proceedings
+of the IEEECVF Conference on Computer Vision and
+Pattern Recognition, pages 31513161, 2024.
+Xianyi Cheng, Eric Huang, Yifan Hou, and Matthew T.
+Contact mode guided motion planning for
+quasidynamic dexterous manipulation in 3d. In Interna-
+tional Conference on Robotics and Automation (ICRA),
+Xianyi Cheng, Sarvesh Patil, Zeynep Temel, Oliver
+in robotic manipulation via hierarchical contact explo-
+IEEE Robotics and Automation Letters, 9(1):
+Kyunghyun Cho, Bart van Merrienboer, Caglar Gul-
+Learning phrase rep-
+resentations using RNN encoderdecoder for statistical
+machine translation. In Proceedings of the Conference
+on Empirical Methods in Natural Language Processing
+(EMNLP), pages 17241734, October 2014.
+Yoonyoung Cho, Junhyek Han, Yoontae Cho, and
+Beomjoon Kim.
+resentation for nonprehensile manipulation of general
+unseen objects. In The Twelfth International Confer-
+ence on Learning Representations, 2024. URL https:
+openreview.netforum?idKTtEICH4TO.
+Jeff Clune, Jean-Baptiste Mouret, and Hod Lipson.
+The evolutionary origins of modularity. Proceedings.
+Biological sciences  The Royal Society, 280:20122863,
+Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and
+Christopher Re.
+efficient
+attention
+io-awareness.
+Advances in Neural Information Processing Systems,
+volume 35, pages 1634416359, 2022.
+URL https:
+proceedings.neurips.ccpaper filespaper2022file
+67d57c32e20fd0a7a302cb81d36e40d5-Paper-Conference.
+Andrea dAvella, Philippe Saltiel, and Emilio Bizzi.
+Combinations of muscle synergies in the construction
+of a natural motor behavior. Nature neuroscience, 6(3):
+Dawson-Haggerty et al. trimesh. URL
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. BERT: Pre-training of deep bidi-
+rectional transformers for language understanding. In
+Proceedings of the 2019 Conference of the North Amer-
+ican Chapter of the Association for Computational
+(Long and Short Papers), pages 41714186, June 2019.
+orgN19-1423.
+Nadia Dominici, Yuri P. Ivanenko, Germana Cappellini,
+Andrea dAvella, Vito Mond, Marika Cicchese, Adele
+Locomotor primitives in newborn babies and their de-
+velopment.
+10.1126science.1210617.
+orgdoiabs10.1126science.1210617.
+Laura Downs, Anthony Francis, Nate Koenig, Brandon
+Google scanned
+In International Conference on Robotics and
+Automation (ICRA), pages 25532560, 2022.
+Kai Olav Ellefsen, Jean-Baptiste Mouret, and Jeff
+Neural modularity helps organisms evolve to
+learn new skills without forgetting old skills.
+Computational Biology, 11(4):124, 04 2015.
+10.1371journal.pcbi.1004128. URL
+1371journal.pcbi.1004128.
+Benjamin Eysenbach, Abhishek Gupta, Julian Ibarz, and
+Sergey Levine.
+Diversity is all you need: Learning
+skills without a reward function.
+In International
+Conference on Learning Representations, 2019. URL
+Hao-Shu Fang, Chenxi Wang, Hongjie Fang, Minghao
+grasp perception in spatial and temporal domains. IEEE
+Transactions on Robotics, 39(5):39293945, 2023. doi:
+Zhiyuan Fang, Jianfeng Wang, Lijuan Wang, Lei
+Self-supervised distillation for visual representation.
+In International Conference on Learning Represen-
+AHm3dbp7D1D.
+Jesse Farebrother, Joshua Greaves, Rishabh Agarwal,
+Charline Le Lan, Ross Goroshin, Pablo Samuel Castro,
+and Marc G Bellemare. Proto-value networks: Scaling
+representation learning with auxiliary tasks.
+Eleventh International Conference on Learning Rep-
+idoGDKSt9JrZi.
+Mehdi Fatemi and Arash Tavakoli. Orchestrated value
+mapping for reinforcement learning. In International
+Conference on Learning Representations, 2022. URL
+Juan Del Aguila Ferrandis, Joao Moura, and Sethu Vi-
+jayakumar. Nonprehensile planar manipulation through
+reinforcement learning with multimodal categorical ex-
+ploration. arXiv preprint arXiv:2308.02459, 2023.
+Pierre Foret, Ariel Kleiner, Hossein Mobahi, and
+Behnam Neyshabur.
+Sharpness-Aware Minimiza-
+tion for Efficiently Improving Generalization.
+C. Daniel Freeman, Erik Frey, Anton Raichuk, Sertan
+differentiable physics engine for large scale rigid body
+Tomer Galanti and Lior Wolf. On the modularity of
+hypernetworks. arXiv: Learning, 2020.
+Karol Gregor, Danilo Jimenez Rezende, and Daan
+Wierstra.
+Variational
+intrinsic
+control.
+Albert Gu and Tri Dao. Mamba: Linear-time sequence
+modeling with selective state spaces, 2024. URL https:
+arxiv.orgabs2312.00752.
+David Ha, Andrew M. Dai, and Quoc V. Le. Hyper-
+networks.
+In International Conference on Learning
+forum?idrkpACe1lx.
+Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li,
+Piotr Dollar, and Ross Girshick. Masked autoencoders
+are scalable vision learners.
+In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 1600016009, June 2022.
+Ahmed Hendawy, Jan Peters, and Carlo DEramo.
+Multi-task reinforcement learning with mixture of or-
+thogonal experts. In The Twelfth International Confer-
+ence on Learning Representations, 2024. URL https:
+openreview.netforum?idaZH1dM3GOX.
+Yifan Hou and Matthew T. Mason. Robust execution
+of contact-rich motion plans by hybrid force-velocity
+control. In International Conference on Robotics and
+Automation (ICRA). IEEE, may 2019. doi: 10.1109icra.
+Wenlong Huang, Igor Mordatch, Pieter Abbeel, and
+Deepak Pathak.
+Generalization in dexterous manipu-
+lation via geometry-aware multi-task learning.
+preprint arXiv:2111.03062, 2021.
+Siddhant M. Jayakumar, Wojciech M. Czarnecki, Jacob
+Yee Whye Teh, Tim Harley, and Razvan Pascanu. Multi-
+plicative interactions and where to find them. In Interna-
+tional Conference on Learning Representations, 2020.
+Shailesh Kantak, James Stinear, Ethan Buch, and
+Leonardo Cohen.
+Rewiring the brain: Potential role
+of the premotor cortex in motor control, learning, and
+recovery of function following brain injury. Neuroreha-
+bilitation and neural repair, 26:28292, 09 2011. doi:
+Imin Kao, Kevin M. Lynch, and Joel W. Burdick. Con-
+tact Modeling and Manipulation. In Springer Handbook
+of Robotics, 2016.
+Minchan Kim, Junhyek Han, Jaehyung Kim, and
+Beomjoon Kim.
+Pre-and post-contact policy decom-
+position for non-prehensile manipulation with zero-
+shot sim-to-real transfer.
+In IEEERSJ International
+Conference on Intelligent Robots and Systems (IROS),
+Alexander Kirillov, Eric Mintun, Nikhila Ravi, Hanzi
+Spencer Whitehead, Alexander C Berg, Wan-Yen Lo,
+Segment anything.
+In Proceedings of the
+IEEECVF International Conference on Computer Vi-
+Michael Laskin, Hao Liu, Xue Bin Peng, Denis Yarats,
+Aravind Rajeswaran, and Pieter Abbeel. Unsupervised
+reinforcement learning with contrastive intrinsic control.
+In Advances in Neural Information Processing Systems,
+volume 35, pages 3447834491, 2022.
+URL https:
+proceedings.neurips.ccpaper filespaper2022file
+debf482a7dbdc401f9052dbe15702837-Paper-Conference.
+Jacky Liang, Xianyi Cheng, and Oliver Kroemer. Learn-
+ing preconditions of hybrid force-velocity controllers
+for contact-rich manipulation. In Proceedings of The
+6th Conference on Robot Learning, volume 205 of
+Proceedings of Machine Learning Research, pages 679
+689. PMLR, 1418 Dec 2023. URL
+mlr.pressv205liang23a.html.
+Gidi Littwin and Lior Wolf. Deep meta functionals for
+shape representation. In Proceedings of the IEEECVF
+International Conference on Computer Vision, pages
+Behavior
+Unsupervised
+pre-training.
+Advances in Neural Information Processing Systems,
+filespaper2021
+file99bf3d153d4bf67d640051a1af322505-Paper.pdf.
+Kendall Lowrey, Svetoslav Kolev, Jeremy Dao, Aravind
+Reinforcement
+Learning for Non-Prehensile Manipulation: Transfer
+from Simulation to Physical System. In International
+Conference on Simulation, Modeling, and Programming
+for Autonomous Robots, 2018.
+Kevin M. Lynch and Matthew T. Mason.
+nonprehensile manipulation: Controllability, planning,
+experiments.
+International
+Robotics Research, 18(1):6492, 1999. doi: 10.1177
+James MacGlashan, Evan Archer, Alisa Devlic, Takuma
+Value function decomposition for iterative design of
+reinforcement learning agents.
+In Advances in Neu-
+ral Information Processing Systems, volume 35, pages
+Y. Maeda, H. Kijimoto, Y. Aiyama, and T. Arai.
+Planning of graspless manipulation by multiple robot
+fingers. In International Conference on Robotics and
+Automation (ICRA), volume 3, pages 24742479, 2001.
+Yusuke Maeda and Tamio Arai. Planning of graspless
+manipulation by a multifingered robot hand. Advanced
+Jeffrey Mahler, Jacky Liang, Sherdil Niyaz, Michael
+Ken Goldberg.
+Dex-net 2.0: Deep learning to plan
+robust grasps with synthetic point clouds and analytic
+grasp metrics. In Proceedings of Robotics: Science and
+Viktor Makoviychuk, Lukasz Wawrzyniak, Yunrong
+Isaac gym: High performance gpu-based
+physics simulation for robot learning. arXiv preprint
+Roberto Martn-Martn, Michelle A. Lee, Rachel Gard-
+Garg. Variable impedance control in end-effector space:
+An action space for reinforcement learning in contact-
+rich tasks. In IEEERSJ International Conference on
+Intelligent Robots and Systems (IROS), pages 1010
+David A. McCrea and Ilya A. Rybak.
+Organiza-
+tion of mammalian locomotor rhythm and pattern
+generation.
+Brain Research Reviews, 57(1):134146,
+articlepiiS0165017307001798.
+Leland McInnes, John Healy, and Steve Astels. hdb-
+of Open Source Software, 2(11):205, 2017.
+Leland McInnes, John Healy, Nathaniel Saul, and Lukas
+Grossberger. Umap: Uniform manifold approximation
+and projection. The Journal of Open Source Software,
+Russell Mendonca, Oleh Rybkin, Kostas Daniilidis,
+Danijar Hafner, and Deepak Pathak.
+Discovering
+achieving
+Advances in Neural Information Processing Systems,
+filespaper2021
+filecc4af25fa9d2d5c953496579b75f6f6c-Paper.pdf.
+Lars Mescheder, Michael Oechsle, Michael Niemeyer,
+Sebastian Nowozin, and Andreas Geiger.
+Occupancy
+In Proceedings IEEE Conf. on Computer Vision and
+Pattern Recognition (CVPR), 2019.
+Kiyokazu Miyazawa, Yusuke Maeda, and Tamio Arai.
+Planning of graspless manipulation based on rapidly-
+exploring random trees. In The International Sympo-
+sium on Assembly and Task Planning: From Nano to
+Macro Assembly and Manufacturing, pages 712. IEEE,
+Igor Mordatch, Zoran Popovic, and Emanuel Todorov.
+Contact-Invariant Optimization for Hand Manipulation.
+In ACM SIGGRAPHEurographics Symposium on Com-
+puter Animation, 2012.
+Joao Moura, Theodoros Stouraitis, and Sethu Vijayaku-
+Non-prehensile planar manipulation via trajec-
+tory optimization with complementarity constraints. In
+International Conference on Robotics and Automa-
+tion (ICRA), pages 970976, 2022.
+Andrew Y. Ng, Daishi Harada, and Stuart J. Russell.
+Policy invariance under reward transformations: Theory
+and application to reward shaping.
+In Proceedings
+of the Sixteenth International Conference on Machine
+NVIDIA. TensorRT: A High-Performance Deep Learn-
+ing Inference Library.
+Gonzalez
+Adrian Dalca.
+Magnitude invariant parametrizations
+hypernetwork
+learning.
+preprint
+Simon A. Overduin, Andrea dAvella, Jose M. Carmena,
+and Emilio Bizzi. Microstimulation activates a handful
+of muscle synergies.
+2012. doi: 10.1016j.neuron.2012.10.018. URL https:
+doi.org10.1016j.neuron.2012.10.018.
+Simon A. Overduin, Andrea dAvella, Jinsook Roh,
+Jose M. Carmena, and Emilio Bizzi.
+Representation
+of muscle synergies in the primate brain.
+of Neuroscience, 35(37):1261512624, 2015. doi: 10.
+1523JNEUROSCI.4302-14.2015.
+jneurosci.orgcontent353712615.
+Jia Pan, Sachin Chitta, and Dinesh Manocha.
+A general purpose library for collision and proximity
+queries. In IEEE International Conference on Robotics
+and Automation (ICRA), pages 38593866, 2012. doi:
+Tao Pang, H. J. Terry Suh, Lujie Yang, and Russ
+Tedrake. Global planning for contact-rich manipulation
+via local smoothing of quasi-dynamic contact mod-
+els. IEEE Transactions on Robotics, 39(6):46914711,
+Yatian Pang, Wenxiao Wang, Francis EH Tay, Wei Liu,
+Yonghong Tian, and Li Yuan. Masked autoencoders for
+point cloud self-supervised learning. In European con-
+ference on computer vision, pages 604621. Springer,
+Jongwook
+Jaekyeom
+Honglak Lee, and Gunhee Kim. Lipschitz-constrained
+unsupervised skill discovery. In International Confer-
+ence on Learning Representations, 2022. URL https:
+openreview.netforum?idBGvt0ghNgA.
+Seohong Park, Oleh Rybkin, and Sergey Levine. ME-
+abstraction.
+In The Twelfth International Conference
+on Learning Representations, 2024.
+URL https:
+openreview.netforum?idc5pwL0Soay.
+Deepak Pathak, Dhiraj Gandhi, and Abhinav Gupta.
+Self-supervised exploration via disagreement. In Pro-
+ceedings of the 36th International Conference on
+Machine Learning, volume 97, pages 50625071.
+pathak19a.html.
+William Peebles and Saining Xie.
+Scalable diffu-
+sion models with transformers.
+In Proceedings of
+the IEEECVF International Conference on Computer
+Vision (ICCV), pages 41954205, October 2023.
+Wojciech
+Robotic Control with Dynamics Randomization.
+International Conference on Robotics and Automation,
+Ethan Perez, Florian Strub, Harm De Vries, Vincent
+with a general conditioning layer. In Proceedings of the
+AAAI conference on artificial intelligence, volume 32,
+Vitchyr Pong, Murtaza Dalal, Steven Lin, Ashvin Nair,
+Shikhar Bahl, and Sergey Levine.
+covering self-supervised reinforcement learning. In Pro-
+ceedings of the 37th International Conference on Ma-
+chine Learning, volume 119, pages 77837792. PMLR,
+v119pong20a.html.
+Edoardo M Ponti, Alessandro Sordoni, Yoshua Bengio,
+and Siva Reddy. Combining modular skills in multitask
+learning. arXiv preprint arXiv:2202.13914, 2022.
+Michael Posa, Cecilia Cantu, and Russ Tedrake.
+Direct Method for Trajectory Optimization of Rigid
+Bodies Through Contact. The International Journal of
+Robotics Research, 2014.
+Francesco
+synergies in grasping actions. Scientific Reports, 8(1):
+Alec Radford, Karthik Narasimhan, Tim Salimans, and
+Ilya Sutskever. Improving language understanding by
+generative pre-training. 2018.
+Nasim Rahaman, Aristide Baratin, Devansh Arpit, Felix
+and Aaron Courville.
+On the spectral bias of neural
+networks. In Proceedings of the 36th International Con-
+ference on Machine Learning, volume 97 of Proceed-
+ings of Machine Learning Research, pages 53015310.
+pressv97rahaman19a.html.
+Daniel Rebain, Mark J. Matthews, Kwang Moo Yi,
+Gopal Sharma, Dmitry Lagun, and Andrea Tagliasac-
+Attention beats concatenation for conditioning
+neural fields. Transactions on Machine Learning Re-
+GzqdMrFQsE.
+Stephane Ross, Geoffrey Gordon, and Drew Bagnell. A
+reduction of imitation learning and structured prediction
+to no-regret online learning. In Proceedings of the four-
+teenth international conference on artificial intelligence
+and statistics, pages 627635. JMLR Workshop and
+Conference Proceedings, 2011.
+Elad Sarafian, Shai Keynan, and Sarit Kraus.
+composing the reinforcement learning building blocks
+with hypernetworks.
+In International Conference on
+Machine Learning, pages 93019312. PMLR, 2021.
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+Proximal policy opti-
+mization algorithms. arXiv preprint arXiv:1707.06347,
+Archit Sharma, Shixiang Gu, Sergey Levine, Vikash
+Dynamics-aware unsu-
+pervised discovery of skills. In International Confer-
+ence on Learning Representations, 2020. URL https:
+openreview.netforum?idHJgLZR4KvH.
+Haizhou Shi, Youcai Zhang, Siliang Tang, Wenjie Zhu,
+Yaqian Li, Yandong Guo, and Yueting Zhuang.
+the efficacy of small self-supervised contrastive models
+without distillation signals. Proceedings of the AAAI
+Conference on Artificial Intelligence, 36(2):22252234,
+Jun. 2022. doi: 10.1609aaai.v36i2.20120. URL https:
+ojs.aaai.orgindex.phpAAAIarticleview20120.
+Yawar Siddiqui, Antonio Alliegro, Alexey Artemov,
+Tatiana Tommasi, Daniele Sirigatti, Vladislav Rosov,
+Angela Dai, and Matthias Niener. MeshGPT: Generat-
+ing triangle meshes with decoder-only transformers. In
+Proceedings of the IEEECVF Conference on Computer
+Vision and Pattern Recognition (CVPR), pages 19615
+networks.
+67(Volume
+10.1146annurev-psych-122414-033634.
+Lingfeng Sun, Haichao Zhang, Wei Xu, and Masayoshi
+Tomizuka.
+reinforcement learning. In Advances in Neural Informa-
+tion Processing Systems, 2022. URL
+netforum?idLYXTPNWJLr.
+Balakumar Sundaralingam, Siva Kumar Sastry Hari,
+Adam Fishman, Caelan Garrett, Karl Van Wyk, Valts
+motion generation, 2023.
+Matthew Tancik, Pratul Srinivasan, Ben Mildenhall,
+Fourier features let networks learn high
+frequency
+functions
+dimensional
+domains.
+Advances
+Information
+Processing
+filespaper2020
+file55053683268957697aa39fba6f231c68-Paper.pdf.
+Matthew Tancik, Ethan Weber, Evonne Ng, Ruilong
+der Kristoffersen, Jake Austin, Kamyar Salahi, Ab-
+hik Ahuja, David McAllister, and Angjoo Kanazawa.
+field development.
+In ACM SIGGRAPH Conference
+Lena H Ting and J Lucas McKay. Neuromechanics of
+muscle synergies for posture and movement. Current
+opinion in neurobiology, 17(6):622628, December
+URL https:
+europepmc.orgarticlesPMC4350235.
+Andrea Tirinzoni, Ahmed Touati, Jesse Farebrother,
+Yingchen
+Alessandro Lazaric, and Matteo Pirotta.
+Zero-shot
+whole-body humanoid control via behavioral foundation
+models. In International Conference on Learning Rep-
+id9sOR0nYLtz.
+Matthew C. Tresch, Philippe Saltiel, and Emilio Bizzi.
+The construction of movement by the spinal cord.
+Nature Neuroscience, 2(2):162167, Feb 1999.
+Weikang Wan, Haoran Geng, Yun Liu, Zikang Shan,
+Yaodong Yang, Li Yi, and He Wang.
+via geometry-aware curriculum and iterative generalist-
+specialist learning.
+In Proceedings of the IEEECVF
+International Conference on Computer Vision, pages
+Hanchen Wang, Qi Liu, Xiangyu Yue, Joan Lasenby,
+and Matt J. Kusner.
+Unsupervised point cloud pre-
+training via occlusion completion. In Proceedings of
+the IEEECVF International Conference on Computer
+Vision (ICCV), pages 97829792, October 2021.
+Ruicheng Wang, Jialiang Zhang, Jiayi Chen, Yinzhen
+A large-scale robotic dexterous grasp dataset for general
+objects based on simulation.
+In IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Shaochen Wang, Zhangli Zhou, and Zhen Kan. When
+transformer meets robotic grasping: Exploits context for
+efficient grasp detection. IEEE Robotics and Automa-
+tion Letters, 7(3):81708177, 2022. doi: 10.1109LRA.
+Bowen Wen, Wei Yang, Jan Kautz, and Stan Birch-
+and tracking of novel objects. In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Albert Wu, Ruocheng Wang, Sirui Chen, Clemens Epp-
+One-shot transfer of long-
+horizon extrinsic manipulation through contact retarget-
+ing. arXiv preprint arXiv:2404.07468, 2024.
+Saining Xie, Jiatao Gu, Demi Guo, Charles R. Qi,
+Leonidas Guibas, and Or Litany. PointContrast: Unsu-
+pervised pre-training for 3d point cloud understanding.
+In European Conference on Computer Vision (ECCV),
+Ruihan Yang, Huazhe Xu, Yi Wu, and Xiaolong Wang.
+Multi-task reinforcement learning with soft modular-
+ization.
+Advances in Neural Information Processing
+Denis Yarats, Rob Fergus, Alessandro Lazaric, and
+Lerrel Pinto.
+Reinforcement learning with prototyp-
+ical representations.
+In Proceedings of the 38th In-
+ternational Conferen

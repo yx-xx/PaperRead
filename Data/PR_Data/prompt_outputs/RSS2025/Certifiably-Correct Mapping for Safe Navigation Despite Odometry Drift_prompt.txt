@@ -1,7 +1,7 @@
 === PDF文件: Certifiably-Correct Mapping for Safe Navigation Despite Odometry Drift.pdf ===
-=== 时间: 2025-07-22 09:59:19.823237 ===
+=== 时间: 2025-07-22 15:45:56.709625 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -708,4 +708,256 @@ Frame 2000
 Ground Truth
 Baseline ESDF Method
 Certied ESDF Method
-Fig. 4. Visualization of the maps gener
+Fig. 4. Visualization of the maps generated using the baseline and certified ESDF methods on the office3 environment. In (a) we see the ground-truth
+mesh. In (b) and (c) we can see the internal view after 500 timesteps. As in Figure 3, although the baseline method maps a larger volume (red mesh is larger
+than green mesh), it also contains many violations. In (e) and (f) we see a slice of the ESDF over time. The green region indicates the S set at the respective
+times. The small black arrows point to various violations in the baseline method, while in the certified methods we see no violations.
+contains no violating points (see also Table II and Table III).
+algorithm cannot be confident about the exact location of, for
+were removed from the map. Although the volume of free
+space is smaller, the map is guaranteed to be correct.
+From Table I we can observe that both certification methods
+significantly reduce the number of violations. In the baseline
+in the certified methods, the violation rates are between 0-
+3. Note, we cannot expect the certified methods to have
+exactly zero violations, since we are using the truncated noise
+model for odometry. Nonetheless, empirical performance of
+the certified methods still shows that the proposed methods
+can effectively avoid classifying obstacle regions as free.
+getting methods can also reduce the number of violations,
+the level of reduction is hard to control. Since the forgetting
+factor is tuned heuristically and independently of the true noise
+level in the system, it can sometimes lead to good rejection of
+obstacles (as in the SFC method) or poor rejection of obstacles
+(as in the ESDF).
+From Table II we observe that the maximum distance a
+violating point intersects the map is also reduced using the
+certified methods. We see that the maximum violation is sub-
+millimeter for the SFC methods, demonstrating a reduction
+of 2 orders of magnitude compared to the baseline. In the
+ESDF approaches, we still see a significant reduction in the
+maximum violation distance (about an order of magnitude
+reduction), although there are some violations on the order
+of 100 mm. This seems to be a limitation of the ESDF
+voxels computationally. We chose a voxel size of 20 mm, and
+therefore the violations are on the order of 1-5 voxels of error.8
+The source of this larger error is likely the dataset itself.
+We have checked which voxels are causing these large errors,
+and it seems to be the voxels that are close to non-manifold
+surfaces in the Replica dataset, for instance near the leaves of
+8Finer grid resolution can help, but will increase the computational and
+memory requirements. As a sense of scale, each environment is on the order
+of 6  6  3 m, and therefore has approximately 300  300  150 voxels.
+See Table IV for additional details.
+VIOLATION RATES. THIS TABLE SUMMARIZES THE FRACTION OF VIOLATING GROUND-TRUTH OBSTACLE POINTS FOR EACH ENVIRONMENT AND
+ALGORITHM. THIS TABLE SHOWS RESULTS WITH  1E-6I.
+Violation Rates ()
+Algorithm
+Baseline SFC
+Heuristic SFC
+Certified SFC
+Baseline ESDF
+Heuristic ESDF
+Certified ESDF
+TABLE II
+MAXIMUM VIOLATION DISTANCE. THIS TABLE SUMMARIZES THE DISTANCE BY WHICH VIOLATING GROUND-TRUTH OBSTACLE POINTS PENETRATE THE
+ESTIMATED FREE SPACE FOR EACH ENVIRONMENT AND ALGORITHM. THIS TABLE SHOWS RESULTS WITH  1E-6I.
+Maximum Violation Distance (mm)
+Algorithm
+Baseline SFC
+Heuristic SFC
+Certified SFC
+Baseline ESDF
+Heuristic ESDF
+Certified ESDF
+TABLE III
+ESTIMATED FREE SPACE VOLUME. THIS TABLE SUMMARIZES THE VOLUME OF THE ESTIMATED FREE SPACE AT THE END OF THE SIMULATION FOR EACH
+ENVIRONMENT AND ALGORITHM. THIS TABLE SHOWS RESULTS WITH  1E-6I.
+Estimated Free Space Volume (m3)
+Algorithm
+Baseline SFC
+Heuristic SFC
+Certified SFC
+Baseline ESDF
+Heuristic ESDF
+Certified ESDF
+Near these surfaces, the raw data is inconsistent, and we
+suspect that it leads to higher error rates than expected.
+of the estimated free space is lower for the certified methods
+than it is for the heuristic or baseline methods (Table III).
+around obstacles. Despite the smaller volume of free space,
+the certified methods allow the full region to be trusted when
+used in planning (Section VIII).
+Comparing the SFC and ESDF methods, in the results
+presented the SFC methods seem superior, since they have
+fewer violations, and the violating points violate the free
+space by a smaller distance. However this does come at the
+expense of expressiveness and computational cost. The SFC
+methods require the use of unions of convex polytopes to
+represent the free space, and in cluttered environments can
+sometimes lead to very small volumes of free space. The ESDF
+implementations are also more mature, with implementations
+like  allowing for efficient use of a GPU, which allows the
+ESDF to be computed more efficiently than the SFC.
+VIII. ROVER EXPERIMENTS
+In this section we demonstrate the utility of the proposed
+certified mapping frameworks in ensuring a robot can safely
+navigate an environment. We demonstrate that when a rover is
+tasked to navigate through an environment, and in particular
+reverse blindly into a region it previously mapped, the accu-
+mulated odometry error can lead to the rover colliding with
+previous mapped obstacles. Instead, by using the proposed
+can no longer certify are obstacle-free.
+Experimental Domain
+Teleop Station
+Realsense
+Rover Experimental Setup. (a) Block diagram. The human is
+teleoperating the rover using only the FPV feed and the reconstructed obstacle
+map computed and streamed in real-time. The map is also used onboard
+the robot to stop the robot if it violates safety constraints. The safety filter
+can either use the baseline ESDF or the Certified ESDF. (b) Picture of the
+testing environment. The robot drives through the tunnel, mapping it as it
+passes through. After exploring the corridors, the rover tries to return through
+the tunnel in reverse, without remapping the tunnel. (c) shows the rover in
+more detail. The AION R1 UGV has been modified, with all sensing on Intel
+Realsense D455, and all compute on the Nvidia OrinNX 16GB.
+Experimental Setup
+A block diagram of the experimental setup is shown
+in Figure 5a). We use a ground rover, the AION R1 UGV
+equipped with an Intel Realsense D455 camera. All perception,
+Nvidia Orin NX 16GB. The Realsense camera sends stereo
+infrared images to the Orin NX at 30FPS. A state-of-the-art
+visual slam algorithm (Nvidia IsaacROS Visual SLAM) is used
+to compute the odometry estimate. The Realsense camera also
+produces a depth image, which is sent to the obstacle mapping
+library (an adapted version of Nvidia IsaacRos NvBlox) which
+constructs an ESDF of the environment in real-time. All
+parameters and code is available at [redacted].
+A human operator uses a joystick to send desired linear and
+angular velocities to the robot. Using the constructed ESDF,
+a safety filter forward propagates the robots state under a
+desired command a short (0.5 s) horizon into the future and
+checks whether the trajectory lies strictly within Sk. If so, the
+command is sent to the robots motor controllers. If not, the
+safety filter zeros the linear command, and sends a reduced
+angular speed command. This allows the robot to continue
+to spin to acquire new information about the environment,
+without physically moving and potentially colliding with the
+obstacles. The safety filter was tuned offline to ensure that in
+the absence of odometry drift, the robot stops within 15 cm
+of the obstacle both when driving forwards or backwards.
+To compute the certified-correct map, we use the techniques
+of Section V to compute the certified ESDF representing the
+local geometry. To correctly deflate the ESDF, we require
+the odometry estimate, and the covariance of the incremental
+transform between successive camera frames, i.e., of bT Bk
+To the best of the authors knowledge however, this infor-
+mation is not reported by any state-of-the-art odometrypose
+estimation algorithms. Most algorithms (including Nvidias
+vSLAM) only report the covariance of the odometry estimate
+between the initial frame and the current frame, i.e., of bT Bk
+In  the authors computed the covariance of relative poses
+after solving a pose-graph optimization problem by using the
+Jacobian of the local solution (see [35, Section IX.B] for
+details). However this only allows one to find the covariance
+of relative transforms between keyframes, and does not allow
+one to find the relative transform between successive camera
+frames. Note,  reports the error covariance for frame-to-
+frame pointcloud matching, and could be integrated into the
+experiments below. However the accuracy of the pointcloud
+reported by the RGBD camera must also be considered .
+ance between relative frames. VSLAM reports the odometry
+estimates bT Bk
+, and the associated covariances Bk
+. Assuming T Bk
+and T Bk1
+are highly correlated
+since they are successive frames, we can define a correlation
+coefficient  [1, 1] (we use   0.99) between these
+camera frames. We can then estimate the covariance of the
+relative transform Bk1
+along the lines of . The analysis
+is presented in Appendix D.
+Experimental Results
+Figure 6 summarizes the results of the rover experiments,
+with additional trials available in the supplementary video, all
+demonstrating similar outcomes.
+The human operators task was to navigate the rover without
+line-of-sight through a narrow tunnel, explore and map the
+ing through the tunnel. The rover was intentionally reversed
+through the tunnel to avoid re-mapping the obstacle geometry,
+forcing it to rely on its previously constructed maps.
+Snapshots in Figure 6a show the baseline method. Initially,
+the tunnel and the surrounding corridors are mapped accu-
+rately. As the operator tries to reverse through the tunnel the
+final snapshot suggests that the rover is well aligned with the
+tunnel and is within the green region S. However, despite
+this seemingly safe alignment, the rover collided with an
+obstacle Figure 6c, a failure in the baseline mapping approach.
+In contrast, our proposed method deflates the safe regions in
+response to the odometry drift. In Figure 6b, the map initially
+classifies a large region as safe (green). However, as rover
+reverses to the tunnel, the deflation has caused parts of the
+map to turn red, indicating that these areas can no longer be
+certified to be obstacle free. Indeed, when the rover reaches
+Baseline ESDF Method
+Certied ESDF Method
+Obstacle map generated by
+(available to human operator)
+3rd Person View
+(not available to human operator)
+Collision!
+Safely stopped
+(Unknown  Recognized Obstacle)
+Certied Map has
+been deated.
+Map incorrectly
+shows rover is safe.
+with obstacle.
+before collision
+Estimated Rover Pose
+(arrow shows camera axis)
+Obstacle map generated by  !"
+(available to human operator)
+3rd Person View
+(not available to human operator)
+Fig. 6. Rover Experimental Results. (a, b) shows snapshots of the reconstructed obstacle map and the estimated rover pose with (a) the baseline method and
+(b) the certified method. This is the view presented to the human teleoperating the robot. Note, two small black boxes are drawn in each frame (in post) to
+indicate to the reader the location of the red and green boxes during the experiment. These were not visible to the human operator during the experiments. (c,
+d) show the final state of the robots at the end of the trajectory. In (c), the baseline method the robot has crashed with the green obstacle, although looking
+at the last panel of (a), we can see that the robot thinks it is in the middle of the tunnel in the free space. In (d), we see the robot stopped 15 cm before
+crashing with the red obstacle, and this is because the map has been deflated sufficiently that the safety filter prevents the robot from continuing backwards.
+Notice between the second, third and fourth frames in (b) the green regions near the bottom change into red regions, indicating the Certified ESDF cannot
+certify that the red region is obstacle-free.
+the boundary between red and green regions, the safety filter
+prevents further motion, successfully preventing collision. The
+same behavior was consistently observed across multiple trials.
+Larger Scale Experiments
+In this section, we show qualitatively and quantitatively the
+volume of free space usable by a robotic system. The rover
+was operated in a room approximately 4020 m large drawn
+in Figure 7. Starting in the middle, the robot was teleoperated
+to explore and map the room. The robot has a horizontal field
+of view of 75, and a maximum depth integration distance of
+8 m. This means that from the depth image, the maximum
+distance that NvBlox will mark as free or safe is 8 m from
+the camera origin. Thus, in these experiments, the heuristic
+method also uses a forgetting radius of 8 m.
+A quantitative comparison of the algorithms is presented
+in Figure 8a, b. In (a) we can see the area of the claimed safe
+region by each of the three methods. Although the claimed free
+region is largest for the baseline method, the map is erroneous.
+The certified and heuristic methods have similar free area,
+although the heuristic method is also often incorrect.
+In Figure 8b, we show the distance to the furthermost safe
+point from the robot position. This gives an indication of extent
+of the map that would be free if it were not for the obstacles
+Fig. 7. Experimental domain used in Figure 8.
+in the environment. Here, we can see that compared to the
+maximum integration distance of 8 m, the certified method
+has its furthermost safe voxel approximately 12 m away, and
+upto 18 m away. In contrast, the heuristic method is clipped
+at 8 m. The evolution of the maps in time is clearer in the
+accompanying video, where the FPV and third person view of
+the robot are also drawn.
+Slices of the ESDF and the Cer

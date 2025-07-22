@@ -1,7 +1,7 @@
 === PDF文件: Differentiable GPU-Parallelized Task and Motion Planning.pdf ===
-=== 时间: 2025-07-22 10:00:20.523370 ===
+=== 时间: 2025-07-22 16:13:20.125060 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -674,4 +674,160 @@ TABLE III: Optimizing Goal Costs. We minimize the dis-
 tance between four objects and compare the best particle cost.
 is the weight applied to the goal cost during optimization.
 we allocate 10 seconds for optimization or resampling. Our re-
-sults dem
+sults demonstrate the clear benefit of combining sampling with
+differentiable optimization for substantially reducing the goal
+cost. SAMPLING struggles to find good solutions compared to
+cuTAMP as shown in Figure 5.
+C. Solving Highly-Constrained Problems
+The objective in the Tetris domain is to pack 5 blocks with
+non-convex shapes into a tight goal region (Figure 1). This task
+requires reasoning about precise positions and orientations, as
+the shapes will only fit if they are arranged in particular con-
+figuration modes. Each particle is 90-dimensional (ten 7-DOF
+arm configurations and five 4-DOF placements), highlighting
+the complexity of the problem.
+Hyperparameter Tuning. We conduct an ablation of cu-
+TAMP where we automatically tune the weight c for each
+cost c (Eq. 2) using Optuna , an off-the-shelf hyperparam-
+eter optimization framework, with the number of satisfying
+particles as the target objective. To reduce the dimensionality
+of the tuning space, we group costs by type and assign a shared
+weight to each group (e.g., all kinematic position error terms
+share the same weight). We tune the cost weights over 220
+Results. We present our results in Table IV. SAMPLING fails
+Approach
+Coverage
+Satisfying Sol. Time (s)
+SAMPLING
+TABLE IV: Results on Tetris 5 blocks. In cuTAMP Tuned,
+we tune the cost weights automatically using Optuna .
+successfully find solutions within seconds. Only 0.3 of the
+optimized particles are satisfying, underscoring the advantage
+of sampling and optimizing thousands of candidate solutions in
+parallel. Larger particle batch sizes Nb consistently improve
+the success rate, the primary planning metric, especially on
+highly challenging problems like Tetris. Appendix Figure A.4
+shows that the cuTAMPs runtime remains roughly constant
+up to a batch size of 512, then scales linearly beyond that.
+Automated tuning of the cost weights more than halves the
+time required to find a solution and nearly triples the number of
+satisfying particles. The tuned weights generalize to a 3 block
+variant of Tetris, achieving a similar solve time to untuned
+cuTAMP while increasing the number of satisfying particles
+(Table A.4). However, they can perform worse than untuned
+cuTAMP on other problems due to overfitting (Table A.2).
+D. Efficiently Searching over Plan Skeletons
+In Stick Button, the robot must press the red, green, and
+blue buttons using either its fingers or a stick as a tool
+(Figure 9). Due to the kinematic limitations of the Franka, the
+robot must use the stick to press the blue and green buttons, as
+they are out of direct reach, demonstrating cuTAMPs ability
+to plan with non-prehensile actions. This results in a large
+number of plan skeletons that are infeasible or have extraneous
+fingers or pressing the white distractor buttons. A TAMP
+planner must quickly identify skeletons likely to be infeasible,
+and reason that the stick must be grasped near one of its ends
+to press the blue button without colliding with the gray walls.
+Our results in Table V indicate that cuTAMP autonomously
+infers that the stick must be used, leveraging the plan fea-
+sibility heuristic to avoid optimizing plan skeletons that are
+likely infeasible. This heuristic becomes more accurate as we
+increase the batch size. While SAMPLING reliably solves stick
+button with 512 particles, it is over 3 slower than cuTAMP
+with subgraph caching. Subgraph caching substantially speeds
+up particle initialization and enables quicker transition to the
+optimization phase of cuTAMP (Stage 2 in Algorithm 1). In
+contrast to the Franka, the UR5 can reach all the buttons
+directly without using the stick (Figure 9). When deployed
+on the UR5, cuTAMP automatically and implicitly infers this
+difference in reachability.
+Franka Panda
+Fig. 9: Cross-Embodiment Generalization in Stick Button.
+The blue button is beyond the reach of the Franka, requiring it
+to use the stick as a tool. It plans to grasp near the sticks end
+to ensure it can press the blue button without colliding into
+the walls. In contrast, the UR5 can directly reach the button.
+Approach
+Coverage
+Opt. Plans Sol. Time (s)
+SAMPLING
+cuTAMP w.
+subgraph
+TABLE V: Results on Stick Button The Opt. Plans metric
+measures the number of plans that were optimized or resam-
+pled before a solution was found (Stage 2 of Algorithm 1).
+E. Real Robot Experiments
+We deploy cuTAMP on two embodiments: 1) a UR5 arm,
+and 2) a Kinova Gen3 robot. We use the open-world perception
+strategy from  to reconstruct the objects and tabletop.
+We minimize the goal distance between four objects on a
+UR5 in Figure 3 and achieve a tight packing. In Figures 4
+and 11, cuTAMP autonomously reasons to move obstacles
+out of the way to achieve the goal on a Kinova Gen3 and
+jointly optimizing grasps, placements, and full trajectories
+parametrized as knot points in Figure 10. Trajectories are
+initialized by linearly interpolating between the start and end
+robot configurations. We highly encourage the reader to refer
+to our website and supplementary video, which showcases the
+fast planning capabilities of cuTAMP in the real world.
+IX. LIMITATIONS
+While cuTAMP supports 6-DOF grasps, we model place-
+ment poses with 3-DOF position and yaw (Section VIII). In
+Fig. 10: Real-World Block Stacking We jointly optimize
+Pick Lego1
+Pick Lego2
+Fig. 11: Packing fruit with obstacles. The strawberry is
+obstructed by four Lego blocks, requiring at least two to be
+moved for a feasible grasp. cuTAMP autonomously infers this
+to find a feasible plan skeleton and valid solution.
+the future, we would like to also model varying placement roll
+and pitch, accounting for stable orientations on approximately
+planar surfaces. Our experiments show that cuTAMPs optimal
+configuration is sensitive to the number of particles and
+cost weights , though it performs robustly with the default
+weights across all tested domains. Future work could explore
+augmented Lagrangians to dynamically scale costs to satisfy
+constraints [41, 33], as well as particle pruning to avoid
+optimizing particles that converge early due to local minima.
+cuTAMP leverages parallelism during continuous optimiza-
+tion but does not parallelize the search of plan skeletons. GPU-
+accelerated task planning , via Boolean Satisfiability (SAT)
+approach addresses deterministic observable planning. Future
+work involves leveraging GPU acceleration to reason about
+stochastic actions and partial observability [52, 53]. Extending
+cuTAMP to tasks involving more complex non-prehensile and
+contact-rich manipulation is another important direction.
+X. CONCLUSION
+We propose cuTAMP, the first GPU-parallelized TAMP
+algorithm for robot manipulators. cuTAMP uses GPU accel-
+eration first during compositional sampling to generate an
+initial set of plan parameter particles, and second, during joint
+optimization to solve for particles that satisfy plan constraints
+and minimize plan costs. We show that increasing the number
+of particles, particularly beyond a single particle, improves
+planning runtime and solution quality in challenging, long-
+horizon manipulation problems. We deploy cuTAMP on sev-
+eral robot embodiments, demonstrating its real-world planning
+capabilities from perception to action in seconds.
+ACKNOWLEDGMENTS
+The authors thank Balakumar Sundaralingam for his exten-
+sive support with using and debugging cuRobo, and Phillip
+Isola for providing access to his UR5 robot. We gratefully
+acknowledge support from NSF grant 2214177; from AFOSR
+grant FA9550-22-1-0249; from ONR MURI grants N00014-
+22-1-2740 and N00014-24-1-2603; from the MIT Quest for
+Intelligence; and from the Robotics and Artificial Intelligence
+Institute.
+REFERENCES
+Caelan Reed Garrett, Rohan Chitnis, Rachel Holladay,
+Beomjoon Kim, Tom Silver, Leslie Pack Kaelbling,
+and Tomas Lozano-Perez. Integrated Task and Motion
+Planning.
+Annual Review of Control, Robotics, and
+Autonomous Systems, 2021.
+Caelan R. Garrett, Tomas Lozano-Perez, and Leslie P.
+Kaelbling. PDDLStream: Integrating Symbolic Planners
+and Blackbox Samplers. In ICAPS, 2020.
+Jingkai Chen, Jiaoyang Li, Yijiang Huang, Caelan Gar-
+ative task and motion planning for multi-arm assembly
+sy

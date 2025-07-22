@@ -1,7 +1,7 @@
 === PDF文件: From Foresight to Forethought VLM-In-the-Loop Policy Steering via Latent Alignment.pdf ===
-=== 时间: 2025-07-22 10:00:13.780346 ===
+=== 时间: 2025-07-22 15:56:54.831910 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -523,4 +523,225 @@ as an open world verifier RVLM
 model to understand the underlying textual representation of
 low-level action outcomes. In this section, we study if our our
 latent-aligned VLM can accurately describe the outcomes of
-low-level actions. We also c
+low-level actions. We also compare our approach with several
+baselines to investigate the advantages of using an explicit
+world model for predicting action outcomes and decoding a
+robots action plans into behavior narrations.
+Baselines. We compare our approach, FOREWARN, against
+four baselines (more implementation details provided in
+App. A4). (1) FOREWARN-Oracle, is an upper-bound on
+our methods performance assuming that we had access to
+ground-truth future observations (instead of relying on the
+latent dynamics f to predict future outcomes). This method
+uses the encoder E on ground-truth future observations to
+get privileged (posterior) future latent states zt:tT as in-
+put for the VLM. (2) VLM-Act, which directly fine-tunes
+the original Llama-3.2-11B-Vision-Instruct model to generate
+behavior narrations end-to-end from the current observation
+ot and an action plan at:tT (represented as text), without
+explicitly predicting outcomes. (3) VLM-Img, which utilizes
+the decoded world models predictions (i.e., the predicted
+future visual observations) given a robots planned actions. We
+use GPT-4o  to process the predicted visual observations
+and generate behavior narrations in a zero-shot manner. (4)
+upper bound on this method by using ground-truth visual
+observations instead of predicted ones.
+Metrics. We adopt the metrics from  to evaluate the align-
+ment between predicted behavior narrations and ground-truth
+0 to 1) determined by the GPT-4o model. (2) GT Accuracy:
+A binary score (0 or 1) indicating whether the predictions
+match the ground-truth narrations, as determined by a human
+labeler (in this case, the authors). For further details on the
+motivation behind using these metrics for evaluation, please
+refer to App. B3.
+GT Accuracy
+LLM Score
+FOREWARN-Oracle
+FOREWARN (Ours)
+VLM-Img-Oracle
+TABLE I: Alignment Between Predicted Behavior Narra-
+tions and Ground-Truth Narrations. FOREWARN outper-
+forms all baselines across both tasks and achieves performance
+comparable to FOREWARN-Oracle, which has access to
+ground-truth action outcomes and represents the upper bound
+for our approach. We use 50 rollouts to evaluate the perfor-
+mance. For FOREWARN, FOREWARN-Oracle and VLM-
+3 seeds for the finetuning experiments while VLM-Img and
+diction.
+Table I presents the GT Accuracy and LLM
+Score for our approach and each baseline. The results are
+averaged across 30 test rollouts for each task. The results
+show that VLM-Act performs poorly, achieving less than
+50 GT Accuracy across all tasks. This underperformance
+is due to its inability to interpret low-level actions without
+the grounding provided by a world models future outcome
+predictions. In contrast, FOREWARN, which leverages an
+explicit world model, outperforms VLM-Act by over 50 on
+every task, despite both being fine-tuned on the same dataset.
+These results demonstrate that decoupling the VLMs burden
+of predicting action outcomes enables the model to produce
+describes the robots behavior.
+FOREWARN (ours): The robot works on seizing the cup through its interior.
+that best describes the robots behavior.
+FOREWARN (ours): The robot grips the chip bag directly in the middle.
+Cup Task
+Bag Task
+Fig. 3: Examples of Behavior Narrations Predicted by Each Approach. The top row displays the ground-truth robot
+observations and the prompt used for querying VLMs. Only FOREWARN and FOREWARN-Oracle consistently produce
+accurate outcome narrations, effectively capturing nuanced motion details. In contrast, the baselines frequently hallucinate or
+fail to capture critical contact details between the gripper and objects. For instance, in the Bag task, VLM-Act, VLM-Img,
+and VLM-Img-Oracle all hallucinate that the robot is grasping the edge of the bag, whereas it is actually grasping the middle.
+more accurate outcome narrations than directly training the
+VLM to both predict outcomes and generate narrations end-
+despite being among the most advanced VLMs, both VLM-
+Img and VLM-Img-Oracle struggle to accurately interpret
+robot behaviors directly from visual observations, even with
+access to ground-truth observations. As shown in Table I,
+these methods fall behind FOREWARN by at least 30 in
+GT Accuracy and 16 in LLM Score. These results show
+that existing state-of-the-art VLMs struggle to decode fine-
+grained motion details from video observations, underscoring
+the importance of fine-tuning for improved performance in
+such tasks.
+havior narrations generated by our approach and the baselines.
+FOREWARN consistently produces more accurate outcome
+critical contact details between the gripper and objects.
+B. Policy Steering for Open-World Alignment
+The results from the previous section demonstrate our
+approachs effectiveness in decoding predicted latent states
+into nuanced behavior narrations by explicitly using a world
+model for outcome prediction. In this section, we compare
+our approach against several baselines to evaluate its system-
+level policy steering performance and robustness under novel
+task descriptions and specifications. Our experiments focus
+on evaluating the impact of leveraging the VLM as both an
+interpreter and evaluator of predicted action outcomes.
+Baselines.
+We first keep the VLMs role as the verifier
+unchanged and ablate the effect of using an explicit world
+model to predict action outcomes. Specifically, we compare
+Imagination
+Please provide a sentence that best describes the robots
+behavior. <Latent Token>
+The robot grasps the fork via the handle.
+The robot grasps the fork via the tines.
+The robot fails to grasp the fork.
+the fork for eating. Please select the best action plan
+[omitted] { }   6
+The chosen mode is 1 because it fulfills the
+task condition of maintaining sanitation
+without touching the tines of the fork.
+Latent outcome decoding  policy steering
+Real time
+Reasoner
+Execute actions
+Sample actions
+Pass latents
+Imagination
+bowl. Please provide a sentence that best describes
+the robots behavior. <Latent Token>
+The robot fails to put the fork inside the bowl.
+The robot drops the fork outside the bowl.
+The robot places the fork inside the bowl.
+the fork for eating. Please select the best action plan
+[omitted] { }   6
+The chosen mode is 6 because it is the only
+option that places the fork to the bowl and
+maintains sanitation.
+Latent outcome decoding  policy steering
+Reasoner
+Sample actions
+Pass latents
+Fork Task (Phase 1)
+Fork Task (Phase 2 )
+Fig. 4: Policy Steering: Fork Task. We visualize the steering
+process for the Fork task including two phases (Pick and
+Place). For each phase, we visualize the imagined T-step
+rollouts decoded from the world model for the 3 out of 6
+action plans sampled from the base policy on the left. On
+the right, we show the behavior narrations generated from our
+finetuned VLM T VLM
+and the VLMs reasoning RVLM
+about the outcomes based on the task description and
+behavior narrations to select the best action plan to execute.
+The time axis shows the real-world execution of the selected
+behavior from the perspective of the wrist-camera.
+FOREWARN to VLM-Act (described in subsection V-A),
+which directly fine-tunes the original Llama model to predict
+action outcome narrations without utilizing a world model.
+Similar to our approach, VLM-Act then queries the VLM to
+select the best motion plan based on the task description l.
+effect of alignment: mapping latent states generated by the
+world model to their underlying textual representation that the
+VLM can easily reason about.
+We compare our approach against two more baselines: (3)
+for outcome predictions and a VLM for action plan selection.
+representations and leveraging the VLMs open-world knowl-
+edge for policy steering, it directly fine-tunes the VLM to
+predict a set of indices of the successful candidate action plans
+and randomly selects one index from the set to execute the
+corresponding action plan. (4) Classifier-Dyn-Latent, which
+is similar to VLM-DynLat-Category, but instead of relying
+on a VLM, it directly takes the predicted latent embeddings
+(commonly used in prior failure-prediction work ) to
+predict success or failure for each candidate action plan and
+randomly selects one predicted to succeed.
+Metrics. We evaluate each policy steering method using the
+Success Rate. For each method, we conduct 20 trials with
+randomly initialized task configurations and report the average
+success rate across these trials. A trial is considered successful
+if the robot successfully completes the task while aligning with
+the end-users preferences.
+Success Rate
+Training Task Description
+Novel Task Description
+Base Policy
+FOREWARN (Ours)
+VLM-DynLat-Category
+Classifier-Dyn-Latent
+TABLE II: Policy Steering. The success rate is reported by av-
+eraging over 20 different rollouts. FOREWARN outperforms
+all the baselines in both training and novel task contexts.
+approach and the baselines under task descriptions that fall
+within the training distribution. Table II shows the success
+rates of the base robot policy (without policy steering), our
+approach (FOREWARN), and the baselines for each task. Our
+results demonstrate that FOREWARN can effectively steer the
+policy towards safe and aligned behavior modes by leverging
+the VLM as an interpreter and evaluator of predicted latent
+action outcomes.
+performance to our approach in all tasks under this setting
+while VLM-DynLat-Category fails to match FOREWARN
+in more complicated Bag and Fork tasks. VLM-Act has
+similar performance as base policy because the behavior
+fail to capture accurate motion details and thus provide no
+useful signal for VLM to steer the policy. Next, we assess
+their generalization abilities under novel task descriptions to
+evaluate the robustness of our approach.
+evaluate the success rate of each approach when the task
+description is altered to introduce novel scenarios. Specifically,
+in the Cup task, we modify the original task description from
+Please grasp a cup from the table and serve the cup of water
+to the guest to a novel description: Please grasp a cup from
+the table, but note that the handle is covered with oil. This
+change makes behaviors where the robot grasps the cup by the
+handle unsafe, while grasping the cup by the rim becomes the
+desired behavior. In the Bag task, we modify the original task
+description from Please pick up a bag of chips from the table
+and minimize the contact region to avoid crushing contents
+inside to a novel description: Please pick up a bag of chips
+from the table and maximize stability without dropping the
+bag. This change makes behaviors where the robot picks up
+the bag by the corner less preferred, as the bag may slip from
+the gripper, while squeezing the middle of the bag to secure
+it becomes the desired behavior. In the Fork task, we modify
+the original prompt from Please pick up the fork and place it
+in the bowl while maintaining the sanitation for eating. to a
+novel description: Please pick up the fork and place it in the
+bowl while maximizing the contact region during grasping.
+This change makes the behaviors where the robot picks up the
+handle and drop the fork high less preferred as the fork handle
+is more narrow than tines and dropping high can make fork
+fall out of the bowl while grasping by tines is more secure.
+VLM-DynLat-Category
+Classifier-Dyn-Latent improve task succ

@@ -1,0 +1,612 @@
+=== PDF文件: RAMEN Real-time Asynchronous Multi-agent Neural Implicit Mapping.pdf ===
+=== 时间: 2025-07-22 15:45:23.576082 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Neural Implicit Mapping
+Hongrui Zhao
+ICON Lab
+Department of Aerospace Engineering
+University of Illinois Urbana-Champaign
+Boris Ivanovic
+NVIDIA Research
+Negar Mehr
+ICON Lab
+Department of Mechanical Engineering
+University of California Berkeley
+Ground Truth
+Baseline Method: DiNNO
+RAMEN (ours): Turtlebot 1
+RAMEN (ours): Turtlebot 2
+Covered by
+Turtlebot 1
+Covered by
+Turtlebot 2
+Fig. 1: In a challenging real-world experiment with limited communication (agents can only exchange information every 30
+seconds), our method RAMEN enables each turtlebot to successfully map the full scene while only physically visiting half of
+the scene (explored areas and trajectories are colored accordingly). Our method achieves accuracy comparable to the ground
+truth while the baseline method (DiNNO) fails to converge.
+AbstractMulti-agent neural implicit mapping allows robots
+to collaboratively capture and reconstruct complex environments
+with high fidelity. However, existing approaches often rely on
+synchronous communication, which is impractical in real-world
+scenarios with limited bandwidth and potential communica-
+tion interruptions. This paper introduces RAMEN: Real-time
+Asynchronous Multi-agEnt Neural implicit mapping, a novel
+approach designed to address this challenge. RAMEN employs
+an uncertainty-weighted multi-agent consensus optimization al-
+gorithm that accounts for communication disruptions. When
+communication is lost between a pair of agents, each agent
+retains only an outdated copy of its neighbors map, with the
+uncertainty of this copy increasing over time since the last
+communication. Using gradient update information, we quantify
+the uncertainty associated with each parameter of the neural
+network map. Neural network maps from different agents are
+brought to consensus on the basis of their levels of uncertainty,
+with consensus biased towards network parameters with lower
+uncertainty. To achieve this, we derive a weighted variant of
+the decentralized consensus alternating direction method of
+multipliers (C-ADMM) algorithm, facilitating robust collabo-
+ration among agents with varying communication and update
+frequencies. Through extensive evaluations on real-world datasets
+and robot hardware experiments, we demonstrate RAMENs
+superior mapping performance under challenging communica-
+tion conditions. Supplementary videos and codes are available at
+I. INTRODUCTION
+Multi-robot systems rely on efficient communication and
+accurate map merging to explore and understand their envi-
+ronment. By sharing individual observations, agents gain a
+comprehensive understanding of the scene, enabling effective
+trajectory planning and task coordination. This capability
+is crucial for diverse applications like autonomous driving
+[1, 2, 3], warehouse automation , and multi-UAV search
+and survey missions . Neural implicit maps, such as Neural
+Radiance Fields (NeRF) , are emerging as a powerful tool
+for multi-robot mapping, offering a compelling alternative to
+traditional map representations [7, 8]. Neural implicit maps
+efficiently store complex geometries and realistic appearance
+information (including color and lighting) in compact neural
+can be readily integrated into neural implicit maps [9, 10].
+neural implicit mapping in real-time. While conventional map
+representations (e.g., point clouds, occupancy grids) are easily
+merged [11, 12], neural network parameters cannot be simply
+combined. Existing multi-agent neural implicit mapping meth-
+ods often utilize distributed optimization algorithms, such as
+distributed stochastic gradient descent (DSGD) or C-ADMM,
+to gradually bring different neural networks into consensus
+[13, 14, 15]. This consensus results in each robot possessing
+an identical neural network representing the collective sensor
+observations. The consensus optimization, however, is vulner-
+able to divergence when communication is asynchronous.
+Previous works  reveal that existing distributed opti-
+mization algorithms, such as the C-ADMM employed by the
+state-of-the-art multi-agent neural implicit mapping methods
+DiNNO  and Di-NeRF , are not robust to asyn-
+chronous communication or message loss. These algorithms
+require perfect synchronization, where agents consistently re-
+ceive the latest network parameters from neighbors before each
+optimization step. However, real-world robot communication
+is often asynchronous: updates may be delayed or lost due
+to bandwidth limitations, best-effort protocols (e.g., UDP),
+obstacles between agents, or agents moving out of range.
+mapping can produce inaccurate reconstructions or even di-
+verge entirely, as is the case for DiNNO  in Fig. 1.
+Existing approaches to handle such communication disruptions
+often rely on barriers that halt optimization to wait for the
+slowest agent [17, 18]. This is impractical for real-time robotic
+applications where continuous mapping is crucial for planning.
+In this paper, we introduce RAMEN, Real-time Asyn-
+chronous Multi-agEnt Neural implicit mapping, to address
+these challenges. RAMEN explicitly addresses the uncertainty
+inherent in distributed multi-agent systems by employing a
+frequency-based epistemic uncertainty quantification method.
+This method leverages gradient update information to assess
+the reliability of each agents neural implicit map, recognizing
+that infrequent updates due to communication loss lead to
+higher uncertainty in the neural reconstruction. To achieve
+consensus between agents, we derive an uncertainty-weighted
+decentralized C-ADMM algorithm which enables RAMEN to
+effectively fuse knowledge from multiple robots while favoring
+more reliable information. To the best of our knowledge, this
+work presents the first real-world demonstration of multi-robot
+neural implicit mapping. Through extensive simulation and
+hardware experiments, we show that RAMEN successfully
+constructs maps in real-time despite communication disrup-
+conditions. A summary of our key contributions is:
+1. We propose RAMEN, a multi-agent neural implicit
+mapping method with frequency-based uncertainty to
+address communication disruptions.
+2. We derive an uncertainty-weighted decentralized C-
+ADMM algorithm, allowing RAMEN to prioritize re-
+liable information during map consensus optimization.
+3. We demonstrate the first real-world implementation of
+multi-robot neural implicit mapping, showcasing the ro-
+bustness of RAMEN under challenging communication
+conditions.
+II. RELATED WORKS
+Real-time Neural Implicit Mapping. Neural implicit map-
+ping methods based on NeRF utilize RGB or RGBD images
+to train neural networks for various scene prediction tasks, in-
+cluding color, volume density, occupancy, and signed distance.
+Examples include iSDF  for real-time signed distance field
+distance prediction on edge devices, and GO-Surf  for fast
+surface reconstruction using multi-resolution features. Some
+camera pose tracking with scene representation, while Co-
+SLAM  further enhances reconstruction speed. However,
+these methods primarily focus on centralized training with a
+single agent. In contrast, this paper builds upon Co-SLAM
+and introduces an asynchronous distributed training framework
+specifically designed for multi-robot systems.
+Multi-agent Mapping. Existing multi-agent mapping methods
+involve transmitting either explicit local maps (e.g., 3D point
+clouds with image features [25, 26, 12]) or raw sensor data to a
+central server for map alignment and fusion . Alternatively,
+methods like MAANS  employ a central server to fuse
+birds-eye view images predicted by each agent. Recent ap-
+proaches leverage neural implicit mapping to reduce communi-
+cation costs by sharing compact neural networks instead of raw
+data [13, 15, 14]. However, existing neural implicit mapping
+methods require synchronous communication, hindering their
+applicability in real-world robotic scenarios where commu-
+nication is often asynchronous. Bandwidth limitations, best-
+effort protocols (e.g., UDP), and obstacles can lead to delayed
+or lost updates. Our proposed RAMEN method addresses this
+gap by enabling robust multi-agent neural implicit mapping
+under asynchronous communication.
+Distributed Neural Network Optimization. Distributed op-
+timization of neural networks allows multiple agents to col-
+laboratively train a model without relying on a central server
+. Common approaches include distributed stochastic gra-
+dient descent (DSGD) , which combines local gradients
+with neighbors parameters, and distributed stochastic gra-
+dient tracking (DSGT) , which improves convergence
+by estimating the global gradient. Other methods, like the
+decentralized linearized alternating direction method (DLM)
+and consensus alternating direction method of multipliers
+(C-ADMM) , optimize local objectives while enforcing
+agreement among agents. However, these methods typically
+require synchronous communication, limiting their practicality.
+While techniques like partial barriers and bounded delay
+[17, 18] allow for some degree of tolerance to communication
+disruptions by introducing waiting periods, they are primarily
+designed for distributed training with data servers and are not
+ideal for robotic tasks requiring continuous real-time updates.
+RAMEN tackles communication challenges without relying
+on such barriers, enabling efficient and robust multi-robot
+collaborative learning.
+Uncertainty in Neural Implicit Maps. Quantifying uncer-
+tainty in neural implicit maps is crucial for tasks like next-
+best view selection, model refinement, and artifact removal.
+Existing methods for estimating neural network parameter
+uncertainty often rely on computationally expensive tech-
+niques like deep ensembles  or variational Bayesian neural
+training pipeline. While alternative approaches estimate spatial
+uncertainty by perturbing input coordinates  or network
+of each learnable parameter. In contrast, RAMEN efficiently
+quantifies parameter uncertainty by combining a frequency-
+based heuristic  with a multi-resolution hash grid .
+This requires minimal extra computation and allows us to
+leverage uncertainty information for robust distributed map-
+III. PRELIMINARIES
+This section provides the necessary background for our
+proposed approach. We first introduce Co-SLAM , a
+single-agent neural implicit mapping method that forms the
+foundation of RAMEN. We then discuss existing multi-agent
+neural implicit mapping approaches, assuming synchronous
+communications. This discussion highlights the limitations of
+current methods and motivates the need for a system like
+common in real-world robotic scenarios.
+A. Single-agent Neural Implicit Mapping
+represents scenes implicitly using three components: a multi-
+resolution hash-based feature grid  which we denote by
+MLP decoder F. The feature grid V comprises L levels,
+each storing feature vectors at grid vertices with resolutions
+increasing in a geometric progression from coarsest to finest.
+Higher resolution levels have more vertices placed across the
+parameters of the feature grid and decoders as   {, , }.
+Given the world coordinate x of a point, Co-SLAMs neural
+implicit map predicts its corresponding RGB value c and
+truncated signed distance function (SDF) value s. The SDF
+value s represents the minimum distance of a given point
+to the surface boundary of a geometric shape, with its sign
+indicating whether the point lies inside (-) or outside () the
+surface. To enhance the smoothness of the scene geometry,
+one-blob encoding  () is applied to x before passing it to
+the geometry decoder F. With the encoded coordinate (x)
+and feature vectors from the corresponding vertices V(x),
+the geometry decoder outputs a feature vector h and the SDF
+value s:
+The color decoder then outputs the RGB value c:
+Co-SLAM renders RGB and depth images from its neural
+implicit map. With the camera intrinsic calibration matrix K
+and pose P, each pixel with 2D image plane coordinates (u, v)
+is associated with a ray r in the direction PK1(u, v, 1).
+Given the camera origin o and ray direction r, we sample M
+points xi  o  dir along the ray, where di is the distance
+from the camera origin. For each point xi, we obtain the
+corresponding si and ci using (1) and (2). The pixel color
+c and depth d are then rendered as:
+where wi represents the weight assigned to each sampled point
+along the ray, peaking at the surface of a geometric shape .
+Given a truncated distance tr (we truncate the SDF value s to
+tr for points far from the surface), we compute wi with two
+Sigmoid functions ():
+We train the neural implicit map by minimizing the dif-
+ference between rendered RGBD images and the images from
+robots camera. We use notation R to denote the actual images
+collected by the robot. The objective function is then given as:
+Lobj(, R)  Lrgb  Ld  Lsdf  Lfs  Lsmooth,
+where Lrgb and Ld are L2 losses between the rendered and
+observed RGB and depth images, respectively; Lsdf is the loss
+for SDF values; Lfs encourages points far from the surface
+to have a SDF value equal to the truncated distance tr, and
+Lsmooth promotes smoothness in the reconstructed geometry.
+For a detailed explanation of each loss term, please refer to
+B. Synchronous Multi-agent Mapping
+We now discuss how Co-SLAM can be extended into syn-
+chronous multi-agent mapping. In a multi-agent setup, a group
+of agents collaboratively map their environment and share
+information within a communication graph G  (V, E). Each
+agent is represented as a node i V, and their communication
+connectivity is defined by a set of edges E. Each agent i can
+communicate with its neighbors Ni  {j V  (i, j) E},
+sharing its learned parameters i instead of raw images. Each
+agent i captures posed RGBD images Ri with its onboard
+camera. During each mapping iteration, agent i samples pixels
+from Ri and minimizes its local objective function Lobj
+(i, Ri)  Lrgbi  Ldi  Lsdf i  Lfsi  Lsmoothi, (6)
+To achieve consensus, each agent also aligns its model parame-
+ters i with those of its neighbors j, for all j Ni. Through
+them to exchange environmental information. This problem is
+formulated as minimizing the sum of local objectives while
+ensuring agreement among the neural maps :
+(i, Ri),
+s.t. i  zij, j  zij, (i, j) E,
+where zij is a local auxiliary variable imposing consensus
+on neighboring agents i and j. This formulation represents a
+decentralized consensus problem (or graph consensus prob-
+lem), where agreement is enforced only between pairs of
+neighbors. In contrast, a global consensus problem requires
+all i to agree with a global variable z, managed by a central
+fusion center . Decentralized consensus is more suitable
+for multi-robot systems, as it avoids the single point of failure
+and vulnerability associated with a fusion center.
+To solve (7), we first formulate the augmented Lagrangian:
+ij(i zij)
+ij(j zij)
+where ij and vij are dual variables (or Lagrange multipliers)
+penalizing violations of consensus constraints and bringing
+i and j to zij,  is a positive penalty parameter which
+determines how fast we want to achieve consensus, and  2
+is L2 norm. Additionally, we define pi  P
+jNi ij  vji,
+which combines all dual variables associated with i.
+Multi-agent mapping employs an iterative algorithm to
+continually update neural implicit maps. Superscript t is used
+to denote the values of variables at iteration t. For agent i, at
+mapping iteration t, we apply ADMM  to update i and
+pi in an alternating fashion to minimize (8):
+We refer to (9a) as the primal update and (9b) as the dual
+update. Instead of performing the exact minimization in the
+primal update, we approximate t1
+by taking few steps of
+stochastic gradient descent. This approach, used in DiNNO
+and Di-NeRF  for synchronous multi-agent mapping,
+requires continuous communication between agents i and j
+if (i, j) E initially. This ensures that the latest i and
+j are always available for (9). However, this requirement is
+impractical for real-world robotic systems. In the next section,
+we introduce an uncertainty-weighted version of (9) to address
+this limitation.
+IV. ASYNCHRONOUS MULTI-AGENT NEURAL IMPLICIT
+This section details the core components of RAMENs
+asynchronous multi-agent mapping framework. In our context,
+asynchronism arises from two primary sources: communi-
+cation drops and variations in processing speed. This work
+primarily addresses communication drops, as they pose a
+significant challenge for both homogeneous and heterogeneous
+robot teams. We first derive an uncertainty-weighted version
+C-ADMM algorithm, utilizing uncertainty to favor reliable
+information in the consensus optimization process. Then, we
+introduce our proposed frequency-based epistemic uncertainty
+quantification method, detailing how it assesses the reliability
+of each agents contributions to the collaborative mapping
+process.
+A. Uncertainty-Weighted Decentralized C-ADMM
+Asynchronous communication presents two key challenges:
+1) Mitigating the influence of uncertain parts of outdated
+j is disrupted, agent i at iteration t may possess an
+outdated copy of agent js model parameters, denoted
+, where told t. This outdated model may
+represent some regions of the environment with high
+uncertainty and poor quality due to lack of mapping
+updates. Therefore, it is crucial to limit the influence of
+uncertain parts of told
+on agent is current model t
+to avoid degrading its accuracy.
+2) Leveraging valuable information from outdated models:
+Despite being outdated, told
+may still contain valuable
+information for agent i, such as details about regions
+explored by agent j but not yet visited by agent i.
+We want to identify the neural network parameters
+that encode these information and assign them higher
+weights when enforcing consensus.
+To address these challenges, we derive an uncertainty-
+weighted decentralized C-ADMM algorithm that prioritizes
+reliable neural network parameters during the consensus op-
+timization process. While various weighted C-ADMM algo-
+rithms exist [43, 44, 45, 46], this paper introduces, to the
+best of our knowledge, the first decentralized C-ADMM al-
+gorithm that individually weights each optimization parameter
+according to its associated uncertainty. This allows for fine-
+grained control over the influence of each parameter during the
+consensus process, enabling more robust and accurate multi-
+agent mapping.
+Lagrangian based on (8):
+ij(i zij)
+ij(j zij)
+where we use a weighted norm x2
+W  xWx instead of L2
+norm in (8). Note that Wt
+ji are weight matrices reflecting
+the relative reliability of information shared between agents
+i and j at iteration t. Intuitively, a higher weight indicates
+greater confidencelower uncertainty in the corresponding in-
+formation.
+Applying ADMM  to (10), at each iteration t for agent
+ral implicit map i, and consensus-enforcing dual variables
+by setting the derivative of (10) with
+respect to zij to zero:
+After obtaining zt1
+, we compute the dual vari-
+ables t1
+by performing gradient ascents to penalize
+consensus violations:
+where the gradients are:
+ijLwa  t1
+vijLwa  t1
+In (12), Wt
+ij and Wt
+ji apply strong penalty if t1
+diverge from the reliable information in zt1
+Initializing the dual variables as 0
+ij  0, we can
+observe that t
+ij by combining (11), (12a), and (12b).
+We also notice t
+ji. This allows us to rewrite (11) as:
+Note that (14) shows zt1
+as a weighted average between t
+weights are assigned to parameters with lower uncertainty.
+weights the parameters based on how reliable they
+To compute gradients for obtaining t1
+, we are interested
+in all terms associated with i (including v
+Wij from the jth element
+of Lwa). We find t1
+that minimizes (10) to be:
+Fig. 2: This visualization shows the uncertainty associated
+with the parameters in the coarsest feature grid V l1
+the neural implicit map. We represent this uncertainty by
+overlaying color-coded vertices on the reconstructed 3D mesh.
+The robots trajectory is shown in red. The robots trajectory
+and field-of-view are limited to the left half of the room. As
+right half of the map not explored by the robot where the
+reconstructed geometry is inaccurate.
+This gives us the primal update of the weighted decentralized
+C-ADMM. By defining pt
+Using (12a), we perform dual update to get pt1
+After going into the next iteration, we need to update the
+weights which reflect how reliable the network parameters are.
+We will discuss how we can update the weights in the next
+subsection.
+B. Frequency-based Epistemic Uncertainty
+We quantify the epistemic uncertainty associated with each
+model parameter to obtain weights for our C-ADMM al-
+gorithm. Epistemic uncertainty reflects the models lack of
+knowledge about the environment it is mapping . We base
+our simple-yet-effective uncertainty quantification method on
+two key observations:
+1) The uncertainty of an area decreases monotonically with
+the frequency of observations .
+2) Unlike the highly correlated parameters in a standard
+responds to a unique vertex in the grid . Updates
+RAMEN (ours)
+Fig. 3: Comparison of scene reconstructions from DiNNO
+and RAMEN (ours) on ScanNet scene0000 with only 50
+communication success rate. RAMEN produces more accurate
+and detailed geometry in the highlighted region.
+to a vertex primarily occur when the robot visits its
+corresponding spatial location .
+Based on these two observations, we associate the number of
+gradient updates a feature grid parameter receives with its
+epistemic uncertainty. More updates indicate more frequent
+visits to the corresponding location, implying lower uncer-
+tainty. Due to the correlated nature of parameters in MLP de-
+coders F, F and their lack of direct spatial correspondence,
+we pretrain the decoders using the NICE-SLAM apartment
+dataset  and keep their parameters fixed during mapping.
+in the feature grid V, resulting in   {} with n
+learnable parameters. We flatten  into a n  1 vector in
+our computations.
+Our proposed frequency-based epistemic uncertainty quan-
+tifier is formulated as:
+where ut
+with each feature grid parameter at iteration t. Lobj
+SLAM reconstruction objective loss (6) of agent i at iteartion
+k; abs() is the absolute value function; sgn() is the sign
+function returning 1 when the given value > 0 and returning 0
+otherwise. ut
+i tracks the count of non-zero gradient updates for
+each parameter, establishing a link between the frequency of
+spatial location visits and their uncertainty. Fig 2 visualizes the
+uncertainty of the parameters in the coarsest feature grid V l1
+in an example using our proposed method, demonstrating that
+our method accurately captures the uncertainty of the neural
+implicit map.
+Since the number of gradient updates could be infinite, we
+cannot directly use ut
+i as weights for consensus optimization
+in IV-A. Simply normalizing uti
+i and utj
+j independently to a
+range of [0, 1] would eliminate the proportional relationship
+between their elements. For example, the maximum value in
+i might be substantially larger than the maximum in utj
+difference that would be lost after independent normalization.
+To preserve these proportional relationships and ensure that the
+Algorithm 1 RAMEN: Real-time Asynchronous Multi-agent
+Neural Implicit Mapping
+i  initial
+for i V do
+Capture images and add to database Ri
+i and ut
+i to neighbors Ni
+for i V do
+Compute (19) to get Wt
+for b 0 to B do
+Sample from Ri
+Gradient descent on (16) to approximate t1
+Perform dual variable update (17) to obtain pt1
+Compute (18) to get ut1
+weights reflect the relative uncertainties, we employ a linear
+scaling and shifting operation. Given uti
+i and utj
+j for agent i
+and its neighbor j, we obtain n  n weight matrices Wij and
+Wji as follows:
+max(usum) min(usum),
+l   min(usum),
+Wij  diag(  uti
+i  ), Wji  diag(  utj
+where u and l are the user-specified upper and lower bounds
+of the weights; max() and min() return the maximum and
+the minimum elements of the input vector; diag() returns a
+n  n matrix using the input as its diagonal elements;  (19b)
+and  (19c) are scaling and shifting terms for normalization.
+The normalization (19) preserves the proportional relationship
+between the uncertainty values of agents i and j by applying
+the same  and  to both uti
+i and utj
+j . These weight matrices
+are then incorporated into the weighted decentralized C-
+ADMM algorithm to effectively leverage information from
+neighboring models while accounting for their uncertainty.
+The entire multi-agent mapping process of RAMEN is sum-
+marized in Algorithm 1. All agents use the same initialization
+initial for their neural implicit maps. Note that, instead of
+the exact minimization in (16), we obtain t1
+by taking B
+steps of stochastic gradient descent, where B is a user-defined
+constant.
+V. RESULTS
+We evaluate RAMENs performance through simulation and
+hardware experiments. For simulation, we use two datasets:
+ious indoor scenes, and ScanNet , which offers challenging
+real-world posed RGBD images of large indoor spaces. We
+benchmark RAMEN against three state-of-the-art baselines:
+II. To simulate communication disruptions, we allow only a
+specified percentage of messages to be successfully transferred
+between agents.
+We reconstructed meshes for evaluation by querying the
+neural implicit maps within a uniform voxel grid and applying
+the marching cubes algorithm . To assess the accuracy
+of the reconstructed geometry, we employ the following 3D
+quantitative metrics, adapted and renamed for clarity from
+prior neural implicit mapping works [22, 23, 50, 51]:
+1) Artifacts (cm): The average distance between sampled
+points from the reconstructed mesh and the nearest
+ground-truth point. Higher values indicate more recon-
+struction artifacts. Thus, lower values represent better
+performance.
+2) Holes (cm): The average distance between sampled
+points from the ground-truth mesh and the nearest
+reconstructed point. Higher values indicate larger holes
+in the reconstruction. Thus, lower values represent better
+performance.
+3) Completion Ratio (): The percentage of points in the
+reconstructed mesh with Holes under 5 cm, with higher
+values representing better performance. This metric pro-
+vides a holistic measure of the captured scene geometry
+and is our primary evaluation criterion.
+The metrics mentioned above can be combined to provide
+a more detailed picture of performance. For example, a high
+Completion Ratio with high Holes indicates small isolated
+objects missing from the reconstructed mesh.
+A. Simulated Experiments
+How does RAMEN perform in general? We first investigate
+RAMENs general performance with three agents, a 50 com-
+munication success rate, and a fully-connected communication
+graph. We evaluated RAMEN and the baseline methods on
+four scenes: office1 and room1 from the Replica dataset,
+and scene0000 and scene0106 from the ScanNet dataset.
+For a comprehensive evaluation, we conducted three trials
+per agent per method on each scene and reported the mean
+and standard deviation of the performance metrics. As shown
+in Table I, RAMEN consistently achieves the best overall
+performance. DiNNO only slightly outperforms RAMEN in
+one metric on the simple synthetic scene office1. While
+DSGD and DSGT perform adequately on the relatively simple
+Replica dataset, DSGT fails to converge on the more chal-
+lenging ScanNet dataset under asynchronous communication.
+a significant margin, demonstrating its ability to effectively
+combine reliable information from all agents to reconstruct a
+complete scene. Furthermore, RAMEN exhibits significantly
+smaller standard deviations compared to DiNNO, indicating
+a more stable and robust mapping process. Figure 3 provides
+a visualization example from scene0000, where RAMEN
+reconstructs the highlighted region with higher accuracy than
+DiNNO. Since DiNNO achieves the best performance among
+the baseline methods, for the rest of the experiments, we only
+compared RAMEN to DiNNO.
+We also emphasize that RAMEN employs a simple un-
+certainty quantifier, incurring minimal computation overhead
+compared to existing NeRF uncertainty methods covered in
+Section II. For instance, in a representative three-agent exper-
+iment conducted on an RTX 4090 GPU, RAMEN runs at 8.58
+How does RAMEN perform with severe communication
+disruptions? Next, we evaluate RAMEN under more chal-
+lenging communication conditions. We conducted experiments
+with three agents exploring scene0169 from the ScanNet
+from 100 (synchronous updates) to 20. Figure 4 shows
+that RAMEN preserves the overall structure and details of
+the scene even at a 20 communication success rate, while
+DiNNO fails to reconstruct half of the scene. As expected,
+the performance metrics (shown in Figure 5) deteriorate for
+both methods as the communication success rate decreases.
+degradation compared to DiNNO. Furthermore, consistent
+with the previous experiment, RAMEN demonstrates much
+smaller standard deviations, indicating greater robustness. In-
+chronous communication. These results highlight RAMENs
+resilience under extreme communication conditions.
+How does RAMEN scale with more agents? Finally, we
+investigate the scalability of RAMEN. We evaluated RAMEN
+and DiNNO on scene0106 from the ScanNet dataset with 4,
+rate. To assess information propagation through incomplete
+communication graph, we restricted agents to communicate
+only with their immediate neighbors. For instance, with 4
+E  {(0, 1), (1, 2), (2, 3)}. Figure 6 demonstrates RAMENs
+effectiveness in utilizing observations from additional agents.
+For example, in the highlighted region (cyan box), RAMEN
+successfully reconstructs the computer on the desk with the
+extra input from the 6th agent. In contrast, DiNNO struggles to
+represent the complete scene and produces numerous floating
+Figure 7 also demonstrates that RAMEN achieves better scene
+completion with additional agents, further highlighting the
+effectiveness of our uncertainty-based weights in combining
+information from neighboring agents.
+B. Real-World Hardware Experiments
+To evaluate RAMENs performance in real-time multi-robot
+System (ROS) . Each robot was manually controlled to
+explore half of the environment, capturing RGBD images with
+its onboard sensor. Figure 1 illustrates the trajectories and
+areas covered by each robot. In this setup, due to the limited
+TABLE I: RAMEN significantly outpe

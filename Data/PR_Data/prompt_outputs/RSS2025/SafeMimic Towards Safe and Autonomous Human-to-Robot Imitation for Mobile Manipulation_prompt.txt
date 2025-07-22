@@ -1,0 +1,830 @@
+=== PDF文件: SafeMimic Towards Safe and Autonomous Human-to-Robot Imitation for Mobile Manipulation.pdf ===
+=== 时间: 2025-07-22 15:47:53.571973 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Human-to-Robot Imitation for Mobile Manipulation
+Arpit Bahety, Arnav Balaji, Ben Abbatematteo, Roberto Martn-Martn
+The University of Texas at Austin
+AbstractFor robots to become efficient helpers in the home,
+they must learn to perform new mobile manipulation tasks simply
+by watching humans perform them. Learning from a single video
+demonstration from a human is challenging as the robot needs
+to first extract from the demo what needs to be done and how,
+translate the strategy from a third to a first-person perspective,
+and then adapt it to be successful with its own morphology.
+and autonomous manner. We present SAFEMIMIC, a framework
+to learn new mobile manipulation skills safely and autonomously
+from a single third-person human video. Given an initial human
+video demonstration of a multi-step mobile manipulation task,
+SAFEMIMIC first parses the video into segments, inferring both
+the semantic changes caused and the motions the human executed
+to achieve them and translating them to an egocentric reference.
+sampling candidate actions around the human ones, and verifying
+them for safety before execution in a receding horizon fashion
+using an ensemble of safety Q-functions trained in simulation.
+When safe forward progression is not possible, SAFEMIMIC
+backtracks to previous states and attempts a different sequence
+of actions, adapting both the trajectory and the grasping modes
+when required for its morphology. As a result, SAFEMIMIC yields
+a strategy that succeeds in the demonstrated behavior and learns
+task-specific actions that reduce exploration in future attempts.
+Our experiments show that our method allows robots to safely
+and efficiently learn multi-step mobile manipulation behaviors
+from a single human demonstration, from different users, and
+in different environments, with improvements over state-of-the-
+art baselines across seven tasks. For more information and video
+I. INTRODUCTION
+For decades, we have dreamed to teach robots a new task
+in the same way we would teach it to another human: by
+demonstrating it in from of them. This would bypass the
+need for costly teleoperated data collection [1, 2, 3], which is
+significantly complex and time-consuming for multi-step tasks
+and those combining navigation and manipulation into mobile
+manipulation. Recent advances in human motion perception
+and parsing [4, 5, 6, 7] have brought us closer to this dream:
+they have enabled new approaches that extract information
+from human videos and use it to seed an exploratory
+process in which the robot adapts the strategy to its own
+embodiment [8, 9, 10, 11]. However, these techniques are
+restricted to short horizon skills and require tedious human
+is safe, resetting the task constantly and detecting success.
+What is necessary to enable robots to learn multi-step mobile
+manipulation tasks from a single human demonstration safely
+Predicted
+Backtracking
+Successful Adaptation
+Robot imitating a single video of a human-demonstrated mobile
+manipulation task safely and autonomously with SAFEMIMIC. From a video
+of a multi-step mobile manipulation task (top), SAFEMIMIC extracts an initial
+motion strategy and adapts it to its own embodiment by exploring new actions
+in a safe manner. It combines an ensemble of safety Q-functions that predict
+future unsafe motions (red arrows, motion will collide) and a backtracking
+mechanism (orange arrows) that enables autonomous exploration until a
+successful action sequence is found (green arrows).
+and autonomously?
+Learning multi-step tasks from a human video in a safe and
+self-supervised manner presents multiple technical challenges.
+semantics of the task and the associated low-level motion. This
+implies extracting from the video both the humans motion as
+well as the semantic changes they caused in the environment.
+This information needs to be translated from a third to a
+first person view so that the robot can execute the motion
+and monitor the semantic changes with its onboard sensors.
+When executed, the initial translated motion may fail due to
+morphological differences or noise in the video parsing; while
+finding small adaptations have been shown feasible through
+trial-and-error learning in the real world [8, 9, 10, 11], it is still
+unclear how to explore for longer multi-step tasks that require
+a larger adaptation, e.g., for different grasping strategies.
+due to potential damage to the robot or the environment,
+requiring another agent (human) to monitor and reset the
+scene for further exploration. Safe and autonomous exploration
+calls for a new method that allows the robot to predict when
+something may go wrong before it happens and backtrack to
+previous states to keep trying new strategies.
+In this work, we introduce SAFEMIMIC, a framework for
+safely and autonomously learning mobile manipulation behav-
+iors from a single third-person human video. SAFEMIMIC
+overcomes all aforementioned challenges: first, it parses the
+third-person demonstration combining a human motion tracker
+and a vision-language model (VLM), obtaining an initial task
+plan composed of sequences of distinct human motion and
+easy-to-detect semantic changes executable from a first-person
+perspective. Then, SAFEMIMIC adapts the initial plan by
+refining each segment using a safe exploration procedure in the
+real world. At the core of our safe exploration sits an ensemble
+of safety Q-functions pretrained in simulation that enable
+SAFEMIMIC to attempt risk-free actions both for continuous
+motion as well as discrete grasps, overcoming large differences
+in morphology and manipulation capabilities. General safety
+Q-functions have the potential to generalize across tasks as
+they capture generic risks common to manipulation such
+as collisions, excessive forces, or grasp losses and, as we
+observe empirically, they require less precise sim-to-real align-
+ment than direct policy transfer. When SAFEMIMIC detects
+no safe actions to progress in the exploration, it backtracks
+to a previous state and tries a different strategy, including
+changing the grasping mode if necessary. Finally, when a safe
+and successful adaptation is found, SAFEMIMIC associates it
+to the geometry of the task so that exploration is reduced in
+future attempts.
+In summary, SAFEMIMIC introduces several novel contri-
+A comprehensive framework to parse a single multi-step
+mobile manipulation video demonstration from a human
+and adapt it to the robots capabilities in a safe and self-
+supervised manner.
+A mechanism to parse human videos into sequences of
+motions with unique and easy-to-perceive semantic effects
+combining human pose tracking and VLM detections.
+A safe exploration in the real world with a predictive control
+strategy informed by an ensemble of safety Q-functions
+pretrained in simulation.
+A self-supervised mechanism to detect success and to back-
+track to previous states to try new strategies, including
+different grasp modes.
+A mechanism to learn from previous experiences to reduce
+the amount of exploration necessary in future attempts.
+We demonstrate the performance of SAFEMIMIC in seven
+environments with different human teachers, and observe
+experimentally that our framework enables the robot to suc-
+cessfully acquire the desired behaviors safely and more effi-
+ciently than direct sim-to-real imitation learning approaches,
+previous human-to-robot methods, and variants without safety
+Q-functions.
+II. RELATED WORK
+SAFEMIMIC is a novel framework for safely and au-
+tonomously learning multi-step mobile manipulation tasks
+from human demonstrations. In this section, we contrast
+SAFEMIMIC to prior efforts on learning from human video
+as well as safe imitation and reinforcement learning.
+Learning from Human Video directly has received in-
+creasing attention as strategy to learn manipulation skills.
+Some works have explored leveraging large collections of
+human activity data [12, 13, 14] in order to learn cost
+functions from video and language data [15, 16, 17, 18]. Other
+works have explored human video modeling as a pretrain-
+ing objective [19, 20]. Most closely related to SAFEMIMIC,
+several works imitate human actions directly by tracking
+the human pose and extracting actions using pose tracking
+before finetuning with gradient-free RL [8, 21, 9, 10, 22, 11].
+These works demonstrate impressive behaviors, yet typically
+refine the initial policy obtained from the human in a naive
+exploratory fashion. This has the potential to damage the robot
+or environment, as actions are not checked for collision or
+other potentially dangerous failures. Other works rely on mor-
+phological similarity between humans and humanoid robots
+to retarget motions directly [23, 24, 25, 26]. In contrast, we
+focus on imitating and refining the demonstration safely when
+the robot and human embodiments do not necessarily match.
+focus on short-horizon tasks (e.g., opening a drawer) rather
+than multi-step mobile manipulation behaviors.
+Autonomous Real-World Learning prior methods have
+examined learning to automatically reset the environment in
+order to enable learning without human supervision [27, 28,
+a critical challenge when learning mobile manipulation in the
+real world. Further, these methods require extensive trial-and-
+error learning not suitable for efficiently learning from a single
+human video demonstration. SAFEMIMIC instead combines
+both autonomous and safe exploration when learning from
+human video and employs a simple but effective backtracking
+strategy when failures are predicted for all sampled actions in
+a given state.
+Safe Imitation and Reinforcement Learning has received
+significant study in order to reduce risks in the real world.
+Design-time approaches [33, 34, 35, 36, 37, 38] operate during
+data collection or model training in order to ensure robustness
+to perturbation during execution. When learning from human
+typically targeted for teleoperation when disturbances can be
+injected. Deployment-time approaches [39, 40, 41, 42, 43]
+filter actions and defer to a backup or recovery policy when
+constraints are violated. Deployment-time methods usually
+assume access to constraints in closed form, an unrealistic
+requirement in novel environments and tasks. SAFEMIMIC
+employs learned safety Q-functions that are pretrained from
+simulation data, allowing it to learn from human video demon-
+strations safely.
+Safe RL methods [44, 45, 46, 47] provide a framework
+for safe policy learning, enabling the discover of complex
+behaviors from scratch while avoiding failures in a target
+task. These approaches typically jointly optimize task and
+Navigate
+Pringles
+Hand-Body
+Tracking
+Pringles
+Robot Actions
+Safe and Autonomous Real-World Adaptation
+Success!
+Motion Extraction
+Human Video Parsing
+Video Segmentation
+Translate
+Translate
+Translate
+Policy Memory
+Geometric
+Augmentations
+Training
+open drawer
+open drawer
+place in box
+place on shelf
+Task-conditioned grasp prediction
+Task-conditioned trajectory prediction
+Backtracking
+Adapting
+Max Attempts
+Language
+Overview of SAFEMIMIC. From an RGB-D video of a human performing a multi-step mobile manipulation task acquired by the robot, SAFEMIMIC
+uses a combination of human pose tracking models [4, 5] and VLM prompting to perform coarse-to-fine segmentation obtaining semantic changes what?
+and human action trajectories how?, and translating them to the robots point of view (left, Sec. III-A). SAFEMIMIC then refines and adapts each task
+segment safely by sampling and verifying actions before executing them thanks to an ensemble of safety Q-functions pretrained in simulation, Qsafe (top right,
+Sec. III-B). If forward progress is not possible, SAFEMIMIC autonomously backtracks and tries different actions (orange arrows). When required to overcome
+large differences in morphology, SAFEMIMIC explores alternative grasp modes (second row of samples), adapting the grasp to enable successful execution.
+Successful attempts are detected by a VLM that verifies when the parsed semantic change of the segment is achieved. Successes are stored and used to train
+a policy memory module with geometric augmentations (bottom right, Sec. III-C) that predicts actions (grasps or action trajectories) in subsequent attempts,
+given a pointcloud and language task description, in order to reduce the need for exploration.
+safety Q-functions during a pre-training phase, and do not
+address the case of imitation learning or learning from human
+video. In contrast, we employ task-agnostic data collection
+in simulation, and learn directly from human teachers in the
+real world. Constrained RL methods [48, 49, 50, 51] similarly
+allow for policy learning while obeying constraints, though
+typically require closed-form constraints available at runtime.
+In the real-world, such constraints are difficult to acquire
+in novel environments, much less in the presence of human
+teachers.
+Failure Prediction ahead of execution has received consid-
+erable study in robotics, often with the goal of providing safety
+certificates on policies for deployment [52, 53, 54, 55]. Many
+works approach failure prediction through the lens of reacha-
+bility analysis [56, 57] or design control barrier functions .
+Recent work has sought to learn failure predictors with PAC
+guarantees  or conformal prediction . However, these
+approaches assume access to a black box policy or dynamics
+model of the environment, both which are unknown in the
+case of learning a new task from human video in a novel
+environment. Similarly, motion planning methods [61, 62]
+enable collision-free motion generation for a given environ-
+ment geometry but fail to capture other possible failure modes
+involving contact, such as force-torque limit violations or grasp
+loss. SAFEMIMIC provides a unified framework for failure
+prediction when learning mobile manipulation behaviors from
+human videos.
+III. SAFEMIMIC FRAMEWORK
+Our goal is to enable a robot to safely and autonomously
+learn to adapt and imitate a multi-step mobile manipulation
+task demonstrated in a single third-person human video. Fig-
+ure 2 provides an overview of our framework, SAFEMIMIC.
+In this section, we describe each of its components.
+A. Factorizing, Parsing and Translating Human Videos
+The first step to imitate a human video demonstration is
+to extract information from it: what did the human do, and
+how did they do it? In SAFEMIMIC, we identify the what by
+detecting the semantic changes caused by the human in the
+that caused those changes. However, as we aim at imitating
+complex multi-step mobile manipulation tasks, extracting mul-
+tiple semantic changes and intricate human motion for the
+entire video and learning to adapt it to the robot all at once may
+be unfeasible. SAFEMIMIC factorizes the original video into
+distinct segments where only a single semantic change hap-
+pens. This naturally leads to segments with separate navigation
+and manipulation to achieve single semantic changes such as
+full list in Appendix B) that can be adapted and optimized
+sequentially in a self-supervised manner by the robot.
+To factorize and parse the multi-step video into single
+semantic change segments, SAFEMIMIC combines a body
+and hand visual tracker [4, 5], a contact detector , and a
+VLM . An initial coarse segmentation is obtained based
+on the tracked human motion by detecting if the human is
+navigating or manipulating by thresholding the amount of
+inter-frame body translation. Then, SAFEMIMIC annotates
+each coarse segment with its semantic change and possibly
+factories it further. Navigation segments are assumed to be at
+the lowest level of granularity; SAFEMIMIC just needs to ex-
+tract the semantic goal, the objectlocation that the navigation
+segment tries to reach, obtained using a VLM. Manipulation
+segments are further factorized by SAFEMIMIC as necessary
+by combining information from a VLM and a contact detector
+that separates manipulation phases without contact from the
+ones with contact. This leads to a natural factorization into
+segments that begin with a grasping action or with a change
+in the contact interface, e.g., when a wiping segment begins.
+Each segment is then annotated with its semantic goal, again
+obtained with a VLM query.
+The factorization and parsing process mentioned above
+leads to a sequence of segments with a individual semantic
+goals and motions of the body andor arm of the human
+(Fig. 2, left). While the semantic change is invariant to the
+point of view, the motion is viewed from a third-person
+perspective and needs to be translated into the robots reference
+frame to be executed and monitored with the onboard sensors.
+robot morphology. To that end, SAFEMIMIC assumes that in
+navigation segments, the robot starts from a location close
+enough to the human initial location (no calibration needed!)
+and translates the sequence of human navigation actions to
+relative changes in base pose between frames. Similarly, for
+manipulation segments, SAFEMIMIC first transforms the hand
+pose to be relative to the human body and then computes
+the relative motion of the hand between consecutive frames.
+To translate grasps, SAFEMIMIC will detect grasp candidates
+available to the robot  and match the one that is closest
+to the grasp demonstrated by the human. However, other
+grasp candidates will be explored as a result of our safe and
+autonomous human-to-robot adaptation, as we explain in the
+next section.
+B. Safe and Autonomous Real-World Adaptation
+The factorizing, parsing, and translating process described
+above leads to an initial policy that the robot could directly
+execute. However, this initial policy will fail due to differ-
+ences in embodiment and tracking inaccuracies (see Exp. IV).
+SAFEMIMIC implements an exploration and adaptation pro-
+cedure in the real world to find the actions (close to the
+ones demonstrated by the human) that will lead to the same
+sequence of semantic changes and thus to success on the
+multi-step mobile manipulation task. To that end, SAFEMIMIC
+explores actions for each of the segments in turn, until the
+semantic goal of the segment is achieved in a process summa-
+rized in pseudocode in Alg. 1. In contrast to previous human-
+to-robot approaches, SAFEMIMIC will perform this real-world
+exploration safely and autonomously thanks to a combination
+of safety Q-functions and backtracking capabilities (see Fig. 2,
+Safe Exploration with Safety Q-functions: We assume that,
+at each segment, the robots objective is to achieve the seg-
+ments semantic goal while avoiding unsafe states. We adopt
+the standard MDP formalism and represent each segment by
+the tuple M  (S, A, R, T, ), where S is the state space, A
+is the action space, R is a sparse reward based on task success
+(e.g., semantic goal achievement), T is the transition function,
+and  is a discount factor. Using the Safe RL framework
+proposed by Srinivasan et al. , we denote the set of
+unsafe states Sunsafe  s S  I(s)  1, where I(s) is an
+indicator boolean function that triggers for any unsafe states.
+This function can then be considered a composition of single
+failure mode indicators, I(s)  max
+Ii(s), where {Ii} a set
+of functions for distinct failure modes, e.g., exerting too much
+...(for the complete list of unsafe state, see Appendix A).
+Given this function, the robots objective is to find a policy
+that maps states to the actions that maximize the task reward
+while remaining safe, given formally by:
+E(st,at) [R (st, at)] s.t. Est [I (st)]  0,
+where  denotes the state-action distribution visited by the
+policy .
+model of the actions that will result in failure. To achieve this,
+we define a Safety Q-function that predicts the probability that
+an action at taken in state st will result in a failure:
+Qsafe (st, at)  I (st)  (1 I (st))
+EstT (st,at)I (st)
+As with the unsafe state indicator function, we can factor-
+ize the Safety Q-function into an ensemble of Safety Q-
+Training these Safety Q-functions in the real world would
+be dangerous, as the robot needs to experience and learn what
+actions may lead to unsafe states and when. Therefore, we
+pretrain an ensemble of Safety Q-functions in simulation, one
+for each type of unsafe transition. The ensemble of Safety Q-
+functions is pretrained in domain-randomized environments in
+the simulator OmniGibson  in different scenarios, includ-
+ing articulated object interaction, rigid-body pick-and-place,
+and base navigation by sampling random and noise-corrupted
+task-related actions as generated by a motion planner. The
+state representation consists of simulated pointclouds and
+robot proprioceptive information (for details of the network
+sim2real gap than RGB images, allowing us to train our
+ensemble of Safety Q-functions in simulation and apply them
+zero-shot to safely explore in the real world.
+During the safe adaptation and exploration procedure,
+SAFEMIMIC samples candidate actions around the human
+demonstrated motion. For the grasping action, SAFEMIMIC
+explores among a discrete set of options (3 grasps in our
+case) provided by a robot grasp generator , first priori-
+tizing the grasp closest to the human demonstrated one. For
+Multi-Step Mobile Manipulation Evaluation Tasks. SAFEMIMIC is evaluated on seven complex multi-step tasks combining navigation and
+manipulation. From left to right: boxing an item, shelving an item, storeindrawer, erasewhiteboard, refrigerating an item,
+able to adapt actions obtained from one single human demonstration safely and autonomously.
+continuous motion, SAFEMIMIC explores action sequences
+from a Gaussian distribution with the mean given by the
+parsed human motion and variance adapted to encourage
+exploration. Sampled actions with the lowest Qsafe are selected
+and executed at each step, after which SAFEMIMIC evaluates
+for segment completion based on the parsed semantic goal
+of the segment and a VLM. If the segment has not been
+the human demonstrated one (see pseudocode in Alg. 1).
+Autonomous Exploration with Backtracking Mechanisms:
+Thanks to the previous process, SAFEMIMIC generates a safe
+exploratory behavior around the human-demonstrated motion
+that leads to adaptation. However, human monitoring would
+still be necessary to reset the robot and the environment and
+attempt new sequences of actions. We aim at reducing this
+dependency in SAFEMIMIC. To that end, we implement a
+simple but effective backtracking mechanism. During safe ex-
+(i.e., Qsafe(s, ai) >  for all sampled ai), the agent backtracks
+one step in the exploration: it executes the inverse to the last
+action taken, i.e., performs the opposite motion. When inter-
+acting with objects (e.g., opening a door or drawer, moving
+a grasped object), this backtracking mechanism will bring the
+environment to the previous state, allowing SAFEMIMIC to
+explore a different branch of the state-action space, verifying
+and executing actions until either the segment is complete or
+the maximum number of attempts is reached.
+The safe and autonomous exploration from above allows
+the robot to find minor adaptations to the parsed human
+trajectories for each segment. However, often, adaptation needs
+to be larger than a small change in motion, especially when
+it comes to adapting grasping strategies from a human to
+a robot. When, after several iterations (50 actions in our
+case) of the single-step backtracking mechanism, SAFEMIMIC
+exhausts all safe motion alternatives, it backtracks until it
+reaches a grasping segment, and selects a different grasp mode
+to explore. We observe that this exploration of grasping modes
+combined with trajectory-level probing is critical to adapt
+multi-step human strategies into successful ones for the robot
+(see Fig. 5 for examples of grasping mode exploration).
+C. Learning from Previous Successful Exploration
+Through our safe and autonomous exploratory process,
+SAFEMIMIC adapts the motion and sequence of semantic
+changes initially parsed from the human video. However,
+successful strategies need to be learned in order to prevent re-
+peated exploration for the same task. To that end, SAFEMIMIC
+integrates a policy memory mechanism that biases exploration
+based on previous successes. The policy memory biases the
+exploration (of grasp modes and of motion actions) from the
+human demonstrated to one that demonstrates success for the
+robot. To that end, we then train an action prediction policy
+network that maps point clouds, P and language description
+of the task, l to actions, e.g., the grasping mode, g SE(3),
+and sequence of post-grasp actions, (a0, . . . , aT ), that led
+to success. The architecture for the action prediction policy
+network is composed by a PointNet  encoder for the visual
+geometric augmentations (rotations and translations) of the
+data from successful trials. This model associates successful
+strategies to geometric and language information about the
+viewing angles, a critical capability to leverage successful
+exploration for new instances of the same multi-step mobile
+manipulation tasks (see Fig. 7). Furthermore, the model also
+helps reduce future explorations for the same task (see Exp.
+IV. EXPERIMENTAL EVALUATION
+We evaluate SAFEMIMIC in 7 challenging multi-step mobile
+manipulation tasks demonstrated by humans. The tasks all
+consist of multiple stages and require navigation, rigid-body
+loss. We use these tasks to evaluate SAFEMIMICs task perfor-
+and environments. In the following, we briefly explain each
+boxing an item: Pick the object from the table and place
+it in a box, requiring a top-down grasp by the robot to avoid
+collision.
+shelving an item: Pick an object from the table and
+store it on a shelf above the sink, or in a bookshelf, as
+demonstrated. This task requires differentiating the humans
+semantic goal, and avoiding collisions and adapting grasps
+for successful placement.
+from the table, store the object in the drawer, and close the
+drawer. This task consists of several segments, including
+an articulated object interaction that typically necessitates
+SafeMimic
+Direct Exec (wo SQF)
+Direct Exec (w SQF)
+Exploration (wo SQF)
+IL (all safe actions)
+IL (successful episodes)
+Nav'd to
+Placed in
+Boxing an Item
+Success Rate
+Nav'd to
+Nav'd to
+Placed in
+Shelving an Item
+Success Rate
+Nav'd to
+Placed in
+Store in Drawer
+Success Rate
+Nav'd to
+Erase Whiteboard
+Success Rate
+Nav'd to
+Nav'd to
+Nav'd to
+Placed in
+Refrigerating an Item
+Success Rate
+Toggled on
+Fill Pot
+Success Rate
+Nav'd to
+Nav'd to
+Placed in
+Load Oven
+Success Rate
+Accumulated Success on Multi-Step Tasks. Accumulated success rate at each stage of each of the seven evaluated multi-step mobile manipulation
+five baselines: direct execution without safety Q-functions (SQFs), which requires human supervision, direct execution with SQFs, exploration without SQF,
+Imitation Learning (IL) with all safe actions in simulation and IL only with the successful episodes. Note that the IL baselines were evaluated only on Place,
+rate. Across all tasks, SAFEMIMIC significantly outperforms all baselines and achieves up to 100 success in exploratory adaptation, indicating a superior
+ability to safely and autonomously refine the demonstrated behaviors.
+adapting human-demonstrated grasps to avoid joint limit
+violations.
+writings on a whiteboard. This task requires contact-rich
+in particular.
+refrigerating an item: Open the refrigerator, pick
+the object from the table, store it in the refrigerator. This
+task requires adapting the grasp poses and demonstrated
+trajectories to open the large, heavy refrigerator door and
+place the object in a constrained space.
+on the faucet. This task necessitates adapting the commonly
+used human grasp to one that the robot can use to lower the
+pot into the sink.
+the oven, and close the oven. This task consists of several
+place the food in the small oven.
+In all the experiments, we use a PAL-Robotics Tiago
+mobile manipulator. We control one arms end-effector pose
+using IK control  and the base using relative position and
+yaw commands. For perception, we use an Orbbec Astra S
+RGB-D camera mounted on Tiagos head both to observe
+humans and as input to the safety Q-functions, and an ATI
+mini45 force-torque sensor mounted on the wrist to detect and
+predict excessive force-torque violations. While SAFEMIMIC
+is generic and can include many possible failure modes, we
+consider the following in this work: arm collisions, base
+and dropping objects.
+Throughout our experiments, we compare SAFEMIMIC
+following
+Direct Execution
+(wo SQF) directly executes the actions obtained from the
+video parsing module and does not verify those actions us-
+ing the Safety Q-Functions (SQFs). Direct Execution
+(with SQF) directly executes the human actions as well
+but verifies the actions using SQFs, avoiding unsafe robot
+actions. Exploration (wo SQF) performs exploration
+starting from the human tracking actions but does not use
+SQFs. This baseline is SAFEMIMIC without the use of SQFs.
+We also evaluate if the data generated to train our safety Q-
+functions would suffice for training task policies: we include
+Imitation Learning (IL) baselines based on a BC-
+RNN Behavior Cloning policy with a PointNet encoder trained
+on two types of datasets: IL (all safe actions) in
+which the policy is trained on all simulation data where the
+state-action pairs did not lead to safety criteria being violated,
+and IL (successful episodes) which is trained only
+on the subset of successful task executions in the simulator.
+Since the data collection for navigation is task-agnostic (ran-
+dom base commands), we can not train a task-oriented IL
+policy on that data. Furthermore, since SafeMimic performs
+picking action based on a grasp generator, we also dont train
+an IL policy for picking. Instead, we use the successful naviga-
+tion and picking segments from the SAFEMIMIC trials for this
+baseline. Hence, navigation to an object and picking always
+succeeds and we focus the comparison on the manipulation
+segments of Place, Open, and Close for this baseline.
+Note that we trained separate IL policies for each segment.
+Experiments and Results
+In our experiments, we aim to answer four questions:
+Q1) Does SAFEMIMIC enable a robot to successfully
+complete a multi-step mobile manipulation task from a
+third-person demonstration? To evaluate SAFEMIMICs task
+and adapt demonstrations of the aforementioned tasks. For
+each task, SAFEMIMIC and the baselines begin with the initial
+Grasping mode adaptation. Two examples (top and bottom
+rows) of SAFEMIMICs grasping mode adaptation. Left column: human
+demonstrated grasp. Middle column: robot failing when attempting the task
+by matching the human grasp. Right column: robot succeeding in the task
+through SAFEMIMICs grasp adaptation. In 6 out of 7 tasks, SAFEMIMICs
+grasp adaptation is critical to overcome human-robot embodiment differences
+and successfully imitate the demonstration.
+trajectory obtained by tracking the human pose, broken into
+semantic segments identified by the parsing module. Each
+task is attempted five times, and success rates are reported
+at each stage of each task. The success rate for each seg-
+ment (e.g., Navigated to object, Picked object) reflects
+the proportion of trials successfully completed up to and
+including that segment. SAFEMIMICs real-world fine-tuning
+takes on average five minutes per navigation segment and 15
+minutes per manipulation segment, and success is confirmed
+by prompting a VLM with the observation and semantic goal.
+Fig. 4 depicts the results of our analysis. We observe
+that SAFEMIMIC achieves a minimum of 40 final suc-
+cess rate over the seven tasks, significantly outperforming
+all baselines. The Direct Execution baseline achieves
+0 final success rate on all the seven tasks, demonstrat-
+ing the need for exploration in order to effectively adapt
+the human demonstrations to the robots morphology. Al-
+though Direct Execution (wo SQF) and Direct
+Execution (with SQF) achieve similar success rates,
+Direct Execution (wo SQF) required 82 more hu-
+man interventions due to potentially unsafe actions as com-
+pared to Direct Execution (with SQF), showing the
+importance of our learned SQFs. Interestingly, we observe that
+Direct Execution (wo SQF) achieves higher suc-
+cess than Direct Execution (with SQF) in certain
+segments due to false positives of the SQFs. While the
+imitation-learning baselines demonstrate some successes, they
+fail to reliably perform the tasks, indicating that while the
+small amount of noisy data we generate in simulation is
+sufficient to train SAFEMIMICs SQFs, training robust imi-
+tation learning policies has a higher data quantity and quality
+demands.
+adaptation
+essential
+Safe exploration with Safety Q-function predictions. Examples of
+predictions of the Safety Q-function (SQF) for two tasks: the opening drawer
+segment in storeindrawer (top-row) and placing a bottle in the fridge
+segment in refrigerating (bottom-row). Red arrows indicate predicted
+unsafe actions (Qsafe > ) and green arrows show predicted safe actions. We
+observe that the simulation-trained SQFs reliably predict unsafe actions such
+as trying to open the drawer by moving in the wrong direction or trying to
+place an object in the fridge by colliding with the orange bottle. This enables
+SAFEMIMIC to safely explore and adapt demonstrations in the real world.
+SAFEMIMICs success. For all but the erasewhiteboard
+segments in order to succeed. Fig. 5 depicts two such exam-
+the pot in the sink with the human-like grasp, as the arm is
+predicted to collide with the edges of the sink as it attempts
+to place the pot. Hence, the robot backtracks to the start of
+the pick segment, samples and explores a top-down grasp,
+and successfully places the pot in the sink. Similarly, for the
+storeindrawer task, the human-like grasp leads to joint
+limits being reached and so the robot explores and adapts its
+grasp to successfully open the drawer.
+Q2) How effectively does SAFEMIMIC reduce safety-
+critical failures? To assess SAFEMIMICs effectiveness for
+safe exploration, we compare the number of unsafe actions that
+happen during exploration with SAFEMIMIC to the baselines.
+A human monitors the execution of SAFEMIMIC and the
+baselines and flags unsafe actions. For each method, we
+measure the percentage of unsafe actions (unsafe action
+rate) as the ratio of all unsafe actions to the total number of
+actions the robot executed (over all trials for the seven tasks).
+As expected, we observe that methods that do not use
+SQFs face the highest unsafe action rates. The Direct
+Execution (without safety Q-functions) gen-
+erates 13.4 unsafe actions and incurs safety violations in
+nearly every task, commonly colliding during both navigation
+and manipulation segments or reaching force limits mea-
+sured by the FT sensor. Exploration alone (Exploration
+without SQF) similarly results in 14.2 unsafe actions,
+demonstrating the critical need for safety during exploration
+absent in current frameworks for learning from human video.
+Both the IL baselines, IL (all safe actions) and IL
+(successful episodes) observe slightly lower unsafe
+action rates at 10.8 and 9.5 respectively, but still not low
+enough for safe deployment and adaptation. The inclusion
+of the SQFs in (Direct Execution with SQFs) and
+SAFEMIMIC results in an unsafe action rate of 0.5  and
+0.6, reducing the number of safety violations by 13.6,
+demonstrating the efficacy of the SQFs. Fig. 6 includes
+examples of predictions of safe and unsafe action samples
+during storeindrawer and refrigerateitem. It
+can be observed that actions that do not align with the drawers
+kinematic constraints or that would lead to a collision during
+placing are correctly predicted to be unsafe by SAFEMIMICs
+Q3) Can SAFEMIMIC help robots learn task-specific
+exploration
+attempts?
+SAFEMIMIC
+autonomous
+learning
+demonstrated
+(see Sec. III.D, Fig. 2, bottom right) allows the agent
+associate solutions to the task for future attempts.
+To evaluate this capability, we applied SAFEMIMIC on
+several tasks and trained a policy memory module with
+successes. The memory module was trained to predict
+trained to predict the full action trajectory for the drawer
+opening segment of storeindrawer. During evaluation,
+the objects to be picked and their poses were randomized,
+and due to the inherent stochasticity in the exploration
+phase of the navigation segments, the viewpoints are also
+variable during the evaluation (a common problem in mobile
+manipulation tasks). Three evaluation trials were performed
+for each task after initial refinement attempts during the
+first experiment. Fig. 2 (bottom-right) depicts two different
+viewpoints of the drawer (and the corresponding action
+prediction) that the robot sees after completing the navigate
+to drawer segment. For the segments that are not learned,
+we reuse the actions obtained from the human video parsing
+module. Fig. 7 depicts the results of our experiments. For the
+placing tasks, learning to predict successful grasping modes
+from previous adaptations dramatically reduces the number
+of waypoints explored during subsequent executions. In the
+case of storeindrawer, the policy memory module
+enables the robot to manipulate the drawer successfully in
+future attempts, further reducing action exploration.
+Q4) Is SAFEMIMIC sensitive to demonstrations provided
+by different humans or in different environments? To
+further validate the robustness of SAFEMIMIC, we conducted
+experiments with different users and in different environments.
+Three users provided demonstrations for the shelving task
+in the main environment used for previous experiments to
+assess whether SAFEMIMIC performed similarly across human
+demonstrators. Each human was free to perform the task as
+SafeMimic
+SafeMimic with Policy Memory
+Boxing item
+Shelving item
+Store in Drawer
+Refrigerating item
+Actions Explored
+Exploration Reduction with Policy Memory. Number of actions
+explored by SAFEMIMIC with (right) and without policy memory (left).
+Successful attempts from an initial exploration are recorded and use to train
+the policy memory. Object poses are varied relative to the robot before
+re-evaluating SAFEMIMIC with the learned policy memory on several task
+segments. The number of exploratory actions significantly reduces in all tasks,
+up to 67, demonstrating that learning from prior successes is critical to
+increase efficiency in mobile manipulation tasks.
+they naturally would, resulting in potentially different grasping
+strategies and trajectories, as depicted in Fig. 9. For all three
+parse and translate the demonstrated behavior. Interestingly,
+the robot had to adapt the grasping strategy for each of the
+three provided demonstrations, as all humans preferred a top-
+down grasp but such a grasp did not allow the robot to place
+the object in the shelf. We also tested one human demonstrator
+across three environments on the shelving task to ensure
+SAFEMIMIC is robust to different objects and room layouts.
+We performed 3 trials with the robot. SAFEMIMIC achieved
+ments respectively, demonstrating the methods generalization
+capabilities.
+V. LIMITATIONS AND FUTURE WORK
+SAFEMIMIC enables safe, autonomous learning of multi-
+step mobile manipulation behaviors from third-person human
+video demonstrations. However, there are some limitations
+of the method that offer exciting avenues for future work.
+must cover similar scenarios to those encountered during real-
+world exploration. Despite not requiring task-specific demon-
+strations or task successes in simulation, this does require
+some engineering of simulated tasks. This limitation could
+be alleviated by large-scale pretraining in simulation with
+a multitude of tasks and assets. Similarly, we study only a
+limited number of failure modes that we enumerate a priori.
+Scaling to other types of safety violations or task failures
+presents an opportunity for future work. Another limitation
+is that SAFEMIMIC relies on initial correspondence in pose
+between the human and robot such that actions represented
+as relative motions yield similar trajectories. We obtain this
+correspondence by estimating the initial human pose in the
+map frame while the robot observes, and navigating the robot
+there at the start of the episode. SAFEMIMIC also relies on
+grasp pose generation methods in order to obtain feasible
+grasps for the robot to explore  accurately inferring a
+suitable robot grasp from the demonstrated human grasp is
+an open challenge. A third limitation lies in the backtracking
+like dropping objects. Integrating autonomous resetting frame-
+works [27, 28, 31] is a natural opportunity for future work.
+safety Q-functions given real-world data. While SAFEMIMICs
+safety Q-functions demonstrate high accuracy and a low false
+negative rate, learning from occasional observed failures in
+the real-world could increase the robustness in future learning
+attempts.
+VI. CONCLUSION
+In this work, we present SAFEMIMIC, a framework for safe,
+autonomous human-to-robot imitation for mobile manipulation
+tasks. SAFEMIMIC effectively parses human demonstrations
+through a combination of pose tracking and VLM prompting,
+inferring both semantic segments and corresponding motions.
+The framework then safely refines the demonstrated behavior
+by sampling and verifying actions using safety Q-functions
+pre-trained in simulation, backtracking and exploring new
+actions and grasp modes when necessary. The result is a policy
+that adapts the demonstrated behavior to the robots morphol-
+in future attempts. We validate SAFEMIMIC on seven multi-
+step mobile manipulation tasks and find that it outperforms
+representative baselines in both task success and safety met-
+teachers. Through our experiments we show that safety Q-
+functions learned in simulation outperform IL policies trained
+in simulation due to the higher data quality and quantity
+demands of the latter. Taken together, our work is a promising
+step toward robots that can robustly learn new behaviors from
+human teachers in their own home environments.
+ACKNOWLEDGEMENTS
+This work took place at the Robot Interactive Intelligence
+Lab (RobIn) at UT Austin. RobIn is supported in part by the
+College of Natural Sciences (CNS) Catalyst Grant (CAT-24-
+MartinMartin).
+REFERENCES
+Abby ONeill, Abdul Rehman, Abhiram Maddukuri, Ab-
+hishek Gupta, Abhishek Padalkar, Abraham Lee, Acorn
+Open x-embodiment: Robotic learning datasets
+and rt-x models. In 2024 IEEE International Conference
+on Robotics and Automation (ICRA), pages 68926903.
+Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ash-
+win Balakrishna, Sudeep Dasari, Siddharth Karam-
+Lawrence Yunliang Chen, Kirsty Ellis, et al. Droid: A
+large-scale in-the-wild robot manipulation dataset. arXiv
+preprint arXiv:2403.12945, 2024.
+Frederik
+Bernadette Bucher, Georgios Georgakis, Kostas Dani-
+Bridge data:
+Boosting generalization of robotic skills with cross-
+domain datasets. arXiv preprint arXiv:2109.13396, 2021.
+Vickie Ye, Georgios Pavlakos, Jitendra Malik, and
+Angjoo Kanazawa.
+Decoupling human and camera
+motion from videos in the wild.
+In IEEE Conference
+on Computer Vision and Pattern Recognition (CVPR),
+June 2023.
+Georgios Pavlakos, Dandan Shan, Ilija Radosavovic,
+Angjoo Kanazawa, David Fouhey, and Jitendra Malik.
+Reconstructing hands in 3D with transformers. In CVPR,
+Dandan Shan, Jiaqi Geng, Michelle Shu, and David
+Understanding human hands in contact at
+internet scale. In IEEE Conference on Computer Vision
+and Pattern Recognition (CVPR), 2020.
+Yu Rong, Takaaki Shiratori, and Hanbyul Joo. Frankmo-
+tem via regression and integration.
+In Proceedings of
+the IEEECVF International Conference on Computer
+Shikhar Bahl, Abhinav Gupta, and Deepak Pathak.
+Human-to-robot imitation in the wild. 2022.
+Aditya Kannan, Kenneth Shaw, Shikhar Bahl, Pragna
+tuning for hand policies.
+In Conference on Robot
+Kenneth Shaw, Shikhar Bahl, and Deepak Pathak.
+Conference on Robot Learning, pages 654665, 2023.
+Arpit

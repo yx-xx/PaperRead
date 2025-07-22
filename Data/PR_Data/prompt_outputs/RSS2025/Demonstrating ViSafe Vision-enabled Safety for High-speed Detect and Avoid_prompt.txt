@@ -1,7 +1,7 @@
 === PDF文件: Demonstrating ViSafe Vision-enabled Safety for High-speed Detect and Avoid.pdf ===
-=== 时间: 2025-07-22 09:58:58.927890 ===
+=== 时间: 2025-07-22 15:44:46.572369 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -497,4 +497,250 @@ begi n {al i gned}  d ot {d }   v{own}cos {(alpha - chi {own})}  v{int}cos {(alp
 (b) Overtake
 (a) Head-on
 (c) Crossing
-Diversity of the airborne collision testing scenarios: (a) The various encounter geometries used for real-world  simulation f
+Diversity of the airborne collision testing scenarios: (a) The various encounter geometries used for real-world  simulation flight testing. (b)
+The diverse weather and lighting conditions that were used to evaluate ViSafes robustness in simulation. In the simulation, based on the chosen encounter
+We compute d by taking the projection of vown and vint
+along the line of sight (LOS). To compute d, we differentiate
+Eq. (15) with our original assumption of constant intruder
+velocity vector (i.e. vint  0 and int  0 ) to get:
+begin  {ali g ned}   ddot {d }   d ot {v
+} {own }cos  {(alpha -  chi  {own})
+}  dot {chi }{own}v{own}sin {(alpha - chi {own})}    frac {(v{own}sin {(alpha - chi {own})} v{int}sin {(alpha - chi {int})}){2}}{d} label {eq:dddot} end {aligned}
+Now given u
+, we can rewrite Eq. (16) as
+egin { align
+ed}  dd o t {d}
+begin  {bma t rix} cos {(al p ha - c
+hi {own})}  v{own}sin {(alpha - chi {own})}  end {bmatrix}top u    frac {(v{own}sin {(alpha - chi {own})} v{int}sin {(alpha - chi {int})}){2}}{d} label {eq:dddotrewrite} end {aligned}
+As can be observed, the constraints on h are affine in u and
+fit the form of a QP, as defined in Eq. (13), which can be
+solved to compute the desired safe control usa fe. We use the
+following tuned hyperparameters for the final formulation of
+We use a simple PD controller as our nominal controller,
+where the computed desired safe control usa fe is then con-
+verted into low-level drone control actions in the form of
+velocity and yaw setpoints, which are executed on our ownship
+agent by the flight controller (PX4 in Isaac Sim and Ardupilot
+on the real-world drone hardware).
+V. ViSafe TESTING
+A. Experiment Design
+We consider a two-agent interaction scenario. The ViSafe-
+enabled ego agent is tested against an airborne intruder in
+various collision geometries. We start by identifying three
+classes of interaction scenarios for our two-agent setup: Head-
+agent and the intruder on a single straight-line converging
+path moving towards each other. An Overtake scenario has
+the agents on a single straight-line path with a higher-speed
+ego agent in the trail of a low-speed intruder. A Lateral
+scenario has the ego and intruder on perpendicular converging
+paths. Additionally, since our visual detection module can be
+sensitive to the intruder being above or below the horizon,
+we investigate both possibilities for our agents, leading to 6
+total scenarios. Our six configuration setups are described in
+Fig. 4. These experiments are performed in both a high-fidelity
+digital-twin simulation and real-world settings. Table I shows
+the various agents, collision geometries, commanded ground
+B. ViSafe Hardware Prototype
+ViSafe uses custom hardware as shown in Fig. 1. The
+hardware has the following major components:
+1) Cameras: 6 x Sony IMX264 cameras providing a total of
+220FOV horizontally and 48vertically.
+2) Compute: NVIDIA AGX Orin Developer Kit
+3) Camera
+LI-JXAV-MIPI-
+ADPT-6CAM-FP
+EXPERIMENTAL CONFIGURATIONS
+Scenario ID
+Intruder
+Collision Geometry
+Hor. Closure Rate
+Location
+Multirotor (10 ms)
+Aurelia X6 (10 ms)
+20 ms (72 kmhr)
+Nardo Airfield
+Multirotor (5 ms)
+Aurelia X6 (10 ms)
+Overtake
+5 ms (18 kmhr)
+Nardo Airfield
+Multirotor (5 ms)
+Aurelia X6 (10 ms)
+Crossing
+11.18 ms (40 kmhr)
+Nardo Airfield
+VTOL (30 ms)
+Aurelia X6 (10 ms)
+40 ms (144 kmhr)
+Nardo Airfield
+Multirotor (10 ms)
+Aurelia X6 (10 ms)
+20 ms (72 kmhr)
+TABLE II
+DIGITAL TWIN  HARDWARE-IN-THE-LOOP BENCHMARKING
+Separation Minima (m)
+Risk Ratio
+Number of violations
+Scenario
+Above Horizon - E1, E2, E3
+Below Horizon - E1, E2, E3
+TABLE III
+REAL WORLD BENCHMARKING
+Separation Minima (m)
+Risk Ratio
+Number of violations
+Scenario
+Above Horizon - E1, E2, E3
+Below Horizon - E1, E2, E3
+4) State Estimation: 3DM-GQ7 GNSINSS module with a
+dual-GPS antenna setup.
+5) ADS-B In: uAvionix PINGMAVLink based ADS-B
+receiver (not used)
+The payload is securely mounted below the ownship on a
+custom mounting plate. The entire payload weighs approx.
+1.6 kgs, including the 3D-printed protective casing. The deep-
+learning pipeline and the collision avoidance algorithm de-
+scribed in Section IV run onboard the payload in real-time.
+The payload communicates with the ownship autopilot via
+the MavLink protocol to issue navigation commands in the
+form of yaw turn rates. We use DroneKit  to command
+the ownship autopilot to execute the avoidance maneuvers.
+The entire system is agnostic to the ownship platform and is
+designed to be mounted easily on most systems.
+C. Reaction Time Profile for Successful Detect  Avoid
+Based on the empirical performance statistics of our vision
+inference system (AirTrack ), we determine the range pro-
+file in which the intruder tracks are reliable and the maximum
+reaction time available for the ViSafe system. Leveraging the
+empirical numbers from the ASTM F3442F3442M standards
+(satisfied by AirTrack using a Bell 407 intruder with a frontal
+diagonal length of 4.27 m), the minimum number of pixels
+at which AirTrack can reliably detect the object with a 95
+probability of track comes out to be 14 pixels. Using the ap-
+proximate calibrated focal length of our multi-camera payload,
+the maximum distance dmax at which the object can be detected
+comes out to be 163.2  l, where l is the frontal diagonal
+length of the intruder. For our real-world intruder platforms
+(shown in Fig. 1), the reliable maximum distance comes out
+as dHexarotor
+287m and dVTOL
+525m. Thus, for real-world
+Head-on scenarios, the maximum available reaction time for
+the M600 intruder is 14.35s, and for the VTOL intruder, it
+is 13.12s. This short maximum reaction time signifies the
+need for accurate, fast, and on-edge DAA, which we find is
+empirically satisfied by our ViSafe system as shown in both
+benchmarking (Table II and III) and profiling (Table IV).
+D. Simulated Digital-Twin Experiment Setup
+We first perform experiments in a digital twin of the
+test environment. The digital twin enables low-cost, low-risk
+TABLE IV
+VISAFE SYSTEM PROFILING
+Component
+Performance
+AirTrack Detection  Tracking (GPU)
+Multi-View Fusion  State Estimation (CPU)
+CBF-based Avoidance Control (CPU)
+50 Hz (solving a QP)
+Mean CPU Utilization
+Mean GPU Utilization
+Peak Memory Consumption
+testing in a more diverse and controllable setting.
+In order to test the scenario as realistically as possible, we
+create a digital twin of the real-world testing site. We use
+the Pegasus Simulator , which is a framework built on
+top of NVIDIA Omniverse and IsaacSim . While design-
+ing the assets, we use ArcGIS CityEngine , which takes
+satellite imagery, terrain maps, and structure information from
+OpenStreetMap to build a 3D model of the test site, including
+buildings and roads. We also procedurally added trees and a
+realistic sky with clouds and weather conditions as depicted
+in Figure 4. The experiments were carried out on a desktop
+computer with an Nvidia 3080Ti and an Nvidia A6000 running
+Ubuntu 20.04.
+To simulate real-world hardware performance, we transmit
+the rendered images to the onboard processing units for detec-
+tion and tracking. This allows us to conduct hardware-in-the-
+loop (HITL) experiments within the digital-twin framework.
+day and cloud covers, three representative collision configura-
+to a total of 60 distinct scenarios. For the above scenarios, we
+simulated 200 trajectories per scenario, leading to a total of
+12000 trajectories.
+E. Real World Experiment Setup
+We provide details on the real-world experiments to
+test the ViSafe system. Real-world flight tests are con-
+ducted at two distinct locations. A dedicated testing fa-
+cility at the Nardo Flight Test Field  (Valentin Vas-
+silev Memorial Field), USA [FAA Identifier: 77PA],
+ondary test-site in Leesburg, VA, USA are utilized for exper-
+iments. All tests are performed under the FAA 14 CFR Part
+107 guidelines. The Nardo flight test airfield has an unpaved
+runway with a total length of 1800ft (550m) and a width
+of 100ft (30.5m). The Leesburg field is an open test range.
+Table I. The field experiments use three airborne platforms, as
+shown in Figure 1. Their details are as follows:
+1) Aurelia X6 Standard: A hexa-rotor ownship.
+2) Hexarotor: A multi-rotor low-speed intruder.
+3) VTOL: A quad-plane vertical takeoff and landing fixed-
+wing aircraft that acts as our high-speed intruder.
+F. Metrics
+We compare our technique with a nominal planner without
+an avoidance strategy. By default, the nominal plans violated
+Overtake
+Scenario Type
+HROC (ms) shifted by minimum value
+Shifted Horizontal Rate of Closure (HROC) - Above and Below Horizon
+Above Horizon (Nominal)
+Above Horizon (ViSafe)
+Below Horizon (Nominal)
+Below Horizon (ViSafe)
+Average horizontal rate of closure comparisons across different
+encounter geometries in real-world testing: Higher values indicate that
+agents are moving apart, showcasing diverging  safe trajectories. Under
+different testing scenarios, it can be seen that ViSafe consistently shows a
+significant boost in average HROC over the nominal plan.
+the safe separation clause, and we include it solely as a refer-
+ence point to quantify ViSafes gains via metrics. Our metrics
+are inspired by the operational standards proposed for collision
+avoidance systems by the Radio Technical Commission for
+Aeronautics (RTCA) . These are the key metrics which
+1) Probability of Near Mid Air Collision P(NMAC): This
+metric measures the probability that two agents come
+within a predefined unsafe distance. Lower values signify
+better collision avoidance.
+2) Separation Minima: This metric captures the minimum
+distance between agents during an episode. Higher values
+indicate greater safety margins.
+3) Horizontal Rate of Closure (HROC): This metric mea-
+sures the relative velocity at which two agents approach
+each other, with negative values indicating impending
+collisions. Higher values reduce collision risks.
+4) Risk Ratio: This metric measures the ratio of collisions
+compared to a baseline (nominal planner). Lower values
+indicates higher safety improvements over the baseline.
+G. Results and Discussion
+In this section, we highlight the key findings of comparing
+ViSafe with a nominal planner without an explicit avoidance
+strategy. The results for simulated digital-twin and real-world
+experiments are summarized in Tables II and III.
+1) ViSafe enables high-speed collision avoidance [H1]:
+Our results demonstrate the advantage of ViSafe in reducing
+the collision risk over nominal plan. By design, The nominal
+planner exhibited high P(NMAC) values across Head-On,
+ments. ViSafe drastically reduces the P(NMAC) for the same
+configurations. Our method significantly reduces collision risk
+and improves safety margins, especially in critical configu-
+rations such as head-on and overtaking situations. The total
+number of loss of separations is reduced significantly by ViSafe
+for all testing configurations in the real world.
+No Clouds
+Overcast
+Dusk Clear
+Dusk Overcast
+Fog Clear
+Fog Overcast
+Weather Conditions
+HROC (ms) (shifted)
+Shifted HROC Values by Weather Conditions - Nominal vs ViSafe
+Horizontal rate of closure comparisons across different weather conditions in the digital twin: Higher values indicate that agents are moving
+The results in Fig. 5 indicate that ViS

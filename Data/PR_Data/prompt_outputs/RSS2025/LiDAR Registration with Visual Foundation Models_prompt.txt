@@ -1,0 +1,512 @@
+=== PDF文件: LiDAR Registration with Visual Foundation Models.pdf ===
+=== 时间: 2025-07-22 15:44:43.015584 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：LiDAR Registration with Visual Foundation Models
+Niclas Vodisch1,2, Giovanni Cioffi2, Marco Cannici2, Wolfram Burgard3, and Davide Scaramuzza2
+1University of Freiburg
+2University of Zurich
+3University of Technology Nuremberg
+AbstractLiDAR registration is a fundamental task in robotic
+mapping and localization. A critical component of aligning two
+point clouds is identifying robust point correspondences using
+point descriptors. This step becomes particularly challenging in
+scenarios involving domain shifts, seasonal changes, and varia-
+tions in point cloud structures. These factors substantially impact
+both handcrafted and learning-based approaches. In this paper,
+we address these problems by proposing to use DINOv2 features,
+obtained from surround-view images, as point descriptors. We
+demonstrate that coupling these descriptors with traditional reg-
+istration algorithms, such as RANSAC or ICP, facilitates robust
+6DoF alignment of LiDAR scans with 3D maps, even when the
+map was recorded more than a year before. Although conceptu-
+ally straightforward, our method substantially outperforms more
+complex baseline techniques. In contrast to previous learning-
+based point descriptors, our method does not require domain-
+specific retraining and is agnostic to the point cloud structure,
+effectively handling both sparse LiDAR scans and dense 3D maps.
+We show that leveraging the additional camera data enables our
+method to outperform the best baseline by 24.8 and 17.3
+registration recall on the NCLT and Oxford Radar RobotCar
+datasets. We publicly release the registration benchmark and the
+code of our work on
+I. INTRODUCTION
+Aligning two point clouds to compute their relative 3D
+transformation is a critical task in numerous robotic appli-
+we specifically discuss map-based localization, which not only
+generalizes the other aforementioned tasks but is also critical
+for improving the efficiency and autonomy of mobile robots
+in environments where pre-existing map data is available.
+Although place recognition [20, 21] or GNSS readings
+can provide an approximate initial estimate, their accuracy is
+generally insufficient for obtaining precise 3D poses relative to
+the map. In contrast, global point cloud registration [16, 33]
+enables accurate 3D localization but necessitates the identi-
+fication of reliable point correspondences between the point
+clouds. These correspondences are typically established by
+iterating over all points in the source point cloud to identify
+the most similar counterparts in the target frame. Similarity
+is assessed using point descriptors, which are abstract fea-
+ture representations of a point, e.g., encoding the geometry
+of its local environment. In scan-to-map registration, point
+descriptors must be as unique as possible since the number
+of potential combinations grows with O(m  n), referring to
+the number of points in the scan and the map. An additional
+challenge arises from temporal changes in the environment,
+such as seasonal variations or ongoing construction, necessi-
+tating point descriptors that are robust to such changes for
+long-term applicability .
+Initialization-free registration of a LiDAR scan to a large-scale
+3D map requires highly expressive point descriptors. We demonstrate that
+DINOv2  features from surround-view images allow finding robust point
+the map, the registered LiDAR scan is shown in red. The colors of the LiDAR
+scan (top right) and the map (bottom) are obtained using principal component
+analysis performed on the high-dimensional DINOv2 features.
+significance
+numerous
+descriptors have been proposed, encompassing both traditional
+handcrafted  and learning-based [12, 27, 32] designs,
+primarily relying on 3D geometric features. While learning-
+based descriptors tend to exhibit greater expressiveness than
+handcrafted methods, they often fail to generalize effectively
+to out-of-training domains and different point cloud represen-
+In this work, we address the task of long-term scan-to-map
+registration by leveraging the advances made by recent visual
+foundation models. Our main contribution is to demonstrate
+that using DINOv2  features, obtained from surround-view
+correspondences. We argue that using the additional vision
+modality does not pose a large burden as this combination is
+a common sensor setup in mobile robotics [6, 10, 11] and the
+camera is relatively inexpensive compared to the LiDAR.
+The key idea behind our approach is to leverage the superior
+generalization capabilities of recent visual foundation models,
+like DINOv2, compared to networks operating in the 3D space.
+point cloud, enabling correspondence search between sparse
+LiDAR scans and dense 3D voxel-maps. Using DINOv2-
+based point descriptors effectively allows for implicit semantic
+matching between points and, importantly, does not require re-
+training an in-domain descriptor network.
+We make three claims: First, we demonstrate that coupling
+these descriptors with traditional registration algorithms, such
+as RANSAC  or ICP , facilitates robust 3D localization
+in a map that was recorded over a year before . Second,
+although conceptually simple, our method substantially outper-
+forms more complex baseline techniques. Third, our approach
+is robust to temporal changes in the environment that have
+occurred since the map was created.
+We validate these claims through extensive experiments,
+showing that our approach outperforms the best baseline
+by 24.8 and 17.3 registration recall on the NCLT
+and Oxford Radar RobotCar  datasets. To facilitate
+reproducibility
+research
+long-term
+with instructions to re-create the evaluation scenes from our
+experiments. To the best of our knowledge, this work presents
+the first approach to combining visual foundation models
+with traditional LiDAR registration techniques.
+II. RELATED WORK
+Point cloud registration has been extensively studied by the
+research community across a diverse range of applications.
+Previous works have addressed alignment of relatively small
+3D objects , mid-size indoor scenes [27, 32], LiDAR
+odometry [14, 30], and scan registration to 3D maps .
+Particularly the latter introduces further challenges, such as
+geometric and semantic discrepancies between the source
+and the target point clouds, arising from temporal changes
+in the environment since the creation of the reference map.
+While the majority of studies focus on object alignment or
+LiDAR odometry, only a few works [19, 21] explicitly target
+long-term scenarios. Typically, the point cloud registration
+problem is addressed in two stages: first, identifying point-
+to-point correspondences using point descriptors and, second,
+determining the six degrees of freedom (6DoF) transformation
+required to align the two point clouds. In the following
+Point Descriptors: Point descriptors refer to an abstract rep-
+resentation of a 3D point that can be used to search for
+point-to-point correspondences between two point clouds. In
+contrast to a naive nearest-neighbor search in the Euclidean
+dences. A classical, yet still commonly used [4, 31] descrip-
+tor is the FPFH  descriptor that captures the geometry
+around a point by computing local feature histograms based
+on the angles to its neighboring points. FPFH is designed
+to provide both translational and rotational invariance. In
+more recent years, many learning-based approaches have been
+proposed that employ deep neural networks for extracting
+point descriptors. These methods can generally be categorized
+into patch-based networks and fully convolutional networks.
+3DMatch  pioneered the first category by learning local
+geometric patterns from volumetric patches around a point.
+While 3DMatch computes truncated distance function values
+from the patch, 3DSmoothNet  uses a smoothed den-
+sity value representation to achieve rotation invariance. Both
+DIP  and GeDi  propose to follow a Siamese approach
+to train two neural networks with shared parameters and a con-
+trastive loss on the patches. Unlike patch-based approaches,
+fully convolutional networks employ such a contrastive loss
+directly on the point level as first proposed by FCGF ,
+which is commonly used by many registration algorithms .
+While early convolutional descriptors were either computed
+for all points of a point cloud or a randomly sampled subset,
+later works such as D3Feat  include keypoint detection
+schemes. A particular challenge of operating on individual
+points instead of patches is to achieve density invariance.
+required for early loop closure registration in LiDAR SLAM.
+Although learning-based descriptors have shown impressive
+ization between different training and testing domains, e.g.,
+RGB-D data versus LiDAR scans or aligning individual ob-
+jects versus large-scale outdoor scenes.
+The majority of point descriptors focus on encoding only
+geometric information neglecting semantic hints. Especially
+in the context of autonomous driving, a few works have pro-
+posed to include information from semantic segmentation. For
+search of ICP with a hard rejection scheme if the candidate
+points belong to different semantic classes. The transformer-
+based PADLoC  exploits panoptic information during the
+training phase to avoid wrong matches. Nonetheless, a major
+barrier to including semantic information is the lack of 3D
+segmentation networks that generalize well across domains
+requiring cost-intense retraining. In this work, we exploit the
+recent advances in the vision domain by proposing to extract
+point descriptors using a visual foundation model . In
+contrast to the hard matching of discrete semantic classes, our
+method enables searching more soft correspondences while
+considering the scene semantics.
+Point Cloud Registration: Algorithms for point cloud regis-
+tration can be categorized into local and global registration
+schemes. Whereas local methods require an accurate initial
+spondences based on the aforementioned point descriptors.
+achieve global registration with the high performance of local
+approaches such as ICP  or NDT . To obtain a sufficient
+coarse registration, a main requirement for global registration
+schemes is outlier rejection. The most popular traditional
+method for this task is still RANSAC , including its
+more recent variants . However, the major drawbacks of
+RANSAC are slow convergence and low accuracy in the
+presence of large outlier rates, which are commonly faced in
+Overview of our proposed approach for 6DoF point cloud registration. First, we extract DINOv2  features from surround-view image data. These
+features are then attached to the point cloud as point descriptors via point-to-pixel projection. Second, we perform a point-wise similarity search using cosine
+similarity between the descriptors of the LiDAR scan and the descriptors of the voxelized 3D map. Finally, we use a traditional coarse-to-fine registration
+scheme with RANSAC  and point-to-point ICP  for obtaining a highly accurate pose estimate within the provided map frame.
+point cloud registration. Fast global registration (FGR)
+aims to overcome these problems by optimizing a robust
+objective function that is defined densely over the surfaces.
+TEASER  proposes a certifiable algorithm that decouples
+performance via deep learning. Both deep global registration
+(DGR)  and 3DRegNet  formulate outlier rejection
+as a point-based classification problem. PointDSC  extends
+this idea by including the spatial consistency between inlier
+correspondences when applying rigid Euclidean transforma-
+tions. In this work, we demonstrate that coupling our proposed
+point descriptors with traditional registration algorithms, such
+as RANSAC or ICP, enables robust point cloud registration.
+III. TECHNICAL APPROACH
+In this section, we first formally define the problem ad-
+dressed in this work. Then, we explain how to extract the point
+descriptors based on a visual foundation model. Finally, we
+elaborate on how we employ these descriptors for robust scan-
+to-map registration. We illustrate the separate steps in Fig. 2.
+A. Problem Definition
+In this work, we consider the following scenario: A vox-
+elized 3D map M Rn3 is provided, where n denotes
+the number of 3D points stored in the map. At test-time, we
+receive a LiDAR scan S Rm3 composed of m 3D points.
+view RGB camera data is available. The goal is to find the
+six degrees of freedom (6DoF) transform T SE(3) that
+correctly registers the LiDAR scan to the map. We further
+assume a rough initial position P
+R3 is given within
+approximately 100 m around the true position, reducing the
+size of the relevant part of the map to k << n while preserving
+k >> m. Such an initial position could be obtained via place
+recognition [20, 22] or GNSS readings. Importantly, in long-
+term scan-to-map registration, the LiDAR scan can be recorded
+a considerable amount of time after the map was created,
+i.e., there might be a semantic and geometric discrepancy
+between the 3D map representation and the current state of
+the environment.
+B. Point Descriptor Extraction
+In this paragraph, we describe step 1) of Fig. 2. While we
+extract the point descriptors of the LiDAR scan S at test-time,
+we pre-compute the descriptors of the map M in an offline
+fashion. Commonly, 3D point-based mapping approaches rely
+on the concept of keyframes to frequently identify LiDAR
+scans that are eventually accumulated into a single voxelized
+point cloud, i.e., a map is formally composed of individual
+LiDAR scans M  S
+j Mj. In the following, we hence use
+the general notation of a point cloud C Rl3 to refer to
+either S or Mj. Each point cloud can be associated with a
+surround-view RGB image taken at the same time as C. We
+denote this image as I Nhw3, where h and w represent
+its height and width, respectively. First, we feed I through
+a frozen DINOv2  model to generate a dense 2D feature
+map F Rhwd, e.g., d  384 for the model type ViT-S14.
+The core idea of using DINOv2 is to capture the semantics of
+the scene without an explicit assignment to discrete semantic
+classes  while leveraging its generalization capabilities
+across cameras, weather, and illumination conditions .
+extrinsic calibration parameters to convert each point p C
+into pixel coordinates of I. Finally, we use the DINOv2
+feature of the respective RGB pixel as the descriptor desc()
+of point p. Formally,
+F  DINOv2(I) ,
+desc(p)  F [(p)] ,
+where () : R3 N2 is the point-to-pixel projection
+function and [] : N2 Rd denotes the operator to access
+the DINOv2 feature of a given pixel. Consequently, we apply
+this step to all points in C to obtain CD:
+CD  {desc(p)  p C}
+We hence retrieve the descriptors M D Rkd corresponding
+to the map M and, at test-time, the descriptors SD Rmd
+for the current scan S.
+C. Scan-to-Map Registration
+As defined in Sec. III-A, the goal of scan-to-map registration
+is to find the 6DoF transform that correctly represents the
+robot pose with respect to the coordinate system of the
+map. In this paragraph, we describe the corresponding steps
+2) and 3) of Fig. 2. First, we substantially downsample
+the LiDAR scan S with point descriptors SD resulting in
+S Rv3 and SD Rvd with v m80 to reduce the
+complexity of the subsequent steps. Second, we search for
+point correspondences between the scan and the map using
+an efficient similarity search . For every point ps S, we
+search for the point pm M that achieves the highest cosine
+similarity between the descriptors of both points.
+pm  arg max
+simcos (desc(ps), desc(p))
+desc(ps)  desc(p)
+desc(ps) desc(p)
+cos  0.8, we consider the pair (ps, pm) a valid point
+correspondence.
+To achieve global registration within the map, we run
+3-point RANSAC  on the set of all valid point corre-
+further refinement and accurate 6DoF registration, we employ
+classical point-to-point ICP  based on the 3D points of the
+original LiDAR scan S. That is, the DINOv2-based point de-
+scriptors are not used in this step. With ICP, we obtain the final
+6DoF transform Tfine that aligns the scan S with the map M.
+IV. EXPERIMENTS
+The main focus of this work is to enable LiDAR scan-
+to-map registration that is robust to the challenges arising in
+long-term scenarios. In our experiments, we demonstrate the
+effectiveness and capabilities of our approach to support our
+key claims: First, DINOv2  features can serve as point
+descriptors that can be integrated into traditional registration
+algorithms to facilitate robust 3D registration in a map that was
+recorded more than a year before. Second, such a relatively
+straightforward approach outperforms more complex baseline
+techniques. Third, these descriptors are robust to temporal
+changes in the environment that have occurred since the map
+was created. We begin this section by describing the details
+of our experimental setup and defining the evaluation metrics
+used. Afterward, we provide results that support our claims
+and showcase the performance of our approach.
+A. Experimental Setup
+To verify our claims, we generate several scenes that present
+the problem formally defined in Sec. III-A. In particular, we
+identify the NCLT  and the Oxford Radar RobotCar
+as two of the few long-term datasets containing both LiDAR
+and surround-view RGB images. Note that neither is part
+of the LVD-142M dataset  used to train DINOv2. The
+NCLT dataset comprises a total of 27 sessions recorded on a
+university campus spread out over 15 months, i.e., covering
+RECORDINGS FOR SCENE GENERATION
+Recording date Map. Reg.
+Foliage Snow
+Partly cloudy
+Afternoon
+Oxford Radar RobotCar
+Partly cloudy
+Overview of the recordings from the NCLT  and the Oxford Radar
+RobotCar  datasets used for mapping (Map.) and scan registration (Reg.).
+various seasons, illuminations, and environmental conditions.
+The Oxford Radar RobotCar dataset comprises recordings
+from 7 different days spread out over 1.5 weeks. It captures
+vehicle-centric urban data with weather conditions ranging
+from sunny to varying degrees of overcast. Both datasets
+contain global pose data that is consistent across recordings.
+For each dataset, we select the first of the provided recordings
+for mapping, while other recordings are used for registration.
+As shown in Tab. I, we carefully select these recordings; first,
+to maximize spread over the dataset to increase the probability
+of semantic and geometric changes and, second, to cover all
+available seasonal and weather conditions.
+To construct a scene, we sample a position i from the
+mapping route. If all registration recordings contain a point
+cloud associated with a pose in the vicinity of i, we use these
+point clouds to create {S1, . . . , Sr}i and {SD
+r }i, i.e.,
+a set of LiDAR scans with corresponding DINOv2-based
+point descriptors. As listed in Tab. I, we use r  5 for NCLT
+and r  3 for RobotCar. For mapping, we select the point
+clouds along the route within a 150 m radius around i and
+with a distance of 2 m between scans, simulating keyframes in
+LiDAR SLAM, and extract the point descriptors. That is, the
+maximum size of the map is 300 m300 m. Since the accuracy
+of the global poses provided in the datasets is insufficient for
+point cloud accumulation, we refine them with KISS-ICP .
+to a voxel size of 0.25 m, representing the 3D map Mi with
+point descriptors M D
+i . Note that we do not remove potentially
+dynamic objects, e.g., cars, from the map. To measure the
+registration error, we generate ground truth transformations
+{T1, . . . , Tr} by running point-to-point ICP initialized with
+the pose from the dataset and manually verifying the correct
+registration. For both datasets, we construct 25 scenes, i.e.,
+i [1, 25], resulting in a sample size of 125 and 75 for NCLT
+and Oxford Radar RobotCar, respectively. For examples of
+the scenes, we refer to the qualitative results in Figs. 6 and 7.
+To facilitate the utilization of these scenes as a benchmark
+in future research, we provide a recreation script along with
+comprehensive instructions in our code release.
+TABLE II
+SCAN-TO-MAP REGISTRATION
+Oxford Radar RobotCar
+Registration
+Descriptor
+ICP-RR []
+ICP-RR []
+PointDSC
+PointDSC
+Our method:
+RANSAC  ICP
+We report the mean and standard deviation of the relative translation error (RTE) and the relative rotation error (RRE) as defined in Sec. IV-B. The registration
+recall (RR) denotes the success rate, where success is defined as RTE < 0.6 m and RRE < 1.5. The recall after refinement with ICP is listed as ICP-RR. DIP
+and GeDi are trained on the 3DMatch dataset  (RGB-D data). FCGF, SpinNet, GCL, and PointDSC are trained on the KITTI dataset  (LiDAR scans).
+B. Evaluation Metrics
+Similar to prior work [1, 3, 4, 12], we use the following eval-
+uation metrics: First, the relative translation error (RTE) mea-
+sured in meters. Second, the relative rotation error (RRE) mea-
+sured in degrees. Formally, the RTE and RRE are defined as:
+RTE  t t2
+RRE  arccos
+tr(RR) 1
+where the transform T
+SE(3) is decomposed into a
+translation t and rotation R. The hat () denotes the
+estimated transform. The operators tr() and ()are the trace
+and transpose of a matrix. Third, we report the registration
+recall (RR) denoting the percentage of successful registrations,
+i.e., both the RTE and RRE are below a given threshold. While
+previous works have used different thresholds [1, 3, 4, 23],
+we adopt the criterion of Liu et al.  as it meets the
+expected error range of many baseline techniques in the more
+simple scan-to-scan registration tasks (see Sec. IV-C). That
+RRE < 1.5. Finally, we investigate whether the accuracy
+of the descriptor-based global registration is sufficient to
+initialize ICP. We measure its performance by recomputing the
+registration recall after ICP-based pose refinement (ICP-RR).
+C. Scan-to-Map Registration
+We compare our proposed approach to a variety of base-
+lines that can be categorized as follows: (1) the popular
+handcrafted descriptor FPFH  coupled with three outlier
+rejection schemes, namely, RANSAC , TEASER ,
+and PointDSC , which is a learning-based approach trained
+on the KITTI dataset ; (2) the learning-based descriptors
+DIP  and GeDi , which are trained on RGB-D data of
+the 3DMatch dataset  but claimed generalization to LiDAR
+scans [27, 28]; (3) the learning-based descriptors FCGF ,
+dataset . For categories (2) and (3), we predominantly
+TABLE III
+SCAN-TO-SCAN REGISTRATION
+Registration
+Descriptor
+RTE [m] RRE [] RTE [m] RRE []
+Handcrafted descriptor:
+TEASER  FPFH
+PointDSC
+Descriptors trained on 3DMatch :
+Descriptors trained on KITTI :
+PointDSC
+Our method:
+We underline the effect of a domain change on various point descriptors
+used as baselines in our experiments. While the descriptors trained on the
+KITTI dataset  perform well within the same domain, they suffer from
+degradation when tested on the NCLT dataset . Note that PointDSC
+is also trained on KITTI. Due to the lack of surround-view images, we do
+not employ our method on KITTI. In contrast to the primary use case of
+this work, previous studies mostly considered scan-to-scan registration.
+rely on the RANSAC algorithm for point cloud registration
+and follow prior work [3, 32] using 50,000 iterations without
+early stopping. For the baselines, we use the top 5,000 point
+correspondences. For SpinNet , we compute the descriptors
+only for 7,500 randomly sampled points due to GPU memory
+constraints (16 GB).
+A core advantage of employing DINOv2  is exploiting
+its strong generalization capability across various semantic
+domains and decoupling the point descriptors from the density
+of a point cloud, e.g., RGB-D data versus LiDAR scans.
+Many learning-based descriptors suffer from such domain
+changes requiring in-domain training data and hindering their
+general applicability. To underline this effect and to establish
+the groundwork for the main experiment, we first report the
+performance of the baselines for the more simple scan-to-scan
+Success thresholds
+Registration recall []
+Success thresholds
+Registration recall []
+Oxford Radar RobotCar
+Fig. 3. We visualize the registration recall (RR) for a range of success thresh-
+olds obtained by linear interextrapolation of the thresholds used by GCL
+(left dashed line) and SpinNet  (right dashed line). To perform scan-to-map
+registration task. This task is mainly considered by previous
+studies in the context of LiDAR odometry. Here, the two point
+clouds are highly similar in their geometry and a strong initial
+guess is available. We simulate the initial guess by perturbing
+the ground truth transform with noise sampled as:
+with t and R referring to the translational and rotational
+components measured in meters and degrees, respectively.
+In Tab. III, we report the average RTE and RRE on samples
+from the KITTI and NCLT datasets. For KITTI, we sample
+125 pairs of two consecutive scans from sequence 08, which
+is not in the descriptors training set [1, 12]. For NCLT,
+we use the scan of the map that is closest to the incoming
+LiDAR scan. Note that we do not employ our method on
+KITTI due to the lack of surround-view images. The key
+insights from Tab. III are as follows: (1) On KITTI, the error
+of the in-domain trained descriptors is substantially smaller
+than of the ones trained on 3DMatch; (2) We observe poor
+performance when the training and testing domains differ,
+i.e., from 3DMatch to KITTI or NCLT, and from KITTI to
+NCLT; (3) Most descriptors achieve a decent accuracy on
+NCLT for the scan-to-scan registration task.
+In the main experiment, we support our claim that our
+proposed DINOv2-based point descriptors can be coupled with
+traditional registration schemes while outperforming previous
+baselines. We now consider scan-to-map registration using
+the extracted scenes as described in Sec. IV-A. We report
+results for the metrics defined in Sec. IV-B for both the NCLT
+dataset and the Oxford Radar RobotCar dataset in Tab. II.
+The most important observation is that our proposed method
+is the only one that achieves consistently low registration
+errors. For the ICP-based refinement, our method substantially
+outperforms the best baseline (GCL ) by 24.8 (NCLT) and
+17.3 (RobotCar) percentage points, showing 100  recall on
+NCLT. We hypothesize that the gap to 100  on the Oxford
+Radar RobotCar is mainly caused by wrong point-to-pixel
+indicator for this hypothesis is the observation that some points
+belonging to buildings are assigned tree-like descriptors if
+there is a tree in front of the wall. For completeness, we also
+report results when replacing RANSAC with TEASER ,
+achieving higher registration recalls than all baseline methods.
+A further key insight is the large standard deviation of the er-
+rors of the baseline methods, whereas the results of our method
+rarely fluctuate. Finally, we note that the baselines yield
+almost no global registration meeting the success thresholds,
+resulting in 0.00  registration recall. To further investigate
+this observation and to incorporate more relaxed thresholds
+as used in other studies, we recompute the registration recall
+(RR) for additional thresholds. In particular, we use linear
+interextrapolation of the thresholds based on GCL  (0.6 m,
+1.5) and SpinNet  (2.0 m, 5.0). We visualize the reg-
+istration recalls in Fig. 3 for all descriptors coupled with
+RANSAC. The recall of our

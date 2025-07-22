@@ -1,7 +1,7 @@
 === PDF文件: Doppler Correspondence Non-Iterative Scan Matching With Doppler Velocity-Based Correspondence.pdf ===
-=== 时间: 2025-07-22 09:59:42.224765 ===
+=== 时间: 2025-07-22 16:06:15.624142 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -409,4 +409,179 @@ iteration defines the maximum number of optimization itera-
 tions. The method is considered converged when the change in
 error falls below the convergence threshold. The point clouds are
 uniformly downsampled at intervals determined by the down-
-sampl
+sampling factor, reducing density and computational complexity.
+DICP is evaluated using its original parameters from the
+open-source implementation. Each value is as follows: maxi-
+mum iteration  100, convergence threshold  105, downsam-
+pling factor  2, and spatial  0.3.
+The proposed method is evaluated with parameters set to
+these values: downsampling factor  1, spatial  3, and doppler
+5. It does not use maximum iteration or convergence threshold,
+as it performs optimization in a single step. All experiments are
+conducted on a system equipped with an Intel Core i7-14700KF
+C. Evaluation Metrics
+The performance is evaluated using the relative error (RE)
+from . This metric standardizes trajectory estimation accu-
+evaluation measures odometry accuracy through segment-wise
+error analysis. This approach provides detailed insights into the
+local and global performance of the trajectory estimation. By
+using shorter sub-trajectories, RE captures local consistency and
+short-term accuracy, while longer sub-trajectories emphasize
+global consistency and long-term accuracy. This dual capability
+makes RE a versatile and informative metric for trajectory
+analysis.
+The computation time for transformation estimation, exclud-
+ing point cloud pre-processing, is evaluated. A fair assessment
+of computational efficiency could be ensured by excluding
+computation time for point cloud pre-processing.
+D. Experiment Results
+The performance evaluation on sparse 4D radar data compares
+the proposed method against the standard point-to-point ICP
+TABLE I: Each cell shows rotation and translation errors in degrees and meters, respectively for different segment lengths. The
+final column highlights the average computation time per frame (ms). For each segment, the bold values represent the best
+performance.
+Evaluation Units (rotation [deg]  translation [m])
+Time (ms)
+4D Radar
+(With Seed)point-to-point
+(No Seed)point-to-point
+(With Seed)point-to-point
+(No Seed)point-to-point
+Semi-Dense
+4D Radar
+(With Seed)DICP
+(No Seed)DICP
+(With Seed)DICP
+(No Seed)DICP
+(With Seed)DICP
+(No Seed)DICP
+(With Seed)DICP
+(No Seed)DICP
+4D LiDAR
+Straight Wall
+(With Seed)DICP
+(No Seed)DICP
+Curved Wall
+(With Seed)DICP
+(No Seed)DICP
+Baker-Barry Tunnel (Empty)
+(With Seed)DICP
+(No Seed)DICP
+Baker-Barry Tunnel (Vehicles)
+(With Seed)DICP
+(No Seed)DICP
+(a) Campus1
+(b) Campus2
+(c) Loop1 0
+(d) Loop1 2
+(e) Loop1 3
+(f) Loop1 4
+(g) Straight Wall
+(h) Curved Wall
+Baker-Barry
+Tunnel (Empty)
+Baker-Barry
+Tunnel (Vehicles)
+Fig. 5: Trajectory results on multiple sequences. Each plots horizontal axis (x-axis) and vertical axis (y-axis) are in meters.
+excluded due to its failure to produce reliable results on sparse
+4D radar data. Under these conditions, closest point corre-
+spondence leverages the flow of points  rather than explicit
+spatial positions, offering robustness against sparse and noisy
+data. As shown in Table I, Figs. 5(a) and (b), and Fig. 6(a),
+the proposed method attains substantially higher accuracy than
+that of point-to-point ICP. Moreover, unlike point-to-point ICP,
+which requires repeated correspondence estimation in 3D space,
+our approach simplifies the process to a single-step and 1D
+correspondence estimation.
+For semi-dense 4D radar point clouds, the proposed method
+was tested and compared with DICP. The proposed methods
+translation errors exhibited a lower median but higher variance
+than those of DICP, as illustrated in Fig. 6(b). Additionally,
+rotation errors demonstrated higher median and variance com-
+pared with DICP, particularly in sequences with significant rota-
+tional motion (Loop1 4). Despite these limitations, the proposed
+method achieves comparable performance to DICP in other
+scenarios. Furthermore, it offers computational advantages due
+(a) Sparse 4D Radar
+(b) Semi-Dense 4D Radar
+(c) Dense 4D LiDAR
+Fig. 6: Error comparison of different methods, ICP, DICP, and Non-Iterative Scan Matching (Ours), across various point cloud
+densities. Each figure represents the averaged results for the corresponding dataset.
+(a) ICP, Straight Wall
+(b) ICP, Curved Wall
+(c) ICP, Baker-Barry Tunnel (Empty)
+(d) Non-Iterative Scan Matching, Straight
+(e) Non-Iterative Scan Matching, Curved
+(f) Non-Iterative Scan Matching, Baker-
+Barry Tunnel (Empty)
+Fig. 7: The top row shows results using point-to-point ICP, while the bottom row shows those from the proposed method. Our
+method alleviates matching ambiguity caused by repetitive geometry.
+to its efficient matching process.
+The proposed method is further evaluated on dense 4D Li-
+compared with DICP. In static scenarios, Straight Wall, Curved
+Baker-Barry Tunnel (Empty), the proposed method
+demonstrates comparable performance to DICP while being
+significantly faster than DICP. Moreover, the method achieves
+lower rotation error than DICP in Curved Wall, possibly due to
+the Doppler velocity term in DICP having a limited effect on
+constraining the rotational component during the optimization
+process. The performance of the proposed method in the Baker-
+Barry Tunnel (Vehicles) is degraded due to a significant number
+of dynamic objects.
+E. Repetitive Geometric Environment
+In contrast to traditional closest-point correspondence, which
+relies solely on spatial geometry, the proposed approach lever-
+ages the simple functions f and g defined in Eq. (3), which
+incorporate Doppler velocity. Because these Doppler-based
+functions do not depend on geometric cues alone, they of-
+fer robust performance even when surfaces appear similar or
+repetitive. As illustrated in Fig. 7, this fundamental reliance on
+velocity information disambiguates correspondences, providing
+accurate alignment in settings where ICP may fail. While the
+Optimization process has no difference from other registration
+established (Correspondence Estimation) via Doppler infor-
+F. Correspondence Visualization
+The matching results of Doppler Correspondence and the
+closest point correspondence method are visualized on sparse,
+tablished after the single iteration are performed, as shown in
+Fig. 8. With only a single iteration, Doppler Correspondence
+achieves more coherent and consistent matches than the closest
+point approach across all levels of point cloud density.
+(a) Sparse, Closest Point Correspondence
+(b) Semi-Dense, Closest Point Correspondence
+(c) Dense, Closest Point Correspondence
+(d) Sparse, Doppler Correspondence
+(e) Semi-Dense, Doppler Correspondence
+(f) Dense, Doppler Correspondence
+Fig. 8: Visualization of established correspondences after a single iteration in sparse, semi-dense, and dense point clouds.
+In the sparse 4D radar point clouds, Doppler Correspondence
+generates significantly fewer correspondences than a number
+of points, as illustrated in Figs. 8(a) and (d). However, those
+correspondences are high quality, leading to better alignment
+performance compared with the closest-point method, as shown
+in Fig. 6(a). This result aligns with the less is more prin-
+ciple discussed in , where using fewer but more reliable
+correspondences can be advantageous in highly noisy data.
+For semi-dense 4D radar point cloud, while the closest point
+correspondence often fails to establish reliable matches, Doppler
+Correspondence succeeds in maintaining robust and consistent
+illustrated in Figs. 8(b) and (e). For dense point clouds with
+repetitive geometric structures (Baker-Barry Tunnel (Empty)),
+Doppler Correspondence can produce clear and stable matches
+by effectively mitigating the ambiguity that may degrade the
+performance of ICP approaches, as depicted in Figs. 8(c) and
+V. LIMITATIONS
+While Doppler Correspondence, introduced in Section III,
+offers notable advantages in terms of computational efficiency
+and robustness in repetitive geometric environments, it also
+comes with certain limitations. Specifically, the key scenarios
+where the method may fail are highlighted below. We also
+clarify the main assumptions underlying Eqs. (6) and (7).
+fail in practice are discussed.
+A. Key Assumptions and Their Breakdown
+For identification of the case where Eqs. (6) and
+(7) hold,
+the motion of a point pi can be considered as a combination
+of translation t R31 and rotation R SO(3) from
+the sensor between a time interval T. Suppose pi(T) is the
+poin

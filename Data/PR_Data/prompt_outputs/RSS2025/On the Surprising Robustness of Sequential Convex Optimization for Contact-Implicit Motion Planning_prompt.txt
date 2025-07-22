@@ -1,7 +1,7 @@
 === PDF文件: On the Surprising Robustness of Sequential Convex Optimization for Contact-Implicit Motion Planning.pdf ===
-=== 时间: 2025-07-22 09:59:55.431172 ===
+=== 时间: 2025-07-22 16:12:48.411500 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -703,4 +703,163 @@ informed control sequences for tracking objectives is crucial.
 Performance metrics. We evaluate the solvers perfor-
 mance based on three key metrics. First, we examine the
 solution success rate, which reflects the overall ability of each
-solver to converge to a feasible and informed 
+solver to converge to a feasible and informed solution from
+various settings (different initialterminal conditions, different
+initial guesses). Second, we assess the quality of the solution
+through the objective values achieved and the tracking error.
+number of iterations required and the total solving time. These
+metrics serve to answer a fundamental scientific question:
+Can these solvers robustly discover informed contact se-
+quences and contact force profiles from scratch?
+This inquiry is particularly relevant, as precise contact
+patterns are often unknown a priori in real-world applications.
+Quantitative results. For the first four examples, we
+recorded and summarized the numerical performance of the
+benchmark solvers under different initial states and initial
+with constraints violation below 105, translation error norm
+below 0.1, translation velocity error norm below 0.5, angular
+error below 6, and angular velocity error below 0.1 rads
+as deemed successful. The objective function, as previously
+efforts. We analyze the performance of four solvers across the
+first four examples, focusing on median tracking error, average
+iteration count, and computation time. To better illustrate the
+performance and robustness of each solver under different
+initial guesses, we boxplot the distribution of constraint vi-
+plots provide a comprehensive overview of solver behavior
+across all experiments, including both feasible and infeasible
+characteristics.
+Our results demonstrate that CRISP consistently produces
+feasible trajectories with the lowest tracking error and overall
+objective values across all tasks.
+The box plot underscores CRISPs remarkable robustness,
+showing consistently superior performance across varied ini-
+tial states and guesses, with minimal outliers. While IPOPT
+generally performs well among the benchmark solvers, it oc-
+casionally produces feasible but impractical solutions. Weve
+visualized these outlier cases, contrasting CRISP and IPOPT
+trajectories in Fig. 6. SNOPT, despite outperforming IPOPT
+in the transport example, struggles with efficiency due to
+high iteration requirements and exhibits unstable optimization
+quence in the push box scenario. These findings underscore
+the critical importance of solver stability. More visualization
+of the trajectories can be found in Appendix C.
+Qualitative results. For the hopper and waiter examples,
+which involve more challenging contact reasoning, we focus
+our comparison on CRISP and IPOPT. The results are visualized
+in Fig. 7. In the hopper task, the objective is to jump and
+Cartpole with Soft Walls
+Push Box
+Transport
+Tracking
+Violation
+Iterations
+Tracking
+Violation
+Iterations
+Tracking
+Violation
+Iterations
+Tracking
+Violation
+Iterations
+CRISP (ours)
+TABLE II: Comparison of CRISP with benchmark solvers across different tasks.
+(a) Objective Value
+(b) Tracking Error
+(c) Constraints Violation
+Fig. 5: Box plots of benchmark metrics on three tasks: cartpole with soft walls, push box, transport, and push T. The plots
+complement Table II to show the distribution of (a) objective value, (b) tracking error, and (c) constraint violation across
+multiple initial states and initial guesses. PROXNLP was unable to solve the Push T problem within a tractable amount of time
+due to its larger problem size, so its data is not applicable in the figure.
+stop at a 2 m horizontal distance with zero height, while min-
+imizing control effort. The waiter task requires maneuvering
+the plates center of mass to the edge of the table without
+rightward velocity of 2 ms. Both IPOPT and CRISP success-
+fully optimized feasible trajectories, but CRISP significantly
+outperformed IPOPT in terms of solution quality for finding
+informed contact sequences. CRISP achieved remarkably low
+objective values of 5.45 and 8.68 for the hopper and waiter
+values of 137.5 and 1855, failing to reach the desired terminal
+states and incurring substantially larger control efforts, which
+is evidently shown in Fig. 7.
+Videos. On the project website, we provide animations of
+optimized trajectories computed by CRISP.
+D. Additional Experiments
+Additional Baselines on Push T. As an alternative formu-
+each facet with a binary variable indicating the contact mode.
+Using Gurobi to solve this formulation, it failed to find
+solutions for planning horizons beyond 4 steps (within 10
+minutes), making it incomparable with CRISP. The code to
+reproduce these experiments is open-sourced alongside CRISP.
+LCP Solvers. The Transport and Waiter problems, charac-
+terized by linear dynamics and linear complementarity con-
+evaluated LCQpow  on these tasks. For the Transport
+with an average tracking error of 0.4267, and 92.5 optimized
+trajectories are feasible. In comparison, as shown in Table II,
+CRISP significantly outperforms LCQpow with an average
+solve time of 0.77 s, an average tracking error of 1.1  104.
+For the more challenging Waiter problem, LCQPow fails to
+generate any feasible solutions. The code for reproducing these
+results is available in our open-source repository.
+Real-World Push T. To further validate the effectiveness
+of CRISP in delivering high-quality trajectories, we applied
+CRISP to a real robotic arm system for the push T task. In
+our validation experiments, we estimated the position of the T
+block during each perception cycle, using this as the new initial
+state for CRISP to solve them online. The solution from CRISP
+was then applied in an MPC feedback loop. In the physical
+with intervals of 0.05 s. Under this setup, the average solution
+time for CRISP was 80 ms, demonstrating robust and efficient
+performance in pushing the T block to the target position. A
+visualization of the process for different initial conditions is
+provided in Fig. 8.
+V. RELATED WORKS
+Motion planning through contact presents unique challenges
+due to the inherently discontinuous nature of contact inter-
+Fig. 6: Visualization of some outlier cases in IPOPT. IPOPT
+results (left column) versus our approach (right column). The
+color gradient represents the progression of time (from blue
+to yellow). We note that in the transport example (the third
+row), the initial state has the cargo at the rightmost end of
+the cart, with both moving left at 4 ms. The terminal state
+requires the cart at the origin and the cargo at the leftmost
+necessitates initial braking, followed by back-and-forth motion
+near the origin. Actually, this challenging case causes all other
+solvers to fail. While IPOPT produces a feasible but impractical
+solution (remaining stationary at the origin), our approach
+successfully optimizes the complex contact sequences.
+Fig. 7: Comparison of optimized trajectories for the hopper
+and waiter problems. The left and right columns show the
+results from IPOPT and CRISP respectively. In the hopper
+1 s, 2 s, 3 s, and 4 s) illustrating the hoppers trajectories and
+contact force. The yellow color indicates the current position
+of the hopper, while blue represents the past trail.
+actions [58, 34]. The literature on modeling contact can be
+broadly divided into smooth and rigid methods.
+Smooth contact model. The principle of modeling contact
+in a "smooth" manner involves approximating nonsmooth
+contact events into smooth and continuous functions relating
+contact forces to states. This approach often simulates effects
+similar to springs , dampers , or a combination of
+both [44, 45]. By doing so, it allows contact forces to be
+expressed as functions of the robots states and seamlessly
+integrated into the overall dynamic functions, providing well-
+defined gradient information.
+Rigid contact model: hybrid dynamics. Hybrid systems
+offer a robust framework for modeling systems that exhibit
+both continuous and discrete behaviors . These systems
+are characterized by their ability to switch between different
+dynamic regimes, or modes, depending on the contact condi-
+tions. In the locomotion community, the control of switched
+systems often allows for instantaneous changes in velocity
+during contact events [17, 16, 1], while continuous dynamics
+govern the system at other times. This approach requires a
+predefined gait, which specifies a sequence of potential contact
+points [8, 11, 36].
+Rigid contact model: implicit formulations. There are
+two mathematically equivalent approaches to implicitly encode
+the discrete nature of hybrid systems for switching between
+different continuous subsystems. One approach is through
+Mixed Integer Programming (MIP) , which introduces
+binary integer variables to act as switches for encoding
+Fig. 8: Key frames visualization of the real-world Push T experiments from variou

@@ -1,0 +1,798 @@
+=== PDF文件: Sketch-to-Skill Bootstrapping Robot Learning with Human Drawn Trajectory Sketches.pdf ===
+=== 时间: 2025-07-22 15:49:44.041917 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Human Drawn Trajectory Sketches
+Peihong Yu, Amisha Bhaskar, Anukriti Singh, Zahiruddin Mahammadand Pratap Tokekar
+Department of Computer Science
+University of Maryland, College Park, Maryland, 20742
+Peihong Yu and Amisha Bhaskar contributed equally to this work.
+AbstractTraining robotic manipulation policies traditionally
+requires numerous demonstrations andor environmental roll-
+outs. While recent Imitation Learning (IL) and Reinforcement
+Learning (RL) methods have reduced the number of required
+high-quality data, limiting scalability and accessibility. We pro-
+pose SKETCH-TO-SKILL, a novel framework that leverages
+human-drawn 2D sketch trajectories to bootstrap and guide RL
+for robotic manipulation. Our approach extends beyond previous
+sketch-based methods, which were primarily focused on imitation
+learning or policy conditioning, limited to specific trained tasks.
+SKETCH-TO-SKILL employs a Sketch-to-3D Trajectory Gener-
+ator that translates 2D sketches into 3D trajectories, which are
+then used to autonomously collect initial demonstrations. We
+utilize these sketch-generated demonstrations in two ways: to
+pre-train an initial policy through behavior cloning and to refine
+this policy through RL with guided exploration. Experimental
+results demonstrate that SKETCH-TO-SKILL achieves 96 of
+the performance of the baseline model that leverages teleoperated
+demonstration data, while exceeding the performance of a pure
+reinforcement learning policy by 170, only from sketch
+inputs. This makes robotic manipulation learning more accessible
+and potentially broadens its applications across various domains.
+I. INTRODUCTION
+Robots are increasingly being deployed in dynamic envi-
+with precision and adaptability. One of the key challenges in
+enabling robots to learn new skills lies in specifying com-
+(LfD) () has become a widely used approach, allowing
+robots to acquire novel motions by imitating expert-provided
+trajectories. However, collecting demonstration data for LfD
+is challenging, particularly for high degree-of-freedom (DOF)
+robots performing manipulation.
+While methods like kinesthetic teaching and teleoperation
+[7, 12, 5] are well-established and effective approaches for
+collecting demonstrations, the robotics community continues
+to explore complementary methods to expand the toolkit
+available for robot learning. Several new approaches have
+mented with smartphone apps  and Virtual Reality (VR)
+based teleoperation systems , offering more intuitive hard-
+ware interfaces for collecting demonstrations. There has also
+been growing interest in leveraging an innate human ability
+to communicate spatial ideas and motions through simple
+sketches. For example, a quick sketch of a path can easily
+communicate the intended movement for navigating toward a
+goal location.
+Researchers have begun to explore this promising direction.
+RT-Trajectory  introduced the notion of sketches and
+showed how to use coarse trajectory sketches for policy
+conditioning in Imitation Learning (IL). RT-Sketch  ex-
+tended this concept to leverage hand-drawn sketches of the
+entire environment for goal-conditioned IL. These methods
+demonstrated the potential of utilizing sketches in robotics, but
+they were primarily focused on IL and biased towards tasks
+they were specifically trained on. Zhi et al.  expanded
+this idea with diagrammatic teaching, where users instruct
+robots by sketching motion trajectories directly on 2D images
+of the scene. Their approach uses density estimation and ray
+tracing to reconstruct 3D trajectories from the sketches, thus
+limiting its ability to replicate only the provided sketches and
+restricting its generalization to new or unseen task setups.
+Unlike prior work that used sketches only as conditioning
+in IL, we present a more generalizable approach that learns
+to predict 3D trajectories from sketches in Reinforcement
+Learning (RL). Specifically, we propose SKETCH-TO-SKILL
+(Figure 1), a framework that bootstraps and guides RL using
+sketches. Our approach first learns to map 2D sketches to
+3D trajectories, which are then used to collect demonstra-
+tions. We utilize these sketch-generated demonstrations in two
+Cloning (BC), and second, by refining this policy through rein-
+forcement learning with guided exploration. Although sketch-
+generated demonstrations are not as precise or high-quality as
+teleoperated ones, they still contain enough useful information
+to aid RL and reduce learning time.
+This approach capitalizes on the accessibility of sketching,
+allowing contributions from non-experts without requiring
+specialized hardware. By treating these sketch-based trajec-
+tories as approximate guiding signals, we demonstrate that
+even simple 2D sketches can enable policies that achieve
+performance comparable to those trained with teleoperated
+demonstrations. We summarize our contributions as follows:
+(1) We identify and address a crucial gap by integrating
+sketches into RL, extending their application beyond
+imitation learning and policy conditioning.
+(2) We propose SKETCH-TO-SKILL, a framework that
+leverages sketches to bootstrap and guide RL, reducing
+Step 1: take two photos
+of the task scenario and collect
+task instructing sketches
+Step 2: convert 2D sketches
+into 3D trajectories through
+pretrained generator
+Step 3: follow generated trajs
+and perform open-loop servoing
+to collect experience data
+Step 4: learn manipulation
+policy through BC warm up and
+demo-bootstrapped RL
+Fig. 1: Learning a new skill in the SKETCH-TO-SKILL framework. Step 1: Capture the task scenario from two views and
+collect human-drawn sketches. Step 2: Convert 2D sketches to 3D trajectories using a pretrained generator. Step 3: Execute
+generated trajectories to collect experience data. Step 4: Learn manipulation policy using reinforcement learning bootstrapping
+from behavior cloning and using guidance for experience data.
+reliance on high-quality, real-world demonstrations.
+(3) Through extensive experiments, we demonstrate that
+ate learning by improving exploration and task compre-
+hension in RL. SKETCH-TO-SKILL achieves 96 of
+the performance of the baseline model utilizing high-
+quality teleoperation demonstrations, while exceeding
+the performance of a pure reinforcement learning policy
+by 170 during evaluation.
+II. RELATED WORK
+Learning from Demonstration (LfD). LfD  is a key
+method in robot learning, allowing robots to acquire skills
+through expert demonstrations, bypassing the complexities of
+action programming and cost function design . Kinesthetic
+movements are recorded, is widely used in methods like DMPs
+[21, 16], Probabilistic Movement Primitives , and stable
+dynamical systems [19, 23, 1]. However, it is labor-intensive
+and challenging to scale. Teleoperation , where users
+control robots remotely, offers more flexibility but can be com-
+plex and requires expertise to operate. VR interfaces [33, 17]
+provide a more immersive alternative but depend on special-
+ized hardware. To overcome these limitations, recent research
+has introduced more accessible approaches, like sketch-based
+demonstrations .
+Sketches in Robotics. Sketches have become a powerful
+tool in computer vision, aiding tasks like scene understanding
+and object detection [8, 3]. RT-Sketch  first explored
+hand-drawn sketches for goal-conditioned imitation learning
+(IL), using them to define tasks intuitively. RT-Trajectory
+extended this by using trajectory sketches as IL pol-
+icy conditioning, either drawn by users or generated by a
+Large Language Model from task descriptions. Similarly, the
+Diagrammatic Teaching framework  uses density esti-
+mation and ray tracing to reconstruct 3D trajectories from
+the sketches. These methods, however, only use sketches as
+conditioning for task completion, and thus do not generalize
+beyond the tasks where the sketches are provided.
+Demonstration-Enhanced Strategies for Efficient RL.
+Incorporating demonstration data in RL can improve sam-
+ple efficiency, especially in environments where rewards are
+sparse. Methods such as Reinforcement Learning from Prior
+Data (RLPD) , Imitation Bootstrapped RL (IBRL)
+and PLANRL  take advantage of prior demonstrations
+by embedding them into the agents replay buffer. During
+more frequent exposure to expert-guided trajectories. Such
+approaches significantly improve learning speed and perfor-
+from scratch can be prohibitively slow and inefficient .
+Our research expands upon these techniques by exploring how
+sketch-based trajectories can be used as an additional source
+of prior data in RL.
+III. SKETCH-TO-SKILL
+Our approach bootstraps robot learning from trajectory
+task specification. This section details our three-stage method:
+(1) training a Sketch-to-3D Trajectory Generator, (2) obtaining
+3D trajectories and execution experiences through the Gener-
+ator and open-loop servoing, (3) pre-training an initial robotic
+manipulation policy through behavior cloning, and refining the
+policy through reinforcement learning with guided exploration.
+By integrating intuitive human input with powerful learning
+adaptable robotic learning systems.
+A. Sketch-to-3D Trajectory Generator
+Our method begins with a Sketch-to-3D Trajectory Gener-
+obtained from different viewpoints into corresponding 3D
+robot trajectory g. To train this generator, we use a dataset
+consisting of 3D robot end-effector trajectories along with
+their 2D sketches from two viewpoints. These trajectories can
+be obtained from various sources, such as robot arm play
+data in simulation or real world where the robot executes
+sequences of actions, or existing recorded trajectory datasets
+transformed to match the workspace coordinates. Sketches
+during inference can be provided by a human on RGB images
+of the scene, as shown in Figure 4. However, the sketches
+fed as input to the generator are 2D projections on blank
+Bspline Params
+3D Trajs
+Fig. 2: The Sketch-to-3D Trajectory Generator takes dual-view 2D sketches as inputs and predicts B-spline parameters to
+generate the final 3D trajectory output.
+end points respectively, and yellow lines for the trajectory (see
+Figure 2 for an example). By focusing solely on the trajectory
+information without additional scene complexity, our model
+can efficiently learn to encode the dual-view sketches and
+decode them into the corresponding 3D trajectory.
+The generator uses a neural network to map dual-view 2D
+sketches to 3D trajectories, where we adopt a hybrid architec-
+ture combining a Variational Autoencoder (VAE)  and a
+Multilayer Perceptron (MLP), as illustrated in Figure 2. The
+VAE encodes sketches from two viewpoints, ideally orthogo-
+features. The MLP decoder generates B-spline  control
+points C Rncp3 from the latent representation, which we
+then use to interpolate smooth 3D trajectories. We adopted
+uniform knots and pre-compute the B-spline parametrization
+matrix W Rntpncp to reduce computational complexity
+and facilitate efficient backpropagation. The calculation of W
+only depends on the uniform knot vector u and the desired
+number of points ntp in the generated trajectory, and can be
+pre-calculated using the Cox-de Boor recursion formula (also
+known as de Boors algorithm , see Appendix VII-A for
+details). Then the final trajectory generation is simply a matrix
+control point parameter C, we can also easily generate trajec-
+tories of varying density from the same parameters, making
+our method adaptable to different task requirements.
+Our training process uses a multi-component loss function
+L  Ltraj  Lsketch  Lkld, where Ltraj handles trajectory
+Square Error), and Lkld is KL-divergence for latent space
+regularization (Figure 2). This ensures accurate trajectory
+generation while preserving sketch fidelity and latent space
+structure. We also applied data augmentation to both the sketch
+images and the trajectories to enhance the models robustness
+and generalization (more details can be found in Appendix
+We can use the trained Sketch-to-3D Trajectory Generator,
+using sketches drawn by a human. Specifically, the human
+draws trajectory sketches on two views of RGB images
+captured from the initial task state. This is similar to how
+human-drawn sketches are generated in prior works [14, 34].
+These paired sketch images, {(I1, I2)}, are input into our
+trained generator, which produces corresponding 3D trajecto-
+We can also generate more than one trajectory from the
+same pair of sketches by adding controlled noise to the latent
+representation. Then we proceed to collect demonstrations for
+manipulation policy learning. We execute these trajectories
+on the robotic arm using open-loop servoing, which enables
+precise trajectory following based on pre-computed motor
+commands. During execution, we record a demonstration
+dataset {D  {(pt, ot, at)}T
+t1} at a fixed frequency, where
+pt  (x, y, z)t denotes the robots end-effector 3D position,
+ot represents the robots observation, at is the corresponding
+tion. The collected demonstrations, which do not need to be
+actual behavior in the target environment. They serve as an
+effective starting point for bootstrapping the policy learning
+world performance.
+B. Policy Learning
+We now describe the policy learning of the SKETCH-TO-
+SKILL algorithm (given in Algorithm 1). Taking as input
+the demonstration data {D} collected from our Sketch-to-
+3D Trajectory Generator T and through open-loop serving
+(lines 45), our approach combines IL and RL to effectively
+bootstrap and refine the policy. Specifically, we build upon
+the Imitation Bootstrapped Reinforcement Learning (IBRL)
+guide and constraint policy search space.
+In IBRL we replace traditional real-world demonstrations
+with sketch-generated demonstrations. Initially, these sketch-
+based demonstrations are used to train an IL policy (line 6),
+which serves as a coarse approximation of the task. Although
+these sketches do not capture every fine detail of manipulation
+(e.g., gripper closingopening actions or exact force control),
+our hypothesis posits that they still carry significant, actionable
+information that can effectively guide the learning process in
+reinforcement learning (RL). We leverage this information in
+RL in two ways (as shown in Fig. 3):
+Sketch-Generated
+Experiences
+Replay Buffer
+Similar?
+Bootstrapped RL
+with sketch-generated demo
+Guided Exploration
+with sketch-generated Trajs
+Fig. 3: Overview of SKETCH-TO-SKILL integrating sketch-generated demonstrations with reinforcement learning. Sketch-
+generated experiences train an IL policy, which bootstraps the RL process. A discriminator guides exploration by rewarding
+similarity to sketch-generated trajectories. The final action, combining IL and RL policy outputs, further enhances the exploration
+guidance. The asterisk after Replay Buffer indicates that the buffer is initialized with the open-loop servoing demonstrations.
+Algorithm 1 SKETCH-TO-SKILL. Major modifications of
+IBRL highlighted in blue.
+updates G, update frequency U, exploration std , noise
+clip c, number of generated trajectories m per input sketch
+Pre-trained Sketch-to-3D Trajectory Generator
+Stage 1: Demonstration Generation
+servoing
+Stage 2: Policy Learning
+using the selected IL algorithm.
+critics Q, discriminator D for i  1, . . . , E
+Observe current observation ot from the environment
+Compute IL action aIL
+t IL(ot) and RL action aRL
+(ot)  , where  N(0, 2)
+Sample a set K of 2 indices from {1, 2, . . . , E}
+Select action at with higher Q-value from {aIL, aRL}
+Execute action at
+transition
+(pt, ot, at, rt, pt1, ot1)
+buffer B
+if tU  0 then
+Perform discriminator D update by optimizing
+Equation 1
+Perform TD3 update using minibatches from replay
+buffer B with augmented reward by Equation 2
+(1) Bootstrap RL with Sketch-Generated Demos: Even
+though sketch-generated trajectories are not as detailed
+as teleoperated demonstrations, they provide a founda-
+tional blueprint of the task. We leverage these initial
+trajectories to bootstrap our RL algorithm, giving it a
+preliminary direction and reducing the cold start prob-
+lem common in RL scenarios. This use of imperfect
+demonstrations is intended to establish an initial policy
+that avoids random exploration at the outset, making
+subsequent training more focused and efficient.
+(2) Guide Exploration During RL: As the agent progresses
+in its learning, the sketch-generated trajectories con-
+tinue to serve as a guide, shaping the exploration
+strategy. Instead of relying on these trajectories as
+definitive guides, we treat them as rough outlines
+that suggest areas of the task space worth exploring.
+This guided exploration helps concentrate the agents
+learning efforts on potentially fruitful regions of the
+action space, thus optimizing the learning speed and
+improving the relevance of the experiences gathered.
+In both steps, the use of sketch-generated trajectories ac-
+knowledges their limitationsthey are not treated as ground
+truth but as valuable signals to help bootstrap RL and guide
+exploration throughout the learning process. For the RL algo-
+for its sample efficiency. In our approach, the replay buffer is
+initialized with the sketch-generated demonstration trajectories
+(line 8), which provide an initial foundation for learning and
+is later updated with online experiences as the agent interacts
+with the environment. This combination allows the agent to
+refine its policy through both sketch-generated demonstration
+data D and real-world interaction (line 13).
+To further enhance the learning process and maintain con-
+sistency with the sketch-generated trajectories, we introduce a
+discriminator-based guided exploration mechanism . This
+ries produced by our Sketch-to-3D Trajectory Generator and
+Generated Trajs {!}
+Executed Trajs {"}
+Teleop Demo Traj
+Hand-Drawn
+Sketches
+Fig. 4: Multi-stage trajectory generation and execution. On the left, we show hand-drawn sketches on scenario RGB images
+and the extracted sketches on a blank background, (a) generated trajectory from the Sketch-to-3D Trajectory Generator, and
+(b) executed trajectory via open-loop serving. In (c), we visualize a teleoperated demo for the same task for reference.
+those generated by the current policy:
+LD()  Ep,g{D}[log D(p, p, g)]
+where p represents the end-effector location, p is the
+normalized difference between the current and next end-
+effector positions, capturing local trajectory characteristics,
+and g is the task-specific information (e.g., target location).
+This formulation allows the discriminator to assess trajectory
+similarity while accounting for task variability. We then aug-
+ment the TD3 reward function with an additional term based
+on the discriminators output (line 18):
+r(ot, at)  r(ot, at)   log D(pt, pt, g),
+where  is a hyperparameter controlling the influence of the
+discriminator. This augmented reward encourages the policy to
+explore state-action spaces more likely to produce trajectories
+similar to those generated from human sketches, potentially
+leading to faster learning and better performance.
+Our overall learning process iterates between TD3 optimiza-
+tion and discriminator training. In each iteration: (1) We update
+the discriminator using the latest policy-generated trajectories
+and the original sketch-generated trajectories (line 17). (2) We
+then update the policy and Q-functions using TD3, with the
+augmented reward (line 18) and guidance from the frozen IL
+policy (line 13). This iterative process allows the policy to
+refine its behavior while maintaining similarity to the initial
+demonstrations derived from human sketches. By combining
+ate a cohesive learning framework that effectively leverages
+sketch-based demonstrations to accelerate and improve the
+learning of complex manipulation tasks. Please see the Ap-
+pendix for more implementation details and a complete list of
+hyper-parameters.
+IV. EXPERIMENTS
+We report our evaluation of SKETCH-TO-SKILL, focusing
+on its main components: the Sketch-to-3D Trajectory Genera-
+of the discriminator. Our experiments address the following
+key questions:
+Q1 How effectively does the Sketch-to-3D Trajectory Gen-
+erator convert 2D sketches into usable 3D robot trajec-
+SKETCH-TO-SKILL
+sketch-generated
+demonstrations to achieve comparable performance to
+traditional methods using high-quality demonstration
+Q3 How do various design choices in SKETCH-TO-SKILL,
+such as the number of generated demonstrations per
+sketch and the discriminator reward weighting, affect
+the learning and refinement of robotic policy?
+Q4 How well does our method translate to the real world?
+A. Evaluation of the Sketch-to-3D Trajectory Generator
+The Sketch-to-3D Trajectory Generator is a key component
+of SKETCH-TO-SKILL, translating 2D sketch inputs into 3D
+robot trajectories. To train this generator, we collect data of the
+robot arm executing play trajectories. We record the 3D tra-
+jectories as well as their 2D projections from two viewpoints.
+We create such a dataset in the Metaworld  simulation
+environment as well as a separate one using actual hardware
+(Figure 13). Once the Sketch-to-3D Trajectory Generator is
+3D trajectories.
+Performance on Hand-drawn Sketches. We provide an
+example using the ButtonPress task to qualitatively assess
+the generators effectiveness with hand-drawn inputs (Figure
+4). We asked users to provide sketches for the task and also
+separately collected actual demonstrations as a reference. We
+see that the Sketch-to-3D Trajectory Generator was able to
+predict trajectories (Figure 4a) similar to the actual demonstra-
+tions (Figure 4c). We also generate more than one trajectory
+from the same pair of sketches by adding controlled noise to
+the latent representation. This approach allows us to produce
+a range of plausible trajectories for a given sketch input,
+enriching the demonstration set and potentially leading to
+more robust and adaptable robot policies. We then execute the
+generated trajectories to produce demonstrations for training
+the policy (Figure 4b). Despite the inherent variability in
+sketch inputs, the executed trajectory further validates the
+practical applicability of our approach. This demonstrates our
+models robustness to sketch imperfections and its ability to
+reliably interpret user intent, bridging the gap between simple
+2D sketches and actionable 3D robot trajectories.
+Latent Space Representation and Interpolation. To fur-
+ther understand the generators latent space, we performed
+linear interpolation in the latent space between different input
+samples. Specifically, we selected two distinct sketch pairs
+with different trajectories, extracted their feature vectors, lin-
+early interpolated between them, reconstructed the sketches,
+and generated new trajectories. Figure 12 shows smooth
+transitions in both 2D sketches and 3D trajectories across
+the interpolated latent space. This smoothness demonstrates
+that our model has learned a continuous and semantically
+meaningful representation, suggesting good generalization ca-
+pability to unseen inputs that lie between known examples
+. The coherence between interpolated sketches and their
+corresponding 3D trajectories further validates the models
+robust sketch-to-trajectory mapping.
+Effect of VAE in Sketch-to-3D Trajectory Generator.
+We also conducted an ablation study of the Sketch-to-3D
+Trajectory Generator to evaluate the effect of the VAE on the
+architecture. Using a dataset of 1000 trajectories split 80:20 for
+training and validation, we report the training and validation
+losses in Table I. We compare the performance of the model
+with the VAE (shown in Figure 2) to a variant without the
+architecture as the VAEs encoder, but without the decoder
+and loss components. Our results show that incorporating the
+VAE consistently improves performance across all metrics,
+including reconstruction loss and trajectory loss.
+TABLE I: Performance Metrics for generator model
+with VAE
+without VAE
+Training Loss
+Validation Loss
+Reconstruction Loss
+KLD Loss
+Parameter MSE Loss
+Trajectory Loss
+B. Comparisons with Baselines
+In this section, we conduct extensive experiments in
+Robomimic  and MetaWorld  to answer Q2: can
+SKETCH-TO-SKILL utilize sketch-generated demonstrations
+to achieve comparable performance to traditional methods us-
+ing high-quality demonstration data? Specifically, we compare
+SKETCH-TO-SKILL with: (1) IBRL , a strong baseline that
+utilizes traditional high-quality demonstration data (rather than
+sketches as what our method uses), and (2) TD3 , a state-
+of-the-art pure RL approach without using any demonstrations.
+We hypothesize that although the sketches have only partial
+information (namely, 2D projections of 3D trajectories and
+no gripper information), we can still generate good enough
+demonstration data to perform comparably with the baseline
+that uses full demonstrations. We show that to be the case in
+these experiments.
+We perform evaluations on two-stage
+PickPlaceCan
+task from Robomimic and six tasks from the MetaWorld
+using sparse 01 task completion rewards at the end of each
+episode. For each task, we collected 10 high-quality demon-
+strations using an expert policy in Robomimic and 3 high-
+quality demonstrations in MetaWorld. These demonstrations
+served as our baseline for traditional demonstration-based
+methods. For our approach, we collected a total of three hand-
+drawn sketches, one on each demonstrations initial frames
+(Figure 4). These sketches were used to generate and execute
+tions for comparison.
+IBRL (10)
+Sketch-to-Skill no BC Policy
+Sketch-to-Skill (10) no Discrim
+Sketch-to-Skill (10)
+Eval Scores
+PickPlaceCan
+Fig. 5: Evaluation Scores (success rate) for the robomimic
+PickPlaceCan environment during evaluation.
+Figure 5 shows the setup where the sketch-based demon-
+strations provide initial positional cues for the robot in the
+Robomimic environment. We ask users to draw separate
+sketches for each stage, and then combine the trajectories
+during open-loop servoing. Our framework utilizes RL to
+refine these initial cues, dynamically adjusting the robots
+approach to manage both the orientation and timing necessary
+for successful task execution. This method proves particularly
+effective as it does not rely on fully detailed trajectory in-
+formation from the start; instead, it uses sketches to guide
+the initial exploration phase of RL, simplifying the data
+collection process. Our sketch-to-skill framework, even with
+limited initial data, performs admirably in this demanding
+Eval Scores
+ButtonPress
+Eval Scores
+CoffeePush
+Eval Scores
+BoxClose
+Eval Scores
+Eval Scores
+ReachWall
+Eval Scores
+ButtonPressTopdownWall
+IBRL (3)
+Sketch-to-Skill (3)
+Sketch-to-Skill (3) no Discrim
+Sketch-to-Skill no BC Policy
+Fig. 6: Evaluation Performance of SKETCH-TO-SKILL in MetaWorld This figure shows the success rate across six
+MetaWorld tasks under randomized initial gripper and object positions. SKETCH-TO-SKILL achieves comparable performance
+to IBRL while surpassing pure RL.
+CoffeePush
+BoxClose
+ButtonPress
+ReachWall
+ButtonPress
+TopdownWall
+Final Scores
+Gripper Tasks
+Non-Gripper Tasks
+3 teleop demos
+3 sketches; 3 demos
+3 sketches; 9 demos
+3 sketches; 15 demos
+3 sketches; 30 demos
+Fig. 7: Behavioral Cloning (BC) scores using actual teleoperated data and sketch generated demonstrations. The blue
+bars represent the baseline BC policy trained with 3 high-quality demonstrations, while the red bars show BC policies trained
+with sketch-generated demonstrations, varying in the number of demonstrations m per input sketch pair (1, 3, 5, and 10). Darker
+shades of red indicate an increase in the number of sketch-based demonstrations used for training. Despite poor success rate,
+the actual trajectories and policy learned with sketches are useful for bootstrapping as evidenced by the training performance
+(Figures 6).
+scenario. The results are on par with those from IBRL methods
+in Figure 5).
+Figures 6 show the evaluation performance across all the
+tasks in the MetaWorld environment. To assess the effective-
+ness of individual components, we also compare SKETCH-
+TO-SKILLs results with variants where the BC policy guid-
+ance or the discriminator reward is removed. We observe
+that SKETCH-TO-SKILL consistently outperforms pure RL
+across all tasks, often by a notable margin. Both the BC
+policy guidance and the discriminator reward contribute to
+policy learning, resulting in the most stable performance
+across tasks. Remarkably, SKETCH-TO-SKILL achieves per-
+formance comparable to IBRL, which relies on high-quality
+is particularly evident in the CoffeePush and BoxClose
+tasks. These tasks require actuating the gripper  information
+that is not provided in the sketches. Nevertheless, SKETCH-
+TO-SKILL is able to bootstrap and use guidance from the
+sketch generated suboptimal demonstrations to learn a policy
+efficiently. This provides evidence to the claim that the sketch-
+generated demonstrations do not lead to much degradation in
+performance while being much easier to obtain.
+Behavioral Cloning Performance. SKETCH-TO-SKILL
+employs behavior cloning (BC) to bootstrap policy learning,
+similar to IBRL. However, the key difference is that IBRL
+relies on high-quality teleoperated demonstrations, whereas
+SKETCH-TO-SKILL uses sketch-generated demonstrations.
+We compare the performance between them (Figure 7) and
+Sketch-to-Skill (1)
+Sketch-to-Skill (3)
+Sketch-to-Skill (5)
+Sketch-to-Skill (10)
+Environment Steps (10 )
+Train Scores
+ButtonPress
+Environment Steps (10 )
+Train Scores
+CoffeePush
+Environment Steps (10 )
+Train Scores
+BoxClose
+Environment Steps (10 )
+Train Scores
+Environment Steps (10 )
+Train Scores
+ReachWall
+Environment Steps (10 )
+Train Scores
+ButtonPressTopdownWall
+Fig. 8: This figure illustrates ablation training scores for SKETCH-TO-SKILL with varying m, the number of demonstrations
+generated per sketch pair (1, 3, 5, and 10).
+ablate the number of generated demonstrations m per input
+sketch pair. Not surprisingly the BC policy with teleoperated
+data performs better than the sketch generated ones. However,
+despite the lower performance of the BC policy, SKETCH-TO-
+SKILL is still able to achieve comparable performance in RL
+training (as seen in Figures 5 and 6), showing that it is not as
+sensitive to the quality of the bootstrapping policy. Increasing
+the number of generated demonstrations m per input sketch
+pair (from 1 to 10) does not significantly improve the BC
+performance.
+C. Ablation Studies
+To understand the impact of the key components in
+SKETCH-TO-SKILL and answer Q3, we conducted ablation
+studies focusing on two critical aspects: the number of gen-
+erated trajectories m per input sketch pair and the reward
+weighting scheme .
+Impact of Generated Trajectories per Sketch. We inves-
+tigated how the number of trajectories generated from each
+input sketch pair affects the learning performance. Figure 8,
+shows the learning curves for policies trained with varying
+numbers of generated trajectories per sketch. We observe
+improved performance when generating m  3 trajectories per
+sketch instead of just one. The additional demonstrations help
+compensate for the lack of actual teleoperated demonstrations.
+per sketch becomes less pronounced beyond a certain point.
+This approach is particularly useful for challenging tasks, such
+as BoxClose and CoffeePush, which involve precise gripper
+Effect of Reward Weighting: We examined the impact of
+different reward weighting schemes on policy learning. Our
+reward function combines the environmental reward with a
+discriminator-based reward by Equation 2, where  is the
+weighting parameter. Figure 9 shows the learning performance
+across various  values: 0.005, 0.05, 0.1, and 0.5. The model
+performs comparably with  values of 0.005, 0.05, and 0.1, in-
+dicating relative insensitivity to this hyperparameter. However,
+it significantly underperforms when  is set to 0.5.
+D. Hardware Experiments
+We validate SKETCH-TO-SKILL on physical robot hardware
+to demonstrate its effective transfer from simulation to real-
+world applications.
+Experimental Setup. We set up 3 real-world tasks namely
+ure 10. We use a UR3e robot equipped with a Robotiq hand-e
+gripper and a realsense camera mounted on the wrist. We also
+use two additional environmental cameras to capture frames
+for humans to draw sketches on (Figure 13). The details of
+the task, success detection, and reset mechanism are in the
+Appendix.
+Performance. The evaluation of our approach across mul-
+tiple tasks highlights the effectiveness of sketch-generated
+demonstrations in training policies. For the ButtonPress task,
+the BC policy achieved a notable success rate of 80 in a
+randomized environment, demonstrating the robustness of the
+Environment Steps (10 )
+Train Scores
+CoffeePush
+Reward Weights
+Fig. 9: Reward weighting term ablation
+Train Scores
+SketchToRL
+(a) ButtonPress.
+(b) ToastButtonPress.
+(c) ToastPickPlace.
+Fig. 10: Training curves and hardware setups for real-world
+robotic tasks: ButtonPress, ToastButtonPress, and ToastPick-
+approach. Similarly, the Sketch-to-Skill policy, without a dis-
+just 30,000 samples. In the ToastPress task, the BC policy
+achieved a preliminary success rate of 60 using sketch-
+generated demonstrations, while the Sketch-to-Skill policy
+significantly improved performance, achieving approximately
+90 success within 10,000 interactions. Lastly, in the Toast-
+PickPlace task, the BC policy showed an initial success rate of
+36 under dynamic conditions. However, the Sketch-to-Skill
+policy demonstrated considerable improvement, achieving ap-
+proximately 80 success within 30k interactions.
+V. CONCLUSIONS AND FUTURE WORK
+We present SKETCH-TO-SKILL that uses 2D sketches to
+improve the efficiency of learning a manipulation skill. While
+prior work has demonstrated the utility of sketches in imitation
+learning (IL), we are the first to integrate them effectively
+within a reinforcement learning (RL) framework. The key
+ideas involve training a 2D sketch-to-3D trajectory generator,
+whose output bootstraps RL policy learning and serves as an
+exploration guidance signal, leading to improved efficiency.
+An exciting direction for future work is to explore au-
+tomated sketch generation from sources beyond human in-
+put. For example, Gu et al.  demonstrated how Vision-
+Language Models (VLMs) can generate sketches from natural
+language task descriptions. Integrating such models within our
+framework could further enhance accessibility and scalability.
+VI. LIMITATIONS
+While Sketch-to-Skill provides a scalable and accessible
+approach to bootstrapping robot learning, it is more suitable
+for shorter horizon tasks where the trajectories to be followed
+by the robot are intuitive. Our current framework demonstrates
+success in structured tasks, but extending it to more intricate
+manipulations warrants further exploration.
+Towards addressing this, we have incorporated multi-step
+task decomposition and RL-guided refinement, improving
+adaptability in complex scenarios. Enhancing sketches with
+visual markers and temporal encoding could further refine
+trajectory representation, particularly for handling overlapping
+or ambiguous paths.
+tive to teleoperation-based demonstrations, they do not fully
+replace high-precision methods. Instead, they serve as an effec-
+tive complement, especially in resource-constrained settings.
+Expanding the scope of sketch-based learning to incorporate
+hybrid approachessuch as combining sketch guidance with
+sparse teleoperation datacould enhance scalability to more
+sophisticated robotic applications.
+REFERENCES
+Petar Bevanda, Johannes Kirmayr, Stefan Sosnowski, and
+Sandra Hirche. Learning the koopman eigendecompo-
+In 2022 American
+Control Conference (ACC), volume 22, page 27362741.
+Amisha Bhaskar, Zahiruddin Mahammad, Sachin R Jad-
+imitation learning framework to bootstrap reinforcement
+learning. arXiv preprint arXiv:2408.04054, 2024.
+Ayan Kumar Bhunia, Subhadeep Koley, Amandeep Ku-
+and Yi-Zhe Song.
+salient objects from human drawings.
+In Proceedings
+of the IEEECVF conference on computer vision and
+pattern recognition, pages 27332743, 2023.
+A. Billard and D. Grollman. Robot learning by demon-
+stration. Scholarpedia, 8(12):3824, 2013. doi: 10.4249
+scholarpedia.3824. revision 138061.
+Joao Bimbo, Claudio Pacchierotti, Marco Aggravi, Nikos
+Teleoperation
+in cluttered environments using wearable haptic feed-
+In 2017 IEEERSJ International Conference on
+Intelligent Robots and Systems (IROS), pages 34013408.
+Harish chaandar Ravichandar, Athanasios S. Polydoros,
+Sonia Chernova, and Aude Billard. Recent advances in
+robot learning from demonstration. Annu. Rev. Control.
+Robotics Auton. Syst., 3:297330, 2020. URL
+semanticscholar.orgCorpusID:208958394.
+Linping Chan, Fazel Naghdy, and David Stirling. Appli-
+cation of adaptive controllers in teleoperation systems: A
+survey. IEEE Transactions on Human-Machine Systems,
+Pinaki Nath Chowdhury, Ayan Kumar Bhunia, Anee-
+shan Sain, Subhadeep Koley, Tao Xiang, and Yi-Zhe
+What can human sketches do for object detec-
+In Proceedings of the IEEECVF conference on
+computer vision and pattern recognition, pages 15083
+Pinaki Nath Chowdhury, Ayan Kumar Bhunia, Aneeshan
+mentarity with photo and text.
+In Proceedings of the
+IEEECVF Conference on Computer Vision and Pattern
+Carl de Boor.
+Package for calculating with b-splines.
+SIAM Journal on Numerical Analysis, 14(3):441472,
+Michael Drolet, Simon Stepputtis, Siva Kailas, Ajinkya
+comparison of imitation learning algorithms for bimanual
+manipulation.
+IEEE Robotics and Automation Letters,
+Federica Ferraguti, Nicola Preda, Marcello Bonfe, and
+Cristian Secchi. Bilateral teleoperation of a dual arms
+surgical robot with passive virtual fixtures generation. In
+2015 IEEERSJ International Conference on Intelligent
+Robots and Systems (IROS), pages 42234228. IEEE,
+Scott Fujimoto, Herke Hoof, and David Meger. Address-
+ing function approximation error in actor-critic methods.
+In International conference on machine learning, pages
+Jiayuan Gu, Sean Kirmani, Paul Wohlhart, Yao Lu,
+Montserrat Gonzalez Arenas, Kanishka Rao, Wenhao Yu,
+Chuyuan Fu, Keerthana Gopalakrishnan, Zhuo Xu, et al.
+trajectory sketches.
+arXiv preprint arXiv:2311.01977,
+Hengyuan Hu, Suvir Mirchandani, and Dorsa Sadigh.
+Imitation bootstrapped reinforcement learning.
+preprint arXiv:2311.02198, 2023.
+Auke Jan Ijspeert, Jun Nakanishi, Heiko Hoffmann,
+Peter Pastor, and Stefan Schaal. Dynamical movement
+Neural Computation, 25(2):328373, February
+ISSN 1530-888X.
+URL  a 00393.
+Tatsuya Kamijo, Cristian C Beltran-Hernandez, and
+Masashi Hamaya. Learning variable compliance control
+from a few demonstrations for bimanual robot with
+haptic feedback teleoperation system.
+arXiv preprint
+Bingyi Kang, Zequn Jie, and Jiashi Feng.
+Policy op-
+timization with demonstrations.
+In International con-
+ference on machine learning, pages 24692478. PMLR,
+S. Mohammad Khansari-Zadeh and Aude Billard. Learn-
+ing stable nonlinear dynamical systems with gaussian
+mixture models.
+IEEE Transactions on Robotics, 27
+Diederik P Kingma.
+Auto-encoding variational bayes.
+arXiv preprint arXiv:1312.6114, 2013.
+Jens Kober and Jan Peters. Learning motor primitives
+for robotics.
+In 2009 IEEE International Conference
+on Robotics and Automation. IEEE, May 2009.
+Ajay Mandlekar, Danfei Xu, Josiah Wong, Soroush
+Silvio Savarese, Yuke Zhu, and Roberto Martn-Martn.
+What matters in learning from offline human demon-
+strations for robot manipulation.
+In arXiv preprint
+S. Mohammad Khansari-Zadeh and Aude Billard. Learn-
+ing control lyapunov function to ensure stabil

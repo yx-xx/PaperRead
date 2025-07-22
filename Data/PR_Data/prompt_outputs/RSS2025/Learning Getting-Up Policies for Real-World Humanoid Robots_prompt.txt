@@ -1,7 +1,7 @@
 === PDF文件: Learning Getting-Up Policies for Real-World Humanoid Robots.pdf ===
-=== 时间: 2025-07-22 09:59:09.247499 ===
+=== 时间: 2025-07-22 16:12:27.084013 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -588,4 +588,133 @@ We also tested HUMANUP policies in the real world on G1
 robot. Our real-world test bed consists of 6 different terrains
 shown in Fig. 3: concrete, brick, stone tiles, muddy grass, grassy
 Ours wo Two-Stage Learning
-Fig. 4: Lea
+Fig. 4: Learning curve. (a) Termination height of the torso,
+indicating whether the robot can lift the body. (b) Body
+normalized to [0, 1] for better comparison. The overall number
+of simulation sampling steps is about 5B, normalized to [0, 1].
+cover a wide range of roughness (rough concrete to slippery
+snow), bumpiness (flat concrete to tiles), ground compliance
+(completely firm concrete to being swampy muddy grasp), and
+slope (flat to 10). We tested two tasks: a) getting up from
+supine poses, and b) rolling over from prone to supine poses.
+We compare our policy with 1) Manufacturer-provided
+Controller and 2) a high-performing ablation of HUMANUP
+(HUMANUP wo posture randomization). The manufacturer-
+provided controller, which comes with the robot G1, tracks a
+hand-crafted trajectory in three phases shown in Fig. 5: Phase
+Phase 0: Reset (1s) Phase 1: Canonical Lying to Squatting (6s)
+Phase 2: Squatting to Standing (4s)
+Manufacturer-
+Provided
+HumanUP (Ours)
+Learned Continuous Whole-Body Getting Up Motion (6s)
+Standing
+Standing
+Squatting
+HumanUP (Ours)
+Manufacturer-Provided
+Fig. 5: Getting up execution comparison with G1s manufacturer-provided controller. The manufacturer-provided controller
+uses a handcrafted motion trajectory, which can be divided into three phases, while our HUMANUP learns a continuous and
+more efficient whole-body getting-up motion. Our HUMANUP enables the humanoid to get up within 6 seconds, half of the
+manufacturer-provided controllers 11 seconds of control. (a), (b), and (c) record the corresponding mean motor temperature of
+the upper body, lower body, and waist, respectively. G1s manufacturer-provided controllers execution causes the arm motors
+to heat up significantly, whereas our policy makes more use of the leg motors that are stronger (higher torque limit of 83N as
+opposed to 25N for the arm motors) and thus able to take more load.
+0 brings the robot to a canonical lying pose; Phase 1 first props
+up and then slides the torso forward using hands, followed by
+bending legs to squat; Phase 2 uses its waist to tilt up the torso
+to stand up from squatting. Motions in phase 1 and phase 2
+are symmetric, and this controller only works for supine poses.
+A. Results
+Fig. 3 presents experimental results. Overall, we find that HU-
+MANUP policies perform better than the manufacturer-provided
+controller and HUMANUP without posture randomization (PR).
+We discuss the results and observed behavior further.
+1) Getting up from supine poses: The manufacturer-provided
+controller works under nominal conditions, i.e., firm, flat
+concrete ground with a reasonable friction value. However,
+it starts to fail on more challenging terrains. For the bumpier
+and rougher terrains (brick surface and stone tiles), the arms
+may get stuck between bumps, causing failures. On slopes, the
+robot fails to squat or hoist itself up due to both the resistance of
+the grassland and the unstable squatting pose prone to falling
+caused by slopes. On the compliant ground, the robot gets
+destabilized. On slippery snow, the robot slips.
+Both versions of HUMANUP outperform the manufacturer-
+provided controller. Trained with terrain and domain ran-
+as slipperiness, bumps, and slopes. Dynamics randomization
+further enhances resilience to minor perturbations like slippage
+or ground compliance. The full method, incorporating posture
+it is specifically trained to handle diverse initial configurations.
+2) Rolling over from prone to supine poses: Findings are
+similar for the rolling over task. As noted, the manufacturer-
+provided controller cant handle this situation. The full model
+exhibits more robust performance than the model trained
+without posture randomization. Rolling over seems to be easier
+than getting up, HUMANUP achieves a 98.3 success rate.
+B. Motion analysis
+Fig. 5 shows the motion and motor temperatures for the
+manufacturer-provided controller and HUMANUP policy.
+1) Motor temperature: The manufacturer-provided controller
+uses the arms during Phase 1 of getting up. Fig. 5 (a) shows
+that the default controllers execution causes the arm motors
+Manufacturer-
+Provided
+HumanUP (Ours)
+Manufacturer-
+Provided
+HumanUP (Ours)
+(a) Failure Example on Grass Slope
+(b) Failure Example on Snow Field
+Fig. 6: Qualitative examples of failure modes on grass slope and snow field. G1s manufacturer-provided controller isnt
+able to squat on the sloping grass and slips on the slope. HUMANUP policy can partially get up on both the slope and the
+to heat up significantly more when compared to HUMANUP
+execution. Our policy makes more use of the leg motors that
+are stronger (higher torque limit of 83N as opposed to 25N
+for the arm motors) and thus able to take more load.
+2) Efficiency: HUMANUP gets the robot to stand success-
+fully within about 6 seconds through a smooth and continuous
+provided controller, which takes nearly 11 seconds.
+C. Failure Mode Analysis
+Fig. 6 shows example failure modes for the manufacturer-
+provided controller and HUMANUP on challenging terrains.
+Fig. 6 (a) shows that the manufacturer-provided controller
+tries to utilize the robots hands to squat, while the sloping
+ground prevents it from getting to the full squatting pose
+due to high friction and weak waist torques to move against
+the dumping tendency. In contrast, HUMANUP manages to
+lift the body, while the sloping ground sometimes causes
+an unstable foot orientation. Fig. 6 (b) shows that on even
+more challenging terrains like snow fields, both manufacturer-
+provided and HUMANUP controllers may fail due to the
+slippery and deformable ground.
+VII. LIMITATIONS
+HUMANUP has several limitations: 1) Motions discovered
+in Stage I could be incompatible with stronger control regu-
+larization used in Stage II. We didnt encounter this issue
+in our experiments, possibly because of the weak control
+regularization used in Stage I and the use of 8 slower
+motion in Stage II. 2) HUMANUP depends on high-performance
+physics simulators (IsaacGym ) running at high frequency
+(e.g., 1 kHz). Simulation speed and fidelity for more complex
+tasks involving perception and contacts remain a challenge.
+Recent advances such as Genesis , Mujoco Playground ,
+and Roboverse  could help address these limitations. 3)
+The RL formulation in HUMANUP is under-specified
+and may lead to reward hacking , complicating precise
+alignment with natural human behaviors. For instance, our
+learned motions sometimes include unnatural hand raising for
+balance. 4) Extending HUMANUP to handle more complex
+terrains like stairs or uneven surfaces remains under-explored,
+while humanoid robots may fall more easily on such terrains.
+Encouraging adaptive behaviors involving strong-arm usage
+on more powerful platforms may be useful to properly handle
+such situations.
+VIII. DISCUSSION
+In this paper, we tackle the problem of learning getting-
+up controllers for real-world humanoid robots. Different from
+locomotion tasks, getting up involves complex contact patterns
+that are not known apriori. We develop a two-stage solution for
+this problem based on reinforcement learning and sim-to-real.
+Stage I finds a solution under minimal constraints, while Stage
+II learns to track the traj

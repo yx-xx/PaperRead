@@ -1,7 +1,7 @@
 === PDF文件: CordViP Correspondence-based Visuomotor Policy for Dexterous Manipulation in Real-World.pdf ===
-=== 时间: 2025-07-22 09:59:12.432692 ===
+=== 时间: 2025-07-22 16:05:49.470506 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -624,4 +624,270 @@ Generalize to different scenarios. CordViP relies on a
 robust 6D pose estimator to track objects and build interaction-
 aware 3D point clouds, which enables our method to generalize
 to different scenarios. The results presented in Table IV show
-that DP is highly sensitive to visual variations, 
+that DP is highly sensitive to visual variations, while ACT3D
+performs well in scenarios with different visual appearances due
+to its reliance on 3D geometric inputs. However, we observe
+3D-based policy struggles in more challenging, cluttered
+incomplete point cloud representations. In contrast, our method
+effectively focuses on the manipulation of subjects and objects,
+establishing spatial correspondences, and has demonstrated
+strong generalization to different scenarios.
+Generalize to unseen objects. To validate policies gener-
+alization to different objects, we test them on the PickPlace
+and FlipCup tasks using three unseen objects, each varying in
+poor generalization to unseen objects, while ACT3D shows
+a certain level of generalization ability. However, ACT3D
+struggles to adjust effectively and promptly when confronted
+with objects that exhibit significant differences. CordViP
+demonstrates strong generalization ability when handling
+unseen objects, making fine-grained adjustments by establishing
+spatial and temporal correspondences.
+Generalize to different viewpoints. Achieving general-
+ization to different viewpoints presents a more significant
+TABLE V: Generalization results on unseen objects. For
+PickPlace and FlipCup tasks, we chose three previously unseen
+Flip Cup
+Pick and Place
+PickPlace
+Object-1
+Object-2
+Object-3
+Object-1
+Object-2
+Object-3
+CordViP(Ours)
+TABLE VI: Generalization results to different viewpoints.
+Original
+PickPlace
+CordViP(Ours)
+fixed camera. We evaluate DP, ACT3D, and our method with
+three different camera viewpoints. For 3D-based methods, since
+the point clouds are represented in the world coordinate system,
+the camera is recalibrated for each viewpoint. As shown in
+Table VI, the image-based diffusion policy is highly sensitive to
+camera viewpoints and completely fails across all three camera
+views. ACT3D, which leverages 3D information, demonstrates
+a certain level of generalization to minor viewpoint changes.
+the synthesized point clouds can only capture partial spatial
+in camera views. By leveraging comprehensive 3D priors
+of manipulated objects, our method achieves view-agnostic
+generation of interaction-aware point clouds with full spatial
+variations in camera perspectives.
+E. Ablations
+Effectiveness of components. We conduct a series of
+ablation experiments on four base real-world tasks to evaluate
+the effectiveness of different components in our method. As
+shown in Table VII, our results reveal the critical importance
+of contact and coordination information for learning dexterous
+manipulation policy. Specifically, for contact-rich tasks such as
+significantly reduces success rates. This highlights the essential
+role of contact in understanding physical interactions between
+the robotic hand and objects. On the other hand, for tasks
+that require continuous motion of both the arm and hand,
+such as Assembly and ArtiManip, incorporating coordination
+information notably enhances the policys ability to execute
+complex movement patterns. These findings emphasize the
+necessity of both contact and coordination information to
+achieve robust manipulation.
+We further observe that merging the Interaction-aware point
+clouds into a unified representation and providing it as the
+3D input to DP3 leads to a noticeable improvement in the
+success rates across all tasks. This also suggests that, compared
+to ACT3D, DP3 places higher demands on the quality of
+the point clouds, and is less robust to noise and occlusion
+in real-world scenarios. In our settings, we do not carefully
+position the camera to minimize occlusion of the dexterous
+different viewpoints.
+Choice of point cloud encoders. We use PointNet ,
+As shown in Table VIII, PointNet outperforms the other
+encoders in success rates. We also freeze the point cloud
+encoder during the training phase of the correspondence-based
+diffusion policy. The results indicate that fine-tuning further
+enhances the learning of downstream tasks.
+TABLE VIII: Ablation experiments on point cloud encoders.
+indicates that the encoder is frozen during the training phase
+of the correspondence-based diffusion policy.
+Encoders
+PickPlace
+Assembly
+ArtiManip
+PointNet
+PointNet
+PointNeXt
+PointNet
+PointNet
+F. Transferability
+Our proposed CordViP can be easily transferred to different
+backbones. Following the design of Zhao et al. , we choose
+a Transformer-based CVAE as one of the decision-making
+backbones for the policy, which outputs a sequence of actions.
+We replace the 2D image input with our Interaction-aware
+point clouds and use the pre-trained encoder to establish corre-
+spondences between various components. Table IX illustrates
+that CordViP achieves excellent performance on both diffusion-
+based and transformer-based backbones, showcasing strong
+transferability.
+TABLE IX: Transferability to different backbone.
+PickPlace
+Assembly
+ArtiManip
+Diffusion-based
+Transformer-based
+G. Failure Case Analysis
+In this section, we analyze some failure cases of CordViP.
+We take the flipcup task as an example and visualize the
+results in Figure 8a. We observe that while CordViP generally
+achieves good localization and grasping, the hand occasionally
+hovers in place after wrist rotation. One possible reason is that,
+Flip (Fail)
+(a) Case1: FlipCup.
+Insert (Fail)
+Insert (Recover)
+(b) Case2: Assembly.
+Fig. 8: Failure case. (a) Case 1 is a failure case from the Flip Cup task; (b) Case2 is an example from the Assembly task,
+where after a failure to insert the cup, the policy made adjustments, corrected the orientation of the cup, and successfully
+completed the task.
+TABLE VII: Ablation experiments on the Effectiveness of different components. DP3  Interaction-aware PC refers to
+using the Interaction-aware point clouds as the visual input for DP3. Wo. contact and coordination pretrain means that the
+encoder was not pre-trained with contact and coordination data.
+Ablation
+PickPlace
+Assembly
+ArtiManip
+DP3  Interaction-aware PC
+CordViP wo. contact and coordination pretrain
+CordViP wo. contact pretrain
+CordViP wo. coordination pretrain
+CordViP(Ours)
+during the collection of expert demonstrations, we deliberately
+reduced wrist speed, resulting in slight jitters that led the model
+to learn suboptimal solutions. A potential solution could be
+expanding the policys planning horizon by increasing the
+values of horizon and n action steps.
+the ability to automatically correct some failure scenarios
+and recover from them. In the assembly task, inserting the
+cylindrical cup into the kettle is a delicate operation that relies
+on strong 3D spatial reasoning capabilities. As shown in Figure
+the cup is stuck at the opening of the kettle. It can quickly sense
+the state of the object and adjust the joint pose to successfully
+complete the assembly task.
+V. CONCLUSIONS AND LIMITATIONS
+In this paper, we present CordViP, a novel framework that
+learns correspondence-based visuomotor policy for dexterous
+manipulation in the real world. First, we utilize powerful 3D
+generation methods to obtain 3D models of objects, then use
+robust 6D object pose estimation based on this modeling
+information and robot proprioception to obtain interaction-
+aware point clouds, enhancing the quality of the point clouds
+and addressing the issues caused by occlusions from the
+dexterous hand. Second, we use object-centric contact map
+and coordination information to design a pre-training task that
+effectively establishes spatial and temporal correspondences.
+are used as conditions to train a visuomotor policy. CordViP
+significantly outperforms state-of-the-art 2D and 3D baselines
+on six real-world dexterous manipulation tasks, demonstrating
+highly competitive performance in both effectiveness and
+efficiency.
+Limitations. Despite the exceptional performance demon-
+strated by CordViP, there are still certain limitations that could
+be explored in future work. First, our method struggles to
+accurately estimate the 6D pose of deformable objects due
+to the limited expressive capacity of FoundationPose when
+handling non-rigid geometry. Second, the accuracy of digital
+twin modeling can significantly impact pose tracking and the
+quality of initial object point clouds, which are critical for fine-
+grained dexterous manipulation. Additionally, if the dexterous
+hand completely occludes the object, FoundationPose may
+fail to track it. One promising research direction could be the
+incorporation of visuotactile 6D pose tracking. We leave further
+exploration of these possibilities for future work.
+ACKNOWLEDGEMENT
+This work was supported by the National Natural Science
+Foundation of China (62476011) and the Joint RD Fund
+of Beijing Smart-chip Microelectronics Technology Co., Ltd
+(SGSC0000RGJS2401830, SGSC0000RGJS2401829).
+REFERENCES
+Yunfei Bai and C Karen Liu. Dexterous manipulation
+using both palm and fingers. In 2014 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Raunaq Bhirangi, Abigail DeFranco, Jacob Adkins,
+Carmel Majidi, Abhinav Gupta, Tess Hellebrekers, and
+Vikash Kumar. All the feels: A dexterous hand with
+large-area tactile sensing. IEEE Robotics and Automation
+Tao Chen, Jie Xu, and Pulkit Agrawal. A system for
+general in-hand object re-orientation. In Conference on
+Robot Learning, pages 297307. PMLR, 2022.
+Tianxing Chen, Yao Mu, Zhixuan Liang, Zanxin Chen,
+Shijia Peng, Qiangyu Chen, Mingkun Xu, Ruizhen Hu,
+Hongyuan Zhang, Xuelong Li, et al. G3flow: Generative
+3d semantic flow for pose-aware and generalizable object
+manipulation. arXiv preprint arXiv:2411.18369, 2024.
+Yuanpei Chen, Tianhao Wu, Shengjie Wang, Xidong Feng,
+Jiechuan Jiang, Zongqing Lu, Stephen McAleer, Hao
+human-level bimanual dexterous manipulation with re-
+inforcement learning. Advances in Neural Information
+Processing Systems, 35:51505163, 2022.
+Yuanpei Chen, Chen Wang, Li Fei-Fei, and C Karen Liu.
+Sequential dexterity: Chaining dexterous policies for long-
+horizon manipulation. arXiv preprint arXiv:2309.00987,
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau,
+Yilun Du, Benjamin Burchfiel, Russ Tedrake, and Shuran
+Song. Diffusion policy: Visuomotor policy learning via
+action diffusion. The International Journal of Robotics
+T. Cover and P. Hart. Nearest neighbor pattern classifica-
+tion. IEEE Transactions on Information Theory, 13(1):
+Kairui Ding, Boyuan Chen, Ruihai Wu, Yuyang Li,
+Zongzheng Zhang, Huan-ang Gao, Siqi Li, Guyue Zhou,
+Yixin Zhu, Hao Dong, et al.
+affordance-based pre-grasping for diverse objects and
+environments. In 2024 IEEERSJ International Confer-
+ence on Intelligent Robots and Systems (IROS), pages
+Ria Doshi, Homer Walke, Oier Mees, Sudeep Dasari,
+and Sergey Levine.
+Scaling cross-embodied learning:
+One policy for manipulation, navigation, locomotion and
+aviation. arXiv preprint arXiv:2408.11812, 2024.
+Ben Eisner, Harry Zhang, and David Held. Flowbot3d:
+Learning 3d articulation flow to manipulate articulated
+objects. arXiv preprint arXiv:2205.04382, 2022.
+Ben Eisner, Yi Yang, Todor Davchev, Mel Vecerik,
+Jonathan Scholz, and David Held. Deep se (3)-equivariant
+geometric reasoning for precise placement tasks. arXiv
+preprint arXiv:2404.13478, 2024.
+Theophile Gervet, Zhou Xian, Nikolaos Gkanatsios, and
+Katerina Fragkiadaki. Act3d: Infinite resolution action
+detection transformer for robotic manipulation. arXiv
+preprint arXiv:2306.17817, 2023.
+Ankit Goyal, Jie Xu, Yijie Guo, Valts Blukis, Yu-Wei
+3d object manipulation. In Conference on Robot Learning,
+pages 694710. PMLR, 2023.
+Abhishek Gupta, Justin Yu, Tony Z Zhao, Vikash Kumar,
+Aaron Rovinsky, Kelvin Xu, Thomas Devlin, and Sergey
+Reset-free reinforcement learning via multi-
+task learning: Learning dexterous manipulation behaviors
+without human intervention. In 2021 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+William Hebgen Guss, Stephanie Milani, Nicholay Topin,
+Brandon Houghton, Sharada Mohanty, Andrew Mel-
+Christoph Berganski, et al. Towards robust and domain
+agnostic reinforcement learning competitions: Minerl
+2020. In NeurIPS 2020 Competition and Demonstration
+Irmak Guzey, Ben Evans, Soumith Chintala, and Lerrel
+Pinto. Dexterity from touch: Self-supervised pre-training
+of tactile representations with robotic play. arXiv preprint
+Irmak Guzey, Yinlong Dai, Ben Evans, Soumith Chintala,
+and Lerrel Pinto. See to touch: Learning tactile dexterity
+through visual incentives. In 2024 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Siddhant Haldar, Jyothish Pari, Anant Rai, and Ler-
+rel Pinto.
+Teach a robot to fish: Versatile imitation
+from one minute of demonstrations.
+arXiv preprint
+Ankur Handa, Arthur Allshire, Viktor Makoviychuk,
+Aleksei Petrenko, Ritvik Singh, Jingzhou Liu, Denys
+Balakumar Sundaralingam, et al.
+of agile in-hand manipulation from simulation to reality.
+In 2023 IEEE International Conference on Robotics and
+Automation (ICRA), pages 59775984. IEEE, 2023.
+Rasmus Laurvig Haugaard and Anders Glent Buch. Sur

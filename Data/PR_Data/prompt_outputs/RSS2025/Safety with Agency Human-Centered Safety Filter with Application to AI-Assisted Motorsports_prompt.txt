@@ -1,0 +1,1274 @@
+=== PDF文件: Safety with Agency Human-Centered Safety Filter with Application to AI-Assisted Motorsports.pdf ===
+=== 时间: 2025-07-22 15:46:08.908313 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Safety with Agency: Human-Centered Safety Filter
+with Application to AI-Assisted Motorsports
+Donggeon David Oh1,, Justin Lidard2,, Haimin Hu1, Himani Sinhmar2, Elle Lazarski1,
+Deepak Gopinath3, Emily S. Sumner3, Jonathan A. DeCastro3, Guy Rosman3,
+Naomi Ehrich Leonard2, and Jaime Fernndez Fisac1
+AbstractWe propose a human-centered safety filter (HCSF)
+for shared autonomy that significantly enhances system safety
+without compromising human agency. Our HCSF is built on
+a neural safety value function, which we first learn scalably
+through black-box interactions and then use at deployment to
+enforce a novel stateaction control barrier function (Q-CBF)
+safety constraint. Since this Q-CBF safety filter does not require
+any knowledge of the system dynamics for both synthesis and
+runtime safety monitoring and intervention, our method applies
+readily to complex, black-box shared autonomy systems. Notably,
+our HCSFs CBF-based interventions modify the humans ac-
+tions minimally and smoothly, avoiding the abrupt, last-moment
+corrections delivered by many conventional safety filters. We
+validate our approach in a comprehensive in-person user study
+using Assetto Corsaa high-fidelity car racing simulator with
+black-box dynamicsto assess robustness in driving on the
+edge scenarios. We compare both trajectory data and drivers
+perceptions of our HCSF assistance against unassisted driving
+and a conventional safety filter. Experimental results show that
+1) compared to having no assistance, our HCSF improves both
+safety and user satisfaction without compromising human agency
+or comfort, and 2) relative to a conventional safety filter, our
+proposed HCSF boosts human agency, comfort, and satisfaction
+while maintaining robustness.
+I. INTRODUCTION
+Recent developments in robot safety provide an exciting
+opportunity for enhancing human safety and performance in
+high-stakes situations. However, augmenting human decision-
+making with artificial intelligence (AI) in a trustworthy way
+remains an open problem. A humanAI team in a performance
+car racing [13] is a representative, yet challenging example,
+as it pushes safety to the limit. How should the AI co-
+pilot assist the human without dulling the drivers competitive
+edge? Should the AI discourage a human from attempting
+a risky overtaking maneuver on a sharp turn? When an AI
+system assists humans in such safety-critical and time-sensitive
+ensure human awareness of the AI systems current intent and
+1Department of Electrical and Computer Engineering, Princeton University,
+2Department of Mechanical and Aerospace Engineering, Princeton Univer-
+3Toyota Research Institute, Cambridge, MA 02139, USA
+This research has been supported in part by an NSF Graduate Research
+Fellowship. This work is partially supported by Toyota Research Institute
+(TRI). It, however, reflects solely the opinions and conclusions of its authors
+and not TRI or any other Toyota entity.
+D. D. Oh and J. Lidard contributed equally.
+(a) Last-Resort Safety Filter
+(b) Human-Centered Safety Filter
+(c) Shared Autonomy for High-Fidelity Car Racing
+Fig. 1: Our proposed human-centered safety filter (HCSF) enables
+robust and smooth safety interventions for shared autonomy systems.
+(a) Last-resort safety filter (LRSF) switches to the best-effort fallback
+policy at the last possible moment. However, this switching can
+feel abrupt and uncomfortable for human operators. (b) Our HCSF
+instead intervenes smoothly while promoting human agency, thereby
+reducing automation surprise and enhancing user experience. (c)
+Users interact with a high-fidelity racing simulator via a steering
+wheel and set of pedals (throttle and brake).
+operating mode, thus avoiding the notorious and sometimes
+fatal automation surprise [4, 5].
+Safety filters [6, 7] have become an effective approach to
+ensure safety under an operational design domain (ODD),
+i.e., a clearly defined set of operating conditions for robots
+to work properly and safely [8, 9]. Safety filters have been
+deployed on a wide range of autonomous systems, such
+as automated vehicles [10, 11], legged robots [1214], and
+aerial navigation [15, 16]. Traditional model-based numerical
+approaches for safety filter synthesis  result in safety
+guarantees by design, but they are unable to scale up due to
+the curse of dimensionality . Recent research focuses on
+neural approximation of safety filters [1923] that can scale
+to tens [14, 24] and even hundreds of state variables .
+While existing safety filters effectively maintain safety, their
+use in humanAI shared autonomy can result in abrupt, dis-
+continuous interventions that disregard the human operators
+intentions. This undermines the drivers sense of being in
+ence. Moreover, such unpredictable, non-transparent behavior
+can erode confidence and trust in the AI assistant, ultimately
+degrading team performance and causing the human driver to
+lose their strategic edge.
+Contributions. To overcome these limitations, we propose a
+novel HCSF (Fig. 1) that advances the state of the art in
+learning-based safety filtering while actively promoting human
+agency in shared autonomy settings. In particular, we make
+three key contributions:
+We introduce, to the best of our knowledge, the first
+fully model-free control barrier function (CBF) safety
+filter. We learn a neural safety value function through
+interactions with a black-box system and, at deployment,
+enforce a safety constraint based on a novel stateaction
+control barrier function (Q-CBF) without any knowledge
+of system dynamics (e.g., control affine model). Both
+the synthesis and deployment of our Q-CBF are scalable
+to high-dimensional systems and do not require any
+knowledge of their dynamics.
+We build upon the learned Q-CBF and demonstrate
+our HCSF in Assetto Corsa (AC), a high-fidelity racing
+simulator with black-box dynamics, where the filter is
+pushed to the limit against all potential failure modes by
+real human drivers with diverse skill levels. To the best
+of our knowledge, this is the first time a safety filter has
+been synthesized, deployed, and evaluated in such a high-
+human operators.
+We conduct an extensive in-person user study with 83
+human participants and conclude, with statistical signifi-
+cance in both trajectory data and human driver responses,
+that our HCSF considerably improves safety and user
+satisfaction without compromising human agency or com-
+fort relative to having no safety filter. Furthermore, when
+compared to a conventional safety filter, our HCSF offers
+significant gains in human agency, comfort, and overall
+satisfaction while maintaining at least the same level of
+robustnessif not exceeding it.
+Overview. We organize this paper as follows. Section II re-
+views related works, while Section III introduces the problem
+formulation. In Section IV, we present our HCSF design,
+emphasizing its key properties and synthesis, and then discuss
+its practical implementation in Section V. Section VI provides
+our experimental results. Finally, Section VII addresses the
+limitations and outlines possible future directions, and Sec-
+tion VIII concludes the paper.
+II. RELATED WORK
+Our work relates to, and builds on, recent advances in
+human-interactive safety filters and AI-assisted motorsports.
+A. Human-Interactive Safety Filters
+A safety filter is a supervisory control scheme that con-
+tinuously monitors the operation of an autonomous system
+and intervenes, when necessary, by adjusting its planned
+actions to prevent potential catastrophic failures. Safety fil-
+ters have been increasingly used in high-stakes autonomy
+to aerial navigation [16, 20, 2931], and to legged loco-
+motion [12, 14, 23, 24]. Recent work by Hsu et al.
+provides a unified analysis framework for various safety filters,
+including HamiltonJacobi (HJ) reachability [1618], control
+barrier functions [20, 32, 33], model predictive control [34,
+35], and Lyapunov methods . In general, synthesis of
+safety filters can be computationally challenging, especially
+for systems with high-dimensional state space and complex
+dynamics. Deep learning has proven to effectively scale up
+the computation of safety controllers [14, 19, 23, 25, 37].
+More recently, methods have been developed that treat these
+learned neural controllers as an untrusted fallback within a
+safety filter framework, and robust safety guarantees can be
+subsequently obtained through runtime verification algorithms
+such as convex optimization [3840], forward reachable sets
+When robots are deployed around humans, ensuring safety
+is paramount to enable their trustworthy integration into
+peoples everyday lives. However, enforcing safety becomes
+particularly challenging in human-interactive settings due to
+coupled motion, limited communication, and potentially con-
+flicting objectives between robots and their human peers. Early
+attempts at safe humanrobot interaction focus on achieving
+robust safety by safeguarding against worst-case human deci-
+sions [26, 42, 43], which may lead to overly conservative robot
+behaviors . Recent research effort has been devoted to
+designing safety filters that adapt to human decision-making,
+in hope of improving the robots task performance without
+compromising safety. One popular approach is filter-aware
+motion planning, which incorporates predictions of the safety
+filters behaviors into the robots task policy [26, 45]. This
+strategy allows the robot to avoid abrupt safety overrides by
+preempting future costly interventions triggered by unlikely
+human actions. Another line of research aims at reducing
+conservativeness by dynamically adjusting the safety filters
+ODD according to the robots evolving uncertainty about the
+While existing human-interactive safety filters enable robots
+to interact safely and efficiently with other humans, similar
+formulations in humanrobot shared control settings remain
+scarce. Recently, research efforts have focused on preserv-
+ing human agency while enhancing safety in shared auton-
+omy [4850]. However, these approaches do not define a clear
+ODD and lack the principled safety analysis that a safety filter
+some methods rely on knowing the human operators policy a
+human operators who have diverse intentions and skill levels
+In this work, we draw inspiration from filter-aware planning
+to design a safety filter that minimally modifies human actions.
+Our proposed HCSF preserves the principled safety analysis
+inherited from safety filter theoryin particular, from HJ
+reachability and control barrier functionswhile avoiding any
+explicit model representation of human intentions.
+B. AI-Enabled Motorsports
+While modern AI systems surpass human intelligence in
+competitive sports [51, 52], their potential to augment human
+decision-making is underexplored. High-speed performance
+car racing presents a domain where safety and seamless
+collaboration are required to enable a competitive humanAI
+teamthe AI co-pilot must assist the human without dulling
+the drivers competitive edge.
+Wurman et al.  demonstrate for the first time that a
+well-trained neural policy can win a head-to-head competition
+against some of the worlds best drivers in a car racing game.
+Follow-up works further improve the AI competitiveness via
+reasoning strategic interactions with data-driven modeling of
+opponent behaviors  and blending model-based dynamic
+game strategy with data-driven prior knowledge [54, 55]. Com-
+paring to fully automated AI motorsports, humanAI collabo-
+rative car racing is an emerging, yet relatively underexplored
+research area. Gopinath et al.  propose a multi-task imitation
+learning approach that enables an automated coaching system
+that interacts with the student similar to a human teacher.
+DeCastro et al.  enhance the performance of humanAI
+teams in car racing by learning a policy that infers and aligns
+with human intents leveraging a world model. While AI agents
+in motorsports have shown promising performance, ensuring
+the safety of human drivers remains largely unaddressed in a
+principled manner. Chen et al.  present preliminary results
+on approximate learning-based safety analysis for autonomous
+automated setting.
+This work presents an HCSF, a principled safety filter
+framework that actively promotes human agency, comfort, and
+satisfaction. We extensively evaluate our HCSF in a large-scale
+user study using AC, marking the first time a safety filter has
+been tested with both quantitative and qualitative measures of
+humanAI interaction in a high-fidelity, highly dynamic shared
+autonomy setting.
+III. PRELIMINARIES AND PROBLEM FORMULATION
+We seek to ensure the safe operation of a robot with
+discrete-time nonlinear dynamics:
+xt1  f(xt, ut),
+where xt X Rnx and ut U Rnu denote the state
+and control input at time step t N. The robots control
+typically comes from a task policy task : X U. We define
+the failure set F with a Lipschitz continuous safety margin
+function g : X R:
+States inside F are considered to have already failed in terms
+of safety. In the context of racing, states that correspond to
+the race car being outside the track boundaries or in contact
+with another vehicle should be inside F. The control set U
+and failure set F are core components of the robots ODD
+(Section V-C). The ODD may be understood as a social
+contract that bridges the robot operator, the public, and the
+policymakersit provides a clear-cut set of conditions under
+which the robot is required to operate safely. To ensure safe
+robot operation under an ODD, we consider a supervisory
+control framework called safety filters.
+A. Safety Filters
+A safety filter  is an automated process that continuously
+monitors the system and intervenes, if deemed necessary, by
+modifying a candidate action given by the task policy task to
+prevent a potentially catastrophic safety failure in the future.
+task(xt), the robot uses an action based on safety filtering:
+ut  (xt, task).
+The specific function form of  depends on the intervention
+type of a safety filter, which includes, e.g., switching, tran-
+prevents the use of a task action that would compromise future
+modify its entire behavior. In this paper, we use HJ reachability
+analysis to synthesize safety filter  [17, 18].
+B. Hamilton-Jacobi Reachability Analysis
+We aim to design a safety filter which, given ODD elements
+F and U, keeps the robot within the maximal safe set
+SFc X, where Fc  X F. This set Sconsists
+of all states from which there exists a control policy that
+indefinitely prevents the robot from entering F. In theory,
+Scan be computed using Hamilton-Jacobi (HJ) reachability
+filter synthesis problem as an optimal control problem. Its
+solution follows from solving the dynamic programming safety
+Bellman equation :
+V (x)  min{g(x), max
+uU V (f(x, u))},
+which admits the safety value function V : X R as its
+fixed-point solution. Given V (), the maximal safe set Sis
+then defined as:
+For subsequent extension to our proposed HCSF, we adopt
+the Q-function a notion widely used in reinforcement
+learning (RL)to modify (4) into the stateaction safety
+Bellman equation:
+Q(x, u)  min{g(x), max
+uU Q(f(x, u), u)},
+Fig. 2: Illustration of our HCSF intervention at a hairpin corner (i.e., a sharp turn requiring rapid deceleration). Without safety filter assistance,
+inexperienced human drivers often miss the braking point, leading to understeering and the vehicle leaving the track. In contrast, our HCSF
+monitors the state and the human action to determine the braking point and provides necessary steering and braking interventions that keep
+the vehicle on the track. Braking assistance is visible through the rear lights.
+which admits the stateaction safety value function Q : X
+U R as its fixed-point solution. This formulation remains
+equivalent to (4) in the sense that V (x)  maxuU Q(x, u).
+We now introduce the LRSF, a value-based safety filter
+constructed upon the safety value functions Q(, ) and V ():
+task(x),
+where the safe fallback policy is defined as (x)
+arg maxu U Q(x, u), and task() is any task-oriented policy
+that does not explicitly account for safety. We refer to (7) as
+a last-resort strategy since the filter does not intervene until
+V (x)  0: the critical point at which the system is about
+to exit S. Upon reaching the boundary of S, LRSF fully
+overrides the control with () to enforce safety.
+Prior work [1619, 29] has established LRSF as a funda-
+mental framework applicable for all HJ reachability analysis-
+based safety filters. This is due to its straightforward yet
+effective design for enforcing safety and its least-restrictive
+system reaches the boundary of the maximal safe set.
+agnostic fallback policy often leads to discontinuous and jerky
+interventions . This issue can become more pronounced in
+a shared autonomy setting, where human operators might feel
+surprised and confused by abrupt overrides [4, 5]. Even though
+LRSF offers maximum freedom until the system reaches
+the boundary of S, its interventions that do not take into
+account the humans input risk diminishing the operators
+sense of control. Furthermore, the time and space complexities
+required to solve the Bellman equation (4) scale exponentially
+with the state-space dimension, rendering grid-based dynamic
+programming infeasible for real-world safe robot control.
+Our proposed HCSF addresses these limitations by synthe-
+sizing an output that minimally deviates from the human op-
+erators input, thereby enhancing both agency and smoothness
+while still enforcing safety (Section IV). In addition, in Sec-
+tion V, we leverage recent advances in safety RL [19, 23, 37]
+to approximate the Q-function via RL, enabling the synthesis
+of a best-effort fallback policy () for high-dimensional
+systems.
+C. Discrete-Time Control Barrier Functions
+In this subsection, we introduce the definition and im-
+plementation of the discrete-time control barrier function
+(DCBF), another well-established approach for value-based
+safety filtering.
+Definition 1 (Discrete-time CBF ). A function h : X R
+is a DCBF for system (1) if S  {x X  h(x) 0} Fc
+and  (0, 1] that satisfies:
+h(x, u) h(x),
+where h(x, u) : h(f(x, u)) h(x).
+Unlike LRSF, which imposes safety through hard overrides,
+a DCBF enables smooth safety interventions by solving an
+optimization problem that finds the safety-enforcing action
+closest to the task action utask(x):
+u(x)  argmin
+utask(x) u
+h(x, u) h(x),
+where (9b) is the DCBF constraint. The trade-off is that a
+DCBF no longer enforces safety within the maximal safe set
+Sin general. Instead, it encodes safety with respect to a
+(smaller) safe set S  {x X  h(x) 0} S.
+An HJ safety value function V () is closely linked to a
+DCBF in the sense that, if V () is continuously differentiable,
+it automatically qualifies as a valid CBF for the maximal safe
+set S[7, Sec. 3.2]. This insight enables the use of V () in a
+smooth CBF safety filter rather than the LRSF alternativean
+approach that underpins our proposed HCSF.
+Remark 1. Definition 1 could be relaxed such that (8) is
+required to hold for all xt {x X  h(x) 0}. A control
+input ut U that satisfies (9b) for any function h() meeting
+the relaxed DCBF definition still renders the 0-superlevel set of
+h() forward invariant. Such relaxation of (8) still guarantees
+superlevel set of h() .
+IV. SMOOTH HUMAN-CENTERED SAFETY FILTER FOR
+SHARED AUTONOMY
+In this section, we introduce a model-free, human-centered
+safety filter methodology that builds on HJ reachability anal-
+ysis and DCBFs. We present our HCSF formulation and
+highlight its differences from existing safety filters.
+Conventional CBF safety filter methods similar to (9)
+typically require knowledge of the systems dynamics [10,
+tions [20, 33, 5962]. This requirement arises for one or both
+of the following reasons: 1) either a full-order or a simplified
+dynamical model of the system is utilized to synthesize CBF
+affine model) is leveraged at runtime to enforce the CBF
+safety constraint within an optimal control problem (OCP)
+(e.g., quadratic program).
+While some works explicitly aimed to build and deploy
+model-free CBF safety filters, they have so far fallen short
+of being fully model-freerelying on some combination of
+simplified models of the system dynamics [6365], predefined
+low-level controllers [64, 65], and handcrafted fallback poli-
+cies (e.g., evading maneuvers) . Additionally, recent efforts
+in learning a CBF for latent state representations have proven
+to be effective for partially observable systems, but they still
+require a control affine dynamical model . Such reliance
+on knowledge of the system dynamics and the deployment
+environment can significantly limit the applicability of CBFs
+in complex, real-world scenarios where the dynamical model
+is often unknown and should be treated as a black-box. On
+the other hand, a model-free algorithm for learning a policy
+together with a barrier certificate was proposed recently ,
+but it cannot be used to build a safety filter because the learned
+policy must be deployed at all times. Finally, we acknowledge
+a preprint reporting concurrent efforts toward a model-free
+stateaction CBF safety filter . However, it addresses a
+finite-horizon safety problem and enforces safety at runtime
+like a smooth least restrictive safety filter  rather than
+a CBF one, fundamentally differing from our work in both
+mathematical formulation and enforcement of safety.
+To this end, we introduce, to the best of our knowledge, the
+first CBF safety filter that is fully model-free. We first show
+that the safety value function V () is itself a valid DCBF in
+the sense of Definition 1. Then, using the stateaction safety
+value function Q(, ) which could be learned scalably through
+black-box interactions with the system via model-free RL-
+based HJ reachability analysis (Section V-A), we propose a
+method of enforcing a novel Q-CBF safety constraint that does
+not require any information regarding the dynamics. While
+theoretical safety guarantees are contingent on the validity of
+the learned CBF (which may be established through statistical
+analysis  or model-based verification [20, 38]), this is not
+the focus of our research. Instead, we show our safety filter
+achieves an extremely high empirical safe rate and effectively
+preserves human agency.
+We now present the Q-CBF formulation.
+Proposition 1 (Q-CBF). The safety value function V (x) :
+X R, which is a fixed-point solution of the safety Bellman
+equation (4), is a valid DCBF as defined in Definition 1 and
+Remark 1. The corresponding DCBF constraint is:
+Q(x, u) V (x),
+where  [0, 1). Following the notation from Definition 1,
+is equivalent to 1 .
+We emphasize the key difference between the original
+DCBF constraint (9b) and our formulation (10)the require-
+ment (or lack thereof) of the system dynamics. Given Q(, )
+that satisfies (6), (10) does not require the system dynamics
+for its evaluation. This enables its application to safety-critical
+systems with black-box dynamics, namely a high-fidelity car
+racing simulator. On the contrary, evaluating the original
+DCBF constraint (9b) does require a priori knowledge of
+the system dynamics, which prohibits it from being applied
+to systems with unknown dynamics. We also note that (10)
+constrains the system such that V () cannot decay below 0. In
+other words, it keeps the system within the maximal safe set
+from conservative safe sets.
+We now leverage Proposition 1 to define our proposed
+(Fig. 2). Our HCSF solves an OCP at each timestep to find
+a safe action that minimally deviates from the human control
+uhuman(x) while satisfying the Q-CBF constraint.
+Definition 2 (Human-Centered Safety Filter).
+u(x)  argmin
+uhuman(x) u
+Q(x, u) V (x),
+where  [0, 1) is a design parameter that dictates how
+quickly the safety value function is allowed to decrease over
+a single timestep.
+The Q-CBF constraint ensures that the safety value function
+does not decay below the specified threshold V (x) at each
+timestep. The recursive feasibility of HCSF is a direct conse-
+quence of V () being a valid DCBF, as stated in Proposition 1.
+This is formalized in the following proposition:
+Proposition 2 (Recursive Feasibility of HCSF). The optimiza-
+tion problem in Eq. (11) is recursively feasible for  [0, 1),
+given any initial state x S.
+HCSF actively promotes human agency by selecting an action
+that remains as close as possible to the humans intended input,
+while ensuring the system never leaves the maximal safe set.
+Fig. 3: A diagram describing the interaction between a human operator, our proposed HCSF, and AC game environment. Our HCSF utilizes a
+safety value function that we learn scalably through black-box interactions via model-free RL-based HJ reachability analysis, and at runtime
+leverages our novel Q-CBF constraint to enforce safety without any knowledge of system dynamics. Moreover, it intervenes minimally and
+smoothly to enhance human agency and comfort. Finally, our HCSF communicates the action modifications to the human driver via visual
+Additional information regarding the practical implementation
+of our HCSF together with our choice of  can be found in
+Appendix C. In the following section, we discuss a series of
+design choices that enable scalable and efficient implementa-
+tion of the safety filters, along with details on their deployment
+in a high-fidelity car racing simulation.
+V. APPLICATION OF HCSF TO HIGH-SPEED RACING
+Our HCSF design in Section IV assumes the knowledge of
+the stateaction safety value function Q(, ). However, directly
+solving (6) for high-dimensional systems is intractablea
+manifestation of the notorious curse of dimensionality. In
+this section, we leverage recent advances in safety RL to
+address this challenge and learn both the Q-function and the
+best-effort fallback policy in a high-fidelity racing environ-
+ment. Specifically, we begin by describing the environment
+setup and then detail the observation, action, safety margin
+our multi-phase training pipeline, which includes warmup
+and initialization phases that expedite learning by frequently
+exposing the agent to dangerous states. Finally, we discuss
+how we integrate safety filters with visual cues in an effort to
+enhance the AIs transparency.
+A. Neural Synthesis of Safety Filters
+Solving the safety Bellman equation (4) via dynamic pro-
+gramming is intractable for high-dimensional systems, as the
+computational and memory requirements grow exponentially
+with the dimensionality of the state space. Even state-of-the-art
+level-set methods can typically handle at most six continuous
+state dimensions, rendering them unsuitable for car racing
+applications.
+Recent works [19, 22] in safety RL address this limitation
+by proposing a time-discounted variant of (4), which allows
+for scalable and effective approximation of the stateaction
+safety value function Q(, ) and the best-effort fallback policy
+u() via model-free RL algorithms, such as Soft ActorCritic
+During training, we accumulate a replay buffer B of tran-
+, where g : g(x). The critic (i.e., state
+action safety value function network) is then trained to predict
+the future discounted minimum margin by minimizing the
+Bellman residual, while the actor (i.e., best-effort fallback
+policy network) is trained to maximize the safety value.
+Further details on the neural synthesis of safety filters are
+provided in Appendix C.
+B. Human-Machine Interface
+We use Assetto Corsa (AC), a high-fidelity racing simulator,
+together with a gym-compliant interface , to facilitate RL
+in a realistic driving environment. Specifically, we adopt the
+AC sim control interface (SCI), which integrates real-time
+hardware actuation (steering wheel and pedals) with trajectory
+data from the AC game engine and Python implementations
+of LRSF and HCSF. A first-person view is displayed on the
+monitor at 300 Hz. The SCI connects the hardware bus and
+the host computer via USB to run the safety filter loop (see
+Fig. 3), supporting a 30 Hz control ratesufficient for a high-
+fidelity racing environment [1, 72].
+The actuation platform consists of a Fanatec CSL DD QR2
+wheel base, a Fanatec ClubSport Steering Wheel GT Alcantara
+Curved Monitor and a Trak RS6 Racing Simulator rig.
+C. Operational Design Domain (ODD)
+We select the Silverstone Circuit (GP layout) for both
+training and deploying the safety filters, as its combination of
+fast straights and technical corners provides a challenging yet
+comprehensive proving ground. The ego vehicle is a BMW
+Z4 GT3, while Mazda MX-5 ND cars serve as opponent
+vehicles. Since the MX-5 ND is less powerful, it naturally
+encourages human drivers to attempt overtaking maneuvers.
+Although a single opponent is deployed during the user
+on-track interactions and help the ego agent learn effective
+collision-avoidance strategies. We use 50 opponent strength
+and 30 opponent aggression. The weather condition is set to
+and wind to 0 kmh. Additionally, traction control, stability
+tyre wear are turned off.
+We learn the stateaction safety value function Q(, ) and
+the best-effort fallback policy u() based on the observation,
+detailed below.
+1) Observation: The system operates in a partially ob-
+servable environment, where each observation is a 133-
+dimensional vector representing the ego agents state and
+surroundings. This vector includes trajectory data (e.g., speed,
+angular velocity, tire slip angles, distance to the reference path,
+and distances to track boundaries computed via ray-casting)
+from the last four timesteps, as well as the control inputs
+over the same four timesteps, in order to account for partial
+observability. The observation vector also contains the look-
+ahead curvature of the track and information about the nearest
+braking status. A detailed breakdown of this 133-dimensional
+observation vector is provided in Appendix B.
+2) Action:
+The normalized action space is defined as
+U  [1, 1]3, with three continuous channels corresponding
+to steering, throttle, and brake. Gear changes are handled
+automatically via the gearbox feature provided by AC.
+3) Margin Function: The margin function g : X R
+is defined as the minimum between the signed distance to
+the track boundary and the signed distance to the nearest
+the environment and opponent vehicles. The corresponding
+failure set F is defined as in (2).
+4) Episode Termination: If the margin function becomes
+negative or if the vehicle remains stationary for an elongated
+time period, the episode terminates and the vehicle is au-
+tomatically reset to the closest point on the reference path.
+These episode termination conditions apply to both the neural
+synthesis of safety filters and the user study.
+D. Warmup and Initialization
+In AC, resetting the vehicle places it stationary on the
+closest point of the reference path, making it difficult to
+gather training data for near-failure scenarios where safety
+filters are most critical. To address this, we use a two-
+phase pipeline (warmup and initialization) that accelerates
+the vehicle to higher speeds under a performance-oriented
+policy (warmup), then systematically pushes it into more
+challenging or hazardous states (initialization). By deliberately
+inducing these dangerous situations (including adversarial
+and random maneuvers near the boundary of the safe set),
+our pipeline ensures the agent encounters a wide range of
+conditions where the safety filters must intervene effectively.
+This design both reduces wall-clock training time by avoiding
+trivial low-speed states and promotes robust learning, as the
+filter gains experience in precisely the situations where safety
+Fig. 4: Our HCSF displays two types of visual cues: horizontal arrows
+that reflect the modifications made to the steering input, and vertical
+arrows that indicate the corrections made to the throttlebraking
+inputs. The length of each arrow is proportional to the magnitude
+of modification made to the corresponding input channel.
+intervention is needed most. Full details on the warmup and
+initialization phases can be found in Appendix C.
+E. Training Details
+We train the policy and value networks on a single RTX
+4090equipped machine with an AMD Ryzen 9 7950X 16-
+core processor. A replay buffer of size 20 million is used,
+and the actor and critic networks are each updated once per
+environment step. Both the policy and value networks are
+three-layer MLPs with 256 neurons per hidden layer, trained
+with a batch size of 128. The networks are trained for over
+three weeks (12.8 million environment steps) using the Adam
+optimizer. We use the same neural approximation of Q(, ) for
+all safety filters. Further details on training hyperparameters
+are provided in Appendix C.
+F. Visual Cues
+In our framework, low-bandwidth visual cues foster trans-
+parency and collaboration between the human driver and a
+safety filter. Whenever an intervention occurs, vertical and
+horizontal arrows on the screen show both the direction and
+magnitude of the AIs corrections relative to the drivers
+original input. Specifically, the arrows orientation indicates
+whether the AI is steering more to the left or right compared
+to the human, or braking more or less compared to the human,
+while the arrows length is proportional to the magnitude of
+that difference. By mapping each cue to a distinct control
+audio cues, which could add cognitive load or distraction in
+high-speed scenarios. As illustrated in Fig. 4, this setup allows
+the driver to immediately recognize when and how the system
+intervenes.
+During our user study, all participants were shown a color-
+coded reference path, which is a series of green and red
+arrowheads on the track (Fig. 2). Green arrowheads indicate
+visual aid allows drivers to navigate effectively without prior
+expertise in sim racing.
+VI. EXPERIMENTAL RESULTS
+In this section, we present experimental results that provide
+evidence for our hypotheses:
+without compromising human agency and comfort, com-
+pared to having no filter.
+satisfaction without compromising robustness, com-
+pared to LRSF.
+To test these hypotheses, we conducted a large-scale user
+study in the AC simulation environment described in Sec-
+tion V-C. This study involved 83 participants with diverse
+driving backgrounds, marking the first time the interaction
+between human operators and safety filters has been system-
+atically investigated.
+A. Baselines
+We compare our proposed HCSF against two baselines
+LRSF and unassisted drivingby examining both quantitative
+trajectory data and qualitative user experience.
+For LRSF, we follow the formulation in (7). This filter only
+intervenes when the system reaches the boundary of the safe
+set and does not consider the human operators input during
+interventions. We anticipate that such an abrupt approach that
+disregards human intent may confuse drivers and undermine
+minimally modify the human action while still satisfying the
+Q-CBF constraint, which we hypothesize will enhance human
+To ensure a fair comparison between our HCSF and LRSF,
+we employ the same neural approximation of the stateaction
+safety value function Q(, ) for both value-based safety filters.
+This ensures that both filters rely on the same safety monitor,
+while their interventions may differ (7), (11). In addition,
+each filters visual cues follow the same proportionality rule,
+maintaining consistency in how interventions are conveyed to
+human drivers.
+We also include a control group that receives no safety filter
+assistance. This allows us to capture any unassisted learn-
+ing effectwhere participants may improve simply through
+practiceand to gauge the placebo effect of believing one
+might be assisted by AI, even when no assistance is provided.
+To control for this placebo effect, all participants are informed
+that they may receive AI assistance, regardless of their actual
+assignment. Given that our HCSF should substantially reduce
+user satisfaction compared to the unassisted group. Moreover,
+thanks to its smooth, human-centered interventions, we expect
+our HCSF to preserve human agency and smoothness relative
+to having no safety filter at all.
+B. Metrics
+evaluate
+hypotheses
+all satisfaction. In addition, we assess four filter-specific
+competenceto gain further insight into humansafety filter
+directly tied to our hypotheses.
+1) Robustness: We evaluate the robustness of safety fil-
+terassisted decision making for human drivers using three
+forms of quantitative trajectory data: out-of-track incidents
+(per minute), collisions (per minute during close-proximity
+interaction), and failures (per minute).
+Since out-of-track incidents and collisions are two different
+modes of failure, we normalize them separately. Out-of-track
+incidents can occur at any moment in a driving session (e.g.,
+a driver might instantly veer off track by sharply flicking the
+steering wheel), so we divide the total count by the session
+length. By contrast, collisions can only happen when the ego
+vehicle is close to an opponent, so we normalize the collision
+count by the total time spent within a specified distance
+threshold.
+We also gather qualitative data on how robust participants
+perceive the interaction to be. Even if the quantitative trajec-
+tory data indicate strong robustness, drivers may not necessar-
+ily feel confident. For example, while many modern vehicles
+feature lane keeping assist (LKA) systems that effectively
+reduce lane departures, they can cause a vehicle to bounce
+between adjacent lane markings. Some drivers lose confidence
+because of this bouncy behavior, leading them to disable the
+feature despite its technical effectiveness . Therefore, we
+ask participants whether they feel confident in their ability to
+drive safely throughout each session.
+2) Agency: Prior work in cognitive psychology [7476]
+and humanrobot interaction (HRI) [7779] interprets human
+agency as the correspondence between intended and actual
+actions. This suggests that agency, in the context of safety
+the system intervenes), rather than a game of kind (i.e., whether
+it intervenes at all). Consistent with this interpretation, we
+broadly define human agency as the degree of control that
+the driver has over the vehicle. To quantify agency, we define
+the input modification (I.M.) measure as the 2-norm of the
+difference between the human operators raw input and the
+final input applied after safety filtering:
+I.M.(t)  uhuman
+(xt, uhuman
+{HCSF, LRSF, none}.
+In addition to this quantitative trajectory data, we also gather
+qualitative data on human agency by asking participants how
+much control they felt they had over the vehicle.
+3) Comfort: We measure human comfort using two key
+forms of quantitative trajectory data: the jerk magnitude and
+the magnitude of the first-order control input difference.
+jerk(t)   ...p t2,
+where pt is the vehicles position in three-dimensional Eu-
+clidean space. Large jerk values can lead to discomfort or
+motion sickness, whereas smaller jerk values typically indicate
+a smoother, more comfortable ride [80, 81].
+difference (I.D.) is given by:
+I.D.(t)  (xt, uhuman
+) (xt1, uhuman
+where smaller I.D. values are associated with better passenger
+comfort . In this study, we use I.D. to compare the
+smoothness of input trajectories obtained from our human-
+centered optimization problem (11) with those produced by
+the best-effort fallback policy (7).
+ticipants how smooth they perceived the driving experience
+to be. We use the term smooth instead of comfortable for
+two reasons: 1) since participants receive no actual motion
+2) comfortable can be mistaken for confident, given their
+similarity in everyday usage, which could introduce unwanted
+ambiguity in the responses.
+4) Satisfaction: Because overall satisfaction cannot be mea-
+sured through quantitative trajectory data, we rely entirely
+on qualitative data obtained from participants regarding their
+satisfaction with the overall driving experience.
+5) Filter-Specific Metrics: For additional insights into how
+human drivers interact with the safety filters, we collect
+qualitative data on the trustworthiness, predictability, inter-
+refer to these four items as AI-specific metrics because
+they explicitly address the interventions made by the safety
+driving experience during a session. For instance, it makes
+sense to evaluate the smoothness of a session even if no
+safety filter is deployed, but asking about the trustworthiness
+of an intervention is only applicable when a filter is actively
+involved.
+C. User Study Design
+In this subsection, we describe the design of our user study,
+including details on participant recruitment, group assign-
+1) Participant Recruitment: We reached out to potential
+participants both online and offline. Specifically, we used
+university-wide mailing lists, social media advertisements, and
+printed posters to engage faculty, staff, and students at our
+or academic major and to ensure a wide range of perspectives.
+No monetary or academic compensation was provided to
+participants.
+2) Group Assignments: We consider prior driving and video
+gaming experience to be the most influential factors for our
+studys results and explicitly controlled for them. We asked
+participants to report their driving experience level on a five-
+point scale, following these criteria:
+1) I have no experience in either real or simulated driving.
+2) I have driving experience but no racing experience.
+3) I have some experience in racing, but only in simulation.
+4) I have extensive racing experience, but only in simulation.
+5) I have real car racing experience.
+We assigned participants to each group so that their average
+initial skill levels remained comparable, ultimately producing
+group sizes of 2529 participants. Table I presents the mean
+and standard deviation of each groups reported driving expe-
+rience. A one-way analysis of variance (ANOVA) followed by
+Tukeys honestly significant difference (HSD) indicates that p-
+values for comparisons between any two groups exceed 0.80,
+suggesting no statistically significant differences in initial skill
+levels across groups.
+Number of Participants
+Average Initial Skill level
+TABLE I: Number of participants in and the average initial skill
+level of each group.
+3) Experiment Procedure: In this study, each participant
+completes three separate driving sessions. During the first
+filter assistance. This initial session establishes a baseline for
+each participants initial skill level, complementing the group
+assignment procedure, which also ensures that average initial
+skill levels remain similar across all groups. All participants
+are explicitly informed that no assistance is provided in this
+session. In the second session, participants drive for ten
+minutes under the assistance of the safety filter corresponding
+to their assigned group, although they are only told that
+they may receive AI assistance (with no specification of its
+type). Finally, as in the first session, participants drive for
+five minutes without assistance in the third session. This third
+session is intended to reveal potential over-reliance on safety
+filters; if participants fully trust the robustness of the filter
+during the second session, they might rely heavily on it,
+resulting in marginal or no improvement in their own driving
+skills. By comparing trajectory data across all three sessions,
+we can analyze the possibility of over-reliance.
+Immediately after each session, participants answer ques-
+tions regarding the four core metrics: robustness, agency,
+are only queried after the second session, when participants
+may actually experience safety filter interventions. Each met-
+ric is measured using two statements: an affirmative form
+and a negated form. This reverse-coded approach helps
+detect inattentive or biased responses and ensures that the
+underlying construct is captured from different angles, thus
+enhancing the reliability of the qualitative measures. We
+verify that each pair of affirmative and negated statements
+measures the same construct by conducting a Cronbachs
+alpha test, the results of which are reported in Table VII
+in the Appendix. All items use a five-point Likert scale. To
+interpret a participants overall response to a given metric,
+we average the rating from the affirmative statement with
+6 (the rating from the negated statement).
+Driving Session
+Assistance
+Session 1
+5 minutes
+Session 2
+10 minutes
+Session 3
+5 minutes
+TABLE II: Duration of and type of assistance provided in each
+session.
+D. Results
+In this subsection, we present the results of our user study.
+We validate our hypotheses on a metric-by-metric basis, using
+both qualitative and quantitative data for the four core metrics:
+qualitative responses for filter-specific metrics to gain further
+insight into how participants interact with each safety filter.
+When analyzing quantitative or qualitative data that follow a
+two-factor (session and group) repeated-measures designi.e.,
+data collected across multiple sessions with an interest in com-
+paring different groupswe employ a Mixed ANOVA model
+to account for both within-subject (session) and between-
+subject (group) factors. Whenever a significant interaction
+between session and group emerges in the Mixed ANOVA
+check how the groups differ separately in session 1 and session
+2. Then, if the SME analysis results in statistical significance,
+we perform Tukeys HSD test to pinpoint precisely how each
+groups distribution of data diverges from others within a
+how they influence each metric.
+For data that do not meet this two-factor repeated-measures
+structure (i.e., data not measured over multiple sessions), we
+use a one-way ANOVA that considers only the between-
+subject (group) factor. If the ANOVA result indicates statistical
+distributions pairwise for each group combination.
+For all numerical data depicted in bar or box plots, we
+illustrate statistical significance using asterisks to compare
+pairs of groups. Formally, under the null hypothesis H0,
+we assume the data from any two groups come from the
+same underlying distribution. If a statistical test (e.g., Mixed
+ANOVA followed by SME and Tukeys HSD) indicates that
+p < 0.05, we reject H0 at the 5 level and mark the pair with
+one asterisk (). Likewise, we use two asterisks () when
+p < 0.01, and three asterisks () when p < 0.001. Thus,
+more asterisks correspond to stronger evidence against H0 and
+hence a more statistically significant difference between the
+groups data.
+1) Robustness: As shown in Fig. 5, our HCSF maintained
+near-zero failures across the study, demonstrating strong ro-
+bustness under diverse human actions. It significantly reduced
+out-of-track incidents per minute and overall failures per
+minute compared to the unassisted group. While our HCSF
+also reduced out-of-track incidents and collisions relative to
+A similar trend emerges in the qualitative results. As shown
+in Fig. 6, participants assisted by our HCSF in session 2 felt
+significantly more confident in the safety filters robustness
+than those in the unassisted group. In addition, the difference
+in each participants confidence score between sessions 1 and
+2 was significantly greater for our HCSF than for unassisted
+driving. Although participants in the HCSF group also reported
+higher confidence than those in the LRSF group, this differ-
+ence was not statistically significant.
+Our HCSF dramatically improves safety in decision-
+making compared to having no filter.
+Our HCSF is at least as robust as LRSF, if not more.
+Although our HCSF did reduce collisions relative to LRSF
+and unassisted driving, there was no statistically significant
+difference. We conjecture that this may be due to two main
+causes. First, during the training of the neural approximation
+of the stateaction safety value function and the best-effort
+fallback policy, we did not treat the opponent as an adversarial
+agent; instead, we considered the opponent as a part of
+the environment. We did so because treating the opponent
+as adversarial would prohibit side-by-side racingmaking
+overtaking impossiblesince the opponent could easily induce
+a collision by side-swiping the ego vehicle. Additionally, AC
+does not allow users to dictate actions for opponent vehicles,
+thus preventing the setup of an adversarial multi-agent RL. In
+other words, in order for a car race to occur, we cannot guaran-
+tee absolute robustness against collisions. Second, participants
+frequently attempted overtakes in unorthodox parts of the
+Although they might successfully overtake without colliding,
+they often carried excessive speed and ended up driving off-
+track. Consequently, the number of collisions may have been
+underreported in session 1 and for the unassisted group during
+session 2.
+2) Agency: Fig. 7 reports the distribution of I.M. among
+all participants in each group across all timestepsincluding
+those when no safety filter intervention occurredfor the
+HCSF and LRSF groups, thus jointly capturing intervention
+frequency and magnitude. Notably, our HCSF reduces the fre-
+quency of interventions with I.M.>1.0 relative to LRSF, so the
+filtered actions remain closer to the human operators intended
+actions. While our HCSF intervenes more frequently than
+LRSF (30.3 vs. 19.7 of the driving session duration), its
+interventions are much smaller in magnitude (0.184 vs. 0.305
+in average I.M.). This result shows that our HCSF significantly
+improves human agency by reducing the input modification
+magnitude over LRSF. By contrast, LRSF does not take into
+account the human action, which can lead to unnecessarily
+of control. This tendency is even more pronounced in the
+empirical cumulative distribution function (ECDF) of I.M.
+in Fig. 8a, and Fig. 8b shows that the HCSF group has a
+significantly lower average I.M. than the LRSF group.
+Qualitative measures also strongly support the improved
+human agency of our HCSF over LRSF. As shown in Fig. 9,
+participants assisted by our HCSF during session 2 reported
+a significantly stronger sense of being in control compared
+Related Questions
+Robustness
+Satisfaction
+Trustworthiness
+Predictability
+Interpretability
+Competence
+TABLE III: 4 core metrics and 4 filter-specific metrics together with their corresponding affirmativenegated questions.
+Session 1
+Session 2
+Out-of-Track  Minute
+(a) Out-of-track incidents per minute.
+Session 1
+Session 2
+Collisions  Minute
+(b) Collisions per minute (< 3m distance).
+Session 1
+Session 2
+Failures  Minute
+LRSF (OOT)
+LRSF (Collisions)
+HCSF (OOT)
+HCSF (Collisions)
+None (OOT)
+None (Collisions)
+(c) Total number of failures per minute.
+Fig. 5: Our HCSF achieved near-zero failures throughout the user study, demonstrating significant enhancement in safety compared to
+unassisted human driving. Although our HCSF outperformed LRSF in both failure modes, the differences were not statistically significant.
+Statistical significance is marked with asterisks, where more asterisks indicate larger significance.
+Session 1
+Session 2
+Robustness Score
+Robustness Score (S2 - S1)
+Fig. 6: Qualitative measures of robustness across all three groups in
+both sessions. Participants in the HCSF group reported significantly
+higher confidence in session 2 compared to the unassisted group.
+Central marks, bottom, and top edges of the boxes indicate the
+whisker length is set to 1.5 times the standard deviation, which
+gives 99.7 percent coverage for normally distributed data. Statistical
+significance is marked with asterisks, where more asterisks indicate
+larger significance.
+to those assisted by LRSF. This difference is even more
+pronounced if we consider the change in each participants
+agency score between sessions 1 and 2. Meanwhile, the
+unassisted group recorded the highest average agency score
+overallunsurprising since they had full control of the vehicle
+in both sessionsbut its difference from the HCSF group
+was not statistically significant in both session 2 scores or
+the improvement across sessions. Finally, the LRSF group
+exhibited a drop in agency from session 1 to session 2,
+underscoring how LRSF undermines the human operators
+sense of control. By contrast, our HCSF manages to preserve
+agency at a level comparable to having no filter at all.
+Our HCSF does not compromise human agency com-
+pared to having no filter.
+Our HCSF significantly enhances human agency com-
+pared to LRSF.
+3) Comfort: Although our HCSF does not explicitly ad-
+dress comfort in the optimization problem (11), we hypoth-
+esize that it will still provide a smoother ride compared to
+LRSF. We expect our HCSF to minimize deviations from the
+human input (11a), effectively anchoring the filtered action
+around the human operators commands. Because humans
+are physically limited in how quickly they can turn the
+wheel or press the pedals, their inputs naturally form smooth
+Relative Frequency
+Axis break (discontinuous y-axis)
+Fig. 7: Histogram of I.M. for the HCSF and LRSF groups over all
+Compared to LRSF, which often produces large input modifications
+that undermine human agency, our HCSF reduces the frequency of
+such large modifications by offering human-centered nudges of
+smaller magnitude.
+Empirical CDF
+(a) ECDF plot of I.M.
+Average I.M.
+(b) Box plot of average I.M.
+Fig. 8: (a) For each group, the presented ECDF aggregates the
+I.M. values from all participants across every timestep, including
+those when no safety filter intervention occurred. (b) The box plot
+summarizes the distribution of each participants average I.M. within
+each group. Our HCSF yielded a significantly smaller I.M. compared
+to LRSF, suggesting better retention of human agency.
+Session 1
+Session 2
+Agency Score
+Agency Score (S2 - S1)
+Fig. 9: Qualitative measures of human agency across all three
+groups in both sessions. Participants in the HCSF group reported
+a significantly stronger sense of being in control compared to those
+in the LRSF group, while no significant difference emerged between
+the HCSF and unassisted groups.
+and continuous control trajectories. As a result, the resulting
+control actions under our HCSF assistance are anticipated to
+inherit some of that smoothness, thus translating into non-jerky
+movement. In contrast, LRSF, which disregards the human
+when switching abruptly between human control and the best-
+effort fallback policy. Moreover, the best-effort fallback policy
+itself is a neural network trained with no explicit smoothness
+The ECDF plot in Fig. 10a illustrates the I.D. distribution
+among all participants in each group across all timesteps where
+a safety filter intervened (and hence no data for the unassisted
+group). We observe our HCSF producing a denser distribution
+at smaller I.D. values. In other words, our HCSF tends to
+yield smoother inputs than LRSF. The box plot in Fig. 10b
+reinforces this observation by showing a significant difference
+in average I.D. distribution between the LRSF and unassisted
+groups. Moreover, although the unassisted group exhibits the
+smallest average I.D., its difference from the HCSF group is
+not statistically significant.
+A similar pattern appears in Fig. 11a, which shows the jerk
+distribution among all participants in each group across all
+timesteps where a safety filter intervened (and hence no data
+for the unassisted group). Here, our HCSF produces a denser
+distribution at smaller jerk compared to LRSF, indicating
+further confirms that our HCSF significantly reduces average
+jerk relative to LRSF, while its difference from unassisted
+driving is not statistically significant.
+ness. Those assigned with LRSF reported a decline in their
+sense of smoothness from session 1 to session 2, indicating
+discomfort arising from abrupt and discontinuous LRSF in-
+terventions. In contrast, participants assisted by our HCSF
+reported a significantly higher smoothness score in session
+2 compared to those assisted by LRSF, and this difference
+becomes even more pronounced when examining the change
+in each participants score between sessions 1 and 2. Similar to
+the agency results, the unassisted group exhibited the highest
+average smoothness score overall, which is unsurprising given
+the absence of interventions of any sort. Nonetheless, our focus
+here is on how well our HCSF preserves a smooth driving
+experience; the gap between the HCSF and unassisted groups
+was not statistically significant in either the session 2 scores
+or in the improvement across sessions.
+Our HCSF does not compromise comfort compared to
+having no filter.
+Our HCSF significantly improves comfort compared to
+4) Satisfaction: Fig. 13 shows that during session 2, partici-
+pants who received our HCSF assistance reported significantly
+higher overall satisfaction scores compared to those who
+received LRSF assistance or no assistance. This difference in
+user satisfaction between the HCSF and LRSF groups is also
+evident when examining each participants change in scores
+from session 1 to session 2.
+Our HCSF significantly improves user satisfaction com-
+pared to having no filter.
+Our HCSF significantly improves user satisfaction com-
+pared to LRSF.
+Empirical CDF
+(a) ECDF plot of I.D.
+Session 1
+Session 2
+Average I.D.
+(b) Box plot of average I.D.
+Fig. 10: Our HCSF yielded a significantly smaller I.D. compared
+to LRSF, indicating smoother input trajectories, while its difference
+from unassisted driving was not statistically significant. Central
+and 75th percentiles, respectively. The maximum whisker length is set
+to 1.5 times the standard deviation, which gives 99.7 percent coverage
+for normally distributed data. Statistical significance is marked with
+Jerk (ms3)
+Empirical CDF
+(a) ECDF plot of jerk.
+Session 1
+Session 2
+Average Jerk (ms3)
+(b) Box plot of average jerk.
+Fig. 11: Our HCSF produced significantly smaller jerk compared
+to LRSF, suggesting better ride comfort, while its difference from
+unassisted driving was not statistically significant.
+Session 1
+Session 2
+Comfort Score
+Comfort Score (S2 - S1)
+Fig. 12: Qualitative measures of comfort across all three groups in
+both sessions. Participants in the HCSF group reported a significantly
+better sense of smoothness than those in the LRSF group, while
+the difference between the HCSF and unassisted groups was not
+statistically significant.
+5) Filter-Specific Metrics: We further analyze the interplay
+between human drivers and the safety filter using four filter-
+specific metricstrustworthiness, predictability, interpretabil-
+Fig. 14, reveal that our HCSF exhibits significantly higher
+trustworthiness and competence compared to unassisted driv-
+ing. Meanwhile, LRSF falls between our HCSF and unas-
+sisted driving without a statistically significant difference.
+unpredictable compared to unassisted driving.
+Although the quantitative robustness measures in Fig. 5
+show no significant difference between our HCSF and LRSF,
+Session 1
+Session 2
+Satisfaction Score
+Satisfaction Score (S2 - S1)
+Fig. 13: Qualitative measures of overall satisfaction across all three
+groups in both sessions. Participants in the HCSF group reported
+significantly higher satisfaction during session 2 compared to both
+the LRSF and unassisted groups.
+we conjecture that participants perceived LRSF as less trust-
+worthy and competent due to its disregard for human input,
+which results in discontinuous, jerky, and unpredictable in-
+terventions. Unable to anticipate when or how LRSF would
+In contrast, because our HCSF minimizes deviations from the
+human actions while still preserving robustness, it may have
+felt more trustworthy and competent to the users.
+trustworthiness
+predictability
+interpretability
+competence
+Likert Score
+Qualitative
+measures
+filter-specific
+across all three groups in session 2. Central marks, bottom, and top
+edges of the boxes indicate the median, 25th, and 75th percentiles,
+respectively. The maximum whisker length is set to 1.5 times the
+standard deviation, which gives 99.7 percent coverage for normally
+distributed data. Statistical significance is marked with asterisks,
+where more asterisks indicate larger significance.
+VII. LIMITATIONS AND FUTURE WORK
+Our proposed HCSF offers significant improvements in
+human agency, comfort, and satisfaction compared to conven-
+tional safety filters; however, it does have several limitations.
+mance (e.g., lap times), as its sole objective is to minimize
+deviation from the human input while satisfying the Q-CBF
+constraint. Although our HCSF offers a slight performance
+gain over LRSF and unassisted driving, the difference in lap
+times was not statistically significant (Appendix D). Second,
+prolonged exposure to our HCSF may result in drivers be-
+coming over-reliant on AI assistance, potentially hindering
+the development of unassisted driving skills (Appendix D).
+only immediate safety threats, leaving drivers unprepared for
+complex race dynamics that require proactive anticipation
+and adaptation. Finally, while visual cues can help reduce
+confusion during safety interventions, they may also induce
+unintended behavioral changes that merit further investigation.
+To address these limitations, future work could add a
+secondary intervention layer that activates prior to safety filter
+interventions and provides proactive, multi-modal cues instead
+of removing the human operators control authority. We expect
+this new layer to mitigate the potential over-reliance on safety
+filters because it does not intervene at the physical control
+channels shared between a human operator and a safety filter;
+before a safety intervention is needed. Moreover, since we can
+rely on a safety filter to maintain system safety, the new layer
+can be designed to foster performance-oriented operation.
+Building this additional layer will require further investigation
+into how humans respond to different modalities and content
+of cues. Overall, these advancements would yield a more
+comprehensive approach to balancing safety and performance
+in shared autonomy environments.
+VIII. CONCLUSION
+We proposed an HCSF that significantly enhances system
+safety while preserving human agency in humanAI shared
+autonomy settings. Our HCSF builds upon a neural safety
+value function which is learned scalably through black-box
+interactions via model-free RL-based HJ reachability analysis.
+At deployment, we used this value function to enforce a
+novel Q-CBF safety constraint, which does not require any
+knowledge of the system dynamics for safety monitoring and
+intervention. These properties enabled both the synthesis and
+deployment of our HCSF in Assetto Corsaa high-fidelity
+black-box car racing simulatorand make our method the
+first safety filter applied to high-dimensional, black-box shared
+autonomy systems involving human operators. Through an
+extensive in-person user study, we validated two hypotheses
+using both trajectory data and user responses:
+improves safety and user satisfaction without compro-
+mising human agency and comfort.
+posed HCSF improves human agency, comfort, and
+satisfaction without compromising robustness.
+We envision our HCSF being a vital component for a
+broad class of shared autonomy systems, including advanced
+driver assistance systems (ADAS) in high-performance driv-
+Unlike conventional safety filterswhere abrupt interventions
+that do not take into account the human operators actions
+can cause discomfort or automation surpriseour HCSF
+fosters trustworthy, robust, and agency-preserving human
+robot collaboration. Future work will extend our HCSF to
+time-critical and performance-oriented tasks focusing on the
+interplay between safety and strategic decision-making, and
+address the potential over-reliance on safety filters.
+REFERENCES
+P. R. Wurman, S. Barrett, K. Kawamoto, J. MacGlashan,
+K. Subramanian, T. J. Walsh, R. Capobianco, A. Devlic, F. Eck-
+with deep reinforcement learning, Nature, vol. 602, no. 7896,
+J. DeCastro, A. Silva, D. Gopinath, E. Sumner, T. M. Balch,
+L. Dees, and G. Rosman, Dreaming to assist: Learning to align
+with human objectives for shared control in high-speed racing,
+in Proceedings of the 8th Annual Conference on Robot Learning
+(CoRL), 2024.
+D. Gopinath, X. Cui, J. DeCastro, E. Sumner, J. Costa, H. Ya-
+tational teaching for driving via multi-task imitation learning,
+arXiv preprint arXiv:2410.01608, 2024.
+N. B. Sarter and D. D. Woods, Team play with a powerful
+and independent agent: Operational experiences and automation
+surprises on the Airbus A-320, vol. 39, no. 4, pp. 553569.
+G. A. Jamieson, G. Skraaning, and J. Joe, The B737 MAX
+8 accidents as operational experiences with automation trans-
+O. Bastani, Safe reinforcement learning with nonlinear dynam-
+ics via model predictive shielding, in 2021 American control
+conference (ACC).
+K.-C. Hsu, H. Hu, and J. F. Fisac, The safety filter: A unified
+view of safety-critical control in autonomous systems, Annual
+Review of Control, Robotics, and Autonomous Systems, vol. 7,
+(odd) for driving automation systems, SAE J3259, 2021.
+L. Fraade-Blanar, M. S. Blumenthal, J. M. Anderson, and
+N. Kalra, Measuring Automated Vehicle Safety: Forging a
+Framework.
+Santa Monica, CA: RAND Corporation, 2018.
+J. Zeng, B. Zhang, and K. Sreenath, Safety-critical model
+predictive control with discrete-time control barrier function,
+in 2021 American Control Conference (ACC). IEEE, 2021, pp.
+B. Tearle, K. P. Wabersich, A. Carron, and M. N. Zeilinger, A
+predictive safety filter for learning-based racing control, IEEE
+Robotics and Automation Letters, vol. 6, no. 4, pp. 76357642,
+S.-C. Hsu, X. Xu, and A. D. Ames, Control barrier function
+based quadratic programs with application to bipedal robotic
+A. Agrawal and K. Sreenath, Discrete control barrier functions
+for safety-critical control of discrete systems with application
+to bipedal robot navigation. in Robotics: Science and Systems,
+vol. 13.
+D. P. Nguyen, K.-C. Hsu, W. Yu, J. Tan, and J. Fernndez Fisac,
+Gameplay filters: Robust zero-shot safety through adversarial
+Robot Learning (CoRL), 2024.
+A. Singletary, A. Swann, Y. Chen, and A. D. Ames, Onboard
+safety guarantees for racing drones: High-speed geofencing
+with control barrier functions, IEEE Robotics and Automation
+M. Chen, S. L. Herbert, H. Hu, Y. Pu, J. F. Fisac, S. Bansal,
+S. Han, and C. J. Tomlin, Fastrack: a modular framework for
+real-time motion planning and guaranteed safe tracking, IEEE
+Transactions on Automatic Control, vol. 66, no. 12, pp. 5861
+I. M. Mitchell, A. M. Bayen, and C. J. Tomlin, A time-
+dependent hamilton-jacobi formulation of reachable sets for
+continuous dynamic games, IEEE Transactions on automatic
+S. Bansal, M. Chen, S. Herbert, and C. J. Tomlin, Hamilton-
+jacobi reachability: A brief overview and recent advances, in
+2017 IEEE 56th Annual Conference on Decision and Control
+J. F. Fisac, N. F. Lugovoy, V. Rubies-Royo, S. Ghosh, and
+C. J. Tomlin, Bridging hamilton-jacobi safety analysis and
+reinforcement learning, in 2019 International Conference on
+Robotics and Automation (ICRA). IEEE, 2019, pp. 85508556.
+A. Robey, H. Hu, L. Lindemann, H. Zhang, D. V. Dimarogonas,
+S. Tu, and N. Matni, Learning control barrier functions from
+expert demonstrations, in 2020 59th IEEE Conference on
+Decision and Control (CDC).
+S. Bansal and C. J. Tomlin, Deepreach: A deep learning
+approach to high-dimensional reachability, in 2021 IEEE In-
+ternational Conference on Robotics and Automation (ICRA).
+K.-C. Hsu, D. P. Nguyen, and J. F. Fisac, ISAACS: Iterative
+soft adversarial actor-critic for safety, in Proceedings of the
+5th Annual Learning for Dynamics and Control Conference
+J. Wang, H. Hu, D. P. Nguyen, and J. F. Fisac, MAGICS:
+Adversarial rl with minimax actors guided by implicit critic
+stackelberg for convergent neural synthesis of robot safety, in
+Proceedings of the 16th Workshop on the Algorithmic Founda-
+tions of Robotics (WAFR), 2024.
+T. He, C. Zhang, W. Xiao, G. He, C. Liu, and G. Shi, Agile but
+Proceedings of Robotics: Science and Systems (RSS), 2024.
+H. Hu, Z. Zhang, K. Nakamura, A. Bajcsy, and J. Fernn-
+dez Fisac, Deception game: Closing the safety-learnin

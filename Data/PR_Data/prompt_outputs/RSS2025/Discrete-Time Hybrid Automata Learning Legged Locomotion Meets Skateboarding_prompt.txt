@@ -1,0 +1,915 @@
+=== PDF文件: Discrete-Time Hybrid Automata Learning Legged Locomotion Meets Skateboarding.pdf ===
+=== 时间: 2025-07-22 15:44:33.934884 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Discrete-Time Hybrid Automata Learning: Legged
+Locomotion Meets Skateboarding
+Hang Liu1
+Sangli Teng1
+Ben Liu2
+Wei Zhang2
+Maani Ghaffari1
+1University of Michigan
+2Southern University of Science and Technology
+Corresponding Author: sanglitumich.edu
+Fig. 1: Demonstration of DHAL performance across various indoor and outdoor terrains, including slopes, carpets, sidewalks, step, and scenarios with additional
+payloads or disturbance. The controller enables the robot to perform smooth and natural skateboarding motions, with reliable mode identification and transitions
+under disturbances.
+AbstractHybrid dynamical systems, which include contin-
+uous flow and discrete mode switching, can model robotics
+tasks like legged robot locomotion. Model-based methods usually
+depend on predefined gaits, while model-free approaches lack
+explicit mode-switching knowledge. Current methods identify
+discrete modes via segmentation before regressing continuous
+without trajectory labels or segmentation is a challenging open
+problem. This paper introduces Discrete-time Hybrid Automata
+Learning (DHAL), a framework to identify and execute mode-
+switching without trajectory segmentation or event function
+learning. Moreover, we embed it in a reinforcement learning
+pipeline and incorporate a beta policy distribution and a multi-
+critic architecture to model contact-guided motions, exemplified
+by a challenging quadrupedal robot skateboard task. We validate
+our method through sufficient real-world tests, demonstrating
+robust performance and mode identification consistent with
+human intuition in hybrid dynamical systems.
+I. INTRODUCTION
+In state space representation, systems that exhibit flow-
+based continuous and jump-based discrete dynamics are
+known as hybrid dynamical systems . Such systems are
+prevalent in many real-world environments, particularly those
+involving discontinuities, contact events, or mode switching
+examples include legged robotics, power systems (e.g., ther-
+mostat systems , DC-DC converters), and even neurobio-
+logical models such as the integrate-and-fire neuron .
+In robotics, the walking behavior of bipedal robots is
+a quintessential example of a hybrid dynamical system. In
+model-based control, the hybrid automata framework has been
+proposed as a powerful tool to describe systems encompassing
+discrete and continuous dynamics [4, 5]. This framework has
+been widely adopted for behavior planning  and legged
+locomotion. However, these approaches typically rely on sim-
+plified dynamic models, and contact events are often pre-
+With the rise of data-driven paradigms and world models,
+recent research has begun exploring learning-based approaches
+for hybrid dynamics [7, 8, 9]. However, these efforts focus on
+low-dimensional or single-trajectory scenarios, and inefficient
+Fig. 2: The potholes on the downhill slope caused the robot dogs right front leg to get stuck, preventing it from smoothly getting onto the board. Both of its
+hind legs even lost contact with the board. Nevertheless, the policy could still guide the robot dog to jump back onto the board and complete the recovery
+behavior.
+training. Designing methods that can generalize to high-
+dimensional systems, handle complex real-world dynamics,
+and effectively identify discrete modes remains an open prob-
+Towards this goal, we propose a generalized approach
+for mode identification and prediction in hybrid dynami-
+cal systems. We design a set of hybrid dynamics modules
+that integrate discrete hybrid automata(DHA) with a vari-
+ational autoencoder (VAE) framework, enabling the system
+to learn mode identification and flow dynamics heuristically.
+To demonstrate its effectiveness, we evaluated our approach
+in contact-guided scenarios involving complex sequences of
+contact events .
+Designing such contact-rich scenarios is highly non-trivial.
+Unlike model-based methods, model-free reinforcement learn-
+ing (RL) has shown promise in solving optimal control prob-
+lems (OCPs) by modeling dynamics as a Markov Decision
+Process. Model-free RL requires minimal assumptions and
+can be applied to various tasks across diverse dynamical
+systems [11, 12]. We integrate a multi-critic architecture with
+a Beta distribution policy to address contact-rich tasks and
+embed our hybrid dynamics system into the RL pipeline.
+We tackle the challenging task of enabling a quadrupedal
+robot to skateboard. This task exemplifies a highly dynamic,
+precise handling of mode transitions and contact events. The
+key contributions of this work are summarized as follows:
+1) Discrete hybrid automata framework: We propose
+a discrete hybrid automata framework that eliminates
+the need for explicit trajectory segmentation or event
+labeling in mode identification and dynamics learning.
+2) Contact-guided task design: We combined the multi-
+critic architecture and the beta distribution to effectively
+address the contact-guided problem in hybrid systems.
+3) Sim2Real of underactuated skateboarding motion:
+We achieved agile and robust sim-to-real performance in
+the highly underactuated and hybrid task of skateboard
+II. RELATED WORK
+A. Legged Robot Control
+The Model Predictive Control (MPC) [13, 14, 15] with
+simplified single rigid body has been successfully applied to
+motion planning of legged robot [16, 17, 18, 19], achieving
+robust locomotion on flat ground under diverse gait patterns.
+Corberes et al. , Grandia et al.  further integrated
+motion planning and perception, enabling quadruped robots to
+navigate complex terrains. However, such approaches depend
+highly on accurate global state estimation, which poses limi-
+tations in outdoor and long-range scenarios. Additionally, the
+gait pattern of the model-based approach is designed manually,
+which can not scale in complicated scenarios.
+In contrast to the model-based approach, model-free rein-
+forcement learning (RL) has demonstrated remarkable capabil-
+ities in legged robot control, including high-speed locomotion
+[20, 21, 22, 23], complex terrain traversal [24, 25, 26, 27],
+of RL-based quadruped control in recent years is on the
+paradigm of sim-to-real transfer [31, 26], safe reinforcement
+we primarily focus on exploring sparse motion patterns and
+embedding hybrid dynamics learning.
+B. Contact-guided locomotion pattern
+The hybrid nature of contact dynamics makes it challenging
+to synthesize optimal motions for contact-rich tasks [35, 36,
+37]. In model-based methods, the discontinuities introduced
+by contact create obstacles for gradient-based optimization.
+Kim et al.  and  address this issue by formulating it
+as a linear complementarity problem (LCP) and relaxing the
+complementarity constraints. In contrast, Westervelt et al.
+adopts a hybrid dynamic system combined with automata to
+handle contact.
+In the realm of reinforcement learning (RL), the specifica-
+tion of sparse or contact-guided motion patterns has not been
+widely investigated or solved, such as explicitly prescribing
+contact-based motion  or relying solely on key frame tra-
+jectory tracking . Considering real-world robot collisions
+and constraints, sparse reward design in a high-dimensional
+sampling space severely limits effective exploration . In
+a Beta action distribution , this paper achieves contact-
+specified skateboarding motion on a quadruped robot, with
+on-the-fly adjustments of the gait pattern.
+C. Hybrid Dynamics
+Hybrid dynamic systems are employed to describe systems
+that feature continuous states and discrete modes, and they are
+widely used in model-based control and cyber-physical sys-
+tems . For instance, floating-base robots are often treated
+as hybrid dynamic systems due to the discontinuities and
+straightthrough
+gradients
+Activate
+(Controller)
+Discrete-time
+Hybrid Automata
+Beta Distribution
+Hybrid Dynamics
+History Trajectory
+Non-activated
+Dynamics Modules
+Non-activated
+Dynamics Modules
+Non-activated
+Dynamics Modules
+Transi4on Dynamics
+Hybrid Dynamics Representation
+Current Observation
+Fig. 3: Discrete-time Hybrid Dynamics Learning (DHAL) Framework: (a) During training, the network learns to select the mode and activate the corresponding
+dynamics module (yellow-highlighted) to predict transition dynamics and contact. Here, Pi represents the probability of the robot being in mode i at time t.
+(b) The temporal features extracted by the encoder are combined with the current state and last action into the actor. The actor updates , , which define
+the probability density function of the Beta distribution, and then samples joint actions from the Beta distribution. (c) In a real-world deployment, we use
+different LED colors to indicate the active modes, showcasing smooth transitions and mode-specific behaviors.
+jumps caused by contact. Recently, Ly and Lipson , Chen
+et al. , Poli et al. , Teng et al.  have leveraged data-
+driven approaches to construct either discrete or continuous
+hybrid dynamic systems.
+Unlike previous work, we integrate reinforcement learning
+with hybrid dynamics, enabling the robot to learn a hybrid
+dynamics automata for explicit mode switching and control
+without requiring labels or segmentation.
+III. BACKGROUND AND PROBLEM SETTING
+For clarity and reference, Table I provides an overview of
+the key symbols and abbreviations used throughout this paper.
+A. Markov Decision Process
+We model the robot control problem as an infinite-horizon
+partially observable Markov decision process (POMDP), com-
+posed by tuple M  (S, O, A, p, r, ), with st S the
+full states, ot O the partial observation of the agents
+from the environment, at A the action the agent can
+take to interact with the environments, and p(st1st, at) the
+transition function of state st. Each transition is rewarded by a
+reward function r : S A R with  representing a discount
+factor. The optimization objective of reinforcement learning is
+to maximize the expected total return E
+B. Discrete Hybrid Dynamical System
+The hybrid dynamical system involves discrete and contin-
+uous dynamics or states. The system has a continuous flow in
+each discrete mode and can jump between these modes [44, 9].
+Although using a set of ordinary differential equations (ODEs)
+with transition maps modeled by neural networks has shown
+some promising results [9, 8], the continuous integration is
+computationally expensive and challenging to apply in real-
+world robot control, which is a digital control system. In this
+we adopt discrete hybrid automata to model the dynamics of
+legged robots, which naturally exhibit hybrid behaviors.
+For embedding discrete hybrid automata, we utilize the
+concept of switched systems to model the hybrid dynamics
+for legged robots. The dynamics of the legged robot in each
+mode can be described as
+st1  f it(st, at),
+where st Rn is the states, at Rm is the input, it I
+{1, 2, ..., K} is the modes at time step t, f it : RnRm Rn
+is the dynamics on mode i. The mode it is determined by
+an extra mode selector. We assume that all system states are
+Dynamics for each mode is unique, i.e., f i  f j, i, j I.
+The maximum possible number of mode K is assumed to be
+In this work, we use neural networks to model both the
+dynamics and the automata (mode selector), aiming to extract
+a latent representation that informs the actor. To maintain
+consistency with the stochastic nature of the MDP, we utilize
+a -VAE to model the state transition in equation (1). Unlike
+hybrid systems described by continuous flow [44, 9], we omit
+the explicit jump mapping between different modes, as it is
+captured within the discrete-time dynamics (1).
+C. Environment Design
+To demonstrate the effectiveness of our approach, we aimed
+to select a challenging environment that involves complex
+mode transitions and contact-rich dynamics. Inspired by the
+real-world example of dogs learning to ride skateboards, we
+identified the task of a robotic dog skateboarding as a highly
+demanding scenario. This task presents distinct hybrid dy-
+namics challenges, such as the significant differences between
+the gliding and pushing modes. We believe this represents
+a worthwhile and meaningful challenge for validating our
+method. Our method is not limited to the skateboarding task
+but can also be expanded to other scenarios.
+In this paper, we conducted experiments using the Unitree
+Go1 robot. The skateboard used in our experiments measures
+800 mm  254 mm  110 mm. The Unitree Go1 is equipped
+with 12 actuated joints. Although it lacks the spinal degrees of
+freedom in real quadrupedal animals, our experimental results
+demonstrate that it can still effectively control skateboard
+movement.
+To simplify the design of the system, we connected the
+end of the Unitree Go1 left forelimb to the skateboard using
+a spherical joint in simulation, providing passive degrees of
+freedom along the x, y, and z axes. Unlike Chen et al. ,
+the wheels of the skateboard can only passively rotate around
+their respective axes. Additionally, we simulated the truck
+mechanism of the skateboard in the simulation using a position
+PD controller to replicate its mechanical behavior.
+IV. METHODS
+We introduce DHAL, as shown in Fig. 3, to illustrate the
+proposed controller  that leverages the model-based hybrid
+dynamics. More specifically:
+i. Discrete-time Hybrid Automata, a discrete mode se-
+at each time step.
+ii. Dynamics Encoder, based on the mode z chosen from
+discrete-time hybrid automata, the chosen dynamics
+encoder will be activated and get a tight representation
+of flow dynamics.
+iii. Dynamics Decoder, to decode the representation and
+predict transition dynamics ot1 and contact event ct1.
+iv. Controller, based on the tight representation from the
+dynamics encoder and observation at the current mo-
+A. Discrete Neural Hybrid Automata
+Previous research has explored modifications to the loco-
+motion and manipulation framework, such as incorporating
+estimators to predict transition dynamics [27, 47, 48, 49]. The
+dynamics of legged robots inherently exhibit hybrid behavior
+due to contact events, as illustrated in Fig. 4. We model
+the contact as a perfect inelastic collision, which means the
+velocity of the contact point instantaneously drops to zero
+from a nonzero value. Consequently, the state also undergoes
+TABLE I: Important symbols and abbreviations
+Full State
+Partial Observation
+State Space
+Action Space
+Discount Factor
+Hybrid Dynamics System
+Discrete-time dynamics
+Mode index
+Number of modes
+Jacobian
+Probability of each mode
+mode indicator vector
+maximum number of modes
+Environment
+Joint Position
+qF LF RRLRR
+Joint Velocity
+qF LF RRLRR
+Go1 Base Roll, Pitch,Yaw
+Go1 Base angular velocity
+aF LF RRLRR
+cmd  [cx, cyaw]
+Proprioception
+o  [q, q, gx,y,z, , , , x, y, z]
+a discrete jump, resulting in a hybrid dynamics formulation.
+To illustrate this, consider a simplified example of a single 3-
+DoF leg attached to a fixed base. The velocity of the contact
+point is given by
+vc  Jc(q) q,
+where vc R3 is the linear velocity of the contact point,
+Jc(q) R33 is the Jacobian, q R3 is the joint angular
+velocity. In most cases, Jc(q) is invertible, implying that a
+discontinuity in vc directly induces a discontinuity in q. This
+simple example highlights the inherent hybrid nature of legged
+robot dynamics.
+Fig. 4: Switching of a hybrid system with inelastic collision. When the leg
+contacts the ground, the linear velocity will abruptly drop to zero.
+In this work, we aim to extract a latent representation of
+the dynamics for the controller. To achieve this, we model
+the dynamics for each mode and design a discrete-time hybrid
+automata (DHA) to determine which dynamics is active at any
+given time, as illustrated in Fig. 3. Since only partial observa-
+tions ot are available in practice, we consider partial discrete-
+time dynamics rather than the full state st. As discussed in
+Sec. III-B, we employ a -VAE instead of a deterministic
+dynamics model to better align with the stochastic nature of
+reinforcement learning. This process can be expressed by
+it  fDHA(otk:t, atk1:t1; DHA),
+dec f it
+enc(otk:t, atk1:t1; vae),
+where it {1, 2, ..., K} is the mode for current time t, which
+is determined by a state-action sequence (otk:t, atk1:t1).
+ct1 S represents the contact information for each foot, see
+(7). The maximal number of modes is pre-defined. The next
+partial state ot1 and contact information ct1 are determined
+by a -VAE at mode i, taking the same input as the hybrid
+automata. A key advantage of the -VAE is that it directly
+provides a latent representation of the dynamics. The hybrid
+automata rely on multiple modules in conventional switched
+affine systems . In contrast, our approach simplifies it to
+a single network with a window of past state-action as input.
+a one-hot latent, making this an unsupervised classification
+problem. We employ a combination of a softmax classifier
+and categorical sampling to determine the mode. First, the
+probability distribution over modes is computed as
+p  fsoftmax fDHAlogit(otk:t, atk1:t1; DHA),
+where p is the probability for each mode, fsoftmax is the
+softmax loss, flogit is the logit function, DHA represents
+the parameters of the DHA neural network. Next, categorical
+sampling is applied to p to obtain a one-hot latent vector ,
+which indicates the selected dynamics mode:
+Categorical(p),
+where i  1 represents the mode is it  i.
+With the hybrid automata, we build K corresponding dy-
+namics -VAEs for K modes. For each mode, the -VAE
+encodes the historical trajectory and extracts the time-sequence
+feature into a latent representation, which will be decoded into
+the next partial state ot1. The latent representation in -VAE
+encodes substantial dynamic information; hence, we use it in
+the controller. For the encoder, we adopt a one-dimensional
+CNN architecture due to its superior ability to capture temporal
+enc(otk:t, atk1:t1; enc),
+where zt Rn is the latent representation, and the mode
+selector is included using . The decoder then uses this
+representation to predict ot1, ct1, which can be expressed
+dec(zt; dec),
+where ct1 [0, 1]n is the probability that each leg is in
+contact at time t  1. We include contact information to make
+learning hybrid switching easier for the networks.
+is required to train these two neural networks ; however,
+the mode label is hard to obtain even in simulation. To
+address this, motivated by Mitchell et al. , we utilize the
+unsupervised learning method to train the mode selector. We
+train the mode selector and the -VAE simultaneously as (3),
+where the mode is self-determined by constructing the loss
+function as
+MSE(ot1, ot1)BCE(ct1, ct1)LKL), (8)
+where ot1, ct1 are the ground truth values, MSE represents
+mean-square-error loss, BCE represents binary-cross-entropy
+loss. The KL divergence prevents the encoder from fitting the
+data too flexibly. It encourages the distribution of the latent
+variable to be close to a unit Gaussian, while  is used to
+control the trade-off scale. The hybrid automata is trained
+by minimizing the prediction error of ot1, ct1, where the
+correct mode label will result in a lower prediction error.
+Such unsupervised learning eliminates the need for ground
+truth mode labels, which are often difficult to obtain in high-
+dimensional systems. The discrete categorical sample results in
+discontinuity of gradients, so we apply the straight-through-
+gradient method  to realize backpropagation during the
+training. Moreover, the gradient of the discrete-time automata
+is independent of PPO, ensuring accurate mode identification.
+extract useful temporal features.
+In addition, we encourage the mode to be distinguished by
+minimizing the information entropy of the mode probability
+LDHA  Lvae  H(p),
+where H represents information entropy, aiming to ensure that
+the probabilities of modes are as distinct as possible and to
+prevent confusion between modes.
+We adopt a discrete-time formulation compared to  that
+models hybrid dynamics using a continuous flow approach.
+This formulation unifies mode switching and dynamics within
+a single framework rather than treating them separately. Fur-
+trajectories to distinguish the mode, our method integrates
+mode selection directly into the training process, streamlining
+the entire workflow. The detailed network architecture and
+hyperparameters can be found in the Appendix.
+B. Multi-Critic Reinforcement Learning
+Inspired by Zargarbashi et al. , Xing et al. , we adopt
+the concept of multi-critic learning and apply it to the design of
+multi-task objectives for different motion phases. Designing an
+intuitive reward function for the robotic dog to perform skate-
+boarding maneuvers is challenging. Therefore, we leverage
+sparse contact-based rewards to guide the robot in executing
+Weighted normalized Advantage  PPO
+Pusing Cri7c
+Gliding Cri7c
+Sim2Real Cri7c
+ACTOR (Controller)
+Fig. 5: Multi-Critic Skateboard Task
+smooth pushing motions and gliding on the skateboardtwo
+distinctly different movement patterns. Unlike the approach
+in Fu et al. , where minimizing energy consumption is
+the gliding motion naturally. This difficulty arises because
+has a much smaller stability margin. As a result, the robot
+tends to avoid using the skateboard altogether to minimize
+energy loss rather than embracing it as part of the task.
+To address this challenge, we design two distinct tasks
+corresponding to different phases of the cycle: gliding and
+pushing. During the pushing phase, the primary objective is
+to track the desired speed, while during the gliding phase,
+the goal is to maintain balance and glide smoothly on the
+skateboard. Although we specify the motion phase transitions
+using cyclic signals during training to ensure balanced learning
+of both tasks, in real-world deployment, these cyclic signals
+can be adapted on the fly or generated based on the velocity.
+The cyclic signal is an indicator that informs the robot of
+which movement pattern to adopt.
+ization terms for sim-to-real adaptation are dense, while the
+contact-related rewards are inherently sparse at the early stages
+of exploration, using a single critic to estimate the value of all
+rewards can lead to the advantages of sparse rewards being
+diluted by the dense rewards during normalization, which
+makes it difficult for the robot to learn the desired different
+style behaviors .
+To mitigate this and generate different style motions, we
+introduce a multi-critic framework, as illustrated in Fig. 5. We
+define three reward groups, each associated with a different
+Gliding Critic: Responsible for evaluating rewards re-
+lated to gliding, such as speed tracking.
+Pushing Critic: Focused on sparse contact-related re-
+wards during the pushing phase.
+Sim2Real Critic: Responsible for rewards related to sim-
+to-real adaptation, such as action regularization.
+Each critic is updated separately to estimate its value
+function. When calculating the overall advantage, the outputs
+of three critics are normalized and combined using weighted
+summation. Similar to Zargarbashi et al. , advantage
+TABLE II: Summary of Reward Terms and Their Expressions. Each term is
+multiplied by its phase coefficient (glide or push) if it belongs to a specific
+Gliding Critic Reward
+Expression
+Feet on board
+Contact number
+glide Rcontact num(22)
+Feet distance
+glide exp
+i1 pglide,j pfeet,j
+Joint positions
+glide exp
+i1(qi qglide
+Hip positions
+glide exp
+iHip(qi qglide
+Pushing Critic Reward
+Expression
+Tracking linear velocity
+push exp
+Tracking angular velocity
+push exp
+Hip positions
+push exp
+iHip(qi qpush
+Orientation
+push gxy2
+Sim2Real Critic Reward
+Expression
+Wheel contact number
+iwheels ci  4
+Boardbody height
+(zbody zboard) 0.15
+Joint acceleration
+Collisions
+Action rate
+a(t) a(t1)
+Delta torques
+Linear velocity (z-axis)
+clip(vz, 1.5, 1.5)
+Angular velocity (xy)
+clip(xy, 1, 1)
+Base orientation
+Cycle Calculation
+Expression
+Still Indicator
+Glide Indicator
+glide  LPF
+Push Indicator
+push  LPF
+Low pass filter
+weights of each critic are treated as hyperparameters. This
+approach reduces the sensitivity to reward tuning, simplifying
+the reward design process. Specifically, the reward function is
+presented in the Table. II and their values are in Appendix A.
+C. Beta Distribution Policy
+In quadrupedal locomotion tasks, the mainstream frame-
+works typically assume a Gaussian distribution as the policy
+distribution in PPO due to its intuitive parameterization and
+ease of shape control . However, when the action space has
+strict bounds (e.g., joint position limits to prevent collisions in
+quadrupedal robots), the Gaussian distribution can introduce
+bias in policy optimization by producing out-of-bound actions
+that need to be clipped . While this issue has been noted
+in prior work, it has not been widely addressed in the context
+of robotic locomotion.
+We observe that the Beta distribution offers a significant
+advantage over the Gaussian distribution in effectively utilizing
+the action space under sparse reward conditions. In contrast,
+Gaussian policies may increase the variance excessively to
+explore more action space and trigger potential sparse rewards.
+This aggressive strategy can lead to suboptimal performance,
+getting stuck in local optima, and even result in hardware
+damage and safety hazards during real-world deployment.
+distribution for our framework.
+In our implementation, the policy outputs the shape param-
+eters (, ) of the Beta distribution for each joint indepen-
+dently. To ensure that the Beta distribution remains unimodal
+( > 1,  > 1), we modify the activation function as follows:
+SoftplusWithOffset(x)  log(1  ex)  1  106.
+The standard Beta distribution is defined over [0, 1]:
+To adapt this to the robot action space [amax, amax] where
+amax > 0, we apply the following transformation:
+a  a  2amax amax.
+In the expression, the a denotes the actual action that the
+robot will execute. This approach enables the policy to produce
+out-of-bound behaviors while entirely using the action space.
+We provide a proof in the Appendix B demonstrating that
+our method does not introduce bias or result in a variance
+explosion.
+V. EXPERIMENTS
+In the experiment, we answer the following questions re-
+garding the performance in hybrid robotics systems:
+Dynamics modeling?
+Can our method achieve skateboarding in the real
+world with disturbances?
+A. Prediction of Dynamics
+To answer Q1, we compare the dynamics prediction loss
+between different maximal modes, corresponding to the di-
+mension of the mode indicator . Among these modes,
+the condition where the number of modes  equals one
+represents using one network to model the whole dynamics,
+like . We trained each condition three times with random
+seeds for network initialization. The curve shows the average
+reconstruction loss under different modes as shown in Fig. 7.
+The loss is the highest when the maximum number of modes
+is 1. After incorporating the hybrid dynamics idea, different
+modes are switched to guide the conversion and mutation
+of flow dynamics; the reconstruction loss is minor. Starting
+from the maximum number of modes 2, the improvement in
+prediction accuracy begins to plateau.
+Fig. 6: Trajectory Prediction Visualization: The comparison between the actual
+position trajectory (solid line) and the predicted position trajectory (dashed
+line) for the right front leg joint motor of the physical Go1 robot during
+skateboarding is shown. We selected the right front leg joint, which exhibits
+the largest range of motion, as the visualization target. During deployment,
+the system utilizes the mode selection results from the automata to choose the
+corresponding decoder for prediction, consistent with the training process.
+This is consistent with our assumption that building the
+system as a hybrid dynamics system in a system with mutation
+and other properties is more reasonable. Considering that the
+two primary states of the skateboard are the skateboard up and
+the skateboard down, when  2, there is a marginal effect
+of improvement. When  4, the prediction accuracy can
+hardly be improved and converges to the state of mode3. It
+is worth noting that we only set the maximum number
+of modes to 3, rather than requiring that all three modes
+must be present. Therefore, in subsequent experiments, we
+believe that a mode count of three is the reasonable maximal
+number of modes for this system, corresponding to three
+motion modes: on the skateboard, pushing the skateboard
+under the skateboard, and being in the air between the two.
+We will showcase the mode identification in section V-B.
+To validate the accuracy of the predicted dynamics, we
+deployed our DHAL algorithm on the physical robot and
+recorded both the predicted and actual dynamics in real time.
+In this experiment, we applied a clock signal with a fixed
+period of 2.5 seconds to the controller, alternating the upward
+and downward movements of the skateboard. Notably, this
+clock signal differs from the one used during the training
+phase (4s), providing an additional test for the accuracy of
+the predicted dynamics under new conditions. As shown in
+Fig. 6, the representation can accurately predict the trajectory
+and jumps of the states. In the next section, we will evaluate
+the capability of the method for mode identification and its
+ability to adjust phases on the fly.
+B. Mode Identification
+To answer Q2, we collected real-world trajectories of the
+robot skateboarding along with the modes selected by the
+controller for visualization, as shown in Fig. 8. Additionally,
+we used different RGB LED colors to represent the dynamic
+modules selected by the hybrid automata. The figure shows
+that when the robot is in the gliding phase, with all four
+feet standing firmly on the skateboard, the hybrid automata
+classify this state as mode 3 (red). When the right front foot
+starts lifting off the ground and entering the swing phase, the
+Dynamics
+Prediction
+dynamics
+prediction
+MSE(ot1, ot1) during training is shown in the figure, where the thick line
+represents the average loss, and the shaded regions indicate the confidence
+intervals across different seeds.
+automata naturally transition to mode 1 (green). This brief
+transition corresponds to the sharp change in joint angles
+shown in the figure. Once both the right legs are entirely in
+contact with the ground, the automata switch to mode 2 (blue).
+This sequence of mode selections and transitions is smooth
+and explicitly aligns with the decomposition of skateboarding
+and off the skateboard, and (3) pushing phase. These results
+demonstrate that our hybrid automata make mode selections
+highly consistent with physical intuition.
+embedding (t-SNE) to reduce the dimensionality of the hidden
+layer outputs from the controller. As illustrated in Fig. 9,
+the latent space exhibits a clearly defined distribution across
+different modes. Interestingly, the resulting latent structure is
+remarkably similar to that reported in . Specifically, the red
+region primarily corresponds to the data collected during the
+movements on the skateboard, the blue region represents states
+where the right two legs are in contact with the ground during
+phases when transitioning on and off the skateboard.
+This observation highlights two key points: (1) our con-
+troller effectively handles motion control tasks across different
+rately differentiate between various modes.
+C. Performance on Skateboarding
+To answer Q3, this section presents ablation studies and
+real-world experiments to evaluate our method. The analysis
+is divided into the following parts: (1) Comparison of training
+(3) Experiments in real-world scenarios with disturbances,
+including success rate statistics.
+Comparison of training returns: Since the skateboarding
+task is designed to be contact-guided, the training process ex-
+hibits significant randomness, leading to considerable variance
+in training curves even for the same method. Therefore, the
+primary goals of this experiment are: (1) to identify the key
+factors driving successful training, and (2) to evaluate whether
+our method can approach optimal performance.
+For a comparative evaluation, we compared the following
+algorithms with access to proprioception only:
+1) PPO-oracle-beta: Training a policy with full privileged
+observations and the Beta distribution.
+2) DreamWaq : Training a dynamics module to esti-
+mate velocity and future observation.
+3) PPO-curiosity [54, 10]: Training directly with only
+proprioception
+following
+curiosity
+As shown in Fig. 10, our method could achieve comparable
+performance with PPO-oracle-beta, which has privileged ob-
+servation about skateboard information. Notably, for the meth-
+ods with the Gaussian distribution, the robot cannot learn how
+to do skateboarding, even leading to dangerous motion, which
+makes real-world deployment infeasible. The result aligns
+with the discussion in Section IV-C: in environments with
+high exploration difficulty, the Gaussian distribution tends to
+prioritize increasing variance to expand the exploration range,
+thereby randomly encountering reward points. However,
+due to the physical constraints of the robot, this exploration
+strategy introduces bias, causing Gaussian distribution policies
+to favor movements closer to the constraints and ultimately
+leading to failure .
+Comparison with single-critic: We trained our multi-critic
+method and the single-critic method for comparison. Since our
+multi-critic approach normalizes the advantages of different re-
+ward groups and combines them through weighted summation,
+while the single-critic approach lacks this weighting advantage
+critic method:
+same reward configuration as the multi-critic method,
+but with new reward weights transferred based on the
+advantage weights
+same reward configuration and weights as the multi-critic
+As shown in Fig. 11, for the single-critic approach without
+transferred weights, the robot exhibited aggressive and erratic
+During forward motion, excessive hyperflexion at the foot
+caused it to get stuck, and when mounting the skateboard,
+the hind legs often slipped off. In contrast, the single-critic
+approach with transferred weights successfully mounted the
+skateboard. However, during the pushing phase, the robot pri-
+marily relied on its hind legs, leaving the front legs suspended
+for extended periods, resulting in an unnatural gliding posture.
+With our multi-critic training scheme, the robot achieved a
+smooth and natural motion, efficiently executing rapid pushing
+and demonstrating significantly more stable and graceful tran-
+sitions on and off the skateboard. We obtained results similar
+to Mysore et al. , proving that the multi-critic approach is
+well-suited for multi-style learning.
+Joint Posi)on
+Time Step
+Acceleration Stage
+Fig. 8: Effectiveness of mode identification. In the real-world deployment, we light up different RGB light bar colors according to the mode to show the
+switching between different modes. The following figure shows the change in joint position relative to time in the test, and the different background colors
+represent different corresponding modes. [H, T, C] denote the Hip, Thigh, and Calf Joints, respectively.
+Fig. 9: Visualization of hidden layer of the controller: Scatter points in
+different colors correspond to the different modes identified by the system,
+consistent with Fig. 8. Specifically, [green, blue, red] represent [mode 1, mode
+Quantitative Experiments: We conducted quantitative ex-
+periments in real-world scenarios to evaluate whether our
+method can complete the skateboarding task under real-world
+noise and disturbances. These disturbances include, but are
+not limited to, sensor noise, skateboard property variations,
+terrain irregularities, and dynamics noise . Using the
+trained model, we tested the following scenarios: (1) smooth
+ceramic flooring, (2) soft carpeted flooring, (3) disturbance, (4)
+slope terrain, (5) single-step terrain, (6) uneven terrain. Each
+scenario was tested ten times, with each test containing at least
+Fig. 10: Comparison of Training Rewards: Comparison of mean reward during
+training is shown in the figure, where the thick line represents the average
+different seeds. Each method was trained using four random seeds to evaluate
+performance.
+one full cycle of mounting and dismounting the skateboard.
+The test terrain is shown in Fig. 1 and success rate statistics
+are shown in Table. III. More extreme terrain experiments and
+validation in another task could be found in Appendix E-D.
+VI. LIMITATIONS AND DISCUSSION
+1. Perception Limitations: To connect the robots left
+front foot to the skateboard (only one foot), we assumed
+a spherical joint to prevent the skateboard from completely
+detaching from the robot. The transition from walking to skate-
+boarding presents a significantly greater challenge, requiring
+hardware modifications, such as adjusting the camera layout
+Fig. 11: Comparison between single-critic policy and multi-critic policy:
+Single-critic-wo-transfer (A1 A3), Single-critic-w-transfer (B1 B3),
+ours (C1 C3).
+TABLE III: Success Rate Comparison: We deployed each method on a real
+robot to evaluate the success rate. Each method was tested five times per
+scenario. Success was defined as completing at least one full up-board and
+down-board motion, traversing over a distance of more than 5 meters, and
+avoiding abrupt movements or detachment from the skateboard. indicates
+complete failure (Massive torque caused the joints protection state; for
+hardware protection, we first test the torque value in simulation to ensure
+it will not exceed the safety range).
+Disturbance
+Our-wo-MC(transferred)
+Our-wo-MC
+Ours-wo-Beta
+DreamWaq
+Single-step
+Our-wo-MC(transferred)
+Our-wo-MC
+Ours-wo-Beta
+DreamWaq
+and incorporating multiple cameras to locate the skateboard.
+skateboarding using perception-based methods. Initially, we
+attempted to use the RealSense T265 for state estimation, but
+later determined it was unnecessary for this task. However, for
+future work, when the foot is not fixed to the board, the state
+estimation methods [56, 57, 58, 59, 60] need to be carefully
+integrated.
+2. Complex skill Generalization: Our method cannot
+generalize to extreme skateboarding techniques equivalent to
+those of human athletes, such as performing an ollie. The
+current simulation setup cannot accurately replicate the motion
+and contact dynamics of passive wheels in such challenging
+scenarios. Instead, we relied on approximations and alterna-
+tive techniques to simulate these dynamics as realistically as
+possible.
+3. Limitations in Dynamics Learning: The learned dy-
+namics are not yet precise enough for model-based control.
+dynamics predictor prevents iterative optimization, such as that
+used in MPC, limiting the flexibility and efficiency of our
+approach.
+4. Non-Trivial Environment Design: The environment
+setting and design for robot skateboarding is non-trivial. This
+part requires manual design and inspection. We believe that
+in the future, integrating environment generation with large
+models  could potentially help address this challenge.
+VII. CONCLUSION
+We proposed the Discrete-time Hybrid Automata Learning
+(DHAL) framework to address mode-switching in hybrid
+dynamical systems without requiring trajectory segmentation
+or event function modeling. By combining a multi-critic ar-
+chitecture and a Beta distribution policy, our method demon-
+strates robust handling of contact-guided hybrid dynamics,
+as validated through the challenging task of quadrupedal
+robot skateboarding. Real-world experiments showed that our
+approach achieves smooth and intuitive mode transitions,
+effectively balancing gliding and pushing behaviors. While
+limitations remain, such as terrain generalization and coupling
+between the controller and dynamics predictor, DHAL offers
+a promising step toward learning-based control for hybrid
+systems in robotics.
+ACKNOWLEDGMENTS
+M. Ghaffari was supported by AFOSR MURI FA9550-
+23-1-0400. We appreciate the valuable discussions, hardware
+Yi Cheng. We also extend our gratitude to Linqi Ye for the
+initial brainstorming and insightful suggestions.
+APPENDIX A
+MULTI-CRITIC
+A. Multi-Critic PPO Loss design
+Motivated by Zargarbashi et al. , we define P, G, and S
+to represent the Pushing, Gliding, and Sim2Real tasks,
+respectively. Consequently, rP, rG, rS denote the weighted
+sums of the specific reward groups, while VP, VG, VS corre-
+spond to the respective value networks. The overall value loss
+is given by Lvalue  LP LG LS, where each term is defined
+time t. Each value loss minimizes the temporal difference (TD)
+error of the corresponding reward group.
+For advantage estimation in PPO, each reward group and its
+associated critic calculate the advantage separately based on
+the TD error. Taking Pushing as an example, the TD error
+is defined as:
+Fig. 12: Real-world Experiments in Skateboard Park. For additional demonstrations, please refer to our website, where more result videos are available.
+where dt is an indicator variable denoting whether the episode
+terminates at time t. The advantage is then calculated recur-
+sively as:
+ance in advantage estimation. After calculating the advantage
+for Pushing, it is normalized as follows:
+where AP,t and AP,t are the mean and standard deviation of
+the advantage values for the Pushing task, and  is a small
+constant added for numerical stability. This process is repeated
+for both Gliding and Sim2Real, resulting in normalized
+advantages AG,t and AS,t. Finally, the weighted sum of all
+normalized advantages is computed as:
+At  w1 AP,t  w2 AG,t  w3 AS,t.
+The surrogate loss is then calculated as in the standard PPO
+Lsurrogate  Et
+t At, clip(t, 1 , 1  ) At
+where t is the ratio between the new and old policy proba-
+bilities. Finally, the overall PPO loss is computed as:
+LPPO  Lvalue  Lsurrogate c  H().
+couraging exploration, and c is a weighting coefficient. This
+formulation integrates the value loss, the surrogate loss, and
+an entropy regularization term to achieve robust and efficient
+policy optimization.
+B. Reward Detail
+The contact number reward for the gliding phase is ex-
+pressed as:
+R  2  Rskateb Pground,
+where Rskateb represents the reward for maintaining correct
+contact with the skateboard, and Pground is the penalty for
+undesired ground contact.
+The skateboard contact reward is given by:
+Rskateb  glide(
+1(cskateb,i)41(
+1(cskateb,i)  4)),
+where glide is a scaling coefficient for the gliding phase,
+1(cskateb,i) indicates whether the i-th foot is in contact with
+the skateboard, and an additional reward is provided if all four
+feet maintain contact.
+The ground contact penalty is expressed as:
+Pground  glide(
+1(cskateb,i)
+1(cground,i)),
+where 1(cskateb,i) penalizes the lack of skateboard contact
+for specific feet, and 1(cground,i) penalizes unintended ground
+contact.
+This reward design encourages the agent to maintain sta-
+ble contact with the skateboard while avoiding unnecessary
+ground contact, ensuring smooth and efficient gliding behavior.
+The detailed reward weights are shown in Table IV.
+APPENDIX B
+BETA DISTRIBUTION
+A. Why Gaussian distribution policy introduces bias
+Based on Chou et al. , when a Gaussian policy (a
+) is employed in a bounded action space
+[h, h](whatever because of environment manually design or
+physical constraints of robots), any action a exceeding these
+TABLE IV: Reward weights and Advantage weights for skateboarding envi-
+ronment design
+Gliding Critic Reward
+Feet on board
+Contact number
+Feet distance
+Joint positions
+Hip positions
+Pushing Critic Reward
+Tracking linear velocity
+Tracking angular velocity
+Hip positions
+Orientation
+Sim2Real Critic Reward
+Wheel contact number
+Boardbody height
+Joint acceleration
+Collisions
+Action rate
+Delta torques
+Linear velocity (z-axis)
+Angular velocity (xy)
+Base orientation
+Advantage
+Gliding Critic Advantage
+Pushing Critic Advantage
+Sim2Real Critic Advantage
+limits is clipped to clip(a) [h, h]. Ideally, the policy
+gradient should be computed as
+log (a  s) A(s, a)
+gclip   log (clip(a)  s) As, clip(a)
+then integrating over all a reveals a discrepancy whenever
+a > h. Specifically,
+E[gclip] J()
+a>h (as)( log (hs)A(s, h)
+log (as)A(s, a)) da
+Because a Gaussian often places non-negligible probability
+mass outside h, this mismatch fails to cancel out, producing
+a biased gradient that nudges the policy to favor actions
+beyond the valid range. The Policy Gradient of the Gaussian
+distribution policy is shown below.
+outside the valid range. Increasing the variance becomes a
+direct consequence of this tendency. This forms a positive
+feedback loop: the more the policy variance grows, the more
+out-of-bound actions are sampled, and the larger (a )2
+becomes in the gradient, even though the actio

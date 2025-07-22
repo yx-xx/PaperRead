@@ -1,0 +1,1061 @@
+=== PDF文件: Reactive Diffusion Policy Slow-Fast Visual-Tactile Policy Learning for Contact-Rich Manipulation.pdf ===
+=== 时间: 2025-07-22 15:48:22.564473 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Reactive Diffusion Policy:
+Slow-Fast Visual-Tactile Policy Learning for Contact-Rich Manipulation
+Han Xue1
+Jieji Ren1
+Wendi Chen1
+Gu Zhang234
+Yuan Fang1
+Guoying Gu1
+Huazhe Xu234
+Cewu Lu15
+1Shanghai Jiao Tong University
+2Tsinghua University, IIIS
+3Shanghai Qi Zhi Institute
+4Shanghai AI Laboratory 5Shanghai Innovation Institute
+Equal contribution
+Equal contribution
+Equal advising
+reactive-diffusion-policy.github.io
+Environment
+Tactile  Force: Sensors
+GelSight Mini
+Data Collection System
+Tactile Teleoperation System via AR
+Realtime TactileForce
+Feedback in AR
+Support Multiple Sensors
+EE Pose Control
+Support Bimanual Robots
+Learning Algorithm
+Reactive Diffusion Policy: Slow-fast
+Visual-Tactile Learning
+Fast Policy  > 20 Hz
+Asymmetric Tokenizer
+Handle High-frequency Signals
+Quick Response Based on Feedback
+Closed-loop Tactile  Force Control
+Slow Policy  1-2Hz
+Latent Diffusion Policy
+Understand Complex Visual Cues
+Model Multi-modality
+Robust to Non-Markovian Behavior
+Latent Action Chunk
+Correction
+Fig. 1: TactAR is a low-cost and versatile teleoperation system which can provide real-time tactile  force feedback via
+Augmented Reality (AR). Reactive Diffusion Policy (RDP) is a slow-fast imitation learning algorithm that can model complex
+action trajectories with a slow policy network and achieve closed-loop control based on high-frequency tactile  force feedback
+with a fast policy network.
+AbstractHumans can accomplish complex contact-rich tasks
+using vision and touch, with highly reactive capabilities such as
+fast response to external changes and adaptive control of contact
+forces; however, this remains challenging for robots. Existing
+visual imitation learning (IL) approaches rely on action chunking
+to model complex behaviors, which lacks the ability to respond
+instantly to real-time tactile feedback during the chunk execution.
+fine-grained tactile  force feedback, which limits the range of
+tasks that can be performed. To address these challenges, we
+introduce TactAR, a low-cost teleoperation system that provides
+real-time tactile feedback through Augmented Reality (AR), along
+with Reactive Diffusion Policy (RDP), a novel slow-fast visual-
+tactile imitation learning algorithm for learning contact-rich
+manipulation skills. RDP employs a two-level hierarchy: (1) a
+slow latent diffusion policy for predicting high-level action chunks
+in latent space at low frequency, (2) a fast asymmetric tokenizer
+for closed-loop tactile feedback control at high frequency. This
+design enables both complex trajectory modeling and quick
+reactive behavior within a unified framework. Through extensive
+evaluation across three challenging contact-rich tasks, RDP
+significantly improves performance compared to state-of-the-art
+visual IL baselines. Furthermore, experiments show that RDP
+is applicable across different tactile  force sensors. Code and
+videos are available on reactive-diffusion-policy.github.io.
+indicates equal advising. Cewu Lu is the corresponding author.
+I. INTRODUCTION
+Humans are capable of performing numerous precise
+contact-rich tasks (e.g., peeling vegetables) in daily life by
+employing both vision and touch. However, these contact-rich
+tasks that appear simple to humans can be quite challenging for
+robots. Some research work in neuroscience [30, 16, 29] has
+indicated that when humans engage in contact-rich tasks, the
+process can be divided into two components: 1) feedforward
+predictive action and 2) closed-loop fine-tuning based on
+sensory feedback, such as tactile signals. Inspired by this, we
+aim to develop a robot learning system capable of emulating
+human control patterns when performing intricate contact-rich
+In recent years, visual imitation learning (IL) methods
+[10, 70] have demonstrated strong performance in various
+real-world tasks. Representative works in this area, such as
+Diffusion Policy , ACT  and 0, have employed
+action chunking to mitigate compounding errors in long
+sequences and improve temporal consistency. Action chunking
+also effectively models non-Markovian behaviors commonly
+found in human demonstrations, such as pauses or oscillatory
+motion. However, these methods operate in an open-loop
+state during the execution of action chunks, which makes the
+policy unable to respond instantly to environment changes in
+contact-rich tasks. Furthermore, the absence of tactile input
+significantly limits the capabilities of these methods. As a
+(e.g., pick-and-place, push-pull), which do not require precise
+force control or fast response.
+In order to compensate for the limitations of purely visual
+the integration of tactile input into imitation learning policies.
+observation level, using tactile input to provide additional
+information such as visual occlusion or the determination
+of contact state. At the action level, these methods still
+rely on conventional action chunking for action prediction,
+limiting their ability to respond quickly during the execution
+of the chunk. Furthermore, most approaches utilize traditional
+teleoperation to collect human demonstration data, making it
+challenging to obtain high-quality action data with fine-grained
+tactile feedback. This limitation also limits the types of tasks
+that these methods can effectively perform.
+In this work, we propose two critical components to solve
+the above issues of visual-tactile imitation learning:
+A teleoperation system called TactAR which can pro-
+vide fine-grained tactile  force feedback in real time
+through Augmented Reality (AR).
+An imitation learning algorithm called Reactive Dif-
+fusion Policy (RDP) that retains the advantages of
+action chunking while enabling high-frequency closed-
+loop control based on tactile signals during the execution
+of each chunk.
+In our proposed TactAR teleoperation system, we use Meta
+Quest3 to provide real-time tactile  force feedback via Aug-
+mented Reality (AR). We use 3D deformation field as the
+unified representation for tactile  force feedback (Fig. 1 left)
+of different sensors. We render the 3D deformation field in
+AR and attach it to the robot end-effector in virtual space.
+Our system also supports camera streaming of tactile sensors
+and RGB cameras in AR. In this way, the user can get rich
+contact information during teleoperation including the tactile
+TactAR system is designed with an emphasis on versatility
+and accessibility: (1) it supports multiple types of tactile
+force sensors; (2) it can be easily deployed in different robot
+embodiments; (3) it is very cost-effective (500 for Meta
+Quest3).
+To leverage the high-quality visual tactile data collected
+by the TactAR system, we propose an imitation learning
+algorithm called Reactive Diffusion Policy (RDP) (Fig. 1
+right). Inspired by human control strategies in contact-rich
+use a slow network (latent diffusion policy, LDP) to act like a
+neural planner and predict a high-level action chunk in latent
+space at low frequency (1-2 Hz), which is analogous to the
+predictive action. Then we use a fast network (Asymmetric
+and finetune the latent action chunk based on high-frequency
+tactile feedback (20-30 Hz), which is analogous to the closed-
+loop finetuning. This hierarchical structure allows the slow
+network to preserve its ability to model complex and non-
+Markovian actions via the diffusion model  and action
+with real-time tactile feedback for precise force control and
+quick response.
+We have conducted experiments on three challenging
+contact-rich tasks, which can evaluate the model performance
+on the following aspects: (1) precision, (2) precise and adaptive
+force control, (3) fast response under disturbances, and (4)
+bimanual coordination. Real-world experiments have shown
+that our Reactive Diffusion Policy algorithm can model com-
+plex actions while maintaining very fast reactive behavior,
+achieving a significant performance improvement (> 35)
+in three tasks compared to state-of-the-art IL baselines. We
+have also conducted user studies and quantitative analyses
+to validate the high quality of the data collected by TactAR
+teleoperation system. Furthermore, we conduct cross-sensor
+experiments demonstrating that RDP is applicable across var-
+ious tactile  force sensors (GelSight Mini, MCTac
+and built-in joint torque sensors ). The code of the TactAR
+teleoperation system and Reactive Diffusion Policy algorithm
+are available on reactive-diffusion-policy.github.io.
+II. RELATED WORK
+A. Tactile  Force Sensing Hardware in Robotics
+Many robotics tasks require physical interaction with the
+world. Tactile sensors and force sensors can provide richer
+information about the contact physics compared to RGB
+cameras. Each type of sensors have their advantages and
+limitations. Force sensors mounted on the robot end effector or
+joint torque sensors on the robot arm can directly obtain force
+torque readings and are less prone to damage. Nevertheless,
+force and torque sensors are prone to signal noise, particularly
+during rapid movement, and they also tend to be relatively
+expensive.
+The tactile sensors can be classified as electrical sensors and
+optical sensors. Electrical sensors use capacitative [22, 59, 61,
+60], resistive [53, 4, 52], MEMS  or magnetic particles
+[5, 25, 55, 62, 6] to sense contact. Such sensors are usually
+more compact and thin, but have lower spatial resolution
+and are complex to manufacture. Only some electrical tactile
+sensors can directly output both normal force and shear force
+, but rely on a complex calibration process with forcetorque
+sensors.
+Optical tactile sensors [66, 54, 37, 48, 39, 38, 35] such as
+are another stream of works; they capture high-resolution
+images with cameras to track the deformation of gels; optical
+sensors can also be equipped with markers dots to better track
+the normal and shear deformation field of the gel surface.
+Compared to electrical sensors or force  torque sensors,
+optical tactile sensors are easier to fabricate, less expensive
+and have lower signal noise. Force and torque information can
+Environment
+Tactile  Force Sensor
+Teleoperation System
+VR Headset and Controller
+Workstation
+Feature 1
+Deformation Field Extraction
+Feature 2
+Image Stream Processing
+Feature 3
+Time Synchronization
+Feature 1 Hand Pose Tracking for EE Pose Control
+2.1 Cross-sensor 3D Deformation Field
+GelSight
+Force Sensor
+2.2 Attachment to End Effector
+2.3 Camera Streaming
+Tactile Camera
+Wrist Camera
+External Camera
+Feature 2 Realtime Tactile Feedback in AR
+Tactile Stream
+25-30 Hz (opt.)
+Priorperception
+Force  Torque Stream
+120 Hz (opt.)
+Image Stream
+Action Command
+3D Deformation Field
+25-30 Hz (opt.)
+TCP Pose
+Image Stream
+25-30 Hz (opt.)
+Action Command
+Fig. 2: Overview of TactAR teleoperation system. It can provide real-time tactile  force feedback via Augmented Reality
+(AR). The tactile feedback is represented as the 3D deformation field, which is a universal representation applicable to multiple
+different tactile  force sensors. The 3D deformation field is rendered and attached to the robot end-effector in AR, which
+makes the user perceive the rich contact information in 3D space. TactAR also support real-time streaming for multiple RGB
+cameras and optical tactile sensors. Please see the video in the supplementary file for more details.
+be implicitly represented on the shear field gel surface but they
+rely on complex calibration process  to indirectly calculate
+forcetorque values. In this paper, we use two different optical
+tactile sensors (GelSight Mini  and MCTac) and the
+joint torque sensors of the robot arm to further unleash the
+potential of tactile  force sensing.
+B. Robot Data Collection System
+Teleoperation is a common way to collect expert data with
+robots. Current teleoperation systems are mainly built upon
+VR controller , hand tracking  or direct joint mapping
+[58, 15, 70] with hardwares. Most teleoperation systems are
+soley based on visual feedback, which makes them hard to
+perform precise contact-rich tasks.
+One stream of haptic teleoperation systems relies on isomor-
+phic hardwares. Bi-ACT  and Kobayashi et al.  use bi-
+lateral control with ALOHA  to get force feedback. These
+teleoperation systems are difficult to deploy on different hard-
+ware platforms due to isomorphic hardware designs. Another
+stream of teleoperation systems use forcetorque sensors for
+haptic feedback. FoAR  uses a haptic teleoperation device
+[50, 14] to obtain force feedback, but it also has a relatively
+high cost. ForceMimic  adds a force sensor on a hand-
+held device  to get force feedback, but suffers from the
+inaccuracy of pose estimation, and thus cannot directly train
+an end2end policy. ACP  uses a low-stiffness compliance
+kinesthetic teaching system to provide haptic feedback, but
+requires complex custom adapters for the end effectors.
+Some research works use vibration in VR headset [32, 1,
+provide very coarse information about contact. Our method
+combines the advantages of low-cost VR controller and tactile
+preserving the accuracy needed for precise contact-rich tasks.
+In addition, our teleoperation systems are flexible and easy to
+deploy on different tactile sensors and robot platforms.
+C. Visual-tactile Manipulation
+Tactile sensing is crucial in robotic manipulation, com-
+pensating for visual occlusions and providing forcetorque
+feedback in complex tasks. While manipulation with tactile
+sensing has a long history [65, 67, 23, 2], many approaches
+rely on task-specific modeling [43, 2], hand-designed prim-
+itives [65, 63], or hand-crafted rewards , limiting their
+generalizability on different tasks.
+Recent advances in visual Imitation Learning (e.g., [10, 70,
+68]) have shown promise in learning complex tasks in an end-
+to-end way. Several studies [40, 27, 8, 64] have attempted to
+integrate tactile sensing with imitation learning, but most focus
+solely on normal force readings, limiting their applicability to
+versatile tasks. Only a few works leverage shear forcetorque
+data for imitation learning. MimicTouch  uses a GelSight
+-based handheld device for offline policy training but
+omits visual input due to the embodiment gap between human
+hands and robot grippers, limiting its task versatility. Similarly,
+Bogert et al.  uses GelSlim s shear force field for policy
+transfer across robot embodiments but also excludes visual
+In contrast, our method combines normal force, shear force,
+and visual RGB inputs into a unified visual-tactile policy,
+enabling deployment across a broader range of tasks. By
+integrating both tactile and visual modalities, our approach
+overcomes the limitations of prior works and achieves greater
+versatility in robotic manipulation.
+III. TELEOPERATION SYSTEM: TACTAR
+TactAR is an AR-based teleoperation system (see Fig. 2)
+that can provide real-time tactile  force feedback for complex
+contact-rich tasks. The main features of TactARs system
+design are:
+Real-time tactile  force feedback via AR. The 3D
+deformation  force field of the tactile  force sensors can
+be rendered in real time with Augmented Reality (AR).
+After a simple calibration step, the 3D deformation field
+will attach to the robot end-effector in AR, which can
+provide real-time tactile  force  torque feedbacks to the
+Cross-sensor and cross-embodiment deployment. The
+system can be deployed cross different types of tactile
+force sensors and different robot arms (single-arm or
+bimanual).
+Low-cost. The system do not need specialized or iso-
+morphic hardwares for haptic feedback. It only needs a
+consumer-level VR headset (Meta Quest3) for teleopera-
+A. 3D Deformation Field Extraction
+The gel surfaces marker array (Fig. 3) captures rich contact
+complex calibration with expensive sensors. To improve acces-
+tactile images It, we extract normalized marker positions Dt
+using OpenCV . We use a score-based tracking algorithm
+to calculate 2D optical flow between the initial frame D0
+and the current frame Dt:
+Ft  [dx, dy]  Flow(D0, Dt)
+The 3D deformation field Vt  [dx, dy, oz] (with z-offset
+oz) is then rendered in AR. For force sensors, we directly
+visualize Vt  [fx, fy, fz].
+Normal Force
+Tangential Force
+Torsional Torque
+Fig. 3: Examples of marker deformation field in GelSight Mini
+during different contact modes.
+B. Real-time Tactile  Force Feedback Rendering in AR
+Our TactAR system employs Meta Quest3s color pass-
+through mode through Unity to create an AR environment. The
+native SLAM algorithm in Quest3 tracks headsetcontroller
+spaces via a simple calibration process (Fig. 4). The ROS2-
+based architecture (Fig. 2) synchronizes data streams from
+tactileforce sensors, robot controllers, and RGB cameras.
+Tactileforce information (3D deformation field Vt) is trans-
+formed using real-time robot TCP poses and rendered in AR
+space. Optionally, our TactAR system also supports real-time
+streaming of multi-view RGB cameras (see in Fig. 2) and
+tactile cameras for more immersive teleoperation experience.
+Please see Appendix B and our website for the system latency
+and more details of TactAR.
+Target position
+Before calibration
+After calibration
+Fig. 4: Calibration process in AR. The user adjust the transla-
+tion and rotation of the virtual coordinate system such that it
+can align with the pre-defined TCP position (the white sphere)
+and the origin of the world coordinate system.
+C. Versatility and Accessibility
+Our TactAR system is designed to be versatile and easily
+accessible with the following properties:
+Cross-sensor. Our TactAR system uses the 3D defor-
+mation field as the unified representation for tactile
+force feedbacks, which can be applied on many different
+tactile  force sensors. In this paper, we the following
+sensors for experiments: (1) GelSight Mini  (Robotics
+Package) optical tactile sensor. (2) Our improved MC-
+Tac  optical tactile sensor. (3) Built-in joint torque
+sensors in Flexiv Rizon  robot arm. Our TactAR
+system is highly modularized and can even support AR
+visualization with different tactile  force sensors at the
+same time (see Fig. 1). Theoretically, our teleoperation
+system is also compatible with electrically tactile sensors
+like AnySkin , whose data types can typically be
+represented as a sparse 3D force field.
+Cross-embodiment deployment. Our TactAR system
+can easily be deployed in different robot arms and grip-
+pers. The tactile feedbacks in AR only need the robot
+TCP pose and the 3D deformation field, and the robot arm
+uses TCP control. We also support both single-arm and
+bimanual arm control. Thus, TactAR will not be limited
+by specific hardware configuration parameters and de-
+grees of freedom. Compared to other haptic teleoperation
+systems based on isomorphic hardware[32, 9], our system
+only needs one Meta Quest3 VR headset, which greatly
+reduces the reproducibility difficulty.
+Low cost. Our TactAR system is built with low-cost
+hardwares. The Meta Quest3 VR heaset used for teleop-
+eration and AR feedbacks costs 499. Our experiments
+use two different optical tactile sensors: (1) GelSight
+Mini Robotics Package  which is a commercialized
+product costs 549. (2) Our customized MCTac  costs
+around 50 in lab fabrication, and there is large potential
+for lower cost in industrial manufacturing in the future.
+Compared to forcetorque sensors like ATI mini45
+which costs about 3000, the optical tactile sensors offer
+a significant cost advantage.
+Closed-loop
+Sent Action
+(a) Vanilla Action Chunking
+(b) Action Chunking with Temporal Ensembling
+(c) Action Chunking with Slow-Fast Policy (Ours)
+Sent Action
+Open-loop
+Open-loop
+Sent Action
+Closed-loop
+Weighted Average
+(d) Human with Predictive Action and Closed-loop Finetuning
+Slow Policy
+Fast Policy
+Slow System
+for Predicting Coarse Actions
+in a Open-loop Way
+Tactile Feedback
+Fast System
+for Finetuning Actions
+with Tactile Feedback
+in a Closed-loop Way
+Low-freq. Observation
+Predicted Action
+The person is trying to grasp the mug.
+Latent Action
+Tactile Rep.  Force
+Coarse Action
+Fig. 5: Comparison among various pipelines. (a) Vanilla action
+chunking  with open-loop control during the chunk execu-
+tion. (b) Action chunking enhanced with temporal ensembling
+[70, 40] for semi-closed-loop control. (c) Our slow-fast infer-
+ence pipeline, showcasing closed-loop capabilities with fast
+responsive adjustments. (d) Human control patterns in contact-
+rich tasks.
+IV. LEARNING ALGORITHM: REACTIVE DIFFUSION
+In this section, we will introduce Reactive Diffusion Pol-
+icy (RDP), which is a slow-fast imitation learning algorithm
+that can respond instantly to tactile  force feedback with a
+fast network while simultaneously maintaining the powerful
+modeling capabilities of diffusion with a slow network.
+A. Tactile  Force Representation
+For optical tactile sensors (e.g. Gelsight Mini ), we
+use low-dimensional representation generated by Principal
+Component Analysis (PCA) on the marker deformation field
+F in Eq. 1. The use of PCA feature makes the model more
+robust to tracking errors and noise of marker deformation
+field. In addition, PCA feature are more robust to texture and
+lighting changes due to damage or gel replacements. Please
+see Appendix C and Appendix D for more details of the tactile
+representation and the tactile dataset for PCA.
+For force representation, we simply concatenate the 6-D
+wrench (force  torque) into the observation vector.
+B. Slow-Fast Policy Learning
+Previous works [10, 71] have demonstrated that predicting
+action sequences or action chunks  effectively preserves
+temporal action consistency and handles non-Markovian or
+idle actions, which achieve superior performance in policy
+learning. However, when executing the action chunk, such
+approaches can be viewed as an open-loop policy, preventing
+it from achieving real-time feedback from high-frequency sig-
+nals such as tactility. VISK  utilizes temporal ensembling
+to mitigate this issue. As shown in Fig. 5, temporal ensembling
+finds a balance between closed-loop control and sequence con-
+sistency by aggregating the predictions of multiple iterations
+for the same timestep. A significant drawback of this solution
+is that it diminishes the policys ability to model multi-modal
+distributions and non-Markovian actions, making it prone to
+issues such as getting stuck. Moreover, we find that the policy
+performance is quite sensitive to the smoothing coefficient of
+temporal ensembling, which consequently reduces the policys
+applicability.
+To break the above trade-off between sequence modeling
+and closed-loop control, we propose a slow-fast policy learn-
+ing framework Reactive Diffusion Policy (RDP) as in Fig.
+6. RDP is a slow-fast Latent Diffusion Model (LDM) ,
+which explicitly processes signals of various frequencies at
+different stages. In particular, we first convert the original
+action chunks to the latent space by training an asymmetric
+tokenizer (AT). The AT decoder takes the instantaneous tactile
+representation apart from the latent action chuck as input.
+For policy learning, a slow Latent Diffusion Policy (LDP)
+is trained to predict the latent action chuck according to
+the observation in a way similar to Diffusion Policy .
+During inference, we sample latent action chunks at a lower
+the latest tactile representations are fed into the decoder of
+the AT to predict the real action for the next frame. This
+hierarchical design enables the slow network to maintain its
+capacity for modeling complex or non-Markovian actions by
+predicting temporally consistent latent action chunks and the
+fast network to achieve closed-loop control through real-time
+responsiveness. Next, we will discuss the design choices of
+each component within Reactive Diffusion Policy.
+1) Fast Policy: The fast asymmetric tokenizer (AT) consists
+of a 1D-CNN encoder E and a GRU  decoder D. Given
+Slow Policy: Latent Diffusion Policy (LDP)
+1D U-Net
+Low-freq. Observation and Denoising Step
+random noise
+estimated noise
+Training Stage 2: MSE Loss for Noise Prediction
+Fast Policy: Asymmetric Tokenizer (AT)
+(1D CNN)
+Action Chunk
+Latent Action Chunk
+High-freq. Tactile Rep.  Force
+Reconstructed Action Chunk
+Training Stage 1: 1 Loss for Reconstruction
+KL Penalty
+(b) Inference Pipeline of Slow-Fast Policy
+(a) Training Pipeline of Reactive Diffusion Policy
+Sent Action
+Closed-loop
+High-freq.
+Autoregressive Decoding
+Latent Action Chunk
+Recent Tactile  Force Feedback
+Low-freq. Observation
+Latent Action
+Tactile Rep.  Force
+Predicted Action
+Fig. 6: Overview of Reactive Diffusion Policy (RDP) framework. (a) The training pipeline of RDP, comprising the first stage
+for training the fast policy (Asymmetric Tokenizer) and the second stage for training the slow policy (Latent Diffusion Policy).
+(b) The inference pipeline of RDP. The slow policy leverages low-frequency observations for modeling complex behaviors
+with diffusion and action chunking. The fast policy enables closed-loop control by using high-frequency tactile  force input
+and fine-tuning the latent action chunk predicted by the slow policy in an auto-regressive manner.
+an action chunk A RT D in the policy learning Dpolicy, the
+encoder downsamples it to a latent one Z  E (A) Rtd.
+We choose to use a CNN-based encoder to preserve the
+spatial structure of the raw sequence, enabling the latent
+action chunk to be better processed by the latent diffusion
+reconstructs the action via A  D(concat([Z, Freduced])),
+where Freduced is the corresponding tactile representation
+sequence proposed in Sec. IV-A. It is worth noting that we
+utilize tactile representation solely as input in the decoder.
+This deliberate asymmetry in structure is designed to ensure
+that the latent action chunk retains only high-level feedback
+decoder with the tactile information. The AT is trained using
+an L1 reconstruction loss and a Kullback-Leibler (KL) penalty
+loss  as in Eq. 2.
+LAT  E(A,Freduced)Dpolicy
+A A1  KLLKL
+In practice, we keep the coefficient KL small as in LDM
+because we want to smooth the latent space of the AT
+rather than turning it into a generative model. As shown in
+Tab. I, our fast policy only takes less than 1ms for inference,
+which can even support higher-frequency inputs (> 300Hz)
+theoretically.
+2) Slow Policy: We model the slow policy as a Diffusion
+Policy  operating on latent action chunks, which is called
+Latent Diffusion Policy (LDP). Diffusion Policy is a generative
+model that iteratively denoises the noisy action Ak to a clean
+one A0 through Stochastic Langevin Dynamics  with the
+learned gradient field E(A). To transform the model to
+latent space, we use the latent action chunk Z0  E (A0). This
+modeling method offers several advantages. On the one hand,
+the downsampled latent representation reduces computational
+costs. More importantly, the asymmetric design in the AT
+allows challenging reactive behaviors to be excluded from
+latent action chunks, thereby reducing the learning difficulty
+of latent diffusion policy under low-frequency observation
+and enhancing its generalization capabilities. During training,
+given the observation O (including image, tactility and propri-
+oception), the gradient field is learned by  and the DDPM
+training objective can be rewritten as
+LLDP  E(O,A0)Dpolicy,k,kk (O, Z0  k, k)2, (3)
+where k is the iteration index and k is a random noise
+with certain variance. We use CNN-base Diffusion Policy
+with FiLM-based  condition injection as the network
+architecture.
+TABLE I: Inference Time of Different Modules on RTX 4090
+Diffusion Policy
+Slow Policy (LDP)
+Fast Policy (AT)
+3) Implementing Suggestions for Slow-Fast Policy: Com-
+pared to the standard Diffusion Policy , our slow-fast
+control policy requires certain key design elements to achieve
+optimal performance.
+Relative trajectory. We use relative end-effector (EE)
+trajectory for action representation, which has been
+proven to be effective even in complex tasks by UMI .
+tion between consecutive frames (may lead to large com-
+pounding errors), we convert an absolute pose trajectory
+to a relative one by calculating the relative transformation
+with respect to a base frame. In our setting, the base frame
+is the last observation frame in an action chunk.
+Latency matching. We calculate the latency caused by
+policy inference and action execution, and discard the
+first few action steps predicted by the model to send the
+accurately matched actions to the robot. This method has
+been mentioned in UMI  and is even more crucial for
+our slow-fast policy. It ensures smoother transitions be-
+tween action chunks, preventing out-of-distribution tactile
+signals from causing the fast policy to predict abnormal
+actions.
+V. EXPERIMENTS
+We design experiments to answer the following questions:
+contact-rich tasks?
+sensors?
+we simply use small chunk size or temporal ensemble to
+increase closed-loop control frequency?
+tribute to the data quality in teleoperation?
+policy performance?
+A. Setup
+1) Hardware: The experimental platform consists of two
+Flexiv Rizon 4  robotic arms with joint torque sensors
+and two Flexiv Grav  grippers. For single-arm tasks, we
+only use one Realsense D435 camera on the robot arm for the
+wrist view. For the bimanual task, we use two Realsense D435
+cameras for wrist views and a fixed Realsense D415 camera in
+front of the robot workspace for external view. We use three
+different tactile  force sensors for experiments:
+GelSight Mini  (Robotics Package) optical tactile
+sensor with 8MP resolution at 25 FPS, and it has a 79
+marker dot array on the surface.
+MCTac  optical tactile sensor with 2MP resolution at
+30 FPS, and it has a 57 marker dot array on the surface.
+We have improved the original design of MCTac ,
+including increasing the size of the marker, reducing the
+density of the marker, and using white lightning for better
+tracking stability of the marker. Please see the Appendix
+A for the hardware details of the improved MCTac sensor.
+Built-in joint torque sensors in Flexiv Rizon 4
+robotic arm. We use the estimated TCP forcetorque
+calculated by Flexiv RDK  for experiments. We
+stream the sensor data at 120Hz and downsample it to
+24 FPS. Note that the estimated TCP force  torque
+signals have relatively larger noise compared to the force
+sensor mounted on the robot end effector (e.g., ATI mini
+45) due to inaccurate dynamics model, which further
+challenges the learning algorithm.
+In order to evaluate policy performance under different tactile
+force sensors, we attach MCTac and GelSight Mini to
+different fingertips of the same gripper. In this way, we can
+collect synchronized data from MCTac, GelSight Mini and
+forcetorque sensors simultaneously. The TactAR teleoperation
+uses a Meta Quest 3 VR headset. All devices are connected
+to a workstation with an Intel Core i9-14900K CPU and
+an NVIDIA RTX 4090 GPU for both data collection and
+evaluation.
+2) Baselines: We use the following baselines for compari-
+Diffusion Policy: vanilla implementation of Diffusion
+Policy  with only visual input (RGB images) and
+open-loop action chunking.
+Diffusion Policy (tactile image): Diffusion Policy with
+raw tactile images and visual input.
+Diffusion Policy (tactile embedding) Diffusion Policy
+with tactile embeddings (PCA feature) and visual input.
+Reactive Diffusion Policy (tactile embedding) (Ours):
+our slow-fast policy with high-frequency tactile embed-
+ding (PCA feature) and visual input.
+Reactive Diffusion Policy (force) (Ours): our slow-
+fast policy with high-frequency wrench (forcetorque) and
+visual input.
+3) Tasks: As shown in Fig. 7, we evaluate Reactive Diffu-
+sion Policy with three challenging contact-rich tasks.
+Peeling. The robot needs to grasp the peeler, approach
+a cucumber held midair by a human hand, then begin
+peeling. This task requires the following capabilities:
+(1) Precision. The robot needs to finish the task un-
+der environment uncertainties (e.g., different tool grasp
+(millimeter-level). (2) Fast response. The robot needs to
+react instantly to human perturbations.
+Wiping. The robot needs to grasp the eraser, approach
+the vase held midair by a human hand, then begin
+wiping. This task requires the following capabilities: (1)
+Adaptive force control with rotation. The robot needs
+to adaptively track the curved vape surface with different
+environment uncertainties (e.g., tool grasp locations, vase
+pose). (2) Fast response. The robot needs to react
+instantly to human perturbations.
+Bimanual Lifting. The two robot arms need to grasp
+Grasp the peeler
+Display the result
+Perturbation (Optional)
+Begin peeling
+Approach the cucumber
+Grasp the eraser
+Display the result
+Perturbation (Optional)
+Begin wiping the vase
+Approach the Vase
+Grasp the eraser
+Display the result
+Perturbation (Optional)
+Begin wiping the vase
+Approach the Vase
+Grasp the handler
+Approach target position
+Lift the cup (multi-modal)
+Clamp the cup
+Approach the cup
+Fig. 7: Three experiment tasks including Peeling, Wiping and Bimanual Lifting.
+the handlers, approach the paper cup, clamp the paper
+cup with the two handlers, carefully lift the cup along
+the trajectory of the curve without squeezing it. This
+task requires the following capabilities: (1) Precise force
+control. The two robots must apply precise force during
+the task execution. It is crucial to avoid exerting excessive
+force that could squeeze the cup while also ensuring that
+the force is sufficient to prevent the cup from slipping. (2)
+Bimanual coordination. (3) Multi-modality. As shown
+in Fig. 7, in the expert data, there are two upward lift
+4) Evaluation Protocols:
+We use similar initial states
+across all methods for both the robots and the objects, by
+manually aligning the scene with the pre-defined images.
+There are three test-time variations for Peeling and Wiping
+6D pose in the air. (b) Perturbation before contact. The human
+evaluator will move the object right before the tool makes
+contact. (c) Perturbation after contact. The human evaluator
+will move the object after the tool makes contact to break the
+contact state. There are two test-time variations for Bimanual
+Lifting task: (a) soft paper cup. (b) hard paper cup. We run
+10 trials for each test-time variation.
+For Peeling task, we calculate the score based on the
+proportion of the peeled cucumber skin to the total length
+of the cucumber, normalized by the average score of the
+demonstration data. For Wiping task, we calculate the score
+based on the size of the remaining handwriting compared
+to the demonstration data. If the residue reaches the human
+demonstration level, the score is 1; If there is minor residue
+(less than one third of the handwriting length), the score is 0.5;
+If significant residue remains, the score is 0. For Bimanual
+Lifting task, if the paper cup is lifted into the air following
+the designated trajectory without significant compression, the
+score will be 1; If the paper cup is partially compressed in
+the air, the score will be 0.5; If the cup is not lifted up, or
+dropped in the air, the score will be 0. Please see Appendix
+E for more details of the evaluation protocal.
+5) Implementation Details: The Diffusion Policy and our
+slow policy (LDP) predict open-loop 12 FPS action sequences
+for each action chunk. The low-frequency observation of LDP
+includes both visual inputs and tactile  force inputs. The fast
+policy (AT) takes tactile  force observations at 24 FPS and
+update new action predictions at 24 FPS. Note that we use 24
+FPS because we are constrained by the frame rate limitation
+of GelSight , which is 25 FPS. Our RDP algorithm can
+also be applied to higher frequency tactile  force signals in
+theory. Please see Appendix D, F and I for more details on
+data collection, the inference process and the hyperparameters.
+B. Results
+Simply adding tactile signals into observation may
+NOT improve performance for complex contact-rich tasks
+(Q1). We have compared the performance of Diffusion Policy
+using raw tactile images (DP w. tactile img.) v.s. low-dim
+tactile embedding (DP w. tactile emb.) in Tab. II. Although
+the performance of both methods is similar, low-dimensional
+tactile embedding demonstrates greater robustness to texture
+changes resulting from gel damage or gel replacements during
+the evaluation process. Therefore, we use tactile embedding in
+most of our experiments.
+We also find that Diffusion Policy (DP) incorporates tactile
+embedding (DP w. tactile emb.) performs similarly compared
+to DP with purely visual inputs in the three tasks (see Tab II,
+Tab III and Tab IV). However, despite similar performance,
+these two DP baselines exhibit different failure modes. We
+observe that DP with pure visual input frequently predicts
+inaccurate trajectories and results in large contact forces (e.g.,
+failure case 2 in Fig. 8 (b)), necessitating the human evaluators
+to move their hands to prevent sensor damage. In contrast,
+DP with tactile embedding rarely brings large contact forces.
+It may get stuck when making contact with the object (e.g.,
+failure case 2 in Fig. 8 (a)  failure case in Fig. 8 (c)). This
+may be because it learns some reactive behavior from the data
+(e.g., slightly move up when making contact; move down when
+loose contact). However, since it executes action chunks in an
+open-loop manner, it lacks the capability for finer adjustments.
+state and repeatedly switch between various contact states. In
+into the policy.
+TABLE II: Policy Performance for Peeling Task
+Perturb.
+Perturb.
+Perturb.
+before Contact
+after Contact
+DP w. tactile img.
+DP w. tactile emb.
+RDP (GelSight)
+RDP (MCTac)
+RDP (Force)
+RDP can perform challenging contact-rich tasks that
+require precision, adaptive and precise force control, or
+bimanual coordination (Q2). As shown in Tab. II, Tab. III
+and Tab. IV, RDP improves the overall score by a large margin
+(> 35) compared to various Diffusion Policy baselines in all
+three tasks. These tasks require different capabilities, includ-
+ing precision (Peeling), adaptive force control with rotation
+TABLE III: Policy Performance for Wiping Task
+Perturb.
+Perturb.
+Perturb.
+before Contact
+after Contact
+DP w. tactile emb.
+RDP (GelSight)
+RDP (Force)
+TABLE IV: Policy Performance for Bimanual Lifting Task
+Soft Paper Cup
+Hard Paper Cup
+DP w. tactile emb.
+RDP (GelSight  MCTac)
+RDP (Force)
+(Wiping) and precise force control with bimanual coordination
+(Bimanual Lifting). We believe that these capabilities are
+highly related to closed-loop adjustments with high-frequency
+tactile  force feedback.
+We have performed some case studies and visualization to
+analyze how RDP works during these contact-rich tasks in
+Fig. 9. We have observed that RDP indeed learns reactive
+behaviors similar to those of humans. For instance, in Case
+Study 1, when a peeler suddenly comes into contact with
+a cucumber, the contact force increases abruptly. The fast
+policy then applies an upward adjustment to the action chunk
+predicted by the slow policy to reduce the contact force.
+In Case Study 2, as the peeler approaches the end of the
+surface and remove more skin. In Case Study 3, when two
+handlers attempt to clamp the paper cup, the fast policy swiftly
+predicts an outward corrective action once contact is made,
+preventing the cup from being squeezed. The magnitude of
+these reactive behavior adjustments is at the sub-millimeter
+overall performance of these contact-rich tasks. These minor
+reactive actions are hard to learn accurately for a policy with
+open-loop action chunking, but much easier to learn for our
+fast policy with high-frequency tactile  force control.
+multi-modal behavior of the RDP model with force input,
+which indicates that our slow policy (LDP) remains the
+powerful modeling capabilities of diffusion model.
+RDP are applicable to different tactile  force sensors
+(Q3). As shown in Tab. II, the performance of RDP with the
+two optical tactile sensors (GelSight Mini  and MCTac
+) are very close (0.9 vs 0.88) on Peeling task. Furthermore,
+we surprisingly find that RDP can perform well using different
+tactile sensors (MCTac on the left gripper and GelSight on
+the right gripper) at the same time for the Bimanual Lifting
+task (see Tab. IV). Note that GelSight Mini and MCTac have
+different LED colors (RGB vs white), different gel material
+(hard vs soft), different marker arrays (79 vs 57), different
+resolutions (8MP vs 2MP) and different frame rates (25 FPS
+and 30 FPS). This validates the effectiveness of our tactile
+(a) Peeling
+(b) Wiping
+(c) Bimanual Lifting
+Failure Case 2 (DP w. tactile emb.): Stuck before contacting.
+Failure Case 1 (DP w. tactile emb.): Slow response to perturbation.
+Success Case (Ours w. MCTac): Reactive action.
+Failure Case 3 (DP w. tactile img.): Wrong contact point  large force.
+Failure Case (DP w. tactile emb.): Get stuck before clamping the cup.
+Success Case (Ours w. GelSight  MCTac): Smoothly lift to the target
+position.
+Success Case (Ours w. Force): Reactive action with rotation.
+Failure Case 3 (DP w. tactile emb.,  0.8): Oversmoothed trajectory.
+Failure Case 4 (DP w. tactile emb., chunk 2): Stuck before grasping.
+Failure Case 1 (DP w. tactile emb.): Slow response to perturbation.
+Failure Case 2 (DP): Inaccurate trajectory  large force.
+Fig. 8: Evaluation results and failure cases of baselines. Please see the website for more details.
+representation and the versatility of the RDP algorithm.
+RDP is also applicable for force  torque sensors. Tab. II,
+Tab. III and Tab. IV have shown that RDP with simple force
+input without any additional design achieves the best results
+in all three tasks. Despite the significant noise associated with
+the force sensor during rapid robot movements (as evidenced
+in the TactAR part of the supplementary video), the RDP
+algorithm successfully identifies useful patterns from the noisy
+data. We hypothesize that the force sensor may yield better
+results due to its lower latency and reduced dimensionality
+compared to optical tactile sensors, which potentially facili-
+tates easier learning by the network.
+RDP can react immediately to external disturbances
+(Q4). We find that the slow-fast design of RDP significantly
+improved the models response speed to external disturbances.
+For example, in Tab. II, RDP (GelSight) achieves a score
+of 0.8 on the hardest setting (Perturbation after Contact) in
+Peeling task, while the DP baseline with tactile embedding
+only achieves a score of 0.15. In the Wiping task (see Tab.
+III), we find that RDP also achieves a higher score compared
+to DP baselines under human perturbations. Fig. 8 has shown
+some typical failure cases for DP baselines under human
+perturbations (e.g., failure case 1 in Peeling (a) task and Wiping
+(b) task). When the robot loses contact with perturbations (e.g.,
+moving down), the DP baselines will execute the remaining
+trajectory in the action chunk in an open-loop manner, result-
+ing in broken cucumber peels and residual handwriting on the
+vase that were not completely wiped off. In contrast, the RDP
+algorithm can immediately change the predicted trajectory
+with the fast policy in a closed-loop manner, which leads to
+better results.
+Slow-fast hierarchy, relative trajectory and latency
+matching are essential for RDP performance (Q5). As
+shown in Fig. 5, there are two ways to increase the closed-loop
+control frequency without our slow-fast hierarchy: (1) reducing
+action chunk size. (2) using temporal ensemble. However,
+experiments in Tab. V have proved that these two options
+both have significant side effects. We can see from Tab. V
+that when the action chunk size is reduced from 8 to 2, the
+DP baseline tends to get stuck before grasping (failure case 4
+in Fig. 8 (b)), which makes the grasp success rate drop from
+100 to 20. Policy with small chunk size is very sensitive to
+non-Markovian behaviors (e.g., pauses in the air) commonly
+found in human demonstration data, so we can not simply
+reduce chunk size.
+TABLE V: Effects of Chunk Size and Temporal Ensemble
+action chunk
+temporal ensemble
+Perturb. after Contact
+DP w. tactile emb.
+DP w. tactile emb.
+RDP (GelSight)
+Temporal ensemble [70, 40] can perform semi-closed-loop
+control by averaging predictions from multiple timesteps. We
+have also tried different temporal ensemble factors  in HATO
+, and the experiments in Tab. V have shown that the
+model performance is very sensitive to . When   0.2,
+the average weight will focus more on the newest predictions,
+which makes the model behavior similar to the policy with
+small chunk size and causes low grasp rate (30). When
+0.8, the average weight will focus more on the oldest
+and hurt reactive ability (failure case 3 in Fig. 8 (b)). Thus,
+it is very hard to balance temporal consistency and reactivity
+with temporal ensemble.
+As shown in Fig. 10, the relative trajectory prediction per-
+forms much better compared to the absolute action prediction
+in Peeling Task. It may be because relative trajectory are
+easier to learn for a smaller, fast policy, which brings a
+Case Study 1: Correct minor positional errors during contact using tactile feedback.
+Predicted Original Action
+Reactive Action
+Case Study 3: Precise force control during clamping the cup.
+Predicted Original Action
+Reactive Action
+Case Study 2: Adaptive capability for tracking complex surfaces.
+Fig. 9: Visualization of the RDP inference process. The red (left) and blue (right) dots can be seen as the predicted action
+chunk of the slow policy. The green arrow represents the correction direction and magnitude (scaled up for better visibility)
+of the reactive action predicted by the fast policy during inference. Please see the videos on the website for more details.
+Absolute Action
+No Latency Matching
+Ours (RDP w. MCTac)
+Policy Performance for Peeling Task (Perturb. after Contact)
+Fig. 10: Ablation Study.
+more generalizable reactive strategy from tactile feedback.
+In addition, the relative trajectory also compresses the latent
+policy. We also find that latency matching also contributes a
+lot to the policy performance (see Fig. 10) by ensuring smooth
+action transition between action chunks and reducing out-of-
+distribution (OOD) behaviors.
+Please see Appendix G for more ablation results.
+Tactile  force feedback in TactAR improves data quality
+in contact-rich tasks by improving the stability of contact
+forces (Q6). We have conducted a user study on how tactile
+force feedback in TactAR helps the data collection process.
+We invited 10 users with different levels of experience in VR
+teleoperation or Imitation Learning (IL). Please see Appendix
+H for more details of the user study. We perform 10  10
+2  200 trials in total for quantitative analysis. As shown in
+Fig. 11, most of the users (70) found that tactile  force
+AR feedback is very helpful in data collection, regardless of
+whether they were acting as the teleoperator or the person
+holding the cucumber. In Fig. 12, we can see that tactile
+force feedback in TactAR can greatly improve the data quality
+from both the normalized peeling length (0.72 0.91) and
+the ratio of stable contact force (0.58 0.87).
+For a more detailed quantitative analysis of contact forces,
+we collect data (10 demos) for Peeling task with the same
+VR Teleoperation Experience
+IL Experience
+Helpness of Feedback (Teleoperator)
+Very Helpful
+Sometimes
+Not Helpful
+Helpness of Feedback (Cucumber Holder)
+Very Helpful
+Sometimes
+Not Helpful
+Fig. 11: User study results among 10 users on teleoperation
+w.w.o. tactile  force feedback in Peeling task.
+VR w.o. Feedback Ours (TactAR)
+Normalized Length
+VR w.o. Feedback Ours (TactAR)
+Ratio of Stable Force
+Fig. 12: Teleoperation data quality of 10 users on Peeling task
+(no perturb.) w.w.o. tactile  force feedback.
+user by VR teleoperation and TactAR respectively, then we
+calculate the Rolling Standard Deviation of the recorded force
+curve with a window size of 10 steps, and the results are
+shown in Fig. 13. We can observe that using TactAR to collect
+data helps avoid a large rolling standard deviation, indicating
+reduced temporal fluctuations and more stable contact forces.
+High-quality data will help the model to discover useful
+patterns more easily (Q7). We have collected the same
+number of demonstrations (60) for Peeling task with traditional
+VR teleoperation without tactile  force feedback and trained
+RDP (force) with these data. The results in Fig. 14 show
+Standard Deviation (N)
+Log Density
+Distribution of Rolling Standard Deviation of Force
+Fig. 13: The stability of contact forces with different teleop-
+eration systems in Peeling task. Data collected with TactAR
+has higher stability of contact forces compared to traditional
+VR teleoperation.
+No Perturb.
+Perturb. before Contact
+Perturb. after Contact
+Score in Peeling Task
+VR w.o. Feedback
+Ours (TactAR)
+Fig. 14: How data quality influences policy performance of
+RDP (force) in Peeling task.
+that data quality has a large influence on policy performance
+(the score decreases by more than 30). We observe that
+policies trained with low-quality data exhibited more unstable
+a higher likelihood of breaking halfway through. A possible
+explanation is that the Fast Policy in RDP is designed to iden-
+tify associations between tactile  force signals and trajectories
+from the data and learn reactive behavior. When contact forces
+in the data are highly unstable, the Fast Policy struggles to
+identify reasonable associations, which reduces performance.
+VI. LIMITATIONS AND FUTURE WORKS
+While TactAR and RDP have demonstrated efficacy in
+numerous challenging tasks, they still have certain limitations.
+force feedback in AR, it is not as intuitive or efficient as
+direct human-hand operations. Future work could improve
+teleoperation efficiency by further reducing sensor and system
+latency. Second, our TactAR system is designed for two-finger
+grippers. Expanding our TactAR system and RDP algorithm
+to dexterous hands equipped with tactile sensors presents a
+promising direction for future research. Third, the fast policy
+in the RDP algorithm is currently limited to responding to
+high-frequency tactile  force input signals but cannot swiftly
+process high-frequency image inputs. Future research could
+consider incorporating high-frequency visual inputs into the
+fast network, enabling applicability to a broader range of task
+types. Lastly, the RDP algorithm is currently limited to single-
+task scenarios. Future work could integrate RDP with the
+Vision-Language Action (VLA) model by replacing the VLA
+tokenizer with an asymmetric tokenizer similar to the one in
+the RDP algorithm. This integration could introduce reactive
+behavior for closed-loop control with real-time tactile  force
+feedback within the VLA.
+VII. CONCLUSION
+In this paper, we present TactAR, a low-cost teleoperation
+system that provides real-time tactile  force feedback through
+fast imitation learning algorithm for contact-rich manipulation.
+TactAR demonstrates that high-quality tactile  force feedback
+can be achieved through AR visualization without expensive
+specialized hardware. RDP successfully addresses the trade-off
+between sequence modeling and closed-loop control through
+its hierarchical design - using a slow network for complex
+trajectory planning and a fast network for reactive tactile
+feedback control. Through extensive experiments on three
+challenging contact-rich tasks, we demonstrated that RDP
+significantly outperforms state-of-the-art visual IL baselines
+in terms of both task completion and reactivity to tactile
+feedback. The cross-sensor experiments further validated that
+our approach generalizes well across different tactile  force
+sensors. We believe that this work takes an important step
+toward making visual-tactile imitation learning more practical
+and accessible.
+ACKNOWLEDGMENTS
+This work is supported by the Shanghai Commitee of Sci-
+ence and Technology, China(Grant No.24511103200) by the
+Nationa

@@ -1,7 +1,7 @@
 === PDF文件: Leveling the Playing Field Carefully Comparing Classical and Learned Controllers for Quadrotor Traje.pdf ===
-=== 时间: 2025-07-22 09:59:23.285280 ===
+=== 时间: 2025-07-22 15:46:17.247043 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -530,4 +530,209 @@ Feedforward (FF), Integral (PID)}. We optimize (train) every
 method according to the dataset and optimization procedure
 Lissajous Tracking and Hover tasks, highlighting results be-
 tween choices of optimization, dataset, and feed forward
-informa
+information in Fig 2 for the aerial manipulator morphology.
+A full presentation of the achieved reward, position tracking
+Quadrotor
+Aerial Manipulator
+Controller
+Avg. Reward
+Position RMSE (m)
+Yaw RMSE (rad)
+Avg. Reward
+Position RMSE (m)
+Yaw RMSE (rad)
+RL-Opt.-Liss.-FF
+GC-Opt.-Liss.-FF
+TABLE IV: Trajectory Tracking for Quadrotor and Aerial Manipulator. Comparison of the best RL controller against the
+best GC controller in trajectory tracking for a Quadrotor and an Aerial Manipulator (Quadrotor with fixed-arm) over 1000 trials
+in the Lissajous Tracking task. Rewards are averaged over time per rollout, then presented as average and standard deviation
+over the trials. Maximum reward is 15.0. RMSE of position and yaw are shown as averages with standard deviation over 1000
+trials. Contrary to many literature claims, performance is very similar between best-in-class methods.
+the supplementary material. We measure the performance of
+the controllers in Fig 2 by the difference between maximum
+reward and the average reward achieved over the rollout to
+highlight the improved reward by correcting for asymmetries.
+1) Optimizing Controllers: First, we consider the effect of
+optimizing the controller in the left column of Fig 2. In these
+mizing based on some objective. Note, that it is not feasible
+to hand-tune the neural network RL controllers we study
+in this work, and thus we omit this variant. Comparatively,
+we can observe how tuning for an objective affects the GC,
+and we see that tuning the controller for the objective lowers
+the gap to maximum reward, improving performance. In this
+from the measured task (Lissajous tracking in top row, Hover
+in bottom row), and utilize feedforward information so this
+represents the best-performing model.
+2) Data Access: In the middle column of Fig 2, we com-
+pare the effect of task-aligned experience during optimization
+on the controller performance. We see that models optimized
+on another task (Hover for the Lissajous Tracking evaluation
+and vice versa) perform worse than those optimized for the
+same task as that on which they are evaluated. This result is
+expected for RL (since it is a data-driven method), but note
+that GC also benefits from this practice, which should thus
+be adopted. Commonly, GC gains are hand-tuned in quasi-
+static motions and set for all downstream tasks like trajectory
+disadvantaging the GC.
+3) Future Reference Information: Finally, in the last col-
+umn (Fig 2) we investigate the role of feedforward information
+for both Lissajous Tracking and Hover. In the top row we
+can clearly see that for Lissajous tracking both RL and GC
+benefit from the addition of future reference information.
+information in GC performs worse than if no feedforward
+information was provided at all, perhaps due to the integral
+terms being sensitive to the gains which are auto-tuned. In the
+bottom row, we find that utilizing feedforward information
+presents no benefit due to the static nature of the reference in
+the Hover task, and all models are nearly perfect in this task,
+except for the GC controller using PID.
+4) Conclusions: From these results, it is evident the best
+performing GC controller is the one which optimizes a reward,
+has access to the same dataset being evaluated on, and uses
+feedforward terms (GC-Opt.-Liss.-FF). This policy adopts the
+strategies proposed in this work to reduce asymmetries in the
+three areas, and not performing these corrective measures in
+any one category increases the gap to optimal reward, creating
+a suboptimal policy. Indeed, we can examine how previous RL
+methods had implemented the analytical baseline, and show
+why their claims of superior performance over the baseline
+may have been misguided or overstated. For trajectory track-
+(GC-Man.-Hover-None) , optimizing for the wrong dataset
+(GC-Opt.-Hover-None), or using PID instead of feedforward
+terms (GC-Opt.-Liss.-PID or GC-Opt.-Hover-PID) [7, 8, 11]
+all result in misguided comparisons since the baseline method
+is handicapped. This ultimately results in an over-estimate
+of the performance gap between RL and GC in trajectory
+previously thought. We open-source the implementation and
+optimization code for the strengthened controllers, hoping to
+accelerate research in agile aerial vehicles. We hope to impress
+the importance of these corrections of model-based controllers
+to the research community to improve baselines and draw more
+robust conclusions.
+C. Best-of-the-Best Comparison
+By using this protocol to obtain best-in-class methods for
+both RL and GC controllers, we can now perform experiments
+to develop controllers for trajectory tracking of the quadrotor
+and the aerial manipulator. We seek to properly evaluate the
+claim that RL outperforms GC for trajectory tracking. We
+develop the best-in-class controllers for both morphologies
+using both RL and GC, and evaluate the robots on Lissajous
+Tracking in 1000 evaluations, showing the median error over
+time with inter-quartile range for both position and yaw
+tracking in Fig. 3. Root-mean-square-error (RMSE) for these
+experiments are recorded in Table IV.
+Both controllers work well to quickly reduce the error in
+position and yaw of large initial perturbations. Although the
+RMSE metrics seem to indicate the RL controller has a slight
+edge over the GC controller, we see in Fig. 3 that the GC error
+converges to 0 while the RL controller has a slight steady-
+state offset. While RMSE is a standard metric to report in
+Position
+Error (m)
+Quadrotor
+Aerial Manipulator
+Time (s)
+Error (rad)
+Time (s)
+RL-Opt.-Liss.-FF
+GC-Opt.-Liss.-FF
+Fig. 3: Trajectory Tracking Errors. Position and yaw errors
+over time for both the best-in-class RL and GC controllers
+evaluated on the Quadrotor and Aerial Manipulator morpholo-
+gies. Results are shown as the median with inter-quartile range
+shaded from 1000 evaluations per morphology in Lissajous
+Tracking.
+trajectory tracking, we notice it is sensitive to the scale of
+the inital perturbation and the duration of the episode (where
+long episodes emphasize steady-state error and short episodes
+emphasize transient performance), and as such may not reflect
+the overall or asymptotic performance of the controller for
+some downstream task. In summary, although the best-in-class
+RL controller achieves lower RMSE in trajectory tracking for
+both a quadrotor and aerial manipulator compared to the best-
+in-class GC controller, the steady-state error does not converge
+to zero. This suggests that the RL controller is better at
+achieving transient performance, while the GC achieves better
+asymptotic performance at the cost of near-term error, echoing
+results shown in . Thus, we answer question 1, showing that
+GC outperforms RL on the reward objective and RL only has
+a slight advantage in position RMSE from large perturbations
+due to better initial transient performance, reversing claims of
+prior literature.
+work well to control the desired reference point, whether it
+is the COM location in the quadrotor or the end-effector in
+the aerial manipulator. This shows impressive results for the
+excellent performance in the end-effector tracking, answering
+question 2.
+Time-To-Catch (s)
+Controller
+TABLE V: Ball Catching success rate. Percentage of catches
+made by the aerial manipulator with varied initial velocities by
+each controller, denoted by the time-to-catch in each setting.
+Results are shown as mean catch rate over 100 trials.
+D. Does RL beat GC?
+In order to evaluate if and when RL outperforms GC,
+we choose to evaluate on the Hover task, which isolates
+the transient component of the trajectory tracking task (since
+the reference trajectory is stationary). In this setting, we can
+evaluate how the controllers can reduce their position and yaw
+errors as a function of time from a large initial perturbation.
+As seen in Fig 2, for the Hover task, the feed-forward terms
+do not yield any significant benefit in performance due to the
+stationary trajectory. Thus, we use the RL-Opt.-Hover-None
+as the RL controller, and GC-Opt.-Hover-None as the GC
+controller. Additionally, since we evaluate this on a quadrotor
+with a fixed arm (that is, a 0-DOF Aerial Manipulator ), we
+can directly compare controller assumptions by presenting an
+RL controller observing the end-effector state (RL-EE), a GC
+controller which can only by design observe the COM state,
+and an RL controller observing the same COM state as the GC
+(RL-COM). This comparison allows us to directly investigate
+if observing only the COM state is inherently limiting for
+control of the end-effector. The insights from this experiment
+are only possible due to the experimental protocol optimizing
+the controllers in the same way, isolating resultant differences
+in performance to the inherent controllers.
+We evaluate this for 1000 random goal positions, and
+present the results in Fig. 4. This evaluation is also motivated
+by the real-world task of catching projectiles (Ball-Catching),
+for which agility and transient performance are essential. Thus,
+we present an evaluation scenario in which a ball is thrown
+with some random initial velocity, and the quadrotor aims
+to catch the ball at a given height off the ground. Time-to-
+Catch is a metric used to roughly define difficulty of the
+times correspond to more difficult tasks. This is modulated
+by affecting the vertical component of the initial velocity
+which moves the catch location as well as the time to reach
+the catch plane. We present the catch success percentages in
+Table V for 100 evaluations of 5 catch opportunities each,
+with varied initial velocities corresponding to different time
+allocations for the catching. Please view videos of this task in
+the supplementary materials.
+Here we can see that there is a manifest difference between
+the controllers, where RL-EE is shown to have the best tran-
+sient performance in reducing position error compared to the
+Position Error (m)
+Time (s)
+Yaw Error (rad)
+Fig. 4: Hover Errors. Position and yaw errors over time
+for the RL controller observing the end-effector (RL-EE), RL
+controller observing the COM (RL-COM), and the geometric
+controller (GC). Errors are shown as the median with inter-
+quartile ranges across 1000 evaluations in the Hover task.
+other controllers, resulting in the highest success percentages
+of balls caught. The GC controller, although guaranteed to
+converge to 0 steady-state error, has the worst transient per-
+formance among the controllers, resulting in poor performance
+in the ball catching task. The RL-COM performance indicates
+that the COM state observation is not the impeding factor
+for the GC transient performance, as the RL-COM has better
+GC may be limiting for very agile behavior, especially of an
+end-effector.
+E. Data Asymmetry under Domain Randomization
+Thus far, weve considered data asymmetry as access in
+simulation to rollout data under a particular task. Another
+use of simulation data is to perform domain randomization, a
+common technique used to bridge the simulation to real-world
+gap by simulating a distribution of parameters that may be
+unk

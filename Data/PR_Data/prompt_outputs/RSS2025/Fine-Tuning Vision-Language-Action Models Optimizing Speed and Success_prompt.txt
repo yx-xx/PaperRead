@@ -1,7 +1,7 @@
 === PDF文件: Fine-Tuning Vision-Language-Action Models Optimizing Speed and Success.pdf ===
-=== 时间: 2025-07-22 10:00:36.694295 ===
+=== 时间: 2025-07-22 16:15:57.385646 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -726,4 +726,81 @@ OpenVLA-OFT due to their smaller architectures: ACT
 TABLE III: ALOHA robot inference efficiency results. Throughput and
 latency measurements averaged over 100 queries on an NVIDIA A100 GPU.
 Each query processes three 224  224 px images, 14-D robot state, and a
-task command (scoop raisins into 
+task command (scoop raisins into bowl). All methods use action chunk
+size K25, except Diffusion Policy (K24, as a multiple of 4 is required)
+and the original OpenVLA (K1, no chunking). RDT-1B predicts 64 actions,
+but we execute the first 25 only for fair comparison. All implementations
+use PyTorch except 0 (JAX). Bold and underlined values show best and
+second-best performance.
+Throughput (Hz)
+Latency (Sec)
+OpenVLA-OFT
+Diffusion Policy
+and 0 (3.3B)while OpenVLA has 7.5B parameters. ACT
+achieves the highest speed by combining L1 regression-based
+single-pass action generation (like OpenVLA-OFT) with its
+compact architecture. Also, despite its larger size, 0 outper-
+forms both RDT-1B and Diffusion Policy in speed thanks
+to its optimized JAX implementation (all other methods are
+implemented in PyTorch).
+proaches RDT-1Bs (84.1 Hz) despite being 7 larger, as it
+generates actions in a single forward pass rather than requiring
+multiple denoising steps as in RDT-1B.
+VII. DISCUSSION
+Our study on VLA fine-tuning design decisions reveals
+how different components impact inference efficiency, task
+lowing ability. These insights lead to our Optimized Fine-
+Tuning (OFT) recipe, which enables effective VLA adaptation
+to novel robots and tasks through parallel decoding, action
+ally) FiLM language conditioning. The success of OFT is
+particularly noteworthy with OpenVLA: despite having no
+exposure to bimanual robots or multi-view image inputs during
+configurations and match or even outperform more recent
+diffusion-based VLAs (0 and RDT-1B) which have encoun-
+tered bimanual manipulators and multiple input images during
+pretraining. This demonstrates that a well-designed fine-tuning
+recipe can have a significant impact on final performance, and
+existing VLAs can be successfully adapted to new robotic
+systems without extensive retraining from scratch. Moreover,
+our results show that a simple L1 regression-based approach
+with a high-capacity model such as OpenVLA is quite ef-
+fective for adapting to novel robots and tasks. This approach
+offers practical advantages over diffusion-based methods: the
+simpler algorithm leads to faster training convergence and
+inference speed while maintaining strong performance, making
+it particularly suitable for real-world robotics applications.
+VIII. LIMITATIONS
+While our Optimized Fine-Tuning (OFT) recipe shows
+promise for adapting VLAs to novel robots and tasks, several
+important questions remain.
+Handling multimodal demonstrations. Our experiments
+use focused demonstration datasets with a consistent strategy
+per task. While L1 regression may help smoothen out noise
+in training demonstrations by encouraging the policy to learn
+the median mode in demonstrated actions, it may struggle to
+accurately model truly multimodal action distributions where
+multiple valid actions exist for the same input, which may not
+be ideal in cases where the ability to generate alternative action
+sequences would be beneficial for task completion. Conversely,
+diffusion-based approaches may better capture such multi-
+modality but risk overfitting to suboptimal modes in training
+data (see our website for discussions and video illustrations
+of these nuances). Understanding OFTs effectiveness with
+multimodal demonstrations remains an important direction for
+future work.
+Pretraining versus fine-tuning. Our study focuses specif-
+ically on fine-tuning VLAs for downstream tasks. Whether
+OFTs benefits extend effectively to pretraining, or whether
+more expressive algorithms like diffusion are necessary for
+large-scale training, requires further investigation.
+Inconsistent language grounding. Our ALOHA exper-
+iments reveal that OpenVLA without FiLM exhibits poor
+language grounding, despite showing no such issues in
+LIBERO simulation benchmark experiments. The source of
+this discrepancywhether from the lack of bimanual data
+in pretraining or other factorsremains unclear and warrants
+further study.
+ACKNOWLEDGMENTS
+We thank the Stanford Center for Research on Foundation
+Models (CRFM) and Stanford Institute for Human-Centered
+AI (HAI) for providing computatio

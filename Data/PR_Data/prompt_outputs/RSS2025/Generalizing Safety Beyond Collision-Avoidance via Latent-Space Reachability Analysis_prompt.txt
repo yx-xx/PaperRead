@@ -1,0 +1,951 @@
+=== PDF文件: Generalizing Safety Beyond Collision-Avoidance via Latent-Space Reachability Analysis.pdf ===
+=== 时间: 2025-07-22 16:06:10.871354 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Generalizing Safety Beyond Collision-Avoidance
+via Latent-Space Reachability Analysis
+Kensuke Nakamura
+Carnegie Mellon University
+kensukenandrew.cmu.edu
+Lasse Peters
+Delft University of Technology
+l.peterstudelft.nl
+Andrea Bajcsy
+Carnegie Mellon University
+abajcsyandrew.cmu.edu
+Failure Set
+Latent Unsafe
+World Model
+Environment
+Initial Observation
+Imagined Failure
+Safety Filtered
+Fig. 1: Our Latent Safety Filter can detect, predict, and mitigate failures that are hard to model (e.g., spilling the contents of
+a bag), such as those encountered in vision-based manipulation. Our idea is to perform approximate reachability analysis in
+the latent space of a world model (light grey region). The latent failure set is shown as a black region, with an example of an
+imagined failure observation shown in the upper right. Our method identifies latent states from which the robot is doomed to
+enter visually-observable failures no matter what actions it takes (larger red set shown above), and automatically overrides the
+base policy task with safety-preserving actions from our safety policy  to prevent spilling the content of the bag.
+Video results can be found on the project website:  .
+AbstractHamilton-Jacobi (HJ) reachability is a rigorous
+mathematical framework that enables robots to simultaneously
+detect unsafe states and generate actions that prevent future
+failures. While in theory, HJ reachability can synthesize safe
+controllers for nonlinear systems and nonconvex constraints,
+in practice, it has been limited to hand-engineered collision-
+avoidance constraints modeled via low-dimensional state-space
+representations and first-principles dynamics. In this work, our
+goal is to generalize safe robot controllers to prevent failures
+that are hardif not impossibleto write down by hand, but
+can be intuitively identified from high-dimensional observations:
+for example, spilling the contents of a bag. We propose Latent
+Safety Filters, a latent-space generalization of HJ reachability
+that tractably operates directly on raw observation data (e.g.,
+RGB images) to automatically computes safety-preserving actions
+without explicit recovery demonstrations by performing safety
+analysis in the latent embedding space of a generative world
+model. Our method leverages diverse robot observation-action
+data of varying quality (including successes, random exploration,
+and unsafe demonstrations) to learn a world model. Constraint
+specification is then transformed into a classification problem
+in latent space of the learned world model. In simulation and
+hardware experiments, we compute an approximation of Latent
+Safety Filters to safeguard arbitrary policies (from imitation-
+learned policies to direct teleoperation) from complex safety
+spilling the contents of a bag or toppling cluttered objects.
+I. INTRODUCTION
+Imagine that a robot manipulator is deployed in your home,
+like shown in Figure 1. What safety constraints should the
+robot reason about? It is common to equate robot safety
+with collision avoidance, but in unstructured open world
+much more nuanced. For example, the household manipulator
+should understand that pouring coffee too fast will cause the
+liquid to overflow; pulling a mug too quickly from a cupboard
+will cause other dishes to fall and break; or, in Figure 1,
+aggressively pulling up from the bottom of an open bag will
+cause the contents to spill.
+While these failure stateslike liquid overflowing, objects
+high-dimensional observations, understanding how the robot
+could enter those states is extremely hard. Consider the set of
+failure states visualized in the black region in Figure 1. These
+failures correspond to states where the Skittles have already
+spilled onto the table. But even before the spill is visible, there
+are states from which the robot manipulator is doomed to end
+up spilling no matter what it does (visualized as a red set in
+Figure 1): for example, after yanking the bottom of the bag
+up too quickly, no matter if the robot slows down or reorients
+the bag, the Skittles are doomed to spill all the way out.
+This is where safe control theory can provide some insight.
+Frameworks like Hamilton-Jacobi (HJ) reachability analy-
+sis [44, 48] mathematically model safety constraints very
+generallyas arbitrary (non-convex) sets in a state spaceand
+automatically identify states from which the robot is doomed
+to fail in the future by solving an optimal control problem.
+this theoretical framework to safeguard against more nuanced
+failuresbeyond collision-avoidancein robotics.
+Our key insight is that the latent representations learned by
+generative world models [23, 64] enable safe control for con-
+straints not traditionally expressable in handcrafted state-space
+representations. While world models require diverse coverage
+(success, play, andor failure data) to accurately predict the
+dynamical consequences of robot actions, this formulation
+makes constraint specification as easy as learning a classifier
+in the latent space , and HJ reachability can safely evaluate
+possible outcomes of different actions (to determine if the
+robot will inevitably fail) within the imagination of the world
+model without additional unsafe environment interactions.
+We evaluate our approach in three vision-based safe-control
+tasks in both simulation and hardware:
+1) a classic collision-avoidance navigation problem where
+we can compare our latent approximation with a privi-
+leged state solution,
+2) a high-fidelity simulation of manipulation in clutter
+where the robot can touch, push, and tilt objects as long
+as they do not topple over, and
+3) hardware experiments with a Franka Research 3 arm
+picking up an open bag of Skittles without spilling.
+Our quantitative results show that, without assuming access to
+ground-truth dynamics or hand-designed failure specifications,
+Latent Safety Filters can learn a high-quality safety monitor
+(F1 score : 0.982) and the safety controller provides a 63.6
+safety failure violation decrease over a base policy trained via
+imitation . In qualitative experiments, we also find that
+Latent Safety Filters allow teleoperators to freely grasp, move,
+and pull up on an opened bag of Skittles, while automatically
+correcting any motions that would lead to spilling.
+Statement of Contributions. To summarize, we make four
+key contributions in this work.
+We formulate a HJ reachability problem in the latent
+space of a world model. This enables the specification
+of hard-to-model constraints that go beyond collision-
+avoidance (e.g., spilling) as a classification problem on
+the embedding space. The solution to our latent reach-
+ability problem automatically yields a safety-preserving
+policy and unsafe set that operate on high-dimensional
+RGB observations, without the need for explicit expert
+recovery demonstrations.
+We tractably compute Latent Safety Filters via a re-
+inforcement learning approximation  in the world
+models latent imagination, minimizing the need for
+additional unsafe online interaction data beyond what is
+needed to learn an accurate world model.
+In a benchmark safe navigation task (with a privileged
+safety controller and unsafe set) and a contact-rich ma-
+nipulation task in simulation, we find that Latent Safety
+Filters steer a base policy away from failures while
+minimizing incompletion rates more effectively than soft
+constraints or constrained MDP formulations [53, 54].
+We deploy Latent Safety Filters in hardware where the
+constraint beyond collision-avoidance is not to spill
+Skittles from an opened bag during interaction with
+a Franka Panda 7DOF manipulator. Our experimental
+results demonstrate that the same Latent Safety Filter
+minimally corrects a human teleoperator from spilling,
+does not impede a performant imitation-learned policy,
+makes a suboptimal imitation-learned policy safer, and
+generalizes to out-of-distribution Skittles bag colors and
+background changes.
+II. A BRIEF BACKGROUND ON HJ REACHABILITY
+Hamilton-Jacobi (HJ) reachability [45, 48] is a control-
+theoretic safety framework for identifying when present ac-
+tions will cause future failures, and for computing best-
+effort policies that minimize failures. Traditionally, reachabil-
+ity assumes access to a privileged state space s S and
+a corresponding bounded, discrete-time nonlinear dynamics
+model st1  f(st, at)1 which evolves via the robots control
+A domain expert will first specify what safety means by
+imposing a constraint on the state space, referred to as the
+failure set, F S. Given the failure set, HJ reachability
+will automatically compute two entities: (i) a safety monitor,
+F from its current state s despite the robots best efforts, and
+(ii) a best-effort safety-preserving policy,  : S A. These
+1Readers familiar with the continuous-time HJ reachability formulation
+will note that a common assumption is Lipschitz-continuous dynamics:
+L 0, f(s1, a) f(s2, a) Ls1 s2. This ensures the existence
+and uniqueness of the state trajectory when the dynamics are an ordinary
+differential equation . In discrete-time, assuming Lipschitz-continuous
+dynamics ensures convergence of traditional numerical methods for the non-
+discounted optimal control problem . In this work, we only assume the
+dynamics are bounded, C R, f(s, a) C, as explained in Section III
+two entities are co-optimized via the solution to an optimal
+control problem that satisfies the fixed-point safety Bellman
+V (s)  min
+(s), max
+aA V (f(s, a))
+R is a bounded margin function that
+encodes the safety constraint F via its zero-sublevel set
+{s  (s) < 0}, typically modeled as a signed-
+distance function. The maximally safety-preserving policy can
+be obtained via
+(s) : arg max
+aA V (f(s, a)).
+states from which the robot is doomed to enter F, can be
+recovered from the zero-sublevel set of the value function:
+At deployment time, the safety monitor and safety policy
+can be utilized together to perform safety filtering: detecting
+an unsafe action generated by any base policy, task, and min-
+imally modifying it to ensure safety. While there are a myriad
+of safety filtering schemes (see surveys [31, 60] for details),
+a common minimally-invasive approach switches between the
+nominal and the safety policy when the robot is on the verge of
+being doomed to fail: aexec  1{V (s)>0}task1{V (s)0}.
+III. LATENT SAFETY FILTERS
+To tackle both detecting and mitigating hard-to-model fail-
+ity (from Section II) that tractably operates on raw observation
+data (e.g., RGB images) by performing safety analysis in
+the latent embedding space of a generative world model.
+This also transforms nuanced constraint specification into a
+classification problem in latent space and enables reasoning
+about dynamical consequences that are hard to simulate.
+the robot as operating in an environment E E, which broadly
+characterizes the deployment contexte.g., in a manipulation
+of the table, objects, and gripper. The robot has a sensor
+: S  E O that generates observations o O
+depending on the true state of the world. While we are in
+a partially-observable setting and never have access to the
+true state, we will leverage a world model to jointly infer
+a lower-dimensional latent state and its associated dynamics
+that correspond to the high-dimensional observations.
+A world model consists of an encoder that maps observa-
+tions ot (e.g., images, proprioception, etc.) and latent state zt
+into a posterior latent zt, and a transition function that predicts
+the future latent state conditioned on an action. This can be
+mathematically described as:
+Transition Model: zt1 p(zt1  zt, at).
+This formulation describes a wide range of world mod-
+els [21, 22, 23, 24, 64], and our latent safety filter is not
+tied to a particular world model architecture. We focus on
+world models that are trained via self-supervised learning
+(observation reconstruction, teacher forcing, etc.) and do not
+require access to a privileged state. Specifically, in Section IV
+we use a Recurrent State Space Model (RSSM)  trained
+with an observation reconstruction objective and in Section
+V we use DINO-WM  which is trained with via teacher-
+forcing.
+Safety Specification: Failure Classifier on Latent State. A
+common approach for representing F is to encode it as the
+zero-sublevel set of a function (s) (as in Eq. 1). Domain
+experts typically design this margin function to be a signed
+distance function to the failure set, which easily expresses
+constraints like collision-avoidance (e.g., distance between
+positional states of the robot and environment entities being
+less than some threshold). However, other types of constraints,
+such as liquid spills, are much more difficult to directly express
+with this class of functions and traditional state spaces. To
+address this, we chose to learn (z) from data by modeling
+it as a classifier over latent states z Z, with with learnable
+parameters .
+We train our classifier on labelled datasets of observations
+corresponding to safe and unsafe states, o Dsafe and
+where loss function is parameterized by  R to prevent
+degenerate solutions where all latent states are labeled as
+zero by the classifier. Intuitively, this loss penalizes latent
+states corresponding to observations in the failure set from
+being labeled positive and vice versa. The learned classifier
+represents the failure set Flatent in the latent space of the world
+model via: Flatent  {z  (z) < 0}. Our failure classifier can
+be co-trained (Section IV) or trained after (Section V) world
+model learning.
+Latent-Space Reachability in Imagination.
+reachability analysis requires either an analytic model of the
+robot and environment dynamics [4, 47] or a high-fidelity
+simulator [20, 32] to solve the fixed-point Bellman equation,
+both of which are currently inadequate for complex system
+dynamics underlying nuanced safety problems (e.g., liquid in-
+teraction). Instead, we propose using the latent imagination of
+a pretrained world model as our environment model, capturing
+hard-to-design and hard-to-simulate interaction dynamics. We
+introduce the latent fixed-point Bellman equation:
+Vlatent(z)  min
+(z), max
+aA Ezp(  z,a)
+Vlatent(z)
+Note that in contrast to Equation 1, this backup operates on the
+latent state z and, for full generality, includes an expectation2
+over transitions to account for world models with stochastic
+transitions (e.g., RSSMs). For world models with deterministic
+transitions (e.g., DINO-WM), the expectation can be removed.
+While the world model allows us to compress high-
+dimensional observations into a compact informative latent
+problem is still intractable due to the dimensionality of the
+latent embedding (e.g., our latent is a 544 dimensional vector
+in Section IV). This motivates the use of a learning-based
+approximation to the value function in Equation 4. We follow
+and induce a contraction mapping for the Bellman backup
+by adding a time discounting factor  [0, 1):
+Vlatent(z)  (1 )(z)
+(z), max
+aA Ezp(  z,a)[Vlatent(z)]
+We note that the contraction induced by this time-discounted
+Bellman backup converges to a unique value function under
+the mild assumptions on the boundedness of the margin
+function and dynamics [7, 8].
+In theory, if solved to optimality, this latent value function
+would offer a safety assurance only with respect to the data
+used to train the world model and the failure classifier.
+an assurance that it will try its hardest to avoid failure in
+its representation of the world. In the following section, we
+study our overall latent safety framework and the effect of
+world model dataset coverage on a benchmark safe control
+task for which we have exact solutions. We then scale to
+high-dimensional manipulation examples in both simulation
+and hardware.
+IV. SIMULATION RESULTS
+We conduct simulation experiments across two different
+vision-based tasks to assess the performance of our latent
+safety framework. These experiments are designed to support
+the claim that latent safety filters recover performant safety-
+preserving policies from partial observations alone (i.e., with-
+out assuming access to ground-truth dynamics, states, or con-
+straints), for progressively more complex safety specifications
+and dynamical systems.
+A. How Close Does Latent Safety Get to Privileged Safety?
+We start by studying a canonical safe-control benchmark:
+collision-avoidance of a static obstacle with a vehicle. Al-
+though this particular setting does not require latent-space
+generalizations of safety, its low-dimensionality and well-
+studied unsafe set allow us to rigorously compare the quality of
+the safety filter to a traditional numerical grid-based solution
+which we take as ground-truth and a privileged-state RL-
+based safety filter.
+2This expectation could also be taken to be a risk metric (e.g., CVaR)
+or a worst-over-N samples of the transition function to induce additional
+conservativeness.
+Failure Classifier
+Unsafe Set  0
+Privileged
+true set boundary
+approx. unsafe set
+approx. failure set
+Unsafe Set  2
+Fig. 2: Latent Safety vs. Privileged Safety. Dubins car
+collision-avoidance qualitative results. Dashed lines indicate
+the ground-truth set boundary. We visualize each methods
+failure specification and corresponding unsafe set, shown at
+heading slices  {0, 2}. While PrivilegedSafe uses the
+ground-truth s and Fgt, LatentSafe uses the latent state from
+encoding the observation, z  E(o), and the inferred failure
+set Flatent. Insets on the bottom row show the observations
+corresponding to select privileged states s1, s2, s3.
+Dynamical System  Safety Specification.
+In this exper-
+3D Dubins car with state s  [px, py, ] evolving as
+st1  f(st, at)  st  t[v cos(t), v sin(t), at],
+where the robots action a controls angular velocity while
+the longitudinal velocity is fixed at v  1 m s1, and the
+time-discretization is t  0.05 s. The action space for the
+robot is discrete and consists of A  {amax, 0, amax}
+where amax  1.25 rads. To remain safe, the robot must
+avoid an obstacle of radius r
+0.5 m centered at the
+origin (see red circle in the bottom row of Figure 2). Hence,
+the ground-truth failure set is a cylinder in state space,
+function gt(s)  px2  py2 0.52 captures the failure
+condition via its zero-sublevel set.
+The PrivilegedSafe baseline
+computes the HJ value function using the ground-truth state,
+ing (RL)-based solver. Specifically, we approximate solu-
+tions to the discounted Bellman equation (5) in the frame-
+work of  via DDQN  with Q-functions parameter-
+ized by a 3-layer MLP with 100 hidden units. We evaluate
+priv(s)  arg maxaA Q
+priv(s, a) via action enumeration and
+a simple lookup procedure due to the discrete action space.
+Latent Safety Filter Setup.
+The LatentSafe method does
+not get privileged access to ground-truth information but
+instead learns all model components from data. Specif-
+DWM  {{(ot, at)}T
+i1 of N  2, 000 observation-
+action trajectories. The observations ot : (It, t) consist of
+(128x128) RGB images I and the robot heading t [, ].
+During trajectory generation, we uniformly sampled random
+actions. Each trajectory terminates after T  100 timesteps
+or if the ground-truth x or y coordinate left the environment
+bounds of [1 m, 1 m]. We trained the world model on this
+offline dataset using the default hyperparameters of . We
+used the privileged state to automatically label each observa-
+tion ot DWM as violating a constraint or not, constructing
+the datasets Dsafe and Dunsafe for classifier training in Eq. 3.
+For LatentSafe, we parameterize the safety classifier (z)
+by a 2-layer MLP with 16 hidden units and co-train it with
+the world model. The zero-sublevel set of (z) captures the
+learned failure set, Flatent : {z  (z) < 0}.
+One important implementation detail when solving Equa-
+tion (5) via reinforcement learning in latent space is dealing
+with the reset mechanism in the world models imagination.
+Naively initializing the latent state may result in a latent state
+that does not correspond to any observation seen by the world
+model. In practice, we reset the world model by encoding a
+random observation from our offline dataset and only collect
+rollouts in the latent imagination for T  25 steps to prevent
+drifting too far out-of-distribution. For approximating the
+latent HJ value function and safety controller, we use the same
+toolbox and hyperparameters as the privileged baseline. We
+also obtain the safe control via the same procedure as for the
+priviledged state baseline, via enumerating over the discrete
+action space to solve for
+latent(z)  arg maxaA Q
+latent(z, a)
+Since the ground-truth dynamics are known and its state-space
+is low-dimensional, we can solve for the safety value function
+exactly using traditional grid-based methods . This allows
+us to report the accuracy of the safeunsafe classification of
+the safety filters monitor (V ) in Table I for both the privileged
+state value function Vpriv and latent state value function Vlatent
+based on their alignment (in terms of sign) with the ground-
+truth value function Vgt. Since both safety filters use the same
+toolbox for learning the value function, any degradation in the
+latent safety filter can be attributed to the quality of the learned
+world model. We also qualitatively visualize the zero-sublevel
+set of the value function for both methods at different fixed
+values of  in Figure 2. In summary, we find that the image-
+based runtime monitor learned by our method (LatentSafe)
+closely matches the accuracy of the true-state-based of the
+privileged baseline (PrivilegedSafe).
+latent. Each
+runtime monitor V induces a corresponding safety policy:
+latent for LatentSafe and
+priv for PrivilegedSafe. To evaluate
+the quality of these safety policies, we check if they are capa-
+ble of steering the robot away from failure. To determine initial
+conditions from which steering away from failure is feasible,
+we compute a state-based ground-truth value function, Vgt,
+True Safe False Safe False Unsafe True Unsafe F1-score
+PrivilegedSafe
+LatentSafe
+TABLE I: Quality of the Runtime Monitor. Performance
+of latent (LatentSafe) and privileged (PrivilegedSafe) safety
+value functions. Note that this is computed over all three
+dimensions of the Dubins car state.
+whose zero-sublevel set gives us a dense grid of 250 initial
+states for which the exact safe controller
+gt can guarantee
+safety. For all of these states, we simulate each policy exe-
+cuting its best effort to keep the robot outside the privileged
+failure set, Fs. We find that our image-based safety policy
+closely matches the performance of the privileged baseline:
+LatentSafe maintains safety for 240250 (96) states and
+PrivilegedSafe maintains safety for 246250 (98.4) states.
+Failure Classifier
+Unsafe Set  0
+Latent w biased WM
+true set boundary
+approx. unsafe set
+approx. failure set
+Unsafe Set  2
+leakage due to WM bias
+Fig. 3: Ablation: Latent Safety with Incomplete WM.
+Unsafe set approximated by LatentSafe using the latent space
+of a biased world-model built from incomplete action coverage
+A  {0, amax} A.
+Thus far, we have had strong coverage of all observation-
+action pairs when training the world model; however, complete
+knowledge of the world may not be achievable in reality. To
+study this, we train our latent safety filter on top of a world
+model that has seen a biased dataset, wherein the robots
+action space is limited to only moving straight or turning left:
+A  {0, amax} A. Figure 3 shows that the bias of the
+world model affects the robots understanding of safety: since
+the world model did not learn about the possibility of turning
+they require a right turn to avoid collision.
+B. Can Latent Safety Scale to Visual Manipulation?
+In our simulated manipulation setting, we adapt a contact-
+rich manipulation task from  where a robot is tasked
+with grasping and lifting a green block that is placed closely
+between two red blocks (see Figure 4). In this setting, we gen-
+eralize the safety representation to more nuanced failures, such
+as the red blocks falling down from aggressive interaction.
+We train a task policy for this setting that accounts for safety
+only via a soft constraint and compare the unfiltered behavior
+Observation trajectory !: given !:
+The blocks start to wobble
+and are doomed to fall down
+The safety filter identifies this
+as part of the unsafe set, !"
+The classifier !"
+detects the failure state
+The start of the trajectory is
+not failing and is not doomed.
+Fig. 4: Visual Manipulation: Simulation. Top row: Robots observations corresponding to a known unsafe action sequence.
+Middle row: Our learned failure classifier correctly identifies only the final observations at t  28 as being in the failure state
+since the red blocks have fallen all the way over. Bottom row: Our unsafe set (obtained via the latent-space HJ value function)
+correctly identifies that the robot is doomed to fail the moment that the two red blocks begin to tip over at time t  14.
+against two methods for safety filtering: a constrained MDP
+(CMDP) baseline and our latent safety filter.
+Safety Specification. We treat a state as a failure if either of
+the two red blocks is knocked down. We categorize a block
+as having fallen if it is angled within 1 rad (measured using
+privileged simulator information not seen by any of the meth-
+ods) of the ground plane. Crucially, this safety specification is
+not a collision avoidance specification: the robot is allowed to
+Experimental Setup.
+Our nominal task policy task is ob-
+tained via DreamerV3  trained using a dense reward for
+lifting the block and a sparse cost for violating constraints
+(Dreamer). The observation space O of the robot is given
+by two 3  128  128 RGB camera views (table view and
+wrist-mounted) along with 8-dimensional proprioception (7-
+dimensional joint angle and gripper state) information. We
+co-train the Dreamer world model with our failure classifier
+(z) for 100k iterations and reuse the world model with
+frozen weights for our method and all other baselines. The
+failure classifier is implemented as a 3-layer MLP with ReLU
+activations. During training, we sampled batches consisting of
+both rollouts collected by the Dreamer policy (90 of each
+batch) and a dataset of 200 teleoperated demonstrations (10
+of each batch) comprising both safe and unsafe behavior.
+We also compare LatentSafe to a constrained MDP safety
+model and failure classifier as LatentSafe, but optimizes a
+different loss function to obtain the safety critic, Qrisk :
+L() E(zt,at,zt1,at1)risk
+2(Qrisk(zt, at)
+(ct  (1 ct)Qrisk(zt1, at1)))2
+where risk
+latent is the state-action distribution induced by policy
+latent and ct {0, 1} takes value 1 if a constraint is violated
+at timestep t. The resulting Q-value can be interpreted as the
+empirical risk of violating a constraint by taking action at
+from zt and following policy risk
+latent thereafter. To mimic the
+role of our safety filter that is agnostic to any task-driven base
+from risk
+latent(z) : arg minaA Qrisk(z, a) and no additional
+task-relevant information. We can then use this policy to filter
+any actions whose risk is higher than some threshold, risk. The
+actor and critic for both SQRL and LatentSafe are trained
+in the latent dynamics of the RSSM using DDPG [37, 38].
+Since we are in the continuous action space, DDPG trains
+both a critic network Vlatent(z) that approximates the safety
+value function, and an actor network latent(z) which is trained
+to optimize Vlatent(p(z  z, a)) since a table-lookup is not
+possible in continuous action spaces. We again reset the
+latent state of the world model by encoding an observation
+of previously collected data. All training hyperparameters are
+included in the Appendix.
+During deployment, we use the actor head of Dreamer to
+be the nominal policy, task(z). To get a performant nominal
+over the reward weights for the components consisting of
+reaching the green block, lifting the green block, action
+Safety Filtering.
+We instantiate our two safety filters, La-
+tentSafe (comprised of
+latent(z) and Vlatent(z)) and SQRL
+(comprised of risk
+latent(z) and V risk(z)), to shield the base
+Dreamer policy. During each timestep t, we query a candidate
+action at from Dreamer that we seek to filter. We instantiate
+a modified version of the minimally-invasive safety filtering
+scheme described at the end of Section II. We take the action
+in the world model to obtain latent state zt1 and evaluate this
+latent state to obtain V (zt1). This value V (zt1) will serve
+as our monitoring signal for whether we are safe or if we
+should start applying our safety policy. For LatentSafe, the
+filtered (and thus executed) action aexec
+follows the filtering
+task(zt),
+if V (zt1) > ,
+latent(zt),
+otherwise.
+This is a least-restrictive filter3 that executes the safe control
+latent whenever V (zt1)   0.4. The SQRL
+baseline follows a similar filtering control law defined by:
+task(zt),
+if V risk(zt1) < risk,
+latent(zt),
+otherwise.
+where risk is a manually tuned risk threshold that we ablate
+in our experiments to be risk {0.1, 0.05}.
+was a difference between the failure set, Flatent, learned by
+our classifier and the unsafe set, Ulatent, recovered by learning
+the HJ value function in this visual manipulation task. If
+Ulatent Flatent, then we have identified a non-trivial unsafe
+set for this high-dimensional problem. In Figure 4, we show
+the observations o0:T corresponding to a known unsafe action
+this action sequence, half-way through the robot touches the
+red blocks with high enough force that they end up falling over.
+We pass the observation trajectory into world model encoder
+to obtain a corresponding posterior latent state trajectory z0:T .
+We evaluate sign[(zt)] and sign[Vlatent(zt)], t {0, . . . , T}
+to check which latent states are in the failure set and unsafe
+set respectively. The two rows in Figure 4 correspond to each
+models classification. We see that Flatent correctly identifies
+that only the final observation at t  28 is in failure, since
+this is the only observation where the red blocks have fully
+fallen down. However, Ulatent detects that at timestep t  14,
+the robot has perturbed the blocks in such a way, that they are
+doomed to fail.
+We rollout the un-shielded base
+Dreamer policy and the policy shielded via LatentSafe and
+SQRL for 50 initial conditions of the blocks randomly ini-
+tialized in front of the robot within 0.05 m in the x and
+y directions. We report the success, constraint violation, and
+incompletion rates in Table II. We define a constraint violation
+as any rollout where at least one of the red blocks fall, success
+as any rollout where the robot successfully picked up the green
+block without toppling a red block, and incompletion as any
+rollout that does not violate constraints but failing to picking
+up the green block.
+Despite the penalty for knocking over obstacles, we found
+that Dreamer learned to lift the block even when doing
+3While in theory   0 is an appropriate threshold for safety filtering,
+practitioners often select  > 0 to account for potential numerical errors or
+latency in the system.
+Safe Success
+Constraint
+Violation  ()
+Incompletion
+SQRL (risk  0.1)
+SQRL (risk  0.05)
+LatentSafe
+TABLE II: Visual Manipulation: Simulation. Success at
+the task without any safety violations, constraint violations,
+and incompletion rates across 50 rollouts corresponding to 50
+random initial conditions of the blocks. Task success is picking
+up the green block; constraint violation is where either of the
+red blocks fall down on the table.
+so would incur a safety violation. Although further tuning
+the reward function could potentially improve the behavior
+of the robot, reward engineering is notoriously tedious for
+engineers. This motivates using a safety filter to improve the
+safety of an unsafe task policy. We report the performance of
+SQRL for two different values of risk and found that SQRL
+is extremely sensitive to choice of while risk, growing the
+task incompletion rate from 4 when risk  0.1 to 70
+when risk  0.05 while only marginally improving safety. In
+when needed, significantly reducing the number of constraint
+violations while still succeeding at the task.
+V. HARDWARE RESULTS:
+PREVENTING HARD-TO-MODEL ROBOT FAILURES
+if our Latent Safety Filter can be applied in the real world
+(shown in Figure 1). We use a fixed-base Franka Research 3
+manipulator equipped with a 3D printed gripper from .
+The robot is tasked with interacting with an opened bag of
+Skittles on the table. The safety constraint is not to spill any
+Skittles. We test the efficacy of our approach by deploying the
+same Latent Safety Filter to safeguard a human teleoperator
+(Section V-A) and a strong and weak Diffusion Policy
+from spilling (Section V-B), as well as stress-testing our
+safety filter to out-of-distribution candy bags and environment
+backgrounds (Section V-C).
+Safety Specification.
+Our safety specification is to prevent
+the contents of the Skittles bag from falling out of the
+bag. Given only image observations and proprioception, this
+problem is clearly partially observed since the robot cannot
+directly recover the position of the Skittles in the bag. Even
+if privileged state information was available, designing a
+function to characterize the set of failure states and a dynamics
+model for interactions between all relevant objects (e.g., the
+extremely difficult.
+Latent Safety Filter Setup.
+We use DINO-WM , a
+Vision Transformer-based world model that uses DinoV2 as
+an encoder . The manipulator uses a 3rd person camera
+and a wrist-mounted camera and records 3  256  256 RGB
+No safety filter. Teleoperator pulls up
+from bottom of the bag, causing a spill.
+Safety filter overrides teleoperator when
+they pull up from the bottom of the bag.
+Safety filter slows side-to-side
+movements with a bottom bag grasp.
+Same Latent Safety Filter (
+Safety filter allows teleoperator to
+pick up the bag when grasped securely.
+Fig. 5: Far Left: Without a safety filter, a teleoperator lifts the closed-end of the bag too quickly and spills the Skittles. Middle
+latent dipping below the safe
+threshold (orange) and prompting the safety policy to override the teleoperator (green); the robot does not allow the human pull
+the bag up sharply. Middle Right: At the same time, LatentSafe slows down the humans attempt to move the bag side-to-side
+while grasping the closed end, indicating that the safety filter has a nuanced understanding of which actions will and wont
+violate safety. Right: Grasping the bag from the open end and lifting is deemed safe and is allowed by LatentSafe.
+images at 15 Hz. For world model training, we collected
+a dataset DWM of 1,300 offline trajectories: 1,000 of the
+trajectories are generated sampling random actions drawn from
+a Gaussian distribution at each time step, 150 trajectories are
+demonstrations where the bag is grasped without spilling any
+candy on the table. We manually labeled the observations
+in the trajectory dataset for apparent failures. However, in
+also be automated using alternative methods, like state-of-the-
+art foundation models (e.g., vision-language models).
+Our world model is trained by first preprocessing and
+encoding the two camera view using DINOv2 to obtain a set of
+dense patch tokens for each image. We use the DINOv2 ViT-S,
+the smallest DINOv2 model with 14M parameters, resulting
+in latent states z of size 256384 corresponding to 256 image
+patches each with embedding dimension 384. The transition
+function is implemented as a vision transformer, which takes
+as input the past H  3 patch tokens, proprioception, and
+actions to predict the latent. The transformer employs frame-
+level causal attention to ensure that predictions can only
+depend on previous observations. The model is trained via
+teacher-forcing minimizing mean-squared error between the
+ground-truth DINO embeddings of observations and propri-
+oception information from DWM and the embeddings and
+proprioception predicted by the model. Additional details on
+the model and hyperparameters are included in the appendix
+and in . After world model training, we separately learn
+the failure classifier (implemented as a 2-layer MLP with
+hidden dimension 788 and ReLU activations) on the DINO
+patch tokens corresponding to the manually labeled constraint-
+violating observations. For approximating the HJ value func-
+A. Shielding Human Teleoperators
+To emphasize the policy-agnostic nature of our latent safety
+Setup. The teleoperator controls the end-effector position and
+gripper state via a Meta Quest pro similar to , and can
+freely move the robot around. They are tasked with interacting
+with the Skittles bag however they like. The safety filter
+operates according to the following control law:
+task(zt),
+if V (zt1) >
+latent(zt),
+otherwise
+where zt1 p(zt1  zt, task(zt)) is a one-step rollout of
+the world model using the action proposed by the unshielded
+teleoperator. In hardware experiments, we set   0.3. Both
+the teleoperation and safety filtering were executed at 15 Hz.
+We visualize our qualitative results in Figure 5. Un-shielded
+by our safety filter, the teleoperator can grab the opened
+bag of Skittles by the base and pull up sharply, spilling its
+contents on the table (left, Figure 5). By using LatentSafe,
+the same behavior gets automatically overridden by the safety
+executed and keeping the Skittles inside (center, Figure 5). At
+the same time, the latent safety filter is not overly pessimistic
+(right-most images in Figure 5). When the teleoperator moves
+the Skittles bag side-to-side while grasping the bottom of the
+opened bag, the safety filter accurately accounts for these
+dynamics and minimally modifies the teleoperator to slow
+them down, preventing any Skittles from falling out while
+still allowing the general motion to be executed. When the
+teleoperator chooses a safe graspgrabbing the bag by the
+Fig. 6: Shielding IL Policies: Hardware Results. Percent
+of bag spilled (p) vs number of runs that spilled at least
+p of the bag. While DiffusionAdv frequently spills a large
+percentage of the bag (85), DiffusionAdv  LatentSafe
+spills less than 5 of the bag in all but one of the constraint-
+violating rollouts. DiffusionOpt with and without LatentSafe
+spills only 1 skittle in across all 15 rollouts, showing that latent
+safety is not overly conservative.
+the person to complete the task safely and autonomously.
+B. Shielding Autonomous Imitation-Learned Policies
+Next we study how well the same Latent Safety Filter
+from Section V-A can shield autonomous imitation-learned
+(IL) policies. Specifically, we test whether the latent safety
+filter does not impede a strong IL policy (i.e., our filter is not
+overly conservative) and improves the safety of a suboptimal
+IL policy (i.e., our filter shields effectively), while removing
+teleoperator bias that may be present in our prior experiments.
+Methods.
+For our base task policy, task(o), we use a gen-
+erative imitation-learned (IL) policy trained with a diffusion
+objective  and which takes as input RGB images and
+end effector pose as observations o O (implementation
+details can be found in the Appendix). We train two diffusion
+policiesDiffusionAdv and DiffusionOptwhich represent
+relevant extremes of a base policys capabilities. DiffusionOpt
+represents the upper bound of a strong base policy that
+uses carefully curated demos of the task. We use this baseline
+to study whether our safety filter is not overly conservative
+when shielding a strong base policy. We train it with 100
+teleoperated demonstrations wherein the expert grasps the
+Skittles bag from the middle and lifts it off the table without
+spilling. We also train DiffusionAdv, which represents a
+lower bound of a base policy trained with demonstrations
+that could lead to unsafe outcomes. This policy is trained with
+100 potentially unsafe teleoperated demonstrations: the expert
+grasps and lifts the Skittles bag from its closed end, but the
+opening is internally sealed during data collection time so that
+no Skittles could fall out. This results in a base policy that has
+an incomplete understanding of how to interact safely with the
+Skittles bag, allowing us to test our safety filters ability to
+prevent failures in a controlled and repeatable manner.
+Metrics.
+performance
+{DiffusionAdv, DiffusionOpt} with and without
+using LatentSafe (yielding four methods in total). We use
+exactly the same Latent Safety Filter as we used to shield
+the human teleoperator in Section V-A. For each method,
+we record 15 rollouts where the policy successfully grasped
+the bag (ignoring missed grasps) 15 times in hardware.
+We measure the frequency of constraint violations (if even
+one Skittle falls out during an episode) and spill severity
+(percentage of the Skittles spilled) in each of these trajectories.
+When LatentSafe
+shields the weak DiffusionAdv, we see a 63.6 decrease
+in constraint violations compared to DiffusionAdv acting
+alone. While LatentSafe does still fail 26.4 of the time,
+we note that 3 out of the 4 failures only spilled a single
+skittle. In contrast, DiffusionAdvs autonomous spill rate was
+73.4 with many instances where a large percentage of the
+bag was spilled. To better understand the severity of the
+constraint violations, we report in Figure 6 how often each
+method spilled more than p of the bag. While DiffusionAdv
+frequently spills a large percentage of the bag (85),
+the safety filter spills less than 5 of the bag in all but
+one of the constraint-violating rollouts, where it spilled only
+24. Overall, LatentSafe minimizes both the failure rate and
+severity when the base IL policy is erroneous and can cause
+difficult-to-model failures.
+We report the
+severity of constraint violations in Figure 6. We note that
+both when DiffusionOpt acts alone and when it is shielded by
+15 trials. Both methods exhibited only one safety violation,
+where a single Skittle was spilled. Overall, we see that our
+Latent Safety Filter is not overly-conservative, allowing a
+strong base policy to operate without unnecessary overrides.
+We also note that practically, since the same Latent Safety
+Filter was used for both the weak and the strong base IL
+a base task-driven policy without the need to also change the
+safety representation and fallback controller.
+C. Testing Out-of-Distribution Generalization of Latent Safety
+Safety Filter on out-of-distribution (OOD) bag colors, candy
+Recall that our Latent Safety Filter was trained
+only on classic red Skittles bag and with a wooden table-
+top background. In these tests, we first vary the color of
+the Skittles bag, where OOD Skittles are green (Sour) and
+purple (Wild Berry). We also test OOD candy bags: MMs
+are both visually and dynamically OOD: we qualitatively
+observe that MMs bags are stiffer and have a papery texture
+compared to the Skittles bags. Furthermore, the MMs are
+have differing weights (e.g., with peanuts). Finally, we also
+deploy our method to interact with a red Skittles bag, but
+cover the table with an OOD black cloth.
+Methods. To isolate the influence of OOD conditions on our
+Latent Safety Filter, we replay a known unsafe demonstration
+from our dataset in open-loop as our task policy. We reset
+the bag to the same initial condition and shield this replayed
+demonstration with LatentSafe filter for all OOD conditions.
+Results. We plot the safety value function and the final obser-
+vation of the system for the OOD Skittles and background in
+Figure 7 and OOD MMs in Figure 8. When shielding OOD
+Skittles bags and the novel background, the filtering override
+profile is similar for all of the bag colors and results in the
+same final observation where none of the candy is spilled. In
+for the OOD MMs in Figure 8. For both the Classic and
+Peanut MMs, our method fails to prevent spills. Note that for
+the Classic MMs (brown), the safety filter started to activate
+prior to the candy spilling (grey line) but was unable to prevent
+a spill. We hypothesize that the powerful, pre-trained DINOv2
+embeddings are able to identify semantic equivalences be-
+tween the differing bags4, which would be sufficient for safe
+control across dynamically equivalent bags. However, despite
+the encoders ability to map visually similar observations to
+similar embeddings, there is no reason to suggest that the
+transition model can generalize across different bag dynamics
+in our extremely low data regime, which would explain the
+gap in closed-loop performance between MMs and Skittles.
+Fig. 7: OOD Generalization: Skittles. Our latent safety filter
+is trained only on a red Skittles bag. It is deployed to shield an
+open-loop known unsafe trajectory for two OOD skittles bag
+colors and an OOD background. LatentSafe generalizes
+maintaining the same performance of preventing spillsto
+OOD Skittles bag colors and OOD background change.
+VI. RELATED WORK
+Safety Filtering for Robotics.
+Safety filtering is a control-
+theoretic approach for ensuring the safety of a robotic system
+in a way that is agnostic to a task-driven base policy .
+A safety filter monitors a base task policy and overrides it
+with a safe control action if the system is on the verge of
+becoming unsafe. Control barrier functions , HJ reachability
+[19, 45, 48], and model-predictive shielding  are all
+common ways of instantiating safety filters (see  for a
+4In the Appendix, we provide qualitative evidence by visualizing the top
+three PCA components of the DINOv2 embeddings of all OOD scenarios.
+Fig. 8: OOD Generalization: MMs. Our latent safety filter
+is trained only on a red Skittles bag. It is deployed to shield
+an open-loop known unsafe trajectory. LatentSafe is deployed
+with 3 MM bags with different colors and dynamics. Our
+filter does not prevent the manipulator from lifting these OOD
+bags. For the brown bag, even though the filter begins to
+override the recorded trajectory, it does not manage to prevent
+the spill, potentially due to differing dynamics.
+survey). The most relevant recent developments include com-
+puting safety filters from simulated rollouts of first-principles
+dynamics models or high-fidelity simulators via reinforcement
+learning or self-supervised learning [4, 20, 29, 32, 51], safety
+filters that operate on a belief-state instead of a perfect state
+[1, 3, 33, 56], and safety filters that keep a system in-
+distribution of a learned embedding space . Our work
+contributes to the relatively small body of work that attempts
+to bridge the gap between high-dimensional observations, such
+as LiDAR [27, 39] or RGB images [30, 55], and safety filters.
+hand-crafted intermediary representations of state from the
+high-dimensional observations nor does it represent safety as
+collision-avoidance. Instead, our safety filter operates in the
+latent space of a world model, reasoning directly about the
+embedded RGB observations and shielding against hard-to-
+model failure specifications.
+Latent Space Control.
+The control and model-based rein-
+forcement learning community has recently demonstrated the
+potential for using generative world models for real-world
+robot control [46, 62]. One of the advantages of world models
+is that they transform a control problem with partial observ-
+ability into a Markov decision process in the learned latent
+state space. Many methods for shaping this latent state repre-
+sentation exist, from observation reconstruction [22, 23, 24],
+metric learning in the latent space . While prior works
+traditionally use the world model to learn a policy for a specific
+filter that reasons about unsafe consequences it can imagine
+(but are hard to model) in the latent space
+via reachability
+analysis. We note that our paper is not the first to apply
+control-theoretic principles in the latent space of a learned
+world model. Latent models have been used to estimate the
+regions of attraction for data-driven policies , collision-
+free motion planning , and forward reachability methods
+have been used for structured exploration toward states that
+are far from a systems initial state . Instead, we take a
+backward reachability approach  that determines the set of
+states that will inevitably lead to failure despite the robots
+best effort to prevent failure. This allows us to simultaneously
+compute a runtime monitor as well as a safety recovery policy
+that can preemptively prevent failures.
+Learning about Safety from Expert Demonstrations. Given
+an offline dataset of expert data and a privileged state space,
+there are two predominant methods for learning about safety.
+The first uses expert demonstrations to learn a safe policy
+directly. For example, control barrier functions can be learned
+from expert demonstrations if the ground-truth dynamics and
+their Lipschitz constants are known  and . Inverse
+constraint learning methods
+[15, 36, 52] infer constraints
+given expert trajectories that are optimal with respect to a
+known reward and unknown constraint; high-reward trajec-
+tories that the expert demonstrator did not take must have
+a safety violation. The assumption of a known reward has
+been relaxed in [16, 41] but still requires trajectories that are
+(locally) optimal with respect to some task. Our work does
+not assume expert demonstration trajectories; it only assumes
+observations labeled with a binary indication of failure (which
+we use to learn our failure state classifier). We also do not
+assume a known state or dynamical system model, can use
+diverse robot deployment data regardless of its optimality
+(for world model building and failure classifier training), and
+we compute the safety policy as an optimization rather than
+requiring demonstrations of safety-preserving behavior.
+Computing Safety Behaviors from Offline Data.
+method aligns with the other set of approaches focusing on
+programmatically computing the safety filter via synthesis
+techniques (e.g., optimal control) once the safety specification
+(i.e., the failure set) is encoded or learned. Constraints more
+nuanced than collision avoidance can be specified with signal
+and linear temporal logic using demonstrations  or language
+, but have still been restricted to constraints that can be
+expressed using hand-designed predicates of privileged state
+variables. Prior works have learned about failure states by
+using intervention data in a learned latent space [42, 43]
+or binary indicators of constraint violation (provided by an
+oracle) [53, 54, 61]. Our method leverages labels on robot
+observations (provided by an annotator) to learn a margin
+function on the embeddings of high-dimensional observa-
+sublevel set. We then utilize reinforcement-learning-based HJ
+reachability to synthesize safe behavior aut

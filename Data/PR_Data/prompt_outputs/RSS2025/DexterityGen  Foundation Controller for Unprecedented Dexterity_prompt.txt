@@ -1,7 +1,7 @@
 === PDF文件: DexterityGen  Foundation Controller for Unprecedented Dexterity.pdf ===
-=== 时间: 2025-07-22 09:59:15.885931 ===
+=== 时间: 2025-07-22 16:05:53.681022 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -501,4 +501,218 @@ covers common in-hand dexterous manipulation behavior.
 In-hand Object Reorientation The user is required to
 control the hand to rotate a given object to a specific
 pose. In the beginning, we initialize the object in the air
-over the palm, and the user needs
+over the palm, and the user needs to first teleoperate the
+hand to grasp the object.
+Functional Grasping Regrasping is a necessary step in
+tool manipulation. The user is asked to perform a power
+grasp on the tool handle placed either horizontally (nor-
+mal) or vertically in the air (horizontal functional grasp).
+TABLE I: Performance of evaluated methods on the real-world tasks. We report success rate (SR) and time-to-fall (TTF)
+Holding Time metric which is normalized by the test episode length. The raw teleoperation baseline fails completely on those
+Reorient Large (Up)
+Reorient Small (Up)
+Reorient Large (Down)
+Reorient Small (Down)
+Teleop  DexGen 1220
+Func Grasp
+Func Grasp (Horizontal)
+Regrasp (Ball)
+Regrasp (Cylinder)
+Teleop  DexGen
+In the beginning, the user can only perform a pinch grasp
+or precision grasp.
+In-hand Regrasping We define this task as a harder
+version of object reorientation. In this task, the user is
+asked to achieve a specific grasp configuration (object
+pose  finger pose). In the beginning, the object is
+initialized with a precision grasp on the fingertip.
+Besides these tasks, we demonstrate some more realistic, long-
+horizon tasks as well. These tasks require the user to combine
+the skills above. In the main text, we only study the following
+two tasks. We leave more examples in the demo video in the
+appendix.
+Screwdriver In this task, the user needs to pick up a
+screwdriver lying on the table and use it to tighten a bolt.
+Syringe In this task, the user needs to pick up a syringe
+and inject some liquid into a target region.
+a) Evaluation Protocol: We evaluate the performance of
+a teleoperation system by measuring the success rate a human
+user can achieve when using it to solve certain tasks. Before
+evaluated teleoperation system in 30 minutes. Our experiments
+involve 2 users in this section.
+D. Real World Results
+The performance of different approaches is shown in Ta-
+ble I. We observe that humans can hardly use the baseline
+teleoperation system to solve the tasks above. The user can
+drop the object easily during the contact-rich manipulation
+process. Compared to the baseline, our system can successfully
+help the user to solve many tasks in various challenging setups.
+During these experiments, we also observe the following
+intriguing properties of our system:
+a) Protective Magnetic Effect: We find that the fin-
+gertips show some magnetic effect when they are in contact
+with the object. When the user mistakenly moves a supporting
+finger which may drop the object, our model can override
+that behavior and maintain the contact as if the fingertips are
+sticking to the object (Figure 9 second row). This explains
+why the user can achieve a much higher success rate in these
+dexterous tasks.
+TABLE II: The breakdown success analysis of syringe and
+screwdriver teleoperation. These long-horizon tasks require
+several stages of manipulation and remain challenging.
+Screwdriver
+Reorient
+Reorient
+b) Intention Following: Although our model overrides
+dangerous user action, we find that in most cases our model
+can follow the users intention (action) well and move along
+the user-commanded moving direction. During the manipula-
+tion procedure, the user can still have a sense of agency over
+the robot hand and complete a complex task. This finding
+echoes our simulated result with noisy policies: DexGen can
+realize the intention in the noisy suboptimal actions.
+We also present a breakdown analysis of the long-horizon
+tasks in Table II. For the first time, we enable such long-
+horizon dexterous manipulation behavior in the real world
+through teleoperation. Achieving tool use remains challenging
+as it involves several stages of complex dexterous manipula-
+chaining these skills together is difficult. However, we believe
+that improving stage-wise policy in the future can eventually
+close the gap (see the conclusion part).
+V. RELATED WORKS
+a) Foundation Models and Pretraining for Robotics:
+In recent years, the success of large foundation models in
+natural language processing and computer vision [2, 30, 57]
+has attracted much attention in building foundation models
+for robotics [6, 7, 13, 43, 55, 39, 66, 28, 26]. Existing
+works typically focus on building a large end-to-end control
+model by pretraining them on large real world datasets. Our
+framework also leverages large-scale pretraining, but it differ-
+entiates from these works in various aspects. First, we consider
+pretraining a controller on pure simulation datasets rather than
+real world datasets which require extensive human efforts in
+data collection with teleoperation. Second, we study dexterous
+manipulation with a high DOF robotic hand and demonstrate
+the advantage of generative pretraining in this challenging
+scenario for the first time, while existing works typically
+consider parallel jaw gripper problems. Third, we build a
+low-level foundation controller that can be prompted with
+continuous fine-grained guidance to provide useful actions,
+which can be potentially integrated with high-level planning
+policies in the future. Most existing robotic foundation models
+are conditioned on discrete language prompts or task embed-
+dings. In summary, our pretraining framework for building a
+foundational low-level controller presents a new perspective
+in the foundation model literature.
+b) Shared Autonomy: Our system is also related to
+shared autonomy research [1, 27, 8, 47, 49], which focuses
+on leveraging external action guidance to produce effective
+actions. Some works focus on how to train RL agents with
+external actions (e.g. from teleoperation) [44, 14, 45]. In
+their setup, the external inputs are usually treated as part
+of observation fed to the RL policy. Compared to this line
+of work, our method does not involve human actions in the
+training phase. Another line of work assumes the existence of
+a few task-specific intentions and goals and reduces the shared
+autonomy problem to the goal or intent inference [1, 22].
+A limitation of this line of work in dexterous manipulation
+is that they do not allow fine-grained finger control since
+they only provide a few options for high-dimensional action
+space. Our method samples fine-grained low-level behavior
+according to user commands in high-dimensional action space
+and does not suffer from this problem. The most relevant
+works are [5, 65], which also use some sampled distribution to
+correct user behavior. We use a different correction procedure
+and investigate a more general and challenging dexterous
+manipulation setup.
+VI. CONCLUSION
+In this paper, we have presented DexterityGen as an initial
+attempt towards building a foundational low-level controller
+for dexterous manipulation. We have demonstrated that gen-
+erative pretraining on diverse multi-task simulated trajectories
+yield a powerful generative controller that can translate coarse
+motion prompts to effective low-level actions. Combined with
+external high-level policy, our controller exhibits unprece-
+dented dexterity. We believe that our work opens up new
+possibilities in various dimensions of dexterous manipulation.
+Limitations and Future Work Our exploration still has
+some limitations to be addressed in future works, which we
+discuss as follows.
+1) Touch Sensing In this work, we rely on joint angle
+proprioception for implicit touch sensing (i.e. inferring
+force by reading control errors), which can be insuffi-
+cient and nonrobust for fine-grained problems. In many
+on joint angle error. In the future, we will add touch to
+real transfer. We hope that this can further improve the
+robustness of our system.
+2) Vision: Hand-Eye Coordination Our low-level con-
+troller does not involve vision. Nevertheless, we observe
+that vision feedback is necessary for producing accurate
+tool motions for many tasks such as using a screwdriver.
+It is unclear whether this vision processing should be in
+the high-level policy or part of the proposed foundation
+low-level controller, and we leave this to future research.
+3) Real-world Finetuning In this work, we deploy our
+controller in a zero-shot manner. However, due to the
+sim-to-real gap, it can still be necessary to fine-tune our
+controller with some real world experience.
+ACKNOWLEDGMENTS
+This work was partially carried out during Zhao-Heng Yins
+intern at the Meta FAIR Labs. This work is supported by the
+Meta FAIR Labs and ONR MURI N00014-22-1-2773. Pieter
+Abbeel holds concurrent appointments as a Professor at UC
+Berkeley and as an Amazon Scholar. This paper describes
+work performed at UC Berkeley and is not associated with
+REFERENCES
+Daniel Aarno, Staffan Ekvall, and Danica Kragic. Adap-
+tive virtual fixtures for machine-assisted teleoperation
+In International Conference on Robotics and
+Automation (ICRA), 2005.
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Ananye Agarwal, Shagun Uppal, Kenneth Shaw, and
+Deepak Pathak.
+Dexterous functional grasping.
+Conference on Robot Learning (CoRL), 2023.
+Alex Ray, et al. Learning dexterous in-hand manipula-
+tion. The International Journal of Robotics Research, 39
+Alexander Broad, Todd Murphey, and Brenna Argall.
+Highly parallelized data-driven mpc for minimal in-
+tervention shared control.
+In Robotics: Science and
+Systems (RSS), 2019.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yev-
+gen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana
+control at scale. arXiv preprint arXiv:2212.06817, 2022.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen
+Danny Driess, Avinava Dubey, Chelsea Finn, et al. Rt-2:
+Vision-language-action models transfer web knowledge
+to robotic control.
+arXiv preprint arXiv:2307.15818,
+Tom Carlson and Yiannis Demiris. Human-wheelchair
+collaboration through prediction of intention and adaptive
+assistance. In International Conference on Robotics and
+Automation (ICRA), 2008.
+Yuanpei Chen, Chen Wang, Li Fei-Fei, and C Karen
+Sequential dexterity: Chaining dexterous policies
+for long-horizon manipulation. In Conference on Robot
+Learning (CoRL), 2023.
+Xuxin Cheng, Yandong Ji, Junming Chen, Ruihan Yang,
+Ge Yang, and Xiaolong Wang. Expressive whole-body
+control for humanoid robots. In Robotics: Science and
+Systems (RSS), 2024.
+Xuxin Cheng, Jialong Li, Shiqi Yang, Ge Yang, and
+Xiaolong Wang.
+immersive active visual feedback.
+In Conference on
+Robot Learning (CoRL), 2024.
+Runyu Ding, Yuzhe Qin, Jiyue Zhu, Chengzhe Jia,
+Shiqi Yang, Ruihan Yang, Xiaojuan Qi, and Xiaolong
+Wang. Bunny-visionpro: Real-time bimanual dexterous
+teleoperation for imitation learning.
+arXiv preprint
+Yilun Du, Sherry Yang, Bo Dai, Hanjun Dai, Ofir
+Learning universal policies via text-guided
+video generation.
+In Neural Information Processing
+Systems (NeurIPS), 2024.
+Yuqing Du, Stas Tiomkin, Emre Kiciman, Daniel Polani,

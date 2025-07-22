@@ -1,7 +1,7 @@
 === PDF文件: Gait-Net-augmented Implicit Kino-dynamic MPC for Dynamic Variable-frequency Humanoid Locomotion over.pdf ===
-=== 时间: 2025-07-22 09:59:34.539792 ===
+=== 时间: 2025-07-22 15:46:51.289644 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -575,4 +575,224 @@ taking large
 and long steps
 Baseline 2
 (d) Comparison of MPC dt (interpreted as step duration).
-Fig. 6: Comparison
+Fig. 6: Comparison of Discrete Terrain Locomotion Performance in 2D
+Simulation.
+dynamic MPC with sequential CMPC subproblems and Gait-
+In the initialization stage (1-4), fj2m describes the mapping
+from joint-space general-coordinate states to spatial momenta.
+fref construct a reference trajectory in generalized coordinate
+with a nominal sampling duration dt0. Within the sequen-
+tial CMPC iterations (5-11), the iteration is terminated until
+reached max iteration jmax or the search direction reaches the
+desired tolerance . In each iteration, the CMPC subproblem
+described in IV-B3 is solved via QP; the MPC sampling time
+is updated through Gait-Net policy GN. Subsequently, the
+reference trajectories are updated to reflect the latest foot
+location and MPC dt.
+Remark 3: As the sequential iteration progresses, the
+Footstep Location Measurement on X-Y Plane
+Fig. 7: Locomotion over 3-D Stepping-stone Terrain. Simulation snapshots (left) and plot of measured foot locations (right). In the plot, only foot locations
+that are on the ground are visualized. The green dashed-line bounding box represents the CoM position threshold that triggers the foot location constraints
+for the corresponding stepping stone patch.
+Fig. 8: Spatial Momenta Measurement vs. MPC Prediction along lG,x, kG,y, and kG,z of 3-D Stepping-stone Simulation Results.
+reference trajectories {xref, pref
+f } are continuously updated
+to match closely to the real spatial momentum and pose
+trajectories based on the latest kinematics results. This process
+inherently embeds an implicit kinematics assurance within the
+framework.
+Remark 4: The Gait-Net-augmented kino-dynamic MPC is
+run at the beginning of each footstep to determine a local step
+duration in terms of MPC dt. The rest of this footstep will
+incorporate the same dt without the inference of Gait-Net and
+solve only the contact location and wrenches.
+V. RESULTS
+In this section, we present the main results of the proposed
+control framework in both high-fidelity simulation and on
+small-size humanoid hardware.
+A. Validation Setup
+We perform the simulation validations through a custom
+MATLABSimulink-based simulator with Simscap Multi-body
+Library. The robot model has two variants: the 2-D 5-link
+bipedal robot consists of 7 degree-of-freedom (DoF), and the
+HECTOR V2 humanoid robot  with 24 DoF, 5 actuated
+joints on each leg, and 4 actuated joints on each arm. Both
+robots are miniature-sized and have a total leg length of 44cm.
+The simulations are performed on a Ubuntu 20.04 machine
+with an AMD Ryzen 7900X CPU. The optimization problems
+are solved through CasADi  MATLAB interface with
+sqpmethod solver for SQP problems, and qpoases solver
+for QP subproblems.
+The humanoid hardware equips Intel NUC i5 mini-PC,
+which solves the sequential CMPCs in real-time with the
+qpoases solver in C. The Gait-Net is lightweight and its
+inference is done with CPU computation.
+The state estimation of the robot relies on onboard sensors.
+The CoM translational states are estimated by a linear Kalman
+filter fusing accelerometer data and robot kinematics, with cor-
+rection by Intel T265 camera. Orientation is estimated using a
+complementary filter with IMU gyro data and T265 correction.
+Note that in this work, the entire terrain data is known to the
+robot. However, to mimic how real-time perception acquires
+close-by static terrain data, in our experiments, only a one-step
+preview of next-step terrain boundary is available at each step,
+interpreted as a function of CoM position (eqn. (24)).
+B. Numerical Analysis of Gait-Net
+We first compare the performance of the trained Gait-
+Net with (1) full feature space provided by simulation data,
+meaning the input space consists of the full CoM states
+(position pc, velocity pc, Euler angles , and angular velocity
+) and desired foot locations, totaling R16; (2) reduced feature
+space after performing PCA and selecting top features from
+6 principle axes, shown in Fig. 4. Table I compares the
+normalized inference time of the Gait-Net between the two
+methods and their RMSE in predicting the MPC sampling
+time dt with test sets.
+TABLE I: Gait-Net Performance Comparisons
+Feature Space
+Full (baseline)
+PCA Selection
+Feature Size
+Normalized Inference Time
+Prediction RMSE
+Step Durations in Push-recovery
+Impulse applied
+Step Duration in Load-carrying
+Under unknown load
+Step Duration in Uneven Terrain
+Over uneven terrain
+Fig. 9: Variable Step Durations under Unknown Disturbances. Hardware
+experiment of (1) Push-recovery, Fig. 1(a); (2) Carrying unknown load, Fig.
+1(b); (3) Locomotion over uneven terrain, Fig. 1(c).
+We also provide a numerical analysis to validate the current
+Gait-Nets robustness to sensor noise, trained with noise-free
+data. Table II compares MPC dt predictions on a standardized
+test set run and repeated under varying IMU and encoder noise
+IMU factory specs and measured IMU noise parameter data.
+Despite these noises, the worst-case RMSE differs by only
+0.39 ms from the noise-free case, demonstrating Gait-Nets
+reliability under realistic sensor conditions.
+TABLE II: Gait-Net Performance w Sensor Noises
+Sensor Noise Setup
+RMSE w.r.t. Ground Truth
+Noise-free (currently employed)
+W factory IMU noise parameters
+W measured IMU noise parameters
+W measured IMU and joint encoder noise
+C. Comparison of Kino-dynamic MPC Solving Methods
+dynamic MPC and its solving method along with a few other
+state-of-the-art methods, shown in Table III.
+The compared whole-body MPC (Sec. III-A) and explicit
+kino-dynamic MPC (Section. III-B) consider MPC sampling
+time as additional optimization variables. The average solve
+time of each solving method is normalized by the baseline
+(CD-MPC solved with SQP). The average number of QPs
+refers to the QP (sequential) subproblems performed until
+convergence. These values are measured by running 1000 time
+steps of each solving mechanism. The alternating direction
+(AD) approach follows a similar algorithm in  but with 3
+alternating directions (a.k.a., mountain-climbing method ).
+All problems are solved until the same termination threshold
+is reached in this comparison.
+TABLE III: Comparison with Solving Approaches (3-D)
+Proposed
+MPC Model
+Explicit
+Implicit
+Optimization
+Variable Size
+Normalized
+Solve Time
+ber of QPs
+WBD - Whole-body dynamics;
+CD - Centroidal dynamics;
+KD - Kino-dynamics.
+Whole-body MPC is expected to be the most time-
+consuming variant when solved to full convergence, this aligns
+with the motivation for adopting a lighter kino-dynamic model
+for more efficient deployment while maintaining a reasonable
+trade-off in model fidelity. In CD-MPC, the AD approach
+requires numerous iterations to solve the 3 separate subprob-
+our proposed method is more efficiently designed, achieving a
+faster convergence rate compared to the baseline approaches.
+the step duration (interpreted as MPC dt) within the sequential
+solving mechanism, rather than solving it as a part of the
+optimization. We compare locomotion performance in 2-D
+numerical simulation with a 5-link bipedal robot and discrete
+terrain gaps in the range of [5, 15] cm. Fig. 6 compares
+snapshots of our proposed kino-dynamic MPC with (1) fixed
+gait frequency, (2) variable gait frequency by solving step
+duration as an additional optimization variable, and (3) vari-
+able gait frequency by the proposed Gait-Net. With fixed
+step duration, the periodic gait is un-optimized especially
+near the discrete terrain boundary. Solving step duration in
+optimization is also not optimal, as the MPC dt does not have
+a strong physical correlation with the step location, resulting in
+randominconsistent solutions that are unintuitive to interpret
+in motion. With the proposed method, the step duration is
+highly dependent on the robot state and next foot location
+through Gait-Net, rendering more natural and whole-body-
+kinematic-aware walking behavior.
+D. 3-D Locomotion over Discrete Terrain
+We showcase the capability of the proposed method in the 3-
+D environment with a line-foot humanoid robot. In simulation,
+we construct a stepping-stone course for the robot to navigate
+through with the proposed method. Given a forward velocity
+of the course while avoiding stepping outside of the stepping
+stone patches, illustrated in Fig. 7. Note that the green patches
+allow both feet to step on, the red patch and the blue patch
+only allow the corresponding colored foot to step on. The
+center locations of the feet are plotted in Fig. 7, demonstrating
+the capability of our variable-frequency walking method in
+traversing challenging terrains dynamically and the satisfaction
+of foot location constraints with the proposed method.
+Final location
+Start location
+Final location
+Start location
+35 kg unknown
+mass on a cart
+(a) Simulation Snapshots. Green and blue dashed lines represent the start and final location
+of the cart.
+Robot CoM X Position during Pushing
+(b) CoM X position comparison.
+Foot Location vs. MPC dt Prediction
+MPC dt, s
+(c) Foot location vs. MPC dt prediction in loco-manipulation.
+Fig. 10: Pushing Carts with Unknown Payload. The time instances of the
+robot hands contact with the cart are synchronized in the comparison plot to
+enhance visualization.
+Associated plots of spatial momenta are also provided in
+Fig. 8, where the scatter data represent the reference tra-
+jectories from MPC at the beginning of each footstep for
+better visualization purposes. The plots demonstrate a good
+prediction of spatial momenta evolution with the proposed
+Gait-Net-augmented sequential method.
+E. Hardware Experiment Validation
+We conduct hardware experiments on a 3-D small-size
+humanoid robot with 5-DoF legs. The hardware experiment
+snapshots are presented in Fig. 1. The readers are encouraged
+to watch the supplementary video for better visual aids.
+1) Locomotion under Unknown Perturbations: First, we
+demonstrate the robustness of the proposed control framework
+in handling unknown perturbations, including push-recovery,
+handling unknown payload, and uneven terrain locomotion, as
+illustrated in Fig. 1(a-c). The controller dynamically adjusts
+step duration at each step to maintain balance while handling
+these unknown disturbances. Fig. 9 presents the variable step
+durations from Gait-Net-augmented MPC. We clip the MPC dt
+Stepping over the
+20-cm gap
+Fig. 11: Velocity X Tracking Plot. In discrete terrain locomotion hardware
+experiment with a 20-cm gap.
+predictions to be within the bound of [0.045, 0.07] s to ensure
+hardware feasibility. On relatively flat terrain with minimal
+0.045 s, equivalent to a 0.225 s step duration. While under
+positions are not the primary factors in predicting the MPC
+step duration; instead, the Gait-Net is trained to incorporate
+additional deterministic state features for improved adaptation.
+2) Baseline Comparison in Loco-manipulation:
+a cart of a 35-kg unknown load (219 of the robots mass)
+using two approaches: (1) SRBM MPC with a fixed gait
+frequency and (2) the proposed Gait-Net-augmented kino-
+dynamic M

@@ -1,7 +1,7 @@
 === PDF文件: Bridging Model Predictive Control and Deep Learning for Scalable Reachability Analysis.pdf ===
-=== 时间: 2025-07-22 09:58:55.290945 ===
+=== 时间: 2025-07-22 15:44:29.860083 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -502,4 +502,182 @@ cannot be verified directly; thus, the reported (learned) vol-
 umes are likely optimistic and would reduce further upon
 verification. For the vertical drone system, the volumes corre-
 sponding to K  12 are shown in brackets.
-Table II. The addit
+Table II. The additional computation cost of the proposed
+method mainly arises from the weight-balancing step (Line
+10 in Alg. 2) and computing the data-driven loss (gradients).
+D. Parameterized 2D Vertical Drone
+We consider a drone navigating longitudinally along the z-
+z  vz, vz  Ku g,
+where z [0.5, 3.5] is the height, vz [4.0, 4.0] denotes
+the vertical velocity, g  9.8 is the gravitational acceleration,
+and K [0.0, 12.0] is a constant control gain parameter. The
+control input u [1, 1] corresponds to the vertical accelera-
+tion effort. The system aims to avoid crashing into the ground
+or the ceiling, with its failure set L  {x : z 1.5 1.5}.
+Our goal is to compute the safe set of the system for different
+values of K.
+Since the dynamics are low-dimensional (2D state and
+1D parameter), we compute the ground-truth value function
+through OptimizedDP  and use it to evaluate the mean
+squared error (MSE). The ground truth safe set volume is
+26.22. To train the proposed method, we generate 300 MPC
+data points (DMP C  300) in approximately 1s for the
+parameterized 2D vertical drone system. These data points
+were bootstrapped instantly using the procedure discussed in
+Remark 2, leading to an overall dataset of size around 10K.
+We first compare the performance of all baselines. As shown
+in Fig. 2, Vanilla DeepReach converges to a completely non-
+physical solution, with an MSE of 7.81 and a dramatically
+overoptimistic safe set. This particular reachability problem
+represents a corner case where Vanilla DeepReach suffers from
+instability issue, despite the simplicity of both the system
+dynamics and boundary conditions, and results in a verified
+safe set volume of zero. On the other hand, the distilled value
+with roughly 10M MPC samples, attains a lower MSE of 0.41.
+Although the distilled value function is closer to the ground
+PDE loss. Consequently, the learned value function and the
+induced safety policy suffer from inaccuracies, resulting in a
+recovered safe volume of zero, demonstrating that the MPC
+method alone is not sufficient to obtain a high-quality value
+function despite a dense dataset. In contrast, the proposed
+method shows a significant improvement with a small MPC
+dataset (DMP C  300), achieving a low MSE of 0.009 and
+a recovered volume of 24.62.
+Since the Neural CBF baseline learns a converged safe set,
+we only compare this baseline with the proposed approach
+for K  12. For K  12, the safe set converges within T
+1.2 s, enabling a fair comparison. At K  12, the learned safe
+set volume from Neural CBF is 31.28, whereas our method
+achieves a significantly larger recovered volume of 56.51.
+This is also evident from the respective safe set boundaries
+(Fig. 2(c) and (f)).
+Ablation study: effect of MPC dataset size. To assess the
+effect of dataset size, we train the value function with several
+sparse datasets. The number of initial states used to generate
+the MPC dataset ranges from 20 to 200, resulting in approxi-
+mately 700 to 7000 data samples throughout the time horizon
+after bootstrapping. Each dataset takes less than a second to
+generate. For each dataset size, we train a 3-layer sinusoidal
+network with 128 neurons per layer using 5 different random
+seeds. As illustrated in Fig. 4, the recovered volume quickly
+converges to around 24 with NMP C 160. This result con-
+firms that the proposed method exhibits a high data efficiency
+and learn accurate value function with minimal MPC guidance.
+This characteristic becomes increasingly important as system
+dimensionality increases and the data available becomes more
+sparse. The same trend is observed in the false positive rate
+(evaluated using ground truth value function).
+Fig. 4: The x-axis shows the size of non-bootstrapped dataset. The
+blue line represents the mean recovered volumes along with their
+standard deviation across five random seeds, whereas the red line
+shows the mean false positive rates.
+Ablation study: effect of MPC dataset refinement. Given
+13D Quadrotor: slices of learned value functions on the X-Y plane at (pz, q, qx, qy, qz, vx, vy, vz, x, y, z)
+(0.54, 0.44, 0.45, 0.27, 0.73, 5.00, 1.07, 3.34, 3.19, 2.80, 3.43). The brown circles represent the cylinder obstacle (not the failure
+set contour due to the quadrotors nonzero collision radius). Again, the solid contours are the verified safe sets while the dashed contours
+are the learned BRTs. The dashed lines are selected rollout trajectories, where red color indicates collisions.
+the MPC dataset is inherently suboptimal and noisy, we
+investigate the impact of the iterative dataset refinement step
+on the algorithms performance. To this end, we evaluate the
+proposed method without dataset refinement, which results in
+a higher MSE of 0.2285 and a lower recovered volume of
+20.04. All metrics deteriorate compared to the case where
+the MPC dataset is refined periodically, highlighting the utility
+of the refinement step to reduce the suboptimality of the MPC
+guidance.
+E. 13D Quadrotor System
+We next evaluate the proposed method and the baselines
+on a high-dimensional reachability problem involving an ex-
+tremely agile quadrotor system. The state of the drone is repre-
+sented as x  [px, py, pz, q, qx, qy, qz, vx, vy, vz, x, y, z],
+where (px, py, pz)
+[3, 3]3 denote the position and
+(vx, vy, vz)
+velocities.
+(q, qx, qy, qz)
+[1, 1]4 represent the quaternion and
+(x, y, z) [5, 5]3 are angular velocities. The control
+inputs consist of a collective thrust and angular acceleration
+efforts u  [F, x, y, z], where F [20, 20], x, y
+[8, 8], and z [4, 4]. The quadrotor is modeled as a
+disk with a radius of 0.17 m. The safety function l(x) is
+defined as the signed distance from the disk to an infinitely
+long cylinder with a radius of 0.5 m centered at the origin.
+quadrotor collides with the obstacle. As a reference, the failure
+set volume is 3.09. A detailed description of l(x) and the
+quadrotor dynamics is provided in the Appendix VII-A1.
+Once again, Vanilla DeepReach learns an overly optimistic
+value function. The inaccuracies in the value function leads
+to a low recovered safe volume of 71.26. In contrast, the
+proposed method, trained with 1M data samples, significantly
+outperforms Vanilla DeepReach by achieving a higher recov-
+ered volume of 93.69, highlighting the utility of MPC-based
+guidance. The MPC Distillation baseline, despite being trained
+on 15M data samples, leads to the lowest recovered volume
+of 42.99. This is because the dataset remains too sparse
+to provide adequate interpolation in this high-dimensional
+during the value function learning. The Neural CBF baseline
+attains a learned volume of 51.7 and does not have a recov-
+ered volume since the verification method is not applicable.
+along with the largest verified safe set. Note that although all
+baselines appear to achieve a substantial verified safe set, the
+performance gaps remain significant given the small failure set
+and the agility of the quadrotor, as better illustrated in Fig. 3.
+Ablation studies. We conducted ablation studies on the MPC
+dataset size and found that the proposed method can synthesize
+high-fidelity BRTs using relatively sparse data (Table III).
+reduced the recovered volume to zero, whereas omitting either
+of the other two stages had minimal impact (Table IV). These
+results highlight the critical role of the time curriculum in
+solving complex reachability problems despite its additional
+computational cost, while the other two stages are optional
+and primarily enhance stability further.
+QuadrotorF1
+Bootstrapped
+Dataset Size
+Generation Time
+Recovered
+TABLE III: Dataset statistics for Quadrotor (Left) and F1Tenth
+(right).
+F. 7D F1Tenth
+To further assess the robustness and accuracy of our method,
+we introduce an extremely challenging reachability problem
+with both stiff dynamics and a complex boundary condition:
+the F1Tenth racing car problem. The system is tasked with
+navigating a high-speed RC car on a track while avoiding the
+Fig. 5: F1Tenth: X-Y Plane Slices of the Learned Value Functions. The remaining state variables are (, v, yaw, yaw, slip)  (0, 8, 0, 0, 0).
+The track boundaries are shown as the brown contours. The black solid contours are the verified safe sets while the dashed contours are the
+learned BRTs. Note that the black solid contours are missing in (a), (b), and (d) since these baselines have an empty verified safe set. On
+the other hand, the black solid contour and dashed contour overlap significantly for the proposed method, with   0.12, highlighting the
+high accuracy of the learned safety value function.
+Training Configuration
+Vertical Drone
+Quadrotor
+Full Training (All Stages)
+Without Fine-tuning
+Without Pretraining
+Without Time Curriculum
+TABLE IV: Effect of training stages on recovered volume.
+curbs. The failure set L consists of all states where the car is
+outside the track, and l(x) is defined as the signed distance
+function to the edge of the track.
+variables
+(px, py, , v, yaw, yaw, slip)
+where (px, py) are the global coordinates of the vehicle,  is
+the front-wheel steering angle, v is the velocity, yaw is the
+yaw angle, yaw is the yaw rate, and slip denotes the slip
+angle at the vehicles center. The control inputs are the rate of
+the front-wheel steering angle and the longitudinal accelera-
+longitudinal acceleration is further capped when the current
+velocity v is high, and the system switches to kinematic mode
+when the velocity is too low. A detailed description of the
+system dynamics is provided in the Appendix VII-B.
+Given the hybrid dynamics and high agility of the vehicle,
+learning an accurate safety value function is challenging. This
+challenge is further exasperated by the complex geometry
+of the failure set and the large state space of interest. Both
+Vanilla DeepReach and the MPC Distillation approach fail
+completely to recover any verified safe set volume in this
+case. Vanilla DeepReach suffers again from the instability
+the time curriculum and instead converges to l(x), as shown
+in Fig. 5a. In this cas

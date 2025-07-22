@@ -1,0 +1,720 @@
+=== PDF文件: ConRFT A Reinforced Fine-tuning Method for VLA Models via Consistency Policy.pdf ===
+=== 时间: 2025-07-22 15:46:04.638470 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：VLA Models via Consistency Policy
+Yuhui Chen12, Shuai Tian12, Shugao Liu12, Yingting Zhou12, Haoran Li12B, and Dongbin Zhao12
+2School of Artificial Intelligence, University of Chinese Academy of Sciences, Beijing, China
+AbstractVision-Language-Action (VLA) models have shown
+substantial potential in real-world robotic manipulation. How-
+gles to achieve robust performance due to limited, inconsistent
+fine-tuning with a unified consistency-based training objective,
+to address these challenges. In the offline stage, our method
+integrates behavior cloning and Q-learning to effectively extract
+policy from a small set of demonstrations and stabilize value
+estimating. In the online stage, the VLA model is further fine-
+tuned via consistency policy, with human interventions to ensure
+safe exploration and high sample efficiency. We evaluate our
+approach on eight diverse real-world manipulation tasks. It
+achieves an average success rate of 96.3 within 4590 minutes
+of online fine-tuning, outperforming prior supervised methods
+with a 144 improvement in success rate and 1.9x shorter
+episode length. This work highlights the potential of integrating
+reinforcement learning to enhance the performance of VLA
+models for real-world robotic applications. Videos and code are
+available at our project website
+I. INTRODUCTION
+Recent advancements in training generalist robotic policies
+using Vision-Language-Action (VLA) models have demon-
+strated remarkable capabilities in understanding and executing
+various manipulation tasks. These successes are primarily at-
+tributed to large-scale imitation-style pre-training and ground-
+ing with robot actions [1, 2, 3]. While pre-trained policies
+capture powerful representations, they often fall short when
+handling the complexities of real-world scenarios . Fine-
+tuning with domain-specific data is essential to optimize model
+performance for downstream tasks [3, 5]. While Supervised
+Fine-Tuning (SFT) of the VLA model using human teleoper-
+ation data remains the predominant adaptation approach, this
+process faces significant challenges: the models performance
+heavily relies on the quality and quantity of task-specific data.
+provide optimal trajectories due to inherent issues such as sub-
+optimal data and inconsistent action .
+Significant progress in Large-Language-Models (LLMs) and
+Vision-Language-Models (VLMs) have highlighted the value
+of reinforcement learning as a powerful tool for bridging
+the gap between policy capabilities and human preference
+[7, 8, 9] or improving model reasoning . In addition,
+deploying reinforcement learning (RL) with task-specific re-
+ward functions to learn from online interaction data is also
+a promising direction [11, 12, 13]. However, extending these
+insights to VLA models presents unique challenges because,
+unlike LLMs, VLA models necessitate direct physical inter-
+action in real-world robotic tasks. The safety and cost con-
+straints of collecting data in contact-rich environments demand
+high sample efficiency and risk-aware exploration, making a
+straightforward implementation of RL infeasible. Recent work
+has attempted to leverage RL to address the challenges faced in
+SFT [6, 14], while these methods primarily focus on utilizing
+RL for data augmentation or quality improvement rather
+than directly optimizing VLA models through RL objectives.
+This limits the policys ability to explore states out of the
+demonstration dataset, thus undermining the potential benefits
+of RL-based fine-tuning in real-world settings.
+To leverage the benefits of RL-based techniques for effi-
+ciently fine-tuning VLA models with online interaction data,
+we propose a reinforced fine-tuning (RFT) approach consisting
+of offline and online stages with a unified consistency-based
+training objective. While this design is similar to offline-to-
+online methods [15, 16, 17], we found that expert demonstra-
+tions scarcity constrains their offline training performance.
+Motivated by insights from CPQL , we propose a unified
+training objective that integrates supervised learning with Q-
+learning in the offline stage and further fine-tunes the VLA
+model via consistency policy through online RL. During of-
+fline training, our approach leverages prior demonstrations and
+handles out-of-distribution (OOD) states, effectively extracting
+the policy and value function before interacting with real-
+world environments. In the subsequent online stage, we solve
+two challenges of sample efficiency and real-world safety
+requirements by exploiting task-specific rewards with CPQL
+under human interventions through Human-in-the-Loop
+(HIL) learning [19, 20].
+Our contributions are summarized as follows:
+1) We present a Consistency-based Reinforced Fine-
+Tuning (ConRFT) approach, a novel pipeline with the
+unified training objective both for offline and online fine-
+2) By integrating offline RL with a consistency-based
+behavior cloning (BC) loss, we propose Cal-ConRFT,
+which focuses on extracting an efficient policy and value
+function to provide a stable initialization with a small
+set of demonstrations.
+3) During online fine-tuning, we propose HIL-ConRFT,
+which retains the same loss structure from the offline
+stage for rapid policy adaption while leveraging human
+interventions to ensure safe exploration and high sample
+efficiency in real-world environments.
+We evaluate our approach on eight real-world manipulation
+(SOTA) methods. Our framework achieves an average success
+rate of 96.3 after 4590 minutes of online fine-tuning, show-
+casing high sample efficiency. Additionally, it outperforms
+SFT methods that are trained on either human data or RL
+policy data, with an average success rate improvement of
+144 and an episode length of 1.9x shorter.
+II. RELATED WORK
+A. Reinforced Fine-tuning for Large Models
+RL has been widely adopted for fine-tuning LLMs and
+VLMs. Early works have primarily focused on RL incorporat-
+ing human feedback [7, 8, 9, 21, 22] by learning from human
+preferences or by integrating task-specific rewards without
+explicit human preference [11, 12, 13, 23]. While many of
+these approaches employ on-policy algorithms (e.g., PPO )
+to fine-tune pre-trained policies [12, 25, 26], they typically
+demand large amounts of interaction data to achieve desirable
+performance [27, 28]. While RL has demonstrated success in
+many domains, it typically learns within self-generated syn-
+thetic environments rather than real-world environments. This
+gap prevents direct transfer for VLA models, which require
+real-world interaction. Our work addresses this discrepancy
+by developing RL frameworks tailored for efficient real-world
+VLA fine-tuning.
+B. Real-world RL Systems
+Real-world robotic RL systems require algorithms that are
+both sample-efficient in handling high-dimensional inputs and
+flexible enough to accommodate practical considerations like
+reward specification and environment resets . Several pre-
+vious methods have effectively demonstrated policy learning
+directly in physical environments [29, 30, 31, 20], using both
+off-policy [32, 33, 34, 35], on-policy [36, 37] methods, or
+posing RL as supervised learning [14, 38]. Despite this
+training sessions or require large amounts of interaction data
+, which can be impractical and risk-prone in contact-rich
+tasks. In contrast to previous methods that train from scratch,
+our work focuses on utilizing pre-trained VLA models to
+provide high-quality policy initialization. This approach ef-
+fectively mitigates unnecessary exploratory behaviors in early
+RL phases, thereby optimizing both policy learning efficiency
+and operational safety in the training process.
+C. Offline-to-online Methods
+Offline-to-online RL aims to leverage offline datasets to
+initialize a policy, which is then fine-tuned via online inter-
+actions for improved sample efficiency . Existing works
+commonly adopt an offline pre-training stage followed by an
+online fine-tuning stage [15, 40, 41, 16], mixing offline and
+online data as training proceeds. This offline-to-online pipeline
+is similar to our proposed two-stage fine-tuning approach that
+exploits pre-collected data to bootstrap policy training and
+then fine-tunes the policy in the real-world tasks . Most
+offline-to-online methods assume the availability of large-
+a condition rarely met in real-world deployments. We explore
+leveraging pre-trained VLA models as the base policy to
+enable sample-efficient policy refinement, achieving superior
+fine-tuning performance even under stringent demonstration
+data constraints.
+III. PROBLEM SETUP AND PRELIMINARIES
+We focus on fine-tuning a pre-trained VLA model for down-
+stream tasks. Specifically, we assume access to a pre-trained
+VLA model pre, which encodes high-level representations
+from both visual inputs (e.g., RGB images) and language
+instructions. In supervised fine-tuning (SFT), we aim to adapt
+pre to  on the target task using a small set of labeled
+demonstrations while preserving the models general feature-
+extraction capability. Formally, let   (s0, a0, . . . , sH) be a
+trajectory for the target task, then the VLA model fine-tuning
+aims to solve min L(, ) where L may be a negative log-
+likelihood (NLL) or a mean-squared error (MSE) measuring
+the discrepancy between the predicted actions and those in the
+demonstration. This procedure allows us to effectively leverage
+compressed knowledge in robotic tasks while steering the VLA
+model to the downstream environment.
+Since demonstrations are often limited, inconsistent, and
+To address these issues, we formulate each robotic task as a
+Markov Decision Process (MDP), where the goal of RL is to
+find the optimal policy in the MDP, M  (S, A, P, r, , ),
+where s S denotes the state space and a A denotes
+the action space. P(ss, a) is the environmental transition
+probabilities that depend on the system dynamics, and (s)
+denotes the initial state distribution. r(s, a) and  (0, 1) are
+the reward function and the reward discount factor. The policy
+is estimated by maximizing the cumulative expected value
+of the reward, denoted as V (s)  E[PH
+t0 tr(st, at)s0
+policy  is denoted as Q(s, a)  E[PH
+t0 tr(st, at)s0
+episode step of a trajectory. By coupling the VLA policy
+with the learned Q-function, RFT allows the VLA model to
+refine its behavior based on trial-and-error interactions and
+task-specific feedback.
+IV. METHOD
+The proposed pipline ConRFT consists of two stages: offline
+fine-tuning followed by online fine-tuning to optimize robotic
+provide a detailed description of the two stages, with the
+pipeline illustration in Appendix A.
+Fig. 1: Overview of ConRFT. This figure illustrates the architecture of our reinforced fine-tuning approach for a pre-trained
+VLA model, which comprises two stages: the offline Cal-ConRFT and the online HIL-ConRFT. Both stages use a unified
+consistency-based training objective. During the offline stage, we only use pre-collected demonstrations for fine-tuning. During
+the online stage, a human operator can intervene in the robot policy via teleoperation tools(e.g. a SpaceMouse). And we use
+both pre-collected demonstrations, policy transitions, and human interventions for fine-tuning.
+A. Stage I: Offline Fine-tuning with Cal-ConRFT
+Since pre-trained VLA models often lack zero-shot gener-
+alizability to novel robotic configurations, in the offline stage,
+we focus on training the policy using a small, pre-collected
+offline dataset (2030 demonstrations) before transitioning to
+online reinforcement learning. We initialize the policy with the
+pre-trained VLA model for reinforcement learning, reducing
+both the exploration burden and the overall online training
+time. Considering the ability to utilize offline data effectively,
+we choose the Calibrated Q-Learning (Cal-QL)  as our
+base offline RL method since we want the Q-function to be
+robust to out-of-distribution (OOD) actions. Specifically, Cal-
+QL trains the Q-function on a pre-collected dataset by reducing
+temporal difference (TD) error and an additional regularizer.
+This regularizer penalizes Q-values for OOD actions when
+they exceed the value of the reference policy V (s), while
+compensating for this penalization on actions observed within
+the offline dataset. The Cal-QL training objective for the critic
+is given by:
+Loffline
+() (EsD,a(s)[max(Q(s, a), V (s))]
+2E(s,a,s)D[(Q(s, a) BQ(s, a))2]
+where Q is the learned Q-function parameterized by ,
+Q is the delayed target Q-function parameterized by .
+BQ(s, a)  r(s, a)  Ea(s)(Q(s, a)) is the Bell-
+man backup operator.  is a hyper-parameter to control the
+conservative penalty. And D is the demo buffer that stores
+demonstrations.
+offline datasets, it struggles to train an effective policy when
+only small set of demonstrations (e.g., 2030) are available.
+In such cases, limited state coverage leads to poor value
+unseen states. By contrast, typical offline RL datasets are often
+collected from multiple behavior policies, providing a broad
+range of state coverage to reduce the distribution shift. Lacking
+this breadth, the Cal-QL loss alone may not adequately guide
+the learning process, resulting in poor performance.
+To address this issue, we propose augmenting the offline
+training process by incorporating a BC loss. The BC loss
+directly minimizes the difference between the actions gener-
+ated by the policy and those from the demonstrations. By
+incorporating BC loss, we encourage the model to imitate
+the behaviors from the demonstrations, providing additional
+supervisory signals during the offline stage. This helps the
+VLA model to learn a more effective policy and initialize a
+stable Q function with few demonstrations, especially in the
+case of contact-rich manipulation tasks where control precision
+is critical.
+Motivated by combining the BC loss with Q guidance under
+a consistency-based objective , we introduce Cal-ConRFT
+in the offline stage. This approach employs a consistency
+policy as the action head for fine-tuning the VLA model,
+addressing two key concerns: 1) it helps leverage inconsis-
+tent and sub-optimal demonstrations that often arise in pre-
+collected data, and 2) compared to diffusion-based action head,
+Fig. 2: Overview of all real-world experimental tasks. The real-world tasks include picking and placing (a) banana, (b)
+(h) Chinese Knot.
+the consistency-based action head remains computationally
+lightweight for efficient inference [18, 44, 45]. The consistency
+policy is a diffusion-model-based policy  that learns to
+map random actions sampled from the unit Gaussian to
+generate actions drawn from the expert action distribution
+conditioned on the current state. For the consistency policy,
+we discretize the diffusion horizon [, K] into M sub-intervals
+with boundaries k1   k2    km  K and   0.002.
+action head is given by:
+(as)  f(ak, kE(s))
+where f denotes the consistency policy parameterized with
+, subscripts k denoted the diffusion step, ak N(0, kI)
+and E(s) denotes the encoded state of the pre-trained VLA
+model parameterized with . The consistency-based training
+objective for VLA model fine-tuning is given by:
+Loffline
+where BC loss LBC
+E(s,a)D,mU[1,M1][d(f(a
+N(0, I), d stands for the Eu-
+clidean distance d(x, y)  x y2, and Q loss LQ
+balance the BC loss and Q loss. This combination enables
+efficient policy learning and stable value estimation, even with
+a small set of demonstrations, by aligning value estimates
+with expert actions and improving policy performance during
+offline training. Moreover, it provides a reliable initialization
+for the online stage, facilitating safe and effective exploration.
+B. Stage II: Online Fine-tuning with HIL-ConRFT
+While the offline stage provides an initial policy from a
+small set of demonstration data, its performance is limited
+by the scope and quality of the pre-collected demonstrations.
+the VLA model is further fine-tuned online via the consistency
+policy through interacting with the real-world environment.
+During online training process, the demo buffer D for offline
+stage is remained. Furthermore, we have a replay buffer R to
+store online data, then implement symmetric sampling ,
+whereby for each batch, we sample equally between these two
+buffers to form each training batch. Since the VLA model
+continuously gathers new transitions based on its current
+This ongoing interaction reduces the distribution-shift problem
+that the offline stage faces. As a result, we use a standard Q
+loss for online critic updating:
+()  E(s,a,s)(DR)[(Q(s, a) BQ(s, a))2] (4)
+The consistency-based training objective for VLA model fine-
+tuning is given by:
+where BC loss LBC
+E(s,a)(DR),mU[1,M1][d(f(a
+N(0, I), d stands for the Eu-
+clidean distance d(x, y)  x y2, and Q loss LQ
+Es(DR),a[Q(s, a)]. Note that this objective closely
+mirrors Equation 3 from the offline stage, enabling a quick
+adaption to online fine-tuning.
+ing the Q loss weight  during the online stage, yet we keep the
+Training
+Success Rate ()
+Episode length
+Pick Banana
+Put Spoon
+Open Drawer
+Pick Bread
+Open Toaster
+Put Bread
+Insert Wheel
+Hang Chinese Knot
+TABLE I: All experiment results for various offline and online fine-tuning methods. We report the policy performance
+against various baselines after offline fine-tuning (SFT  and Cal-ConRFT) and after online fine-tuning (HG-DAgger ,
+PA-RL  and HIL-ConRFT), including success rates and average episode lengths for various tasks. Specifically, for online
+ConRFT baseline. The performance improvement is relative to corresponding offline results. Policies are trained using the
+same number of online episodes with human interventions for all methods. All metrics are reported over 20 trials per task.
+BC loss for two main reasons. 1) Firstly, it ensures the policy
+continues to align with the demonstration data, preventing
+drastic deviations that could lead to performance collapse. This
+is important for maintaining the quality of actions in contact-
+rich manipulation tasks, where sudden changes in the policy
+can result in unsafe or inefficient behaviors. 2) Secondly,
+since reinforcement learning inherently involves exploration, it
+can become unstable in high-dimensional state-action spaces.
+By providing a stabilizing effect on exploration , the
+BC loss prevents the policy from deviating too far from its
+offline baseline, thereby reducing the risk of inefficient or
+unsafe behaviors. This aspect is important in real-world robotic
+actions can lead to damage or other hazards.
+stage through Human-in-the-Loop learning. Specifically, HIL
+learning allows for timely interventions by a human operator
+who can provide corrective actions during the exploration
+from the VLA model. These human corrections are added to
+the demo buffer D, offering high-level guidance that steers
+exploration in a safer and more efficient direction . Human
+interventions are essential when the robot engages in de-
+structive behaviors, such as colliding with obstacles, applying
+excessive force, or damaging the environment. In addition
+to ensuring safe exploration, human interventions accelerate
+policy convergence. In scenarios where the policy leads the
+robot into an unrecoverable or undesirable state or when the
+robot becomes stuck in a local optimum that would otherwise
+require significant time and steps to overcome without external
+actions and guide it towards safer and more effective behavior.
+This results in a stable learning process, where the VLA model
+is fine-tuned quicker and more safely than it would through
+autonomous exploration alone.
+V. EXPERIMENT AND RESULTS
+In this section, we validate the proposed fine-tuning frame-
+work through real-world experiments. We first present the
+experimental setup and the results for various baselines and
+then discuss these results and their implications.
+A. Overview of Experiments
+Our experiments aim to evaluate our approachs effective-
+ness and efficiency for fine-tuning VLA models in real-world
+scenarios. To this end, we perform real-world experiments
+across eight diverse manipulation tasks, as illustrated in Figure
+2. These tasks are designed to reflect a variety of manipulation
+bread into a toaster and putting bread on a white plate), precise
+and contact-rich manipulation (e.g., aligning and inserting a
+wheel into the chair base), and dynamic object handling (e.g.,
+hanging a Chinese Knot). To validate our fine-tuning approach,
+we select the Octo-small model  for its balance of per-
+formance and inference efficiency, and employ a consistency
+policy  as the action head on a 7-DoF Franka Emika robot
+For all tasks, the state observation includes two RGB
+images captured from a wrist-mounted camera (128  128)
+and a side camera (256  256), in combination with the
+robots proprioceptive state of the robot arm, including end-
+effector poses, twists, forcestorques, and gripper status. The
+action space is defined as either a 6-dimensional end-effector
+delta pose for the downstream impedance controller or a 7-
+dimensional target that includes 1-dimensional binary gripper
+lection and policies command actions at 10Hz. Before training,
+positive and negative demonstrations are collected from human
+operators to train a binary classifier that gives binary feedback
+on whether the corresponding task is done successfully or
+not for each task. Additionally, each tasks initial state is
+randomized using either a scripted robot motion or manual
+resets by a human operator. We present descriptions of each
+task in our real-world experiments and more details on the
+experiment tasks, training, and evaluation procedure in the
+Appendix B.
+Fig. 3: Learning curves during online training. This figure presents the success rates, intervention rates, and episode lengths
+for HIL-SERL , HG-DAgger , PA-RL  and our method across five representative real-world tasks, displayed as
+a running average over 20 episodes. PA-RL is implemented without human intervention. Note that human interventions may
+lead the policy to successful outcomes, and thus, the actual policy success rate when interventions exist might be lower than
+the curve suggests.
+B. Experimental Results
+In this section, we provide the experimental results for
+all tasks as shown in Figure 2. For each task, we report
+result metrics, including the success rate, episode length, and
+total training time in Table I. The training time includes the
+duration of scripted motions, policy rollouts, and onboard
+RTX A6000 GPU. For the offline stage, we compare Cal-
+ConRFT and SFT, where the SFT uses an NLL loss for
+behavior cloning . For the online stage, we compared
+HIL-ConRFT with multiple baselines, including HG-DAgger
+that incorporates human corrections to fine-tune the
+policy through supervised learning, PA-RL  that optimized
+actions through a policy-agnostic Q-function and fine-tune the
+policy through supervised learning with the optimized actions.
+We also compare HIL-SERL  that trains a RL policy with
+human interventions from scratch, and RLDG  that fine-
+tunes the VLA model using SFT  with demonstrations
+collected by RL policy.
+1) ConRFT Outperforms Supervised Methods: We compare
+different approaches for supervised and reinforced methods in
+Table I and present the corresponding online learning curves in
+Figure 3. Our approach, ConRFT, achieves the highest average
+success rate of 96.3 after 45 to 90 minutes of real-world
+training across all tasks, representing a 144 improvement
+over the supervised baseline. It outperforms SOTA methods
+such as HG-DAgger and PA-RL, with average success rates
+of 65 and 71.3. While HG-DAgger leverages human
+corrections to fine-tune the VLA model through supervised
+even experiences a performance drop on some tasks due to the
+sub-optimality and inconsistency of human corrections. For
+Chinese Knot, HG-DAgger has limited policy improvement
+after online fine-tuning. Specifically, in the Hang Chinese Knot
+and precise controls. The inherent variability in human correc-
+noise and conflicting information into the training process.
+This inconsistency prevents the policys ability to learn precise
+and dexterous behaviors. Additionally, the complexity of con-
+tact dynamics means that minor deviations in the policy can
+result in significant performance drops, further exacerbating
+the challenges posed by inconsistent human corrections.
+In the absence of human corrections, PA-RL offers a di-
+Training
+Success Rate ()
+Episode length
+Pick Banana
+Put Spoon
+Open Drawer
+Pick Bread
+Open Toaster
+Put Bread
+Insert Wheel
+Hang Chinese Knot
+TABLE II: Experiment results for training from scratch
+(HIL-SERL ) and fine-tuning VLA (HIL-ConRFT).
+Policies are trained using the same number of episodes with
+human interventions. All metrics are reported over 20 trials
+per task.
+rect action optimization using a policy-agnostic Q-function
+trained through Cal-QL. By optimizing actions based on
+reward signals, PA-RL overcomes the sub-optimality of human
+corrections and demonstrates more stable policy improvement
+in simpler tasks such as Pick Banana and Put Spoon. However,
+it fails to improve the policy performance in contact-rich
+tasks that require precise, careful manipulation, such as Insert
+Wheel. Precise alignment and controlled insertion forces are
+critical in the Insert Wheel task. However, due to the limited
+state coverage in the demo buffer and replay buffer, the policy-
+agnostic Q-function is unable to generalize effectively to dif-
+ferent wheel and slot positions. This limits the policys ability
+to handle the slight variations in state transitions required for
+successful insertion, leading to sub-optimal performance in
+complex manipulation scenarios. Consequently, while PA-RL
+shows promise in simple environments, it struggles to scale to
+complex tasks demanding high precision and dexterity.
+These observations underscore the advantages of our pro-
+posed approach, which effectively mitigates the issues asso-
+ciated with inconsistent human corrections and limited state
+coverage by reinforcement learning. Our method, ConRFT,
+effectively and safely explores a broad range of states and
+directly optimizes the policy using task-specific rewards,
+thereby demonstrating high sample efficiency and mitigating
+the impact of inconsistent human corrections. This stability
+and performance highlight the effectiveness of our approach
+in overcoming the limitations of existing fine-tuning methods
+in real-world robotic applications.
+Another critical metric for evaluating policy performance is
+the episode length, which represents the total number of steps
+the policy takes to complete a task. As shown in Table I, the
+VLA model fine-tuned with HIL-ConRFT achieves an average
+episode length of 30.7 steps, demonstrating a 1.9x shorter
+than the offline baselines. In contrast, HG-DAgger achieves an
+average episode length of 56.3 steps, which is only 1.1x shorter
+than the offline baseline. Similarly, PA-RL attains an average
+episode length of 51.1 steps. It lacks policy exploration due
+to the conservative nature of the policy-agnostic Q-function,
+preventing it from effectively optimizing how to complete the
+task more quickly or trying more efficient behaviors.
+These results illustrate that ConRFT can effectively exploit
+the dynamic characteristics of MDPs to optimize the VLA
+model via consistency policy for maximizing the discounted
+sum of rewards. They also show the limitations of supervised
+methods in handling sub-optimal data and efficient policy
+exploration. By encouraging policies to obtain rewards more
+supervised methods relying solely on imitating demonstra-
+tions. This enhanced sample efficiency and reduced episode
+length highlight the advantages of ConRFT for fine-tuning
+VLA models in real-world robotic applications.
+2) Fine-tuning VLA Outperforms Training From Scratch:
+Reinforcement learning from scratch typically demands ex-
+tensive interaction with the environment and frequent human
+high safety risks. For instance, HIL-SERL , an approach
+that trains policies through RL from scratch with human
+the same training duration as our approach, reaching an
+average success rate of only 31.9 as shown in Table II.
+The learning curves in Figure 3 reveal that HIL-ConRFT
+consistently improves policy performance during the online
+stage. While HIL-SERL can achieve optimal policies even-
+with a higher intervention rate for each task, resulting in more
+destructive behaviors during exploring (e.g., collisions with the
+environment), especially in the early stage of training.
+In contrast, starting from a pre-trained VLA model and
+performing offline fine-tuning reduces the online training
+time and improves sample efficiency. Building upon offline
+initialized policy, ConRFT accelerates the policy convergence
+and enhances the final performance. As a result, fine-tuning
+VLA models via consistency policy enables them to reach
+higher success rates more quickly and with fewer interventions
+compared to training entirely from scratch, demonstrating the
+benefits of leveraging pre-trained VLA models in real-world
+robotic applications.
+3) Analysis:
+a) Why fine-tuning from Cal-ConRFT rather than SFT
+or Cal-QL?: As illustrated in Table I, we observe that during
+the offline stage, the performance of Cal-ConRFT is similar to
+that of the SFT baseline. This observation raises the question
+of why Q loss should be introduced during the offline stage.
+The reason is that when the offline stage relies solely on
+but may require substantial online fine-tuning to handle states
+and actions not covered by the offline dataset. In contrast,
+incorporating Q loss during the offline stage allows the
+early Q-value estimations to provide initialization for policy
+fine-tuning. This approach helps address potential biases and
+ensures more stable learning. Moreover, in scenarios with a
+small set of demonstrations, we find that relying on Cal-QL
+alone is insufficient to train an effective policy, resulting in
+a 0 success rate on all tasks. The lack of data affects the
+policys ability to accurately estimate Q-values, resulting in
+weak performance after the offline stage and longer training
+Fig. 4: Learning curves for HIL-ConRFT online fine-tuning
+from SFT  and Cal-ConRFT baselines. This figure
+presents success and intervention rates across two represen-
+tative tasks, displayed as a running average over 20 episodes.
+Success Rate ()
+Cal-ConRFT
+HIL-ConRFT
+Put Spoon
+Put Bread
+Insert Wheel
+Experimental
+comparisons
+demonstrations. Diffusion Policy (DP)  and SFT
+are trained with 150 demonstrations collected by human
+strations collected by RL policy. Cal-ConRFT is trained with
+20 demonstrations collected by human teleoperation, and HIL-
+ConRFT is trained with 20 demonstrations as well as 80-120
+policy-generated rollout trajectories. All metrics are reported
+over 20 trials per task.
+time in the online stage.
+We compare the online fine-tuning curves starting from Cal-
+ConRFT and the SFT baseline on two representative tasks
+to investigate further the impact of introducing Q loss, as
+shown in Figure 4. Although both curves begin with similar
+success rates, the higher intervention rate observed during
+training from the SFT baseline indicates that the SFT-trained
+policy experiences severe policy forgetting in the early stages
+of online training. This suggests that Cal-ConRFT enables
+quicker adaptation of the online learning process by leveraging
+the Q loss during the offline stage, allowing more effective and
+stable policy improvement with a small set of demonstration
+b) Does increasing the number of demonstrations en-
+hance policy performance for SFT?:
+Success Rate ()
+Kosmos-2(1.6B)
+PaliGemma(3B)
+Pick Banana
+Put Spoon
+Hang Chinese Knot
+TABLE IV: Experimental results of ConRFT on different
+VLA models. We fine-tune RoboVLM  with two VLM
+backbones using our method. Specifically, we fine-tune only
+the action head while keeping the visual encoders and trans-
+former backbone frozen. All metrics are reported over 20 trials
+per task.
+45-60 minutes online fine-tuning stage, the policy collects
+approximately 80 to 120 successful and failed trajectories. To
+ensure a fair comparison between our approach and supervised
+training methods, we further compare training Diffusion Policy
+(DP)  and supervised fine-tuning VLA  using 150
+demonstrations on three representative tasks, which aligns with
+the total number of demonstrations utilized by our approach.
+150 demonstrations collected by RL policy. As shown in Table
+of demonstrations, their success rates still fail to match the
+performance of our method, especially on contact-rich tasks
+such as Insert Wheel. This indicates that simply adding more
+human-collected demonstrations with supervised learning does
+not necessarily guarantee higher performance due to the incon-
+sistent and sub-optimal actions inherent in human-collected
+data. Meanwhile, RLDG achieves higher success rates using
+optimal data collected from RL policies, suggesting that the
+consistency of these RL-collected data can improve the final
+performance. On the other hand, our method directly fine-
+tune the policy by optimizing the consistency-based training
+c) Practicality of ConRFT across Various VLA Models:
+ConRFT is highly versatile and can be applied to any VLM-
+based architecture with an action head. This flexibility stems
+from its ability to optimize the action generation process
+independently of the underlying visual encoder, making it
+adaptable to various VLA frameworks. To further validate
+its applicability generalization, we test out approach on fine-
+tuning RoboVLM  with two distinct VLM backbones.
+As shown in Table IV, the results indicate that ConRFT
+can effectively enhance the performance of various VLAs,
+improving the success rates across multiple robotic tasks. This
+ability to fine-tune the action generation while leveraging the
+pretrained visual components underscores the broad applica-
+bility of ConRFT.
+VI. LIMITATIONS
+Although our approach demonstrates strong performance
+and sample efficiency for fine-tuning VLA models in real-
+world manipulation tasks, several limitations remain.
+A. Sensitivity to Reward Engineering
+In this work, we implement a task-specific binary classi-
+fier to calculate the reward for RL. However, the inherent
+distributional shift between the classifiers training data and
+the state-action distributions generated during RL exploration
+creates a critical vulnerability, as it can lead the learned policy
+to engage in reward hacking, exploiting unintended behaviors
+where the classifier provides inaccurate rewards. For instance,
+the robot might position its end-effector at a specific location
+that triggers a false positive, causing the policy to converge to
+an incorrect behavior. Since these reward classifiers typically
+provide only sparse feedback, the policy may learn slowly,
+even with the help of human interventions. On the other hand,
+this reward-driven approach leads to highly specialized poli-
+cies that are closely tied to the specific conditions of the task,
+limiting their ability to generalize to new environments. While
+introducing multi-task dense reward signals could improve
+sample efficiency and accelerate policy convergence, it would
+also demand more sophisticated reward engineering for real-
+world applications.
+B. Frozen Encoders and Transformer Backbone
+Our current implementation runs the interaction and policy
+learning processes in separate threads, fine-tuning only the
+action head network with consistent policy while keeping the
+visual encoders and transformer backbone frozen. While this
+design choice boosts real-time performance, it constrains the
+policys ability to refine its perception and representation mod-
+ules during online training, especially for unseen scenarios.
+Allowing partial or complete updates of these frozen compo-
+efficient fine-tuning (e.g., LoRA ), could enhance final
+task performance and adaptability without sacrificing safety
+or speed.
+VII. CONCLUSION
+We presented a two-stage approach, ConRFT, for reinforced
+fine-tuning VLA models in real-world robotic applications.
+By first performing offline fine-tuning (Cal-ConRFT) with a
+small set of demonstrations, we initialize a reliable policy and
+value function via a unified training objective that integrates Q
+loss and BC loss in a consistency-based framework. We then
+leveraged task-specific rewards and human interventions in the
+online fine-tuning stage (HIL-ConRFT) to fine-tune the VLA
+model via consistency policy. Experiments on eight diverse
+real-world tasks demonstrated that our approach outperforms
+SOTA methods in terms of success rate, sample efficiency,
+and episode length. Overall, this work showcases a practical
+way to use reinforcement learning for safe and efficient VLA
+model fine-tuning.
+ACKNOWLEDGMENTS
+This work is supported by the National Natural Science
+Foundation of China (NSFC) under Grant No. 62136008 and
+in part by the International Partnership Program of the Chinese
+Academy of Sciences under Grant 104GJHZ2022013GC.
+REFERENCES
+Abby ONeill, Abdul Rehman, Abhinav Gupta, Abhiram
+ham Lee, Acorn Pooley, Agrim Gupta, Ajay Mandlekar,
+et al. Open X-Embodiment: robotic learning datasets and
+RT-X models. In International Conference on Robotics
+and Automation, ICRA, 2024.
+Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen
+Danny Driess, Avinava Dubey, Chelsea Finn, et al. RT-2:
+vision-language-action models transfer web knowledge
+to robotic control. Conference on Robot Learning, CoRL,
+Kevin Black, Noah Brown, Danny Driess, Adnan Es-
+language-action flow model for general robot control.
+arXiv preprint arXiv:2410.24164, 2024.
+Joshua Jones, Oier Mees, Carmelo Sferrazza, Kyle Sta-
+geneous sensors via language grounding. arXiv preprint
+Lirui Wang, Xinlei Chen, Jialiang Zhao, and Kaiming
+He. Scaling proprioceptive-visual learning with hetero-
+geneous pre-trained transformers. In Neural Information
+Processing Systems, NeurIPS, 2024.
+Charles Xu, Qiyang Li, Jianlan Luo, and Sergey Levine.
+ment learning. arXiv preprint arXiv:2412.09858, 2024.
+Paul F. Christiano, Jan Leike, Tom B. Brown, Miljan
+Deep rein-
+forcement learning from human preferences. In Neural
+Information Processing Systems, NeurIPS, 2017.
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida,
+Carroll Wainwright, Pamela Mishkin, Chong Zhang,
+Sandhini Agarwal, Katarina Slama, Alex Ray, and other.
+Training language models to follow instructions with
+human feedback.
+In Neural Information Processing
+Luong Quoc Trung, Xinbo Zhang, Zhanming Jie, Peng
+reinforced fine-tuning. In Association for Computational
+Richard Yuanzhe Pang, Weizhe Yuan, Kyunghyun Cho,
+He He, Sainbayar Sukhbaatar, and Jason Weston.
+erative reasoning preference optimization.
+In Neural
+Information Processing 

@@ -1,7 +1,7 @@
 === PDF文件: MISO Multiresolution Submap Optimization for Efficient Globally Consistent Neural Implicit Reconstru.pdf ===
-=== 时间: 2025-07-22 10:00:55.257259 ===
+=== 时间: 2025-07-22 15:58:44.538288 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -658,4 +658,259 @@ iSDF  and the neural-point-based representation from PIN-
 code. In the following, we refer to these two baselines as
 iSDF and Neural Points, respectively. When evaluating the
 performance of submap alignment, we introduce two base-
-line techniques
+line techniques from state-of-the-art submap-based systems.
+The first is the correspondence-based method from MIPS-
+correspondence-free method from Vox-Fusion , here-
+after referred to as VFPP. In addition, we compare against
+an ICP-based method introduced by Choi et al.  and
+implemented in Open3D . Given the raw surface points
+observed in the submaps, this baseline first aligns pairs of
+submaps via point-to-plane ICP on voxel-downsampled point
+TABLE I: Evaluation of local mapping quality for different methods on ScanNet . MISO is optimized for 20 epochs and the baselines
+iSDF and Neural Points are optimized for 100 epochs. For each scene, we report optimization time (sec), Chamfer-L1 error (cm), and F-score
+() computed using a threshold of 5 cm. Best and second-best results are highlighted in bold and underline, respectively.
+iSDF  (GT pose)
+Neural Points  (GT pose)
+MISO (GT pose)
+MISO (noisy pose)
+TABLE II: Comparison between local mapping and SLAM on ScanNet  using colored ICP odometry as initial guess. For each scene,
+we report translation RMSE (cm), rotation RMSE (deg), and Chamfer-L1 error (cm).
+Tran err.
+Rot err.
+Tran err.
+Rot err.
+Tran err.
+Rot err.
+Tran err.
+Rot err.
+Color ICP   Mapping
+Color ICP   SLAM
+(a) MISO (init)
+(b) MISO (opt)
+(c) iSDF
+(d) Neural Points
+Fig. 4: Visualization of estimated SDF at a fixed height on ScanNet
+scene 0207. MISO performs SLAM using noisy poses. iSDF and
+Neural Points use ground truth poses and only perform mapping.
+clouds. The aligned submaps are then fused in the global
+frame via outlier-robust pose graph optimization. Whereas the
+submaps used by the neural approaches (including ours) have
+a fine-level resolution of 0.1 m, we allow the ICP baseline to
+use a higher resolution of 0.02 m and the other parameters
+are set to default. For MISO, we implement each submap as a
+two-level multiresolution feature grid with spatial resolutions
+[0.5 m, 0.1 m] for indoor and [1.0 m, 0.2 m] for outdoor
+scenes. The feature dimension at each level is set to d  4. All
+methods are implemented using PyTorch . All experiments
+are run on a laptop equipped with an Intel i9-14900HX CPU,
+an NVIDIA GeForce RTX 4080 GPU, and 12 GB of GPU
+B. Evaluation on ScanNet Dataset
+ScanNet  features a collection of real-world RGB-D
+sequences with accurate camera poses and 3D reconstructions.
+In the following, we use ScanNet to separately evaluate the
+proposed local SLAM (Sec. IV) and global alignment and
+fusion (Sec. V) methods. Joint evaluation is reported in the
+next subsection on the larger FastCaMo-Large  datasets.
+Local SLAM evaluation. Our first experiment evaluates
+the performance of the local optimization approach in MISO
+(Algorithm 1). Since each scene in ScanNet is relatively small,
+we represent the entire scene as a single submap. For each
+perturbing the ground truth poses with 3 deg and 5 cm errors.
+For comparison, we also run MISO and the baseline iSDF
+and Neural Points methods using ground truth poses, where
+pose optimization is disabled. Table I reports results on four
+(a) Level 1 rin
+(b) Level 1 rin
+(c) Level 1 SDF (d) Level 1 mesh
+(e) Level 2 rin
+(f) Level 2 rin
+(g) Level 2 SDF (h) Level 2 mesh
+Fig. 5: Inputs and output predictions from learned hierarchical
+encoders on ScanNet scene 0024. Red and blue show positive and
+negative residual or SDF values, respectively.
+ScanNet scenes. For each method, we report its GPU time
+and the mesh reconstruction error against the ground truth,
+measured in Chamfer-L1 distance and F-score. Both MISO
+variants are optimized for 20 epochs. For the iSDF and Neural
+Points baselines, since they do not have access to pre-training,
+we optimize both for 100 epochs for a fair comparison. As
+shown in Table I, MISO achieves either the best or second-best
+reconstruction results on all scenes. Using ground truth poses,
+MISO achieves superior speed, requiring only 0.71.5 sec for
+optimization. MISO with noisy poses takes longer due to the
+additional pose estimation but is still significantly faster than
+the baseline techniques.
+Fig. 4 shows a qualitative comparison of the estimated SDF
+at a fixed height on scene 0207. MISO starts from noisy
+poses and performs full SLAM, while the baseline methods
+use ground truth poses and perform mapping only. Fig. 4a
+shows the initialization produced by the learned encoder (cor-
+responding to line 4 in Algorithm 1), which already captures
+the scene geometry to a large extent. The remaining errors and
+missing details are fixed after running 20 optimization epochs,
+as shown in Fig. 4b. Because iSDF uses a single MLP to
+represent the scene, its output (see Fig. 4c) is overly smooth,
+which leads to lower recall and F-score than MISO. Lastly,
+the SDF prediction from Neural Points (Fig. 4d) is especially
+TABLE III: Submap alignment evaluation on ScanNet  from
+initial errors of 5 deg and 0.20 m. For each scene, we report the GPU
+time (sec), and the final submap rotation error (deg) and translation
+error (m) compared to ground truth. Results averaged over 10 trials.
+Best and second-best results are highlighted in bold and underline.
+0011 (159 poses, 4 submaps)
+0024 (227 poses, 5 submaps)
+Tran err
+Tran err
+noisy in free space, due to the lack of neural point features
+far away from the surface.
+To provide more insight on the performance of the learned
+hierarchical encoders, Fig. 5 visualizes the inputs and output
+predictions on scene 0024. For this visualization, we do not
+use noisy pose estimates. At each level (shown as a row in
+the figure), we visualize two channels rin
+3 of the voxelized
+input residuals defined in (12) and (14), the predicted SDF,
+and the predicted 3D mesh. The level 1 encoder, although
+with a coarse resolution of 0.5 m, already captures the rough
+scene geometry and free space SDF. On top of this coarse
+recover objects such as the sofa and the table.
+initial trajectory estimates, we include an experiment with
+color ICP odometry  as the initial guess. When running
+local SLAM, we let MISO incrementally process a sliding
+window of 10 frames and disable pose regularization in (2).
+Table II shows that performing local SLAM substantially
+improves performance compared to mapping only.
+Submap alignment and fusion evaluation. The next set
+of experiments evaluates the submap alignment and fusion
+approach in MISO. We run MIPS-Fusion  to obtain the
+submap information. We select scene 0011 and perform local
+SLAM within all submaps starting from noisy poses with 1 deg
+and 0.1 m errors. We then evaluate the performance of the
+proposed alignment (Algorithm 2) and the baseline MIPS ,
+alignment errors. All methods are run for 100 iterations
+before evaluating their results. For MISO, we allocate 45
+iterations for alignment at each feature level and 10 iterations
+for final alignment using SDF, which corresponds to setting
+methods use the same trust-region-based pose regularization,
+where the trust-region radius  in (3) is set based on the
+initial submap alignment error. For each setting of the initial
+error shown on the x axis, we perform 10 random trials
+and show the final results as boxplots in Fig. 6. With a
+small initial alignment error of 1 deg and 0.1 m, all methods
+produce accurate alignment results. However, as the initial
+error increases, both MIPS and VFPP methods quickly fail,
+showing that solely relying on SDF prediction is very sensitive
+to the initial guess. The ICP baseline results in higher variance
+indicating more frequent alignment failures despite the use
+13.0 deg
+17.0 deg
+Initial Error
+Rotation error (deg)
+(a) Rotation error (deg)
+13.0 deg
+17.0 deg
+Initial Error
+Translation error (m)
+(b) Translation error (m)
+Fig. 6: Evaluation of submap alignment on ScanNet scene 0011 under
+varying initial errors over 10 trials for each configuration.
+(a) Before alignment
+(b) After alignment
+Fig. 7: 3D mesh reconstruction with oriented submap bounding
+on ScanNet scene 0011.
+of robust optimization. The proposed hierarchical alignment
+in MISO is more robust under more severe misalignments
+and outperforms the baseline methods significantly. Since our
+experiments are offline, we record the total GPU time and final
+accuracy. Timing results for ICP are omitted as the method
+is not implemented on GPU. Table III reports the results on
+scenes 0011 and 0024. The initial submap alignment error is
+set to 5 deg and 0.2 m, and results are collected over 10 trials.
+MISO is significantly faster since the majority of iterations in
+Algorithm 2 only uses features for alignment and does not
+need to decode the SDF values. In terms of accuracy, MISO
+demonstrates competitive performance and achieves either best
+or second-best results.
+Fig. 7 visualizes the reconstructed global mesh on scene
+0011 before and after submap alignment. To extract the global
+which uses the average feature from all submaps to decode
+the scene in the world frame. Along with the mesh, we also
+show the oriented bounding boxes of all submaps. As shown in
+Fig. 7a, the initial mesh is very noisy in areas where multiple
+submaps overlap. Fig. 7b shows that MISO effectively fixes
+this error and recovers clean geometry (e.g., the table and
+TABLE IV: Evaluation on Newer College dataset . For each scene, we report translation RMSE (m), rotation RMSE (deg), Chamfer-L1
+error (cm), and F-score () with a threshold of 20 cm. Best and second-best results are highlighted in bold and underline, respectively.
+Quad (1991 scans)
+Maths Institute (2160 scans)
+Tran err.
+Rot err.
+Tran err.
+Rot err.
+ICP   MISO Mapping
+KISS-ICP   MISO Mapping
+PIN-SLAM
+MISO (Odometry)
+MISO (Full)
+Fig. 8: Qualitative evaluation on the FastCaMo-Large dataset . We
+show the final reconstructed mesh along with estimated and reference
+robot trajectories (from ) in red and green, respectively.
+chairs) in the global frame.
+C. Qualitative Evaluation on FastCaMo-Large Dataset
+FastCaMo-Large  is a recent dataset with multiple real-
+world RGB-D sequences. Compared to ScanNet, this dataset
+features larger indoor environments (up to 200 m2) and fast
+camera motions, making it suitable for evaluating the overall
+accuracy and scalability of our method. Since ground truth
+is not available, we only focus on qualitative evaluation
+in this experiment. We compare the performance of MISO
+against iSDF, where the latter is extended to perform joint
+optimization over both robot poses and the map. The in-
+put pose estimates are obtained by perturbing robot poses
+estimated by MIPS-Fusion  by 3 deg rotation error and
+0.05 m translation error in their corresponding submaps, and
+additionally perturbing all submap base poses by 5 deg rotation
+error and 0.1 m translation error. The trust region radius
+used in pose regularization (3) is set correspondingly for both
+methods. For iSDF, we run optimization for 300 epochs to
+ensure convergence. For MISO, we run 150 epochs of local
+SLAM in parallel within all submaps, followed by submap
+alignment where we skip the coarse level feature alignment as
+we observe it leads to degraded results on these datasets. Fig. 8
+shows qualitative comparisons of the estimated trajectories
+and meshes on the Floors-II, Stairs-I, and Stairs-II sequences.
+Fig. 1 shows more visualizations for MISO on the Floors-I
+Fig. 9: Qualitative evaluation on the Newer College dataset . We
+show the final reconstructed mesh along with estimated and reference
+robot trajectories in red and green, respectively.
+sequence. MISO is able to accurately represent these larger-
+scale scenes while preserving fine details such as staircases and
+chairs. In comparison, iSDF loses many details and introduces
+more artifacts in areas where there are fewer observations.
+D. Evaluation on Newer College Dataset
+In this section, we evaluate MISO on the Quad-Easy
+and Maths-Easy sequences from the outdoor, LiDAR-based
+Newer College Dataset . For comparison, we run PIN-
+Open3D  using their open-source implementations and
+default hyperparameters. For KISS-ICP and point-to-point ICP,
+we obtain corresponding maps for evaluation by running our
+mapping pipeline with the pose estimates fixed. For MISO,
+we first pre-train a decoder for each scene and then use
+the incremental implementation presented in Sec. IV-C to
+process each sequence. Point-to-point ICP is used to initialize
+the tracking optimization at every scan, and a new submap
+is created every 400 scans. We evaluate two variants of
+our method in this experiment. The first (Odometry) only
+performs incremental tracking and mapping. The second (Full)
+also performs submap alignment and fusion as described in
+Sec. V, and its results are visualized in Fig. 9. Table IV
+reports translation RMSE (m), rotation RMSE (deg), Chamfer
+L1 distance (cm), and F-score (). In the Quad scene, our
+method achieves comparable performance with other state-
+of-the-art methods. In the more challenging Maths Institute
+still on par with KISS-ICP. On both sequences, our results
+demonstrate that MISO substantially improves over the point-
+to-point ICP initialization. Further, the comparison between
+Odometry and Full validates the effectiveness of the proposed
+TABLE V: Ablation study on the effect of pre-trained encoder and
+decoder networks. For each scene, we report F-score () and

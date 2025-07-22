@@ -1,0 +1,910 @@
+=== PDF文件: RAPID Robust and Agile Planner Using Inverse Reinforcement Learning for Vision-Based Drone Navigatio.pdf ===
+=== 时间: 2025-07-22 15:47:04.768738 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Using Inverse Reinforcement Learning
+for Vision-Based Drone Navigation
+Minwoo Kim,,1, Geunsik Bae,1, Jinwoo Lee1, Woojae Shin1, Changseung Kim1,
+Myong-Yol Choi1, Heejung Shin1, and Hyondong Oh,1
+AbstractThis paper introduces a learning-based visual plan-
+ner for agile drone flight in cluttered environments. The pro-
+posed planner generates collision-free waypoints in milliseconds,
+enabling drones to perform agile maneuvers in complex envi-
+ronments without building separate perception, mapping, and
+planning modules. Learning-based methods, such as behavior
+cloning (BC) and reinforcement learning (RL), demonstrate
+promising performance in visual navigation but still face inherent
+limitations. BC is susceptible to compounding errors due to
+limited expert imitation, while RL struggles with reward function
+design and sample inefficiency. To address these limitations,
+this paper proposes an inverse reinforcement learning (IRL)-
+based framework for high-speed visual navigation. By leverag-
+ing IRL, it is possible to reduce the number of interactions
+with simulation environments and improve capability to deal
+with high-dimensional spaces (i.e., visual information) while
+preserving the robustness of RL policies. A motion primitive-
+based path planning algorithm collects an expert dataset with
+privileged map data from diverse environments (e.g., narrow
+coverage. By leveraging both the acquired expert and learner
+dataset gathered from the agents interactions with the simulation
+across diverse states. While the proposed method is trained
+in a simulation environment only, it can be directly applied
+to real-world scenarios without additional training or tuning.
+The performance of the proposed method is validated in both
+simulation and real-world environments, including forests and
+various structures. The trained policy achieves an average speed
+of 7 ms and a maximum speed of 8.8 ms in real flight
+experiments. To the best of our knowledge, this is the first work
+to successfully apply an IRL framework for high-speed visual
+navigation of drones. The experimental videos can be found at
+I. INTRODUCTION
+Small unmanned aerial vehicles (UAVs), also known as
+applications such as search and rescue operations in disaster
+ing. However, utilizing this agility in complex environments
+(e.g., forests and factories) is still limited due to challenges in
+fully exploit agility, the development of agile visual navigation
+Equal contributions. Project lead. Corresponding author.
+1Department of Mechanical Engineering, Ulsan National Institute of
+Science and Technology, Republic of Korea.
+algorithms in complex and unknown environments becomes a
+necessity.
+Classical visual navigation approaches rely on modular
+architectures that utilize separate perception, mapping, and
+planning . These methods are widely adopted due to their
+interpretability and ease of integration with other modules.
+making them unsuitable for agile drone flight. In contrast, end-
+to-end neural network-based learning integrates perception,
+and enabling rapid real-time planning .
+Imitation learning (IL) is a supervised approach whose
+simplest form, behavior cloning (BC), is popular for its ease
+of implementation but demands large datasets. With limited
+amplify over time  and distribution shift, failing to gen-
+eralize to unseen states . Dataset Aggregation (DAgger)
+alleviates these issues by iteratively collecting expert labels in
+new scenarios to produce a more robust policy, but it hinges on
+the experts ability to label states rapidly; if the expert is slow
+or computationally heavy, data collection and, thus, training
+can be significantly delayed [5, 6].
+Unlike BC methods, reinforcement learning (RL) enhances
+robustness by letting agents interact with the environment and
+optimize policies via reward maximization. Many studies have
+successfully applied RL to vision-based flight [7, 8, 9, 10],
+but it still suffers from difficult reward design, low sample
+eased data collection, yet pure vision-based RL typically
+requires techniques like privileged learning  or curriculum
+learning  to converge. These issues become even more
+severe in high-speed scenarios.
+Inverse reinforcement learning (IRL) aims to learn an under-
+lying reward from expert behaviors and then derive an optimal
+policy from that learned reward. While it shares similarities
+with the BC method in using expert datasets, IRL can achieve
+better policies with fewer demonstrations by mitigating com-
+pounding errors through sampling new states unseen in the
+expert dataset. One of the representative IRL methods is
+generative adversarial imitation learning (GAIL) , which
+integrates IRL and RL training, making the process faster and
+more stable. Nevertheless, GAIL struggles with challenges
+such as mode collapse , which commonly occurs in
+adversarial networks, and the biased reward problem  due
+to the mistreatment of absorbing states during training.
+Recent non-adversarial IRL approaches, such as inverse
+soft Q-imitation learning (IQ-learning)  and least-squares
+inverse Q-learning (LS-IQ) , have made notable progress
+in mitigating instability and bias issues. For instance, LS-IQ
+introduces Q-function clipping and handles absorbing states to
+improve robustness. However, these methods still struggle with
+the curse of dimensionality when dealing with vision-based
+continuous action spaces, as they need to consider real-time
+feasibility checks and precise flight attitude. In such situations,
+properly defining and managing absorbing states (i.e., goal
+or collision states) becomes especially difficult, underscoring
+the need for a specialized approach for high-speed visual
+navigation tasks.
+Beyond algorithmic complexity, vision-based IRL presents
+additional challenges arising from the need to learn meaningful
+features directly from raw visual data. Unlike state-based
+positions and velocities) are used, vision-based IRL methods
+must handle both reward inference and policy training which
+are heavily reliant on high-quality feature representations.
+In learning-based visual navigation tasks, a neural network
+needs to extract task-relevant information from unstructured
+and noisy images. This process demands substantial data and
+careful network design to ensure stable and efficient training.
+As a result, developing a framework that can effectively learn
+a robust feature extractor (e.g., autoencoder) is crucial for
+overcoming these challenges and advancing vision-based IRL.
+Even if all these challenges are addressed, applying the
+trained neural network to real-world scenarios still faces the
+persistent issue of the sim-to-real gap, a fundamental challenge
+in learning-based approaches . This gap is further exacer-
+bated in vision-based flight, where visual information plays a
+critical role. In particular, the noise characteristics of visual
+information vary significantly between the two environments
+and must be carefully considered. Moreover, discrepancies in
+drone dynamics between these environments further intensify
+the sim-to-real gap. Therefore, to achieve robust performance
+in real environments, these factors must be addressed during
+training.
+A. Contributions
+In this paper, we propose a learning-based planner called
+Robust and Agile Planner using Inverse reinforcement learn-
+ing for Vision-Based Drone Navigation (RAPID), which gen-
+erates agile collision-free trajectories in cluttered environ-
+ments. The objective of this paper is to develop a generalizable
+and sample-efficient visual navigation algorithm using high-
+dimensional visual information, performing reliably in real-
+world scenarios without real-world data. The main contribu-
+tions of this work can be represented as:
+Development of an inverse soft Q-learning-based frame-
+work for high-speed visual navigation that achieves ro-
+bust and sample-efficient learning without manual reward
+function design by integrating tailored absorbing state
+treatment for high-speed scenarios;
+Introduction of an auxiliary autoencoder loss function to
+mitigate state complexity from high-dimensional visual
+Reduction of the sim-to-real gap by accounting for con-
+troller tracking error during training, which yields feasible
+trajectories accurately tracked on real-world hardware and
+validates high-speed flight experiments in natural and
+urban environments at an average speed of 7 ms.
+The rest of the paper is organized as follows. Sec-
+tion II introduces conventional and learning-based approaches
+in vision-based flight. Section III introduces the proposed
+method. Section IV shows simulation environments, dataset
+acquisition process, and in-depth comparisons with the base-
+line methods. Section V introduces hardware details, system
+narios. Section VI discusses the limitations of the proposed
+approach and suggests potential improvements. Finally, Sec-
+tion VII concludes the paper by summarizing the findings and
+outlining future research directions.
+II. RELATED WORKS
+A. Classical Methods
+Classical vision-based navigation systems typically employ
+a sequential pipeline that partitions perception, mapping, plan-
+begins by converting depth images from onboard cameras
+into 3D point clouds, which are then aggregated to form
+volumetric representations such as occupancy grid maps or
+Euclidean signed distance fields (ESDFs) . Next, collision-
+free trajectories are generated using trajectory-optimization
+loop control [19, 20].
+While this modular architecture is straightforward and in-
+cretization artifacts arise due to the finite resolution of grid-
+based maps, leading to reduced map fidelity. These issues
+are further exacerbated during high-speed maneuvers, where
+increased pose-estimation errors can degrade accuracy. Fur-
+mulative latency, limiting its responsiveness in dynamic and
+time-critical scenarios. These challenges highlight the need
+for alternative approaches to improve navigation performance
+under such conditions.
+B. Imitation Learning
+Learning-based methods have emerged as a promising al-
+ternative to address the limitations of classical vision-based
+navigation systems. Unlike module-based methods, learning-
+based methods focus on generating trajectories or control
+commands directly from raw image inputs without explicit
+One of the most widely-used imitation learning approaches is
+behavior cloning (BC). BC is popular due to its straightforward
+implementation and high sample efficiency. However, BC
+training requires high quality datasets. Studies such as [21, 22]
+collected datasets in real-world environments, while others,
+including [2, 23], utilized synthesized data from simulation
+environments for training.
+While BC policies can perform well when high-quality
+datasets are available, they often suffer from compounding
+errors and distributional shifts due to overfitting to specific
+scenarios. To address this,  applied the DAgger method,
+which collects additional expert data in unseen states during
+training. However, this method incurs high costs and is chal-
+lenging to implement in real-time scenarios where an oracle
+expert is unavailable.
+Another approach extends imitation learning by leveraging
+privileged information during training to directly optimize
+the cost associated with generated trajectories, thus training
+a path generation model [24, 25, 26]. For instance, studies
+such as [24, 25] calculate Q-functions based on map data
+to update policies without explicit labeling. On the other
+jectory quality directly, without relying on Q-function learning
+or reinforcement signals. This method focuses on efficient
+optimization of path generation under given constraints and
+can be effective as it operates without explicit labeled data.
+quality of the cost map and computational overhead, which
+may limit its scalability.
+C. Reinforcement Learning
+Reinforcement learning (RL) has demonstrated remarkable
+results across various domains and has shown promise even
+in challenging fields such as drone visual navigation. Re-
+cent studies have explored end-to-end learning approaches
+that utilize visual data to directly generate low-level control
+often suffer from slow convergence and require a large amount
+of data to train. Moreover, the design of effective reward
+functions poses a significant challenge, as it requires careful
+consideration to ensure alignment with the desired behaviors
+and to avoid unintended consequences. These limitations ne-
+cessitate powerful parallel simulation environments capable
+of providing diverse state information to train robust policies
+for various environments [30, 31, 32]. Despite these advance-
+address these difficulties.
+For instance, Xing et al.  employed a DAgger-based
+policy as a foundation and refined it using RL for effective
+state embedding. Song et al.  introduced a framework
+where a state-based RL policy is first trained, followed by
+knowledge distillation to transfer the knowledge into a vision-
+based RL policy. Similarly, Bhattacharya et al.  developed
+a neural network combining vision transformers (ViT) with
+LSTM to achieve efficient state embeddings.
+In drone racing, policies based on raw pixel data have also
+been investigated [33, 34]. While these methods demonstrate
+promising results in constrained racing track environments,
+their applicability to more diverse and unstructured scenar-
+fully established. Consequently, developing RL methods that
+effectively utilize raw visual inputs while ensuring robust
+generalization and fast convergence remains an open and
+significant research challenge.
+D. Inverse Reinforcement Learning
+Inverse reinforcement learning (IRL) aims to find a proper
+reward from expert samples. IRL is particularly beneficial in
+applications where reward design is difficult, yet its adaptation
+to vision-based tasks remains a significant challenge .
+While some studies have successfully applied IRL to au-
+tonomous driving [35, 36], its application to drones is still
+unexplored. Compared with autonomous driving, autonomous
+drone navigation is more demanding as it involves 3D spatial
+awareness and attitude control-including pitch, roll, and yaw-
+thus making policy learning considerably more complex. Fur-
+generation as the drone is at significant risk of crashing if the
+action is not generated with sufficient precision. This challenge
+becomes even greater in high-speed drone flight , where
+raw sensory visual data exacerbate the difficulty of reward
+shaping and policy learning. Moreover, drones are highly
+sensitive to external factors such as wind disturbances, sensor
+further complexity to the effective use of IRL. Consequently,
+direct application of IRL to vision-based high-speed drone
+flight remains a significant challenge.
+III. METHODOLOGY
+RAPID is a vision-based planner utilizing IRL, designed to
+generate waypoints from depth images and drone state inputs.
+These waypoints are converted into continuous trajectories and
+executed by a tracking controller. The training process, from
+dataset acquisition to action implementation in simulation,
+is illustrated in Fig. 1. Section III-B outlines the states and
+actions for RAPID training, while Section III-C presents an
+auxiliary loss function and network structure for sample-
+efficient learning. Section III-D details reward inference and
+policy updates in the IRL framework. Finally, Section III-E
+explains trajectory generation and tracking control.
+A. Preliminaries
+The vision-based navigation problem can be modeled as an
+infinite-horizon Markov decision process (MDP). The MDP is
+composed of (s, a, p(s0), s, p(s, sa), r(s, a), ), where s is
+a state, a is an action, p(s0) is an initial state distribution, s
+is a next state, p(s, sa) is a transition probability, r(s, a) is
+a reward and  [0, 1] is a discount factor.  is a stochastic
+policy that takes an action a given a state s. Data from the
+expert policy will be denoted as DE, while data from the
+learner policy will be denoted as D. Additionally, the expert
+data distribution is represented as dE, and the learner data
+distribution is represented as d. A detailed explanation of
+states and actions is provided in the following section.
+Fig. 1: Overview of the learning framework for the proposed inverse soft Q-imitation learning method. The learning framework
+is composed of four parts: (a) expert data generation, (b) policy learning with implicit reward, (c) inference, and (d) trajectory
+generation and tracking.
+Fig. 2: Depth images from simulation and real-world: (a)
+ground truth depth image, (b) simulated stereo depth image,
+and (c) stereo depth image from a real depth sensor. To reflect
+realistic sensor noise during training, a simulated stereo depth
+image is generated through a stereo vision algorithm.
+B. States and Actions
+1) States: The policy network (atst) generates an action
+at at time step t. The state space st is defined as:
+st  [It, vt, qt, gt],
+where a depth image I R6464, velocity v R3, attitude
+quaternion q R4, and a relative goal vector g R3 (i.e.,
+the difference between the goal and the current position of the
+In general, domain-invariant features such as depth images
+are used to bridge the gap between simulation and real-
+world environments. However, as shown in Fig. 2, there are
+differences between the depth images from the simulation and
+real-world. Therefore, these differences need to be addressed
+to overcome the sim-to-real gap. To this end, a stereo depth
+image similar to a real depth image is calculated through
+the semi-global matching (SGM ) method and used for
+training (Fig. 2(b)).
+While high-resolution images generally improve perfor-
+mance in simulation environments, they require larger net-
+work architectures and can lead to overfitting, resulting in
+reduced success rates during testing . This overfitting may
+increase dependency on high-quality depth information during
+depth maps from a sensor are often noisy and inconsistent.
+To address this, lower-resolution images (64  64) are used to
+reduce overfitting and improve robustness, thereby narrowing
+the gap between simulation and real-world environments.
+2) Actions: The action at consists of N waypoints ahead,
+each separated by a fixed time interval T. Each waypoint
+represents a relative position from the previous one, expressed
+in cylindrical coordinates to reduce the complexity of the
+action space. For clarity, the action generated by the policy
+network is referred to as the raw action araw, while the post-
+processed action is denoted as a. Specifically, each waypoint
+in the raw action araw is defined by a relative distance ri
+and a relative angle i. The raw action araw generated from
+the policy network is:
+These waypoints are transformed into Cartesian coordinates
+using cumulative heading angles. Let 0  t be the initial
+heading angle of the drone. The cumulative heading angle for
+the i-th waypoint is defined as:
+i  i1  i,
+Fig. 3: Action space representation with different coordinate
+action space in Cartesian coordinates, and (c) velocity-based
+action space in cylindrical coordinates. The action space
+generated by the neural network is referred to as the learner
+action to distinguish it from the expert action.
+The position of the i-th waypoint in Cartesian coordinates is
+then calculated recursively:
+pi  pi1  ri
+where each pi is the absolute position of the i-th waypoint in
+Cartesian coordinates. In this paper, N is set to 10 and a fixed
+time interval of T  0.1s is used.
+Figure 3 illustrates the action space with different coordinate
+systems. As shown in Fig. 3(a), position-based actions in
+Cartesian coordinates can encompass the expert action range
+but significantly increase the search space, making training
+highly challenging. To address this, Fig. 3(b) demonstrates
+velocity-based actions in Cartesian coordinates, which par-
+tially reduce the search space but still result in infeasible
+trajectories at the beginning (e.g., trajectories with excessive
+acceleration). In contrast, cylindrical coordinates, as shown
+in Fig. 3(c), align the action range more closely with that
+of the expert, eliminating initial infeasible actions. While the
+proposed action representation may appear unconventional, it
+effectively confines the action range within a specific boundary
+and stabilizes training .
+C. Sample Efficient Training With Image Reconstruction
+1) Auxiliary Loss Function for Autoencoder: Vision-based
+RL faces significant challenges due to the complexity of
+processing high-dimensional visual inputs. Unlike state-based
+to extract meaningful features, often resulting in lower sample
+efficiency and longer training time. The stochastic nature
+of visual data and the risk of overfitting further complicate
+learning. These limitations make generalization difficult and
+necessitate auxiliary tasks or separate robust feature extraction
+methods to improve performance. To address these challenges,
+a -variational autoencoder (-VAE ) is utilized to learn
+compact state representations, effectively embedding high-
+dimensional inputs while mitigating noise and improving
+robustness in visual data processing. -VAE consists of two
+image observation It to a low-dimensional latent vector zt,
+and a deconvolutional decoder f, which reconstructs zt back
+to the original state It. To stabilize training and enhance
+sentation zt, and weight decay is imposed on the decoder
+parameter  as auxiliary objectives. The objective function of
+the reconstruction autoencoder (RAE), denoted as J(RAE),
+is given as:
+J(RAE)  EItD[log p(Itzt)  zzt2  2], (1)
+where zt  g(It) and z and  are hyperparameters.
+Following the approach proposed in prior work , we
+adopt a strategy where the actor and critic share the same
+convolutional encoder parameters to process high-dimensional
+inputs. However, prior work has also shown that allowing the
+actors gradients to update the shared encoder can negatively
+impact the agents performance. This issue arises because the
+encoder is shared between the policy  and the Q-function,
+causing updates from the actors gradients to unintentionally
+alter the Q-functions representation. To address this, we
+block the actors gradients from propagating to the encoder.
+In other words, the encoder is updated solely using the
+critics gradients, as the Q-function contains all task-relevant
+information. This approach stabilizes learning and ensures that
+the encoder effectively learns task-dependent representations
+without interference from the actors updates. The proposed
+approach is illustrated in Fig. 4(a).
+significantly slows down the encoders updates. To further
+address the delayed signal propagation caused by restricting
+actor gradients, we apply a faster Polyak averaging rate () to
+the encoder parameters of the target Q-function compared with
+the rest of the networks. These strategies ensure robust and
+efficient learning while maintaining stable task-dependent fea-
+ture representations. In the original work , the use of larger
+Polyak averaging rates (enc  0.05 and Q  0.01) yielded
+reasonable performance in simple tasks; however, in high-
+speed flight task which requires precise actions, we observed
+that smaller averaging rates (enc  0.01 and Q  0.005)
+improved performance.
+Fig. 4: Auxiliary reinforcement learning using autoencoder and
+skipping connection networks.
+2) Skipping Connection Networks: Although deeper net-
+works generally perform better on complex tasks by introduc-
+ing inductive biases, simply adding more layers in RL does
+not yield the same benefits as in computer vision tasks. This
+is because additional layers can decrease mutual information
+between input and output due to non-linear transformations. To
+overcome this issue, skip connections can be used to preserve
+important input information and enable faster convergence. We
+applied the deeper dense RL (D2RL)  network, which
+incorporates such skip connections into RL, to the high-
+speed visual navigation problem. This allows us to gain
+the advantages of deeper neural networks while achieving
+faster learning. The skip connection network is illustrated in
+Fig. 4(b).
+plays an important role during the learning process. Com-
+monly used initialization techniques, such as Xavier initial-
+we initialize the weight matrix of fully-connected layers
+using orthogonal initialization  with zero bias, while
+convolutional and deconvolutional layers are initialized with
+delta-orthogonal initialization . Detailed network structure
+and learning hyperparameters can be found in the appendix
+(Section VIII).
+D. Policy Learning With Implicit Reward
+introduces
+IRL-based
+inverse soft Q-learning, 2) managing absorbing states in high-
+speed visual navigation, and 3) policy updates via soft actor-
+1) Learning Implicit Reward: The IRL algorithm utilized
+in this study is least squares inverse Q-learning (LS-IQ) ,
+which directly learns a Q-function through an implicit reward
+formulation. Previously, IRL methods required simultaneous
+training of two neural networks in the reward-policy domain.
+introduced the inverse Bellman operator T Q, enabling a
+mapping from the reward function domain to the Q-function
+domain. This innovation allows rewards to be expressed en-
+tirely in terms of Q-functions, eliminating the need for explicit
+reward network training. The inverse Bellman operator T Q,
+following a policy , is defined as:
+(T Q)(s, a)  Q(s, a) EsP (s,a)V (s),
+where V (s) is the value function following policy , defined
+as V (s)  Ea(s)[Q(s, a)log (as)]. From Eq. (2), the
+reward function can be expressed as r(s, a)  T Q, allowing
+simultaneous optimization of the Q-function and rewards.
+Building on this framework, the IRL problem is transformed
+into a single maximization objective, J(Q, ). Specifically,
+the use of the inverse Bellman operator reformulates the
+optimization problem from the reward-policy space to the Q-
+policy space:
+L(r, )  max
+where  RSA denotes the space of Q-functions. From
+the soft-Q learning concept , given a Q-function is
+Zs exp Q(s, a), where Zs is a normalization factor defined
+as Zs  P
+a exp Q(s, a). Leveraging this formulation, the op-
+timization objective simplifies to learning only the Q-function:
+J(, Q)  max
+QJ(Q, Q).
+This transformation accelerates learning by eliminating the
+need for a separate reward network.
+To enhance the learning stability of J(Q, ), the algorithm
+employs a regularizer (r), which imposes constraints on
+the magnitude and structure of the Q-function. This helps
+to prevent overfitting, ensures stable learning, and improves
+generalization. In practice, 2 regularization can be applied
+to enforce a norm penalty, leveraging a 2-divergence. IQ-
+learning  applies an 2 norm-penalty on the reward func-
+tion over state-action pairs sampled from expert trajectories.
+continuous action spaces.
+To address this issue, LS-IQ  stabilizes learning by
+introducing a mixture of distributions from both expert and
+learner data. The regularizer (r) is defined as:
+(r)  EdE [r(s, a)2]  (1 )EdL[r(s, a)2],
+where  is set to 0.5. This mixture-based regularization mit-
+igates instability by balancing contributions from expert and
+learner distributions. Consequently, the Q-function objective
+J(Q, ) is expressed as:
+J(Q, )  EdE [r(s, a)] EdE [(r(s, a))2]
+(1 )EdL[(r(s, a))2]
+EdLdE [V (s) EsP (s,a)V (s)],
+where r(s, a)  Q(s, a) EsP (s,a)V (s) as explained
+in Eq. (2). The last term of Eq. (4) removes the state bias.
+methods by effectively handling absorbing states and applying
+Q-function clipping during training. The inverse Bellman
+operator T Q, accounting for an absorbing state sA, is defined
+T Q(s, a)  Q(s, a)EsP (s,a)
+(1)V (s)V (sA)
+where  is an indicator such that   1 if s is a terminal state
+and   0 otherwise. The value of the absorbing state V (sA)
+is computed in closed form as V (sA)
+total discounted return under an infinite time horizon, where
+rA is set to rmax for expert states and rmin for learner states.
+In our settings, rmax and rmin are calculated as 2 and
+of rmax and rmin are detailed in the original paper, and
+readers are referred to  for further elaboration. The value
+V (sA) is mathematically bounded and can be computed either
+analytically or via bootstrapping. In this paper, the LS-IQ
+method adopts the bootstrapping approach for updates. The
+full objective of Eq. (4) including terminal state treatment is
+shown in the appendix (Section VIII).
+2) Managing Absorbing States in High-Speed Visual Navi-
+terminal states (e.g., goal or collision states) frequently ap-
+instability. To resolve this issue, we propose a method that
+combines bootstrapping for non-terminal states with analytical
+computation for absorbing states, resulting in a significant
+improvement in stability and overall performance.
+Along with refining the computation method for state val-
+the high-speed visual navigation scenario. During our initial
+caused instability during training as the agent received high
+rewards upon reaching terminal states, even when dangerously
+close to obstacles. To minimize this effect, we asymmetrically
+set rmax  0 and rmin  2. This adjustment prevented
+undesired high rewards in terminal states and significantly
+enhanced obstacle avoidance performance.
+3) Soft Actor-Critic Update: To train a policy, soft actor-
+critic (SAC ) is used. In the continuous action space, there
+is no direct way to get an optimal policy. Instead, an explicit
+policy  is used to approximate Q by using the SAC method.
+With a fixed Q-function, the policy  is updated using the
+following equation:
+where D is a replay buffer, and  is the temperature
+parameter. The temperature  controls the trade-off between
+exploration and exploitation by scaling the entropy term.
+E. Trajectory Generation and Control
+Given discrete waypoints generated by the network, it is
+necessary to convert them into a continuous and differentiable
+trajectory for smooth flight. The trajectory (t) can be repre-
+sented as a distinct function along each axis as:
+For each axis, the trajectory can be represented as an M th-
+order of piecewise polynomial function with N time intervals:
+,i (t t0 kT)i ,
+t0  (k 1)T t < t0  kT,
+where  {x, y, z} and k  1,    , N.
+Each polynomial segment must start and end at specified
+waypoints and ensure a smooth transition by maintaining the
+continuity of the jth derivative at each intermediate waypoint.
+current position, velocity, and acceleration. The trajectory that
+minimizes the integral of the acceleration squared can be found
+by solving the optimization problem as:
+t0 (t)2dt,
+k R(M1)3 represents the coefficients of the
+kth polynomial segment. The objective J can be analytically
+computed by integrating the polynomial, and it is formulated
+as constrained quadratic programming (QP). In this study,
+we adopt the method from , which provides a closed-
+form solution by mapping the polynomial coefficients to the
+derivatives at each segment boundary. We employ a 4th-degree
+polynomial (i.e., M  4) with velocity continuity at all
+intermediate waypoints (i.e., j  1) and impose zero terminal
+velocity and acceleration at the final waypoint.
+The generated trajectories can be executed via closed-loop
+control [19, 20], with model predictive control (MPC ) or
+geometric controllers  being two of the most commonly
+used methods. MPC generates safe and feasible trajectories by
+solving an optimization problem under predefined constraints,
+providing strong stability properties but at the expense of high
+computational complexity. While MPC is fast enough for real-
+time control, its computational overhead becomes a bottleneck
+in RL training due to the need for rapid, repeated evaluations.
+In contrast, geometric controllers ensure tracking accuracy and
+stability by directly applying geometric principles of rigid-
+body dynamics, resulting in significantly lower computational
+overhead. Because of its low latency and ease of implemen-
+process compared with MPC. Consequently, this work adopts
+a geometric controller for trajectory tracking.
+IV. SIMULATIONS
+A. Data Acquisition and Training
+1) Data Acquisition: To enhance generalization perfor-
+and spheres) are generated as shown in Fig. 5. The AirSim
+simulator  is used for map building, training, and testing
+the algorithm. For data acquisition, a motion primitive-based
+expert planner  is employed, which necessitates prior
+knowledge of the map. Point cloud data (PCD) of the envi-
+ronment is first gathered to construct a global trajectory, after
+which local trajectories are sampled by considering an obstacle
+cost. Here, a global trajectory is defined as a complete path
+Fig. 5: Various training environments in simulations. To train
+a model with generalization capabilities, obstacles such as
+with random sizes during training.
+from the start to the goal constructed using map information,
+whereas a local trajectory is a refined short segment of the
+global trajectory, generated by accounting for obstacle costs.
+The overview of the data collection process can be found in
+Fig. 1(a).
+A motion primitive-based expert generates global trajec-
+tories from random start and goal positions with a fixed
+altitude of 2 meters. For high-speed visual navigation, the
+average velocity is set to 7 ms, with maximum velocity and
+acceleration capped at 8 ms and 10 ms2, respectively. To
+introduce diversity in collision-free trajectories under the same
+initial states, random perturbations of up to 0.3 radians are
+applied to the roll and yaw angles. Using this approach, we
+generated 1,800 global trajectories across 600 training maps.
+Based on collected global trajectories, local trajectories were
+sampled. On average, 60 local trajectories were obtained from
+each global trajectory at fixed time step intervals (i.e., 0.1s).
+with corresponding state-action data, were collected in the
+simulation environment.
+2) Training:
+To further enhance generalization perfor-
+each episode, the drones learning is initiated from a random
+starting position. Additionally, about 10 percent of noise is
+added to the drones controller gain to introduce randomness.
+To enhance the robustness of the encoder during the learning
+drone collides with an obstacle or reaches the goal point,
+the episode is terminated, and the map is replaced every 5
+episodes. Further details related to training hyperparameters
+can be found in the appendix (Section VIII).
+B. Simulation Results
+1) Comparison Methods: To quantitatively evaluate the
+proposed model, we compare RAPID with three represen-
+tative learning-based planners: a BC-based planner, an IRL-
+based planner, and a DAgger-based planner as well as a
+conventional map-based planner. Specifically, we use BC, LS-
+IQ  for IRL, AGILE  as the DAgger-based planner, and
+EGO  as the map-based planner. The BC model uses a
+pre-trained MobileNetV3  with 1D-convolutional layers
+and has the same network structure as that of the AGILE.
+The LS-IQ model shares the same network structure and
+hyperparameters as RAPID, except for the absorbing state
+reward update rule (detailed in Section III-D). In particular,
+LS-IQ applies the bootstrapping method to update the Q
+function for both the non-terminal and the absorbing states,
+with the maximum and minimum absorbing reward values rA
+set to 2 and 2, respectively. Conversely, RAPID combines
+bootstrapping for non-terminal states with an analytical update
+for absorbing states. Furthermore, RAPID uses asymmetric
+absorbing reward values by setting the maximum reward to
+0 and the minimum reward to 2, which helps to train
+the reward function more effectively for high-speed visual
+navigation tasks.
+AGILE learns collision-free trajectories using DAgger with
+relaxed winner-takes-all (R-WTA) loss, addressing the multi-
+modality issue in conventional BC methods. The original AG-
+ILE framework employs model predictive control (MPC)
+to track its generated trajectories. However, in order to get
+a fair comparison of the waypoint generation performance
+under the same state inputs, we replaced the MPC with a
+geometric controller in this study. Although MPC can account
+for dynamics and enforce feasibility, the geometric controller
+cannot explicitly impose such constraints. To compensate
+for this limitation, we incorporate velocity and acceleration
+constraints during the trajectory generation process.
+EGO is a representative classical map-based planner that
+leverages occupancy maps to avoid collisions and trajectory
+optimization. It is known for its robust performance in low-
+speed environments; however, its performance degrades at
+higher speeds due to modular errors and system latency. To
+evaluate this behavior, we used two versions of EGO-planner:
+a low-speed variant (EGO-LOW with a maximum velocity of
+4 ms) and a high-speed variant (EGO-HIGH with a maximum
+velocity of 7 ms).
+2) Validation on Test Environments: The experiments are
+carried out under varying conditions based on tree density,
+obstacle sizes, and shapes. Tree density indicates the number
+of trees per unit area. The trees are inclined and assigned
+random orientations to increase the complexity of the test-
+ing environment. The dimensions of trees are randomized
+according to a continuous uniform random distribution with
+scale U(23, 43) on a 50m  50m map. Evaluation
+metrics include mission progress (MP), speed, and success
+rate (SR), where MP measures the progress made toward a
+goal from the starting position. In highly cluttered scenarios
+(a) Tree density: 180
+(b) Tree density: 150
+(c) Tree density: 130
+(d) Tree density: 125
+Fig. 6: Test environments with different tree densities. Tree density represents the number of trees per unit area. The size of
+the grid is 5m  5m.
+TABLE I: Evaluation on different tree densities (10 trials)
+Algorithms
+Avg. Mission Progress [] [SuccessTotal]
+Avg. Speed [ms]
+Tree density [treesm2]
+Tree density [treesm2]
+EGO-HIGH
+RAPID (Ours)
+where the SR alone provides limited insights, MP offers a
+more discriminative evaluation metric. Figure 6 illustrates the
+test environments with varying tree densities. For testing, the
+drone starts flying from a random position within a horizontal
+range of 20m to the left or right of the map center, on the
+start line with an initial state of hovering. The goal point is
+located 60m directly in front of the starting position, and each
+method is evaluated 10 times on every map.
+Table I shows simulation results under varying tree densi-
+ties. The classical method, EGO-planner, demonstrated high
+MP and success rate in low-speed settings but exhibited
+significantly reduced performance at higher speeds. Among
+various factors, the primary cause for its lower performance
+is planning latency and accumulated pose errors.
+The BC shows the lowest performance, primarily due to
+overfitting and compounding errors. Since BC strictly relies
+on supervised learning from the experts actions, any devi-
+ation from the training distribution can quickly lead to an
+unrecoverable error state. This distribution shift issue severely
+limits BCs capacity to generalize, especially when the starting
+position varies or the environment becomes more complex.
+The LS-IQ method performs better than BC but still faces
+notable limitations. Although it successfully mimics expert be-
+havior in simpler simulations, LS-IQ tends to prioritize high-
+speed flight over robust collision avoidance, which leads to
+suboptimal performance in denser environments. Its approach
+to handling reward bias through absorbing states, while effec-
+tive in principle, fails to fully capture the complexities of high-
+speed collision scenarios, resulting in diminished robustness as
+the tree density increases.
+AGILE demonstrates strong performance, particularly in
+environments with lower tree density. However, as the density
+and complexity grow, it exhibits an apparent performance
+drop. Although AGILE effectively avoids collisions, its ten-
+dency to make large directional adjustments can paradoxically
+increase the likelihood of collisions in dense maps. Moreover,
+the method struggles to account for estimation errors of the
+real controller during trajectory tracking.
+performance across all tested conditions, consistently surpass-
+ing the other methods in Table I. Although RAPID initially
+shares the same dataset as BC, it gains a critical advantage by
+incorporating additional samples through online interactions.
+This online data collection not only mitigates distribution shift
+but also enables RAPID to incorporate controller tracking
+errors directly into the learning process. As a result, the
+final policy is more robust to real-world deviations, allowing
+for high-speed yet reliable navigation even under complex
+conditions.
+based) represent robust performance for drone navigation.
+Whereas AGILE requires frequent real-time labeled data from
+a strong expert policy, RAPID operates effectively even
+with a limited or imperfect dataset, iteratively adjusting its
+own data distribution to match with that of the expert. Our
+Fig. 7: System overview of experimental drone.
+experiments confirm that RAPID not only handles constrained
+data conditions better but also generalizes more effectively
+to various environments. Consequently, RAPID consistently
+outperforms the other methods, underscoring the efficacy of
+inverse reinforcement learning for vision-based navigation
+in complex environments. Further details of the experiment
+results are provided in the appendix (Section VIII).
+V. EXPERIMENTS
+A. Hardware Setup
+To achieve high-speed flight, it is necessary to build
+a lightweight drone capable of generating powerful thrust.
+The drone shown in Fig. 7(a) is equipped with Velox 2550
+kV motors paired with Gemfan Hurricane 51466 propellers.
+For electronic speed controls (ESCs), we used Cyclone 45A
+BLHeli S ESCs. The overall weight of the drone is 1.1 kg
+and during testing, it achieved a thrust-to-weight ratio of 3.57,
+demonstrating its capacity for high-speed and agile maneuvers.
+For onboard computation, we employed the NVIDIA Jetson
+Orin NX. We deployed the neural network on the board and
+measured its real-time performance. Table II shows the on-
+board processing latency. The execution speed of the proposed
+model was compared with that of the AGILE. Although the
+number of parameters is higher, the proposed RAPID model
+demonstrates faster execution speed due to its threefold lower
+FLOPS. The onboard inference test shows that the inference
+time of RAPID is more than six times faster than the AGILE.
+In this study, we used the Oak-D Pro depth camera for depth
+measurement and visual inertial odometry (VIO). The camera
+provides stereo images with an 8055 field of view and
+stereo depth images with a 7250 field of view. Both the
+stereo images and stereo depth images are captured at 20 Hz.
+The stereo images are used for VIO state estimation, while
+the stereo depth images are used for the neural network input.
+B. System Overview
+This section explains the modules of our proposed system.
+The proposed system mainly consists of three sub-modules:
+TABLE II: Processing latency comparison
+Algorithm
+Parameters
+GPU inference
+(Orin NX)
+performance.
+overview of the proposed system, including the integration
+of the VIO, local planner, and the controller module.
+For stable high-speed flight, the VIO must be not only
+accurate but also robust. For our research, we use Open-
+flight scenarios . OpenVINS takes image state information
+along with IMU measurements. The depth camera operates at
+20 Hz, while the IMU measurements are collected at 200 Hz.
+This raw odometry information is integrated with the PX4
+autopilot and the local odometry information is published at
+In the local planner module, the proposed RAPID method
+takes the depth image I, velocity v, attitude q, and goal di-
+rection vector g and then generates collision-free waypoints at
+10 Hz. The average running time of RAPID is extremely fast
+(around 10 ms). The generated waypoints are then converted
+to a continuous trajectory using a minimum acceleration-based
+trajectory generation.
+Given this continuous trajectory, we periodically sample
+it to obtain the target position and velocity commands via
+differentiation at each time step. In our system configuration,
+these commands are generated at 50 Hz. Although a higher
+command frequency is possible, we synchronize with the Air-
+Sim simulator to minimize the sim-to-real gap. The resulting
+target commands are then passed to a geometric controller
+for trajectory tracking. The geometric controller computes the
+body rates and thrust commands necessary to follow the target
+position and velocity. Finally, these commands are sent to the
+PX4 controller, which controls the drone actuators at 250 Hz.
+C. Experiment Results
+To validate the trained model in real-world environments,
+experiments were carried out in environments with two distinct
+The evaluation focused on two main aspects: the ability
+to perform high-speed flight with collision avoidance and
+generalization performance across multiple environments. Fur-
+ther details regarding the experiments can be found in the
+supplementary video material.
+1) Natural Environments: The experiments were carried
+out in natural environments divided into two scenarios: long
+forest and short forest. In the long forest scenario, the trees
+were spaced 5 meters apart and the goal point was set 60
+meters away. The flight started from a hovering state, and the
+drone flew toward the goal, encountering obstacles along the
+way. During the flight, the RAPID approach showed obstacle
+avoidance movements while flying towards the goal, reaching
+a maximum speed of 7.5 ms.
+We further extended the experiments to a much denser
+curved trees were densely arranged within 2 meters, making
+the environment more complex. The goal point was set 30
+meters away. In this environment, we aimed to push the drone
+to higher speeds to assess whether visual navigation would still
+be feasible under denser obstacle conditions. In the waypoint
+generation step, the speed at which the drone follows the
+planned trajectory is determined. In the long forest scenario,
+waypoints were generated such that the drone could follow
+them within 1 second. For the short forest scenario, however,
+this duration was reduced to 0.9 seconds to test the drones
+ability to navigate through denser environments at higher
+speeds. Despite the increased difficulty, the drone successfully
+reached the goal without collisions, achieving a maximum
+speed of 8.8 ms. Figure 8(a) illustrates the results of the
+experiments conducted in the natural environment, providing
+an overview of each scenario.
+A noteworthy phenomenon was observed during the real-
+world experiments. Although the expert dataset used for
+training was collected with a constant velocity of 7 ms, the
+IRL training enabled the policy to exhibit acceleration and
+deceleration behaviors that were not present in the dataset.
+In some cases, the drone even reduced its speed significantly
+before executing an avoidance maneuver near obstacles. This
+suggests that the IRL-based method goes beyond simply mim-
+icking the experts behavior, effectively capturing the intention
+of collision avoidance and integrating it into the policy.
+2) Urban Environments: The urban environments are di-
+vided into two scenarios: a large block and columns. Fig-
+ure 8(b1) shows the large block environment, where obstacles
+are geometrically simple yet significantly large. In these urban
+speeds due to higher safety risks. Unlike forest environments,
+where crashes typically cause minimal damage thanks to softer
+environments can severely damage the drone. Therefore, the
+drones speed is intentionally reduced to an average of 6 ms
+to mitigate the risk of major damage. This environment also
+requires the drone to generate avoidance trajectories at an
+early stage. As shown in Fig. 8(b3), the drone successfully
+generated an avoidance path from the very beginning (point 1)
+and reached the destination achieving a maximum speed of
+Figure 8(b2) describes the experimental setup with column-
+shaped obstacles, consisting of six large columns. Figure 8(b4)
+shows the flight trajectory in the column environment. Similar
+to previous experiments, the drone decelerated while avoiding
+obstacles and accelerated again once it passed the obstacles,
+reaching the destination successfully. In the column environ-
+From the experiments conducted in both natural and urban
+scenarios with minimal performance degradation compared
+with the simulation environment. Experiment results in nat-
+ural environments indicate that the sim-to-real gap has been
+partially mitigated when testing in tree environments similar to
+the simulation setting (Fig. 5(c) and Fig. 5(d)). Furthermore,
+experiments in urban environments demonstrated the models
+ability to generalize to new obstacle shapes, highlighting its
+adaptability to diverse real-world scenarios.
+VI. LIMITATIONS
+Although the proposed method has shown good perfor-
+mance in simulations and real-world environments, several
+challenges still remain.
+A. Lack of Temporal Awareness
+The RAPID algorithm generates collision-avoidance trajec-
+tories based on a single image and the current drone state.
+While this approach provides the advantage of generating
+instantaneous avoidance paths, it lacks the history of previ-
+ously avoided obstacles. As a result, the algorithm is prone to
+falling into local minima, particularly when encountering large
+obstacles (e.g., walls). In such scenarios, an incorrect initial
+avoidance trajectory can prevent the drone from navigating
+out of the environment, ultimately leading to collisions. To
+address this issue, one potential solution is to incorporate
+multiple sequential images as an input to capture temporal
+information for trajectory generation and leverage long-short
+term memory netw

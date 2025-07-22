@@ -1,0 +1,708 @@
+=== PDF文件: Behavior Synthesis via Contact-Aware Fisher Information Maximization.pdf ===
+=== 时间: 2025-07-22 15:41:56.136930 ===
+
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+{
+  "论文标题": "",
+  "研究主题关键词": "",
+  "应用场景关键词": "",
+  "主要方法关键词": "",
+  "创新点关键词": "",
+  "主要结论关键词": ""
+}
+内容：Behavior Synthesis via Contact-Aware Fisher
+Information Maximization
+Hrishikesh Sathyanarayan and Ian Abraham
+Yale University, New Haven, CT, USA
+Figure 1: Emergent Contact-Based Learning Behaviors.
+proposed contact-aware Fisher information maximization that results in human-like tactile behaviors for learning (a) mass
+and weight, (b) friction and textures, (c) stiffness, and (d) shape . Additional media and code is provided in https:
+github.comialab-yalecontact aware active learning.git .
+AbstractContact dynamics hold immense amounts of infor-
+mation that can improve a robots ability to characterize and
+learn about objects in their environment through interactions.
+due to its inherent sparsity and non-smooth nature, requiring an
+active approach to maximize the utility of contacts for learning.
+In this work, we investigate an optimal experimental design
+approach to synthesize robot behaviors that produce contact-
+rich data for learning. Our approach derives a contact-aware
+Fisher information measure that characterizes information-rich
+contact behaviors that improve parameter learning. We observe
+emergent robot behaviors that are able to excite contact interac-
+tions that efficiently learns object parameters across a range of
+parameter learning examples. Last, we demonstrate the utility
+of contact-awareness for learning parameters through contact-
+seeking behaviors on several robotic experiments.
+I. INTRODUCTION
+Contact dynamics are commonly used in robotics to manip-
+ulate the robot itself, e.g., through locomotion, or manipulate
+objects in its environment. However, the utility of contacts
+goes beyond just manipulation, and instead, contact can be
+seen as a medium to transmit information that can help a
+robot learn about its environment. In fact, prior work has
+demonstrated the information-richness of contact as a means
+to improve parameter estimation problems [8, 21, 27]. The
+underlying challenge is enabling robot behaviors that can
+actively acquire contact data for learning.
+Most prior work that leverages contact for learning acquire
+contact data as a by-product of implicit interactions [8, 21].
+found through unintentional interactions, necessitating the
+need for robots to actively explore contacts. Past work has
+shown the advantages of active exploration as a means to
+improve data collection for learning [44, 39], but more work
+is needed to improve the quality of contact data collected in
+exploration. In particular, some physical parameters of objects,
+e.g., shape and inertial parameters, can only be detected by
+continuously breaking and making contact [32, 30, 45, 28, 14,
+3]. Thus, the goal of this work is to develop the theoretical
+foundations that optimize for robot behaviors that produce
+contact-rich data for learning.
+To achieve this goal, we first formulate the maximum like-
+lihood formulation for parameter learning subject to contact-
+based physics constraints. In this formulation, we connect the
+robots dynamics, and contact constraints, with the generation
+of sensor data for learning. We employ techniques from opti-
+mal experimental design and derive a utility measure based on
+the Fisher information [9, 2] that explicitly takes into account
+information-rich sensor data as a function of contact. By
+maximizing this contact-aware Fisher information measure, we
+observe emergent robot behaviors that reasons about contact
+interactions that significantly improves parameter learning.
+We focus on a class of example problems where the robot
+is tasked to interact with and learn object properties through
+interaction (see Fig. 1). These types of problems are interesting
+because many physical parameters can only be estimated
+from physical interaction [8, 21]. In this work, we show that
+a contact-aware optimal experimental design approach can
+produce meaningful contact interactions for robots to obtain
+information-rich data that facilitates improvement in parameter
+learning. In summary, the contributions of this paper are the
+1) Formulation of a contact-aware Fisher information mea-
+sure to identify information-rich contacts.
+2) Development of an optimal control approach that plans
+contact sequences that improves parameter learning.
+3) Demonstration of our approach generating emergent con-
+tact behaviors on a variety of robot parameter learning
+scenarios.
+This paper is structured in the following manner: Section
+II overviews prior related work. Section III overviews prelim-
+inary material on Parameter Estimation, Fisher information,
+and Experimental Design. Section IV details the methodolo-
+gies used to construct our approach. Section VI discusses our
+results and insights from using our approach. Section VII
+overviews limitations and future works. We conclude the paper
+in Section VIII.
+II. RELATED WORK
+A. Parameter Estimation
+Parameter estimation has been widely explored where un-
+known physical parameters about the robot need to be esti-
+mated more precisely through measurements [21, 11, 16, 23].
+In general, parameter estimation involves utilizing sensor mea-
+surements from a system in order to fit unknown parameters of
+interests to the sensor readings based on a model of choice that
+captures the dynamical behaviors of the system. In the context
+of learning parameters from contact, prior work remarks on the
+observability and identification of parameters , stating that
+not all interactions a system makes can be useful for estimating
+parameters. For example, if a system makes no effort to
+interact with the environment, and vice versa, parameters
+such as mass and inertia are indistinguishable due to the
+homogeneity of the equations of motion, and can only retrieve
+a ratio of the parameters.
+Parameter estimation algorithms generally consist of fit-
+ting parameters comprised in a model structure with sensor
+readings from the robot. Depending on the type of sensor
+identifiable [4, 22]. For instance, estimating inertial parameters
+becomes intractable if the only available sensor for parameter
+estimation is an accelerometer, and perceived contact forces
+have no reference value to account for inertia. Therefore,
+choosing the type of sensors available for parameter estimation
+is crucial before deducing what unknown parameters should
+be estimated.
+Common methods for parameter estimation are Bayesian-
+inference based approaches [29, 34] and least squares estima-
+tion . Bayesian approaches for parameter estimation bake
+parameter uncertainty into the problem and can generalize well
+for complex, nonlinear problems, at the cost of computational
+efficiency for large data. Least squares estimation works
+well for simple, linear regression problems, but struggles to
+generalize to complex, nonlinear problems. Other methods
+are presented in , where parameter estimation is solved
+via a factor graph-based approach. However, factor graph-
+based methods are computationally heavy to compute, and
+requires careful engineering to construct. While there are many
+approaches to parameter estimation, this paper formulates
+the parameter estimation as a maximum likelihood problem
+, which allows us to consider the dependence of data in
+parameter estimation. Specifically, the maximum likelihood
+formulation is amenable to techniques in optimal experimental
+design that provides meaningful requirements for measurement
+B. Optimal Experimental Design and Fisher Information
+The study of optimal experimental design [7, 9] provides
+an insight towards how to best sample data for estimating
+parameters in a maximum likelihood problem. Experimental
+design involves optimizing over an information metric in order
+to solve for expected measurements in an experiment that yield
+the most information-rich data about unknown parameters
+of interest. Fisher information is often used in experimen-
+tal design, as it directly captures how sensitive the sensor
+measurements are to slight perturbations of the parameter
+estimates. By maximizing Fisher information [2, 7], we take
+an outer product of the gradients over the maximum likelihood
+reward function with respect to parameters of interest and
+solve for regions in this new reward landscape where the
+function is the most sensitive to slight perturbations of the
+parameters. This optimization problem is known as experi-
+mental learning. The Fisher information metric is often used
+as it captures information-richness in datasets and is directly
+related to the variance of parameter estimates of interest .
+By optimizing directly over the Fisher information landscape,
+we yield experiments that lead to desirable, information-rich
+In the context of robotics, experimental learning provides
+us a means to acquire information-rich data that describes un-
+known parameters of interest accurately [43, 44]. The learning
+algorithm will output a control sequence that is applied to the
+robot which generates a motion that collects information-rich
+data through equipped sensors.
+C. Contact Implicit Trajectory Optimization
+This paper takes a conventional experimental design prob-
+lem and primes the Fisher information with contact-awareness,
+allowing the robot to optimize for information-rich contact
+interactions to improve parameter learning. In doing so, we
+pose an experimental design problem where contact is an
+implicit variable for optimization as a function of robot
+trajectory. Contact-implicit trajectory optimization [24, 26, 40]
+synthesizes trajectories wherein contact forces, robot state,
+and control inputs are posed as decision variables in the
+optimization problem. They are generally solved by optimizing
+for robot trajectory and contacts over an objective, with
+constraints being robot dynamics and a contact model of
+choice [32, 8, 30, 40]. Essentially, these methods can generate
+motions without explicitly specifying contact mode sequences.
+Such formulations of optimization problems have been
+shown to have impressive results, shown in [26, 40, 32].
+These problems are formulated by a choice of contact model
+and optimization methods. Particular to the algorithm pre-
+sented in , the resulting motion is generated through a
+time stepping method with linear complementarity constraints
+posed by [36, 1] in order to resolve rigid-body contact modes
+implicitly. In this work, we address a parameter learning
+problem formulated as an contact-implicit optimization, using
+a contact model of choice, where the parameters are embedded
+within the contact model. We aim to refine parameter estimates
+by optimizing contact modes such that they align closely with
+given contact data.
+D. Belief Space Planning and Control
+Belief space planning is commonly used in robotics to plan
+under parameter uncertainty by considering the robots belief
+about the parameter, and gathering information to converge on
+parameter uncertainty. Consequently, the robot infers unknown
+properties of objects around it and plans for interactions
+accordingly. Early works in [31, 19, 15] present belief space
+control using a Partially Observable Markov Decision Process
+(POMDP), where the robot explores for relavant and rich in-
+formation about parameters which is used to solve a maximum
+likelihood problem.
+Recent approaches [42, 25] leverage the belief space formu-
+lation for improving contact-based robot tasks. Our approach
+is similar in that, we leverage the parameter uncertainty based
+on the sensitivity of the measurement model to improve
+robot task performance. The main difference is 1) the explicit
+consideration of contact mechanics in computing the Fisher
+information; and 2) that we can solve the contact-aware
+Fisher information maximization problem via sample-based
+control for real-time performance. The advantage is that we
+can generalize across a larger range of contact-based robotics
+problem under real-time control setting without needing to
+resort to computationally expensive reinforcement learning
+methods.
+III. PRELIMINARIES
+A. Parameter Learning via Maximum a-posteriori Estimate
+In this work, we cast parameter learning as a maximum a-
+posteriori estimation over parameters  . Let p() :
+R be the prior distribution over  and D  {(xi, yi)}N
+a collection of N input-output sensor data where xi X is
+an input, and yi Y is noisy sensor data. Given a likelihood
+model1 p(D), the posterior belief p(D) is given by the
+Bayesian update
+p(Dv)p(v)dv .
+It is often difficult or intractable to directly solve for the
+posterior distribution given data. Instead, it is easier to just
+optimize for the mode  of the posterior distribution.
+Definition 1. Maximum a-posteriori Estimation. Given a
+prior p() :  R over parameters  , a data set of N
+independent and identically distributed (i.i.d.) measurements
+D  {(xi, yi}N
+estimate of the posterior distribution is given as the maximum
+a-posteriori (MAP) estimate  which is the solution to the
+optimization
+p(D)p().
+In practice it is common to optimize for the log a-posteriori
+arg max log (p(D)p()) which often has better numer-
+ical conditioning.
+Remark 1. Not including the prior p() in the maximization
+in (2) yields the simpler, but effective maximum likelihood
+problem. While the formulation remains useful for accounting
+for collected data, it is unable to account for prior information.
+In general, solving the maximum a-posteriori estimation as-
+sumes data has been provided. We are interested in producing
+a method that provides the best data D that improves the
+conditioning of (2).
+B. Fisher Information
+One way to establish better conditioning on maximum a-
+posteriori problems is to analyze the statistical manifold of
+the problem. In particular, we are interested in analyzing the
+sensitivity of the posterior distribution with respect to the
+parameter. The insight is that certain measurements yield more
+information about parameters, i.e., reduction in uncertainty,
+when the gradient of the likelihood model is largest. A
+common measure of information with respect to parameter
+sensitivity is the Fisher information matrix.
+Definition 2. Fisher Information Matrix. Let L(D) be the
+log likelihood of an unbiased estimator that is continuous and
+differentiable with respect to elements in D and   Rd.
+1In our work, we call this the sensor model which provides the likelihood
+that the collected data D is explained by parameter .
+defined by
+if L C2. Here, the expectation is with respect to the random
+variable D and 2
+is the Hessian .
+Note that the Fisher Interestingly, the Fisher information
+matrix also has a unique interpretation as a lower-bound on the
+uncertainty of the posterior in maximum likelihood problem.
+Definition 3. Cramer-Rao Lower Bound .
+Let D be a
+random variable drawn from a distribution p(D), and  be
+the unbiased estimator for , then
+F(D) cov()1.
+For the interested reader, the proof of this lower bound
+can be found in . The bound shows that maximizing the
+Fisher information matrix directly impacts the variance of the
+parameter estimate which we use to establish an optimization
+problem over planned datasets.
+C. Optimal Experimental Design
+We can maximize the Fisher information in order to choose
+measurements D  {(xi, yi)}N
+i1 that improves the preci-
+sion of parameter estimation. The idea is to establish an
+optimization on the input design of an experiment, i.e., the
+independent variable xi, such that the dependent variable yi
+that has not been collected has more utility. To establish this
+mally distributed measurements where L(D)  L(X)
+and X  {xi}N
+i1. Under a finite sampling of independent
+variables xi we obtain the empirical Fisher information
+Since X is now an independent control variable, the fol-
+lowing optimal design is constructed
+X  (F(X))
+where the Fisher information matrix is overloaded with ar-
+gument X [33, 9], and () is a matrix reduction operator
+over the Fisher information that returns a scalar measure of
+the matrix, e.g., the determinant (D-optimality), or the trace
+(T-optimality). Note that the Fisher information is symmetric
+and positive semi-definite [17, 5]. The inducing operator
+is then a metric on the information landscape that alter
+the experiment design, e.g., D-optimality will maximize the
+total volume of the Fisher information matrix, whereas T-
+optimality maximizes the largest enclosing sphere. Our goal
+is to formulate a contact-aware formulation of experimental
+design to facilitate with contact-based robot tasks that seeks
+information-rich contact for learning.
+IV. CONTACT-AWARE EXPERIMENTAL DESIGN
+To enable robots to actively seek out contact, we need
+to derive a notion of information related to parameter
+estimation subject to contact. Thus, we first need to establish
+the explicit dependence of contact in parameter estimation.
+A. Contact-Aware Max. A-Posteriori Estimation (CA-MAP)
+Let us define a robot with the state variable xt X
+with control input ut U at some discrete time t Z.
+robot as xt1  f(xt, ut, t) and the sensor measurement
+model yt  g(xt) parameterized by   where yt Y is a
+sensor measurement, and t C(xt) is the contact constraint.
+of state, e.g., friction, non-penetration, and complementarity.
+We define an experiment as a set of T measurements
+D  {(yt, ut)t [0, T 1]} where the goal is to maximize
+the a-posteriori estimate  given a prior p() and experiment D
+subject to the dynamic, contact, and sensor model constraints.
+Definition 4. Contact-Aware MAP (CA-MAP) Let
+{(xt, t)t [0, T 1]} be a trajectory of states xt and
+contact forces t for some time horizon T Z. Given
+the likelihood model p(D, ) (i.e., a sensor model) that is
+normally distributed with mean g(x) and variance , the
+contact-aware maximum a-posteriori estimation (CA-MAP)
+problem is defined as
+log p(D, )p()
+x0 given
+(initial cond.)
+xt1  f(xt, ut, t)
+(dynamics model)
+(contact constraints)
+(feasible parameter)
+where the subscript  denotes the functional dependence of
+the model on the parameter.
+The intuition behind this problem formulation is that we
+are optimizing for the parameter estimation and the trajectory
+that best explains the data D. The role of the contact
+model for  is to explicitly consider contact constraints as
+part of the parameter estimation problem. In many scenarios,
+contact forces are not explicitly measured, but do appear in the
+physical constraints of the system and are critical for parameter
+estimation. Thus, incorporating the contact model enables us
+to explicitly optimize contact interactions for experimental
+B. CA-MAP Fisher Information Matrix
+Given the contact-aware a-posteriori estimation problem,
+our goal is to derive an equivalent notion of the Fisher
+information that explicitly considers contact. To achieve this,
+Figure 2: Collapsing Parameter Uncertainty Through Contact.
+In this example, the robot seeks to estimate the friction
+coefficient by interacting with the environment through contact. In doing so, the robot collects contact sensor measurements
+that hold information, F (green curve), about the parameter, which is then used to update the parameter estimate and variance.
+We can see that in order to reduce parameter variance and converge to a more precise parameter estimate, the robot exhibits
+a sliding behavior that excites terms in the Fisher information, which is a lower bound on parameter uncertainty .
+we first define the Lagrangian of the contact-aware parameter
+estimation problem as
+where  is the Lagrange multiplier for each constraint d(, )
+and (D, )  log p(D, )p().
+Theorem 1. Let L(D, , ) be the Lagrangian of the
+contact-aware estimation problem Def. 4 where L C2.
+The contact-aware Fisher information matrix F(D, , )
+Rdd for   Rd is given by
+defined by the steepest ascent problem
+where F(D, )  2
+L(D, ) and the dependence of
+the Lagrange multipliers are dropped and assumed to be
+constants.
+Theorem 1 connects a variation of the Fisher information
+matrix to a Newtons method conditioning for the steepest
+descent problem. Note that in this case, we define the empirical
+Fisher information (where the summation over data is implicit
+in the augmented log-likelihood model). Furthermore, consider
+that the Fisher information has as an argument the trajectory
+{(xt, t)}T
+We can use this fact to solve for robot behaviors that maximize
+the Fisher information, ultimately improving the conditioning
+on the steepest descent for the CA-MAP problem in the
+data space where contact can be explicitly sought to excite
+information about physical parameters.
+V. CONTACT-AWARE OPTIMAL EXPERIMENTAL DESIGN
+We now derive the contact-aware optimal experimental
+design approach to synthesize robot behaviors for learning.
+Our approach integrates the contact-aware Fisher information
+into a closed-loop optimal design procedure to facilitate robot
+parameter learning from information-rich contact data.
+A. Contact-Seeking Behavior Synthesis
+We first establish the optimization formulation that maxi-
+mizes the contact-aware Fisher information matrix.
+Definition 5. (Contact-Aware Optimal Experimental Design
+(CA-OED)). Let  : Rdd R define a continuous and
+differentiable metric and J (D, ) denote a cost term on
+the trajectory. Additionally, assume the contact-aware Fisher
+information matrix F(D, ) is symmetric and positive semi-
+definite [35, 37]. Then, for a given estimate , the contact-
+aware optimal experimental design problem is defined as
+x0 (given)
+xt1  f(xt, ut, t),
+yt  g(xt)
+where D  {(yt, ut)}T
+t0 is the predicted dataset and
+{(xt, t)}T
+t0 is a reference trajectory.
+We can solve this optimization problem in (12) using
+any number of optimization techniques. We opted to solve
+this problem using predictive sampling  where contact
+constraints are implicitly solved through the dynamics model
+[32, 8]. In this formulation of optimal experimental design, it
+is important to recognize that the measurements yt that are
+optimized are only predictions. The purpose of the prediction
+is to specify the Fisher information matrix which explicitly
+considers the parameter sensitivity to the measurement. As
+what information-rich contact behaviors produce.
+In this work, we use the trace for  as the metric on the
+Fisher information. By maximizing the trace Fisher informa-
+tion matrix, we improve the condition number of the matrix
+used for Newtons step in the CA-MAP problem thus allowing
+empirically faster convergence and numerical stability. An
+example of this phenomena is illustrated in Fig. 2.
+Figure 3: Experimental Setup.
+The experimental setup
+for (a) hefting experiments for mass estimation, (b) rubbing
+experiments for friction coefficient estimation, (c) pressing
+experiments for material stiffness and dampening estimation,
+and (d) contouring experiments for shape estimation.
+B. Closing the Loop
+Given the solution to Eq. (12), the following step is to exe-
+cute the behaviors on the robot, record the measured data and
+repeat the process until a desired parameter confidence defined
+by p(D). Since our problem formulation only accounts for
+the posterior parameter mode , we use the approximate update
+equation on the posterior variance
+where the Fisher information is calculated from the collected
+experiment data,  is the covariance of the prior,
+posterior covariance, and  is solved initially using Eq. 8. Note
+that this equation over-approximates the uncertainty, which we
+found in practice assists with parameter convergence.
+Remark 2. Because we are estimating continuous parameters
+, and not contact forces or potentially discontinuous state
+uous. Thus, we do not require techniques such as saltation
+matrices  to estimate parameter belief.
+We present an algorithm that comprises of 1) the contact-
+aware experimental design optimization that searches for
+information-rich contact, and 2) the contact-aware maximum
+a-posteriori estimation problem that estimates parameters from
+collected data in Algorithm 1. We summarize the contact-
+aware experimental design procedure in Fig. 4.
+Algorithm 1 Contact-Aware Behavior Synthesis
+rameterized dynamics, sensor, and contact models, total
+number of experiments kmax, and experiment duration T.
+calc. contact behavior
+D Execute experiment D,  on robot
+CA-MAP Belief update Eq. (8), Eq. (13)
+Figure 4: Experimental Design Pipeline.
+Here we outline
+our approach using Alg. 1. Given a prior on the parameter, we
+plan trajectories that excite information-rich contact modes.
+We then apply the planned trajectories to the robot and gather
+sensor measurements. These measurements are used to update
+the parameters and the variance of the prior to obtain the
+posterior. We repeat this process until the robot estimates
+parameters at a parameter certainty tolerance of choice.
+VI. RESULTS AND DISCUSSION
+This section details simulated and experimental results of
+our contact-aware experimental design approach in several
+scenarios. Our approach is evaluated using contact-implicit
+trajectory optimization methods where we optimize for con-
+tact modes that maximize information about objects with
+unknown parameters of interest, thus improving parameter
+Figure 5: Emergent Behaviors from Experimental Design.
+Time series of experiments conducted over all scenarios. By
+maximizing contact-aware Fisher information, the robot seeks information-rich contacts for efficient identification of (a) mass,
+(b) friction coefficient, (c) material properties, and (d) shape. Simulation results are visualized on MuJoCo . The robots
+were given a planned trajectory to execute, where we assume perfect robot state tracking upon executing the trajectory. We see
+the emergent behaviors in (a) a hefting motion that perturbs contact force on the object, (b) the end-effector rubbing against
+the wall with a nonzero normal force and tangent contact velocity, (c) the gripper pinching the object to excite contact modes,
+and (d) an object contouring behavior with both end effectors to excite contact modes across different regions of the object.
+learning performance. We compare our approach to a sim-
+ilar approach , which executes trajectories based on a
+Fisher information maximization approach where contact is
+not considered explicitly. Particularly, we are interested in
+observing emergent behaviors from our approach that answer
+the following questions:
+Q1) What classes of parameter learning problems require
+more compounding and constant contact interactions as
+the resulting optimal emergent behavior?
+Q2) What classes of parameter learning problems require
+making and breaking contact as its resulting optimal
+emergent behavior?
+Q3) What convergence do we see for parameter learning
+through our optimized contact behaviors?
+Q4) How does the information loss landscape change for
+different parameter estimation problems?
+We answer the questions aforementioned in this section se-
+quentially with corresponding answers A(-).
+Robot Scenarios
+The results in this paper answers these questions by imple-
+menting our Fisher information maximization approach on the
+following robot scenarios shown in Fig. 3:
+1) Weight Estimation, where an Allegro-Franka system
+estimates the mass of a grasped object through hefting
+behaviors.
+2) Friction Estimation, where a Franka robot interacts with
+a wall to estimate friction coefficient.
+3) Stiffness Estimation, where a robot gripper learns ma-
+terial stiffness and dampening properties of a uniform
+object through its grasping interactions.
+4) Shape Estimation, where a Franka robot estimates the
+shape of a box (length and width) through non-prehensile
+contact interactions.
+Experiment details are shown in Appendix B. Note that
+we implement these robot scenarios in the presence of high
+contact force sensor noise, which makes small perturbations
+of contact ambiguous information to identify parameters. We
+demonstrate the robustness of our approach to high sen-
+sor noise by enabling robots to reason about exploring for
+information-rich contacts outside some contact uncertainty
+envelope.
+Our experimental pipeline is shown in Fig. 4. We compare
+(a) Mass Estimation.
+The robot seeks to estimate the mass of a
+grasped object.
+(b) Friction Estimation. The robot seeks contacts with the wall to
+estimate the friction coefficient.
+(c) Material Property Estimation. The robot gripper interacts with
+an object to learn its material properties (stiffness and dampening
+coefficients).
+(d) Shape Estimation. The robot that interacts with a box to learn
+its shape (length and width). Estimation is solved in-the-loop ober
+discrete time.
+Figure 6: Contact Excitations Improves Parameter Learning. We compare our experimental design approach with baseline
+similar to works in  for all robot scenarios. The baseline implements a belief-space planning controller that reasons about
+contact navely. We evaluate each robot scenario over a finite number of experiments. Here, we model the parameter error as
+err  100( ), where  is the current estimate and is the true parameter. By maximizing the contact-aware Fisher
+converging closer to the true parameter values , with resulting higher Fisher information gains.
+our approach to a recent belief space planning baseline in ,
+which explores for information-rich data about parameters
+without the explicit reasoning over contact.
+A1. Compounding Contact Behavior
+As shown in results in Fig. 5, the hefting experiment (a),
+where the robot pregrasps an object and learns the mass of that
+object through perturbing its constant normal contact force, as
+well as the rubbing experiment (b), where the robot interacts
+with a nearby wall to estimate the friction coefficient, both
+maintain nonzero contact in order to estimate parameters.
+When estimating friction coefficient, we can see in the contact
+sensor model in Appendix B that this term is identifiable
+when exciting both a high normal force as well as a non-
+zero tangent velocity. Therefore, maximizing over contact-
+aware Fisher information yields a high excitation of tangent
+velocities at the contact frame along with a high excitation
+of normal contact force. Therefore, the resulting emergent
+behavior results in compounding frictional contact with the
+In the case of the hefting experiments (a), it is possible
+to estimate mass parameters even if the object momentarily
+leaves the hand of the robot as long as the object returns to
+the hand. However, this adds new sparsities in the contact
+where the object leaves the hand would not contribute to
+significant updates of the parameter prior. Therefore, in order
+for the robot to effectively learn the mass parameter of the
+and rather experience perturbations in normal contact forces.
+Such perturbations would excite the contact sensor model
+output written in Appendix B such that the gradient of the
+sensor model can extract mass information from the signed
+distance function n between the object and the hand, as
+well as the normal velocity at the contact frame vn. As a
+experimental design approach yields a hefting behavior where
+the robot moves its hand in an up-and-down motion in order
+to perturb normal force readings between the object and the
+robot optimally.
+A2. Making and Breaking Contact Behavior
+As shown in Fig. 5, the pressing experiment (c), where a
+robot gripper interacts with an object by grasping it, as well
+as the contouring experiment (d), where the robot interacts
+with an object its end effector, both make and break contact
+in order to significantly perturb the contact forces. Note that
+for experiment (d), the robot identifies the parameters online,
+where we execute Alg. 1 in the loop during robot operation.
+In these experiments, the robot is tasked with reasoning about
+material properties stiffness and dampening (c), as well as
+shape (d). To do so, our experimental design approach gives us
+a planned trajectory that excites contact modes with the object
+by making and breaking contact in order to significantly per-
+turb the contact forces. Intuitively, learning material properties
+naturally requires excitations in the normal forces between the
+robot and the object, and in doing so we can excite gradients
+in the contact sensor model as written in Appendix B.
+A3. Parameter Convergence Over Experiments
+We aim to demonstrate the convergence of parameter learn-
+ing by comparing our experimental design approach for all
+robot scenarios shown in Fig. 5 to a baseline similarly imple-
+mented in . The baseline reasons about information-rich
+trajectories to improve learning, only that it does not reason
+over contact explicitly by simply approximating the gradients
+of the sensor model using a finite differencing method. The
+goal of this section is to show that by reasoning over contact
+The results are shown in Fig. 6. We can see that upon
+evaluating over experimental runs, we can observe that our
+experimental design approach is able to converge to a more
+precise parameter estimate with higher Fisher information
+gains. The emergent behaviors that result from contact-aware
+Fisher information maximization actively search for contact
+modes that are information-rich, resulting in naturally emerg-
+ing behaviors that allow for precise identification of parame-
+ters. The reason that our approach improves the works in
+is due to our direct consideration of contact interactions in the
+optimization as well as our approach in structuring the Fisher
+information with contact. The baseline approaches contact
+more navely, where Fisher information is constructed by ap-
+proximating the gradients of the trajectory measurement model
+through a finite differencing method for a small perturbation
+in parameter space. By structuring the Fisher information
+based on a structured contact measurement model, the robot
+is able make deliberate decisions through its contact seeking
+behaviors.
+In the case of the pinching experiments in Fig. 5, we can
+observe that our contact-aware Fisher information maximiza-
+tion approach only marginally improves parameter learning
+compared to the baseline. This due to the constrained nature
+of the problem, where the robot motion is constrained by a
+bounded 1 dimensional motion, assuming that the gripper is at
+a pre-grasped state. Because of high contact sensor noise, the
+robot is forced to perturb the contact force between its grippers
+and the object such that the resulting contact readings are
+outside of the contact uncertainty envelope in order to prop-
+erly identify parameters. Because of the highly constrained
+nature of contact in this robot scenario, directly reasoning
+over information-rich contact will result in similar emergent
+behaviors as the baseline approach. Similar behaviors for the
+hefting experiments can be seen if the contact sensor is not
+as noisy. However, we can observe that our approach can
+outperform the baseline in more complex and unconstrained
+scenarios.
+In Fig.7, we demonstrate the robustness of our approach
+as a function of parameter initialization. We observe that
+our approach is highly robust to initial priors within 30
+Figure 7: Robustness to Initialization. We study robustness of
+our approach is to 7 initial parameter priors for all scenarios.
+Note here that we model the parameter error as a distance
+. We observe that our contact-aware Fisher
+information maximization approach is resilient across a diverse
+initialization of priors over all experiments.
+for hefting, and even more robust for other scenarios. We
+also expand on the remarks in  that estimating multiple
+parameters that are co-dependent to one another makes the
+estimation unidentifiable, unless we make assumptions of the
+contact interactions (e.g. bounding contact impulses), provided
+within the problem definition in Eq. 8 in the paper.
+A4. Information Loss Landscape
+We aim to provide a visual intuition of the information
+landscape that we optimize over in our contact-aware Fisher
+information maximization problem in Eq. 12. The information
+landscape is dictated by the physics models chosen for each
+robot scenario as well as the unknown parameters to estimate.
+Given that the robot has engaged contact with the environment,
+we show in Fig. 8 the changes in the information landscape
+with respect to different kinematic parameters that impact the
+landscape the most.
+Based on the results in Fig. 8, we choose to focus on
+observations from the information landscape for the weight,
+Weight Estimation
+The emergent hefting behaviors shown in Fig. 5 optimizes
+for perturbations in normal contact between the hand and the
+ural consequence from our Fisher information maximization
+approach is exciting the perturbation depth n between the
+hand and the object upon contact and the normal velocity vn
+at the contact frame. Fig. 8a shows the smooth information
+landscapes resulting from the current configuration of the
+hand-object system. The Fisher information landscape is linear
+with respect to the kinematic inputs, and results in the system
+(a) Hefting Behavior Information Landscape. The robot excites penetration deformation n by varying its hand positions
+and non-zero contact normal velocity vn in order to excite information-rich contact about mass, resulting in an up-and-down
+hefting behavior shown in Fig. 5
+(b) Pinching Behavior Information Landscape. Here, Fisher information is maximized by exciting contacts by activating
+the penetration distance into the object n as well as the deformation rate n
+t through pinching. This yields natural behaviors
+of squeezing and contracting the object in order to identify material properties optimally.
+(c) Rubbing Behavior Information Landscape. Here, information is maximized by exciting normal contact velocity vn and
+tangent contact velocity vt in order to collect information-rich contact about the friction coefficient, resulting in a rubbing
+behavior shown in Fig. 5
+Figure 8: Optimizing Over Contact-Seeking Information Landscapes.
+We show the contact-aware Fisher information
+landscape that our experimental design method optimizes over for all scenarios.
+being pulled to the velocity boundaries, resulting in the robot
+exhibiting a hefting behavior.
+Friction Estimation
+From our approach, we observe in Fig. 5 that the robot op-
+timally learns the friction coefficient between its end-effector
+and the wall by maintaining non-zero tangent contact forces
+through rubbing. Intuitively, the friction coefficient parameter
+appears only in the tangent forces in the sensor model used
+for the experiment (See Appendix B), so the robot requires
+consistent and compounding excitations of tangent forces by
+pressing against the wall with a normal contact velocity vn and
+exerting a non-zero tangent velocity vt at the contact frame.
+As shown in Fig. 8c, we visualize the information landscape
+that the robot optimizes over to obtain information-rich data
+to estimate the friction coefficient. The robot maximizes
+information about the friction coefficient during contact by
+sliding velocity vt and pressing velocity vn against the wall
+the figure that the robot seeks to choose velocities at contact
+that are approach the peaks o

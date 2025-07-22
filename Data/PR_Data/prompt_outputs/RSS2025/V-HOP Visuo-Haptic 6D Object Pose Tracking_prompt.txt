@@ -1,7 +1,7 @@
 === PDF文件: V-HOP Visuo-Haptic 6D Object Pose Tracking.pdf ===
-=== 时间: 2025-07-22 09:58:35.943261 ===
+=== 时间: 2025-07-22 15:42:40.065902 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -513,4 +513,188 @@ ADD-S-0.1d
 NeuralFeels
 V-HOP (Ours)
 TABLE V: Performance on the FeelSight Dataset. For
-consistency w
+consistency with the metric used in NeuralFeels , this
+experiment reports the direct ADD-S metric  (in mm)
+rather than the AUC of ADD-S used in other experiments.
+E. Occlusions Effect on the Performance
+We evaluate the performance of V-HOP and FoundationPose
+across varying occlusion ratios (Fig. 4). The occlusion ratio
+is defined as the proportion of pixels in the segmentation
+mask relative to the total pixels in the rendered object image,
+generated using the ground-truth pose. Our results show that
+V-HOP consistently outperforms FoundationPose in both ADD
+and ADD-S metrics under different levels of occlusion. These
+results underscore the importance of integrating visual and
+haptic information to improve performance in challenging
+occlusion scenarios.
+F. Pose Tracking on FeelSight
+To evaluate the generalizability of V-HOP, we benchmark it
+against NeuralFeels , a recently introduced optimization-
+based visuo-tactile pose tracking approach, using their pro-
+posed Feelsight dataset. Specifically, we focus on the occlu-
+sion subset of the dataset, FeelSight-Occlusion, which
+presents significant challenges due to severe occlusions. This
+subset requires robust generalization capabilities as it includes
+a novel embodiment (the Allegro hand equipped with DIGIT
+fingertips), a novel sensor type (a vision-based tactile sensor),
+and a novel object (a Rubiks cube). For a fair comparison, we
+compare against their model-based tracking approach, which
+uses almost the same inputs as V-HOP but with the ground-
+truth segmentation mask (GT Seg).
+The results are presented in Tab. V. V-HOP achieves a 32
+lower ADD-S error compared to NeuralFeels and has a similar
+ADD-S-0.1d score. It is important to note that NeuralFeels
+leverages the ground-truth segmentation mask, which helps in
+more accurate object localization, whereas V-HOP does not
+have such an input, further underscoring its robustness and
+adaptability.
+In terms of computational efficiency, V-HOP is approxi-
+mately 10 times faster than NeuralFeels, achieving 32 FPS
+compared to NeuralFeels 3 FPS on an NVIDIA RTX 4070
+GPU. This substantial improvement in speed highlights the
+practicality of V-HOP for real-world manipulation applica-
+V. SIM-TO-REAL TRANSFER EXPERIMENTS
+To validate the real-world effectiveness of our approach,
+we perform sim-to-real experiments using our robot platform
+(Fig. 1). Our bimanual platform comprises dual Franka Re-
+search 3 robotic arms  and Barrett Hands BH8-282. Our
+Barrett Hand has 4 degrees of freedom (DoF) and 96 taxels: 24
+taxels on each fingertip and 24 taxels on the palm. Each taxel
+comprises a capacitive cell capable of detecting forces within a
+range of 10 Ncm2 with a resolution of 0.01 N. For egocentric
+visual input, we use a MultiSense SLB RGB-D camera, which
+combines a MultiSense S7 stereo camera and a Hokuyo UTM-
+30LX-EW laser scanner. We utilize FoundationPose to provide
+the initial frame pose estimate and CNOS [47, 25] to provide
+the segmentation task.
+A. Pose Tracking Experiments
+In this experiment (Fig. 5), the gripper stably grasps the
+object while a human operator guides the robot arm along
+a random trajectory. This introduces heavy occlusion and
+high dynamic motion to emulate challenging real-world ma-
+nipulation scenarios. Under these conditions, FoundationPose
+often loses tracking due to reliance on visual input alone. In
+the trajectory, demonstrating the robustness of its visuo-haptic
+sensing.
+B. Bimanual Handover Experiment
+In this experiment (Fig. 6), an object is placed on a table
+within reach of the robots right arm. The task requires the
+robot to perform the following sequence of actions:
+1) Use the right arm to grasp the object and transport it to
+the center.
+2) Use the left arm to grasp the object from the right gripper
+and place it into a designated bin.
+The robot employs model-based grasping, which depends on
+real-time object pose estimation. This task presents two key
+1) If the grasp attempt fails, the robot must detect the
+failure based on the real-time object pose and reattempt
+the grasp.
+2) During transport to the center, the robot must maintain
+precise tracking of the objects pose to ensure that the
+left arm can accurately grasp it. Inaccurate tracking
+results could lead to collision during the handover.
+V-HOP enables the motion planner to handle objects in
+random positions and adapt to dynamic scenarios, such as
+human perturbations. For instance, a human may move the
+object during task execution, remove it from the gripper, or
+reposition it on the table (Fig. 7). Due to the integration of
+Fig. 5: Qualitative results of pose tracking sequences. We verify the performance in the real world using YCB objects. The
+cup and power drill are highlighted in this figure, while the results of more objects are in the appendix.
+Fig. 6: Bimanual handover experiment. In this experiment, the robot performs bimanual manipulation to transport the target
+object to the box. V-HOP integrates visual and haptic inputs to accurately track the pose of the in-hand object in real-time,
+resulting in stable handover performance. Results on more objects can be found in the appendix.
+Sugar Box
+Power Drill
+Tomato Can
+TABLE VI: Success rate on bimanual handover task.
+haptic feedback, V-HOP accurately tracks the objects pose,
+allowing the robot to promptly detect and respond to changes,
+such as the object leaving the gripper. On the contrary,
+FoundationPose loses tracking during handover or grasping
+failure (Fig. 6) and leads to collisions. In Tab. VI, we show
+the success rate for each object for five trials. V-HOP has 40
+higher success rate on average compared to FoundationPose.
+C. Can-in-Mug Experiment
+The Can-in-Mug task (Fig. 8) involves grasping a tomato
+can and inserting it into a mug. The bimanual version requires
+the robot to also grasp the mug and insert the can in the center.
+Successful execution hinges on precise pose estimation for
+both objects, as any noise in their poses can lead to failure.
+Fig. 7: Robustness test for the bimanual handover task.
+(Left) The object is placed at various randomized positions.
+(Right) A human perturbs the object by moving it to a different
+position while the robot attempts to grasp it.
+Can-in-Mug
+Bimanual Can-in-Mug
+TABLE VII: Success rate on Can-in-Mug task.
+(a) Can-in-Mug task.
+(b) Bimanual Can-in-Mug task.
+Fig. 8: Can-in-Mug tasks. (top) The robot grasps the can and
+inserts it into the mug. (bottom) The robot uses bimanual to
+grasp the can and the mug and insert the can into the mug in
+the center.
+Our results (Tab. VII) demonstrate that V-HOP, by integrating
+visual and haptic inputs, delivers more stable tracking and a
+higher overall success rate.
+D. Contribution of each modality
+In this study, we examine the contribution of visual and
+haptic inputs to the final prediction. We adapt Grad-CAM ,
+utilizing the final normalization layer of the Transformer
+encoder as the target layer. Figure 9 illustrates the weight
+distribution across the visual and haptic modalities. Our find-
+ings suggest that when the gripper is not in contact with
+an object, the model predominantly relies on visual inputs.
+Fig. 9: Weights of visual and haptic modalities to the final
+prediction. We overlay the modality weights calculated using
+GradCAM  in the top-right corner.
+becomes more severe, the model increasingly shifts its reliance
+toward haptic inputs. This finding confirms the choice of self-
+attention mechanism to emulate humans optimal integration
+principle.
+VI. RELATED WORKS
+In this work, we consider the problem of 6D object pose
+tracking problem, which has been widely studied as a visual
+problem [66, 35, 70, 7]. In particular, we focus on model-based
+tracking approaches, which assume access to the objects CAD
+model. While model-free approaches [65, 69, 54] exist, they
+fall outside the scope of this work. Visual pose tracking has
+achieved significant progress on established benchmarks, such
+as BOP . Despite these successes, deploying such sys-
+tems in real-world robotic applications remains challenging,
+especially under scenarios with high occlusion and dynamic
+To address these challenges, prior research has explored
+combining visual and tactile information to improve pose
+tracking robustness [32, 54, 8, 61, 50, 59, 14, 33]. These
+approaches leverage learning-based techniques to estimate
+object poses by fusing visuo-tactile inputs. However, these
+methods estimate poses on a per-frame basis, which lacks
+temporal coherence. Additionally, cross-embodiment and do-
+main generalization remain significant hurdles, limiting their
+scalability and practicality for broad deployment.
+More recent works aim to overcome some of these limita-
+tions. For example, Liu et al.  proposes an optimization-
+based approach that integrates tactile data with visual pose
+tracking using an ad-hoc slippage detector and velocity pre-
+dictor. Suresh et al.  extend the model-free tracking frame-
+works BundleTrack  and BundleSDF  by combining
+visual and tactile point clouds within a pose graph optimization
+framework. However, these approaches are only validated on a
+single embodiment and suffer from computational inefficien-
+in dynamic manipulation tasks.
+VII. LIMITATION
+We follow the model-based object pose tracking setting,
+which assumes that a CAD model is available for the object.
+While assuming a CAD model may limit generalization in in-
+the-wild applications, it is a well-established assumption in
+industrial settings, such as warehouses or assembly lines [3,
+54]. One potential direction to overcome this limitation is
+to simultaneously reconstruct the object and perform pose
+and NeuralFeels , which offer promising and compatible
+ways to supply a model to our approach.
+VIII. CONCLUSION
+We introduced V-HOP, a visuo-haptic 6D object pose tracker
+that integrates a unified haptic representation and a visuo-
+haptic transformer. Our experiments demonstrate that V-HOP
+generalizes effectively to novel sensor types, embodiments,
+and objects, outperforming state-of-the-art visual and visuo-
+tactile approaches. Ablation studies highlight t

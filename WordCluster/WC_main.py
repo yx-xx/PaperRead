@@ -1,6 +1,6 @@
 import time
 import pandas as pd
-from config import OUTPUT_FILE
+from config import OUTPUT_FILE, PLOT_FILE
 from data_loader import load_keywords
 from preprocessor import preprocess_texts
 from vectorizer import vectorize_texts

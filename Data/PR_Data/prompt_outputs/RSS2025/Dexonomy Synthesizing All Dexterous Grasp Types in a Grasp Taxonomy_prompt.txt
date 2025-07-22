@@ -1,7 +1,7 @@
 === PDF文件: Dexonomy Synthesizing All Dexterous Grasp Types in a Grasp Taxonomy.pdf ===
-=== 时间: 2025-07-22 10:00:29.221876 ===
+=== 时间: 2025-07-22 16:07:39.691465 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -600,4 +600,268 @@ suitable baseline for comparison, we provide some quantitative
 results in Table IV, which were gathered while synthesizing
 our Dexonomy dataset in Section V. The grasp types are cat-
 egorized into three large groups, namely power, intermediate,
-and precision grasps, according to the G
+and precision grasps, according to the GRASP taxonomy .
+The overall success rate is considerably lower than that
+of fingertip grasp synthesis, as many flexible grasp types are
+designed for specific object shapes. For instance, the Lateral
+(16) grasp is only used for flat and small objects. Among
+different grasp types, precision grasps exhibit the highest
+success rate under normal test conditions (i.e., with friction
+coefficients of 0.6 and 0.02), since these grasps typically
+involve only the fingertips and suit more objects. However,
+the success rate of precision grasps drops more rapidly than
+Global stage
+wo filter
+Local stage
+wo filter
+Template library
+wo update
+TABLE V: Ablation Study on Pipeline Modules for Fin-
+gertip Grasp Synthesis of Allegro Hand.
+Intermediate
+Precision
+Fingertip
+Grasp only
+w pre-grasp
+TABLE VI: Ablation on Control Strategy for Simulation
+Validation. Power grasps are robust likely due to rich contacts.
+that of power grasps when the friction coefficients are reduced
+to 0.3 and 0.002 (i.e., the hard test conditions), indicating that
+power grasps offer higher stability due to more contact with
+the object. Additionally, the overall diversity of grasps is better
+than previous work reported in Table II, owing to the inclusion
+of many distinct grasp types.
+D. Ablation Study
+1) Modular ablation: Table V shows the impact of each
+module on fingertip grasp synthesis for the Allegro hand.
+For the global alignment stage, optimization provides a slight
+We also take a deeper look at the post-filtering of this stage,
+and find that a significant portion (> 50k out of 80k) is filtered
+out due to a high loss (Eq. 7). In contrast, collision and grasp
+quality filters only remove fewer than 10k grasps, indicating
+that using them as new losses for optimization is not effective.
+In the local refinement stage, optimization is crucial for
+improving grasp quality, while post-filtering primarily ensures
+penetration-free grasps and negatively affects the success rate.
+enhances the synthesis success rate.
+2) Control strategy ablation: In Table VI, we evaluate the
+impact of different control strategies during simulation testing.
+The Grasp only method computes the pre-grasp and squeeze
+joint angles by scaling the grasp joint angles with fixed factors:
+0.9 for the pre-grasp and 1.1 for the squeeze pose. The
+w pre-grasp method calculates the squeeze joint angles as
+squeeze  2grasppregrasp, following BODex . Note
+that these two strategies only calculate the joint angles, while
+the 6DoF hand root pose is the same as the one of the grasp
+pose. During execution, the hand transitions sequentially from
+the pre-grasp to the grasp pose, and then to the squeeze pose.
+The results demonstrate that our contact-aware control
+strategy consistently improves the grasp success rate, except
+the power grasps. Power grasps are particularly robust to the
+control strategy, likely due to the rich contacts.
+3) Robustness to initial human-annotated templates: To
+investigate the robustness of our pipeline to different initial
+Grasp Success Rate()
+6.Prismatic 4 Finger
+1.Large Diameter
+Template ID
+wo new templates
+w new templates (Ours)
+TABLE VII: Robustness to Initial Templates. Our strategy,
+adding new templates from successful grasps, is the key to
+robustness.
+Template 1
+(Default)
+Template 3
+6. Prismatic 4 Finger
+1. Large Diameter
+Template 2
+Initialization
+Exemplar Result
+Template 1
+(Default)
+Template 3
+Template 2
+(Noisy contact annotations)
+(Different hand joint angles)
+Fig. 7: Robustness to Initial Templates. Our method gener-
+ates good grasps even for very noisy contact annotations as in
+columns 2 and 3.
+common grasp types of the Shadow Hand and evaluated on
+1000 random objects, with 100 attempts per object. As shown
+in Table VII and Figure 7, our algorithm is robust to both
+noisy contact annotations and variations in hand joint angles,
+thanks to our template-adding strategy. As long as the grasp
+success rate is not 0, the template-adding strategy will
+construct high-quality templates from successful grasps and
+greatly reduce the impact of bad initial templates.
+A more challenging case is using random initialization.
+high dimensionality of our template (including hand pose and
+contact annotations), where valid grasps are extremely sparse.
+This highlights the usage of human-annotated templates.
+E. Learning-based Grasp Synthesis from Partial Observation
+In this section, we compare the influence of both the
+grasping dataset and the learning method in simulation. The
+10.7k objects in our Dexonomy dataset are randomly split into
+training and test sets with a 4:1 ratio. While the object scales
+used for training vary, we fix the scales during testing, using
+the same six scale levels as described in Section VII-B. To
+ensure a fair comparison, we also regenerate a dataset for
+BODex using our objects and scales, resulting in 0.7M valid
+grasps. Ours-type1 includes only the Large Diameter (1)
+grasp type from the Dexonomy dataset and contains 0.4M
+data points, while Ours-all uses the full 9.5M dataset. For
+the type-conditional model, we additionally train a classifier
+to select the best grasp type based on each objects point cloud;
+more details are provided in Appendix D. For each object, 100
+candidate grasps are predicted and ranked by their associated
+As shown in Table VIII, our type-conditional model trained
+on the Dexonomy dataset significantly outperforms the BODex
+baseline by around 10, further highlighting the value of
+Type-uncond.
+Ours-type1
+Ours-all
+Type-cond.
+Ours-all
+TABLE VIII: Learning-based Grasp Synthesis from Single-
+Simulation. Our type-
+conditional model trained on our Dexonomy dataset signifi-
+cantly outperforms baselines.
+Azure Kinect
+Fig. 8: Real-World Experiment. (Left) Hardware setup.
+(Right) 13 varied objects for testing.
+our dataset. Notably, even when using only a single grasp
+type with less data, the learned model still outperforms its
+counterpart trained on BODex. Without type-conditional fea-
+and performs poorly. In contrast, the type-conditional model
+successfully synthesizes the intended grasp types, as visualized
+in Figure 9. The model trained on our dataset exhibits slightly
+higher penetration, likely due to the fact that our grasps are
+more contact-rich. Contact distance consistency is also higher
+for Ours-all, as this metric considers all fingers, while some
+grasp types do not involve every finger.
+F. Real-World Experiment
+The experimental setup and 13 unseen objects for testing are
+shown in Figure 8. To simplify the testing process, we select
+12 grasp types from the taxonomy that are distinct and suitable
+for grasping from a table. For 3 simple objects, namely the
+red cylinder, the white box, and the red apple, we use all 12
+grasp types to grasp them. For the other 10 objects, we let
+GPT-4o choose 3 suitable grasp types by providing pictures
+of the grasp types and the objects. Each object and grasp type
+combination is tested in 3 trials, resulting in around 200 total
+testing trials.
+To perform a grasp, a single-view object point cloud seg-
+mented by SAM2  and the specified grasp type are taken
+as input to the trained type-conditional generative model. The
+model generates 100 candidates and we use the pre-grasp
+poses as the target for collision-free motion planning with
+are ordered by the output probability of the normalizing flow,
+and the top 3 are executed. In this way, we prevent the success
+rate of motion planning from affecting the results, since it is
+not the focus of this paper. After reaching the pre-grasp pose,
+Fig. 9: Real-World Gallery. Our trained type-conditional generative model successfully synthesizes desired grasp types from
+single-view object point clouds. All grasps succeed in lifting the object except the one in the red box, where the grasp type
+is unsuitable for the object.
+Fig. 10: An Annotation UI based on Our Algorithm for
+Collecting Functional Grasp. (Left) The user clicks twice to
+specify a contact point on the object and a grasp type. (Right)
+A high-quality grasp is synthesized according to the users
+needs within seconds.
+the hand moves to the grasp pose and then the squeeze pose
+to grasp the object stably, and finally lifts it.
+As shown in Figure 9, our model can correctly generate
+physically plausible grasps for the specified types and achieves
+an overall success rate of 82.3. The most common failure
+mode is the unsuitable grasp types for the object, especially
+for Lateral (16). Moreover, some grasp types, such as Tip
+Pinch (24), are not very robust and easily fail due to real-
+world noise and prediction errors. More details are provided
+in Appendix E.
+VIII. APPLICATION
+Although our algorithm is semantic-unaware and cannot
+directly synthesize grasps to touch object regions specified
+by human language commands, it can be used to develop an
+efficient annotation system for collecting semantic dexterous
+grasp data. Unlike widely used teleoperation methods, which
+often require well-trained annotators and hardware depen-
+dencies like data gloves, our annotation system has minimal
+As shown in Figure 10, the annotator only needs to click
+select a desired grasp type. Our algorithm will automatically
+sample nearby object points and grasp templates from existing
+displayed in the GUI within seconds. For a full demonstration,
+please refer to our supplementary video. We plan to continue
+improving this tool and hope it facilitates future research on
+semantic grasping.
+IX. LIMITATIONS AND FUTURE WORK
+suitable or unstable grasp types, as shown in Figure 9. Future
+work could explore a more suitable taxonomy for robotic
+lection. Second, our method focuses on synthesizing static
+grasp poses rather than generating sequential trajectories that
+involve contact changes. A promising direction for future
+research is to incorporate trajectory generation for dynamic
+and differentiable physics simulators [16, 17, 54]. Finally,
+our work focuses solely on grasping a single object, and the
+extension to cluttered scenes remains an open challenge for
+future exploration.
+X. CONCLUSION
+In this work, we present a novel pipeline to efficiently
+synthesize high-quality dexterous grasps for any grasp type,
+human-annotated template. Our pipeline greatly outperforms
+previous type-unaware grasp synthesis baselines in the simu-
+lation benchmark. Using our proposed method, a large-scale
+dataset covering 31 grasp types is constructed, enabling the
+training of a type-conditional grasp generative model. The
+trained model successfully generates desired grasp types from
+single-view object point clouds, achieving a real-world success
+rate of 82.3.
+ACKNOWLEDGMENTS
+We thank Danshi Li for assisting with the integration of the
+Inspire Hand and the Unitree G1 Hand.
+REFERENCES
+Ananye Agarwal, Shagun Uppal, Kenneth Shaw, and
+Deepak Pathak. Dexterous functional grasping. In 7th
+Annual Conference on Robot Learning, 2023.
+Arun L Bishop, John Z Zhang, Swaminathan Guru-
+model-predictive control.
+In 2024 IEEE International
+Conference on Robotics and Automation (ICRA), pages
+Samarth Brahmbhatt, Chengcheng Tang, Christopher D
+A dataset of grasps with object contact and hand pose.
+In Computer VisionECCV 2020: 16th European Confer-
+Part XIII 16, pages 361378. Springer, 2020.
+Hanwen Cao, Hao-Shu Fang, Wenhai Liu, and Cewu Lu.
+grasping. IEEE Robotics and Automation Letters, 6(4):
+Yu-Wei Chao, Wei Yang, Yu Xiang, Pavlo Molchanov,
+Ankur Handa, Jonathan Tremblay, Yashraj S Narang,
+Karl Van Wyk, Umar Iqbal, Stan Birchfield, et al.
+objects. In Proceedings of the IEEECVF Conference on
+Computer Vision and Pattern Recognition, pages 9044
+Jiayi Chen, Yuxing Chen, Jialiang Zhang, and He Wang.
+Task-oriented dexterous grasp synthesis via differen-
+tiable grasp wrench boundary estimator. arXiv preprint
+Jiayi Chen, Yubin Ke, and He Wang. Bodex: Scalable and
+efficient robotic dexterous grasp synthesis using bilevel
+optimization. arXiv preprint arXiv:2412.16490, 2024.
+Sirui Chen, Jeannette Bohg, and C Karen Liu. Spring-
+pliant dexterous pre-grasp synthesis.
+arXiv preprint
+Tao Chen, Megha Tippur, Siyang Wu, Vikash Kumar, Ed-
+ward Adelson, and Pulkit Agrawal. Visual dexterity: In-
+hand reorientation of novel and complex object shapes.
+Science Robotics, 8(84):eadc9244, 2023.
+Zerui Chen, Shizhe Chen, Etienne Arlaud, Ivan Laptev,
+and Cordelia Schmid.
+dexterous manipulation from human videos.
+preprint arXiv:2404.15709, 2024.
+X Cheng, J Li, S Yang, G Yang, and X Wang. Open-
+Christopher Choy, JunYoung Gwak, and Silvio Savarese.
+4d spatio-temporal convnets: Minkowski convolutional
+neural networks.
+In Proceedings of the IEEECVF
+conference on computer vision and pattern recognition,
+Sammy Christen, Muhammed Kocabas, Emre Aksan,
+Jemin Hwangbo, Jie Song, and Otmar Hilliges. D-grasp:
+Physically plausible dynamic grasp synthesis for hand-
+object interactions.
+In Proceedings of t

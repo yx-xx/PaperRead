@@ -1,7 +1,7 @@
 === PDF文件: Bilevel Learning for Bilevel Planning.pdf ===
-=== 时间: 2025-07-22 09:59:59.224770 ===
+=== 时间: 2025-07-22 16:15:49.415075 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -580,4 +580,143 @@ Calibrator
 Thermal Cam
 Target w Chemical X
 Target w
-Chemical
+Chemical Y
+Gaussian
+Fig. 6: Visualization of the five domains (excluding Climb-Transport) we have studied in this work. These domains feature various state
+representations (including the high-dimensional point clouds in the Engrave domain) where our IVNTR can be generally applied.
+Satellites
+Measure-Mul
+Climb-Measure
+Climb-Transport
+State Space
+SE2 (R35)
+Vec3 (R38)
+SE3 (R75)
+SE3 (R75)
+SE3 (R75)
+PCD (R102436)
+Test Dist
+T train T test
+T train T test
+T train T test
+T train T test
+T train T test
+T train T test
+IVNTR (Ours)
+Transformer
+TABLE I: Empirical success rate comparison on six simulated robot planning domains. Among all the methods, IVNTR suffers the least from
+the generalization challenge due to its relational structure. The scores are obtained from the averaged results over five random seeds.
+to complicated and high-dimensional state spaces. Meanwhile,
+as the predicate classifiers are relational and can be seamlessly
+integrated into an AI planner , our approach can naturally
+achieve compositional generalization.
+ning. Therefore, we next try to select a subset dyn dyn
+that minimizes the score function J(dyn, D) . Specifically,
+with a set of candidate predicates   {G, sta, dyn},
+we start by grounding all the states x in the demonstration
+have the effect vector for each of the predicates in dyn,
+the effect sets (
+dyn) for each operator Op
+can be easily obtained. Then, the precondition set for each
+operator can be calculated using an intersection strategy .
+The learned operator set Op is then applied to the ground
+atom dataset to generate plan skeletons  for each task, which
+are compared with the demonstration plan skeletons  for
+objective calculation . The objective is finally minimized
+by running a hill-climbing search over dyn, resulting in the
+desired predicate set dyn. With the complete set, we are now
+able to learn the planning abstractions (operators and samplers)
+using standard pipelines [20, 21, 32] as shown in Figure 3
+(a). For a more detailed explanation to operator and sampler
+Note that before the predicate selection stage, all of the
+predicates neural classifiers have been pre-trained using our
+IVNTR framework, which has avoided the challenge of using
+the planning objective for learning but still achieved a powerful
+and adaptive model optimized for planning.
+V. EXPERIMENTS
+A. Implementation Details
+System and Hardware:
+All methods are evaluated on a
+single NVIDIA A100 GPU and an AMD EPYC 7543 32-Core
+CPU to ensure fairness. Training is conducted on the same
+hardware as evaluation, with domain-specific details provided
+in Appendix E. Real-robot experiments are performed using
+the Boston Dynamics Spot robot equipped with an arm.
+predicate set, most existing bilevel planning approaches [19,
+in most domains (see Appendix J). Thus, IVNTR is primarily
+compared to relational neural policy learning methods [28,
+trained using standard behavior cloning pipelines and evaluated
+with a shooting strategy; see Appendix F for details.
+We evaluate the methods across six diverse
+robot planning domains with varying state representations,
+as visualized in Figure 6 and summarized in Table I. Below,
+we provide a high-level overview of these domains. For more
+implementation details, please refer to Appendix E:
+Satellites comes from prior work , which involves a
+group of satellites collaborating to capture sensor readings
+from targets. States comprise SE2 poses and object
+attributes. Training scenarios (T train) include 2 satellites
+and 2 targets, while test scenarios (T test) have 3 of each.
+manipulating 3D blocks to form goal towers. Unlike
+vanilla Blocks World, the goals here involve packing
+pairs of blocks into two-level towers. T train includes 45
+Climb-Measure
+Climb-Transport
+SeedTask
+Oracle (Human)
+IVNTR (Learned)
+TABLE II: Success rate comparison of the two planners on the real robot planning tasks sampled from T test. Oracle denotes bilevel
+planners exhaustively engineered by a human expert. IVNTR is learned from the demonstrations collected in the simulated environment. For
+each domain, we have tested six tasks (T0T5) sampled from three random seeds (S0S2). For each planner in each task, we run it at most
+three times and record the averaged task success rate. Our framework has achieved comparable real robot performance with the Oracle.
+Climb-Measure
+T train T test J() (105) T train T test J() (105)
+GT-Vectors
+TABLE III: Comparison between the predicates learned with ground-
+truth (GT)-vectors and using our IVNTR framework. We report the
+task success rate and the final planning objective.
+a Spot robot calibrates a thermal camera by aligning it
+with a calibrator before measuring body temperatures of
+multiple human targets. States include 6D poses of the
+robot and the targets. Training distributions (T train) have
+23 humans, while test distributions (T test) include 4.
+Climb-Measure is similar to Measure-Mul but with added
+at high, initially unreachable locations. The Spot robot
+must arrange platforms and climb onto them to reach
+targets. Training (T train) includes 01 platforms, while
+testing (T test) requires planning with 2 platforms.
+requires the Spot robot to arrange platforms to grasp
+a high-placed target, then transport it into a container.
+Training setups (T train) feature 01 platforms, while
+testing (T test) involves 2 platforms.
+Engrave features high-dimensional state spaces repre-
+sented as object-centric point clouds. Similar to Blocks,
+the goal is to pack blocks. However, blocks start with
+one irregular Gaussian surface that must be engraved and
+rotated to create a matching fit. Training distributions
+(T train) include 34 blocks, while testing (T test) has 56.
+Experiment Setup: For each domain, we manually designed
+an oracle bilevel planner (Oracle) to collect training demonstra-
+tions. We report averaged results over five random seeds for all
+six domains. For each seed in Satellites, Blocks, Measure-
+For Climb-Measure and Climb-Transport, 2000 demonstrations
+were collected per seed. During test, each seed in each domain
+includes 50 in-domain tasks (T T train) and 50 generalization
+Satellites
+Measure-Mul
+Sampling with
+TABLE IV: Comparison between sampling with and without the
+invented predicate classifiers. Without using the predicates as step-
+wise success indicator, the performance drops significantly.
+tasks (T T test). We report the success rate within the
+same maximum planning time for all the methods. For real-
+world Climb-Measure and Climb-Transport, a shared map was
+recorded using Spots default graph nav service for simulation
+and localization. Each domain was tested on 3 random seeds,
+each with 6 generalized tasks. For manipulation-based actions,
+we have utilized an off-the-shelf segment anything model
+(SAM) [42, 43] for computing the grasping pixel.
+B. Empirical Results
+Simulated Planning Domains: The empirical comparison
+across the six simulated domains is presented in Table I.
+Alongside the averaged succes

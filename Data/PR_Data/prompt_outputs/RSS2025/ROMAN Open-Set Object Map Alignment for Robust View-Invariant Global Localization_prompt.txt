@@ -1,7 +1,7 @@
 === PDF文件: ROMAN Open-Set Object Map Alignment for Robust View-Invariant Global Localization.pdf ===
-=== 时间: 2025-07-22 10:00:44.261475 ===
+=== 时间: 2025-07-22 15:58:12.149418 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -525,4 +525,231 @@ for global localization if the number of associated objects is
 greater than a threshold, .
 VI. EXPERIMENTS
 In this section, we evaluate ROMAN in an extensive series
-of diverse, real-wo
+of diverse, real-world experiments. Our evaluation settings
+consist of urban domains from the large-scale Kimera-Multi
+sults demonstrate that ROMAN achieves superior performance
+compared to existing baseline methods, obtaining up to 45
+improvement in relative pose estimation accuracy in opposite
+directions and 35 improvement in nal trajectory estimation
+error in a subset of particularly challenging sequences from the
+Kimera-Multi datasets. The experiments were run on a laptop
+with a 4090 Mobile GPU and a 32-thread i9 CPU.
+A. Experimental Setup
+Baselines. We compare the alignment performance of
+ROMAN against the following baselines. RANSAC-100K and
+RANSAC-1M apply RANSAC , as implemented in ,
+on segment centroids with a max iteration count of 100,000
+and 1 million respectively. CLIPPER runs standard CLIP-
+PER  on segment centroids, and CLIPPER  Prune
+prunes initial putative associations using semantic and shape
+attributes and rejects incorrect registration results using gravity
+information (so it has access to similar information as the
+proposed method). TEASER  Prune runs the robust
+registration of  using the same pruning mechanism as
+CLIPPER  Prune. Binary Top-K, which mimics the
+association method of SegMap , takes the top-k most similar
+segments (in terms of the semantic and shape descriptors)
+and constructs a binary afnity matrix that we use for nding
+associations with solver from . We also compare against
+recent image-based pose estimation methods. MASt3R and
+MASt3R (GT Scale) use the learned 3D reconstruction model
+of  to estimate relative camera poses with the models
+estimated translation scale and the ground truth translation
+scale respectively. SuperGlue (GT Scale) similarly esti-
+mates relative camera poses using  to match SuperPoint
+features . Additionally, we incorporate ROMAN as a
+loop closure detection module in single-robot and multi-robot
+SLAM and compare against KM (Kimera-Multi
+ORB3 (ORB-SLAM3 ) which both use BoW descriptors
+of ORB features for loop closures.
+Performance metrics. We use the following metrics for
+comparing segment-based place recognition, submap align-
+ment (equivalent to relative pose estimation for image-based
+methods),and full SLAM results. For place recognition, each
+algorithm is given a query submap and a database composed
+of submaps from every other robot run. Submap registration
+is performed on the query submap and every submap from
+the database. The database submap with the highest number
+of associations is returned and success is achieved if the
+query and returned submaps overlap. We vary the threshold on
+number of required object association  to generate precision-
+recall curves, and following , precision-recall area under
+the curve (AUC) is reported.
+To evaluate alignment success rate, an algorithm is given
+a pair of submaps whose center poses are within 10 m of
+each other. We evaluate the image-based methods by giving
+an algorithm the two images corresponding to the two submap
+center poses. To avoid giving segment-based methods an unfair
+view (FOVs) do not overlap. Following , alignment (i.e.,
+pose estimation) success is determined when the transforma-
+tion error is less than 1 m and 5 deg, with respect to ground
+Full SLAM results are evaluated using root mean squared
+(RMS) absolute trajectory error (ATE) between the registered
+estimated and ground truth multi-robot trajectories. We use
+open-source evo  to compute ATE.
+Parameters. For global localization, we use the parameter
+values outlined in Table I. We additionally include results for
+two larger variants of our work: ROMAN-L, which uses r
+pose graph optimization, we use odometry covariances with
+uncorrelated rotation and translation noise parameters. We use
+standard deviations of 0.1 m and 0.5 deg for sparse odometry
+and 1.0 m and 2.0 deg for loop closures.
+TABLE I: Parameters
+Parameter
+Description
+Pairwise consistency noise parameters
+Submap radius and spacing distance
+min  max
+Cosine similarity scaling values
+Association threshold and max submap size
+B. MIT Campus Global Localization
+We rst evaluate ROMANs map alignment using the out-
+door Kimera-Multi Dataset  recorded on MIT campus.
+Each robot creates a set of submaps using Kimera-VIO
+for odometry and our ROMAN mapping pipeline. We use
+these submaps to evaluate segment-based place recognition
+and submap alignment for global localization, as described
+in Section VI-A. We evaluate methods on all multi-robot
+submap pairs from this dataset that are within 10 m of
+each other and whose corresponding camera FOVs overlap.
+In Table II, we show place recognition and submap alignment
+results. To highlight performance across different viewpoints,
+we bin the alignment tests into three different ground-truth
+relative heading groups:  60 deg (same direction), 60 deg
+<  120 deg (perpendicular), and  > 120 deg. When
+TABLE II: Kimera-Multi Outdoor Data Alignment Success Rate
+Pose Estimation Success Rate
+Recognition
+(5, 1 m error)
+Segment-Based
+RANSAC-100K
+RANSAC-1M
+CLIPPERPrune
+TEASERPrune
+Binary Top-K
+SuperGlue (GT Scale)
+MASt3R (GT Scale)
+ROMAN-XL
+the heading difference is small, alignment is comparatively
+easier. Aligning submaps from opposite views or from paths
+that cross perpendicularly, presents the hardest cases for global
+localization.
+Table II shows that the ROMAN outperforms other segment-
+based methods in terms of place recognition and alignment
+success rate in all heading intervals while operating at a
+similar runtime. In opposite directions, ROMAN achieves a pose
+estimation success rate 75 higher than the next-best segment-
+based method, CLIPPERPrune. Compared to image-based
+outperforms the next-best method, MASt3R (which is given
+ground truth scale), in every case except for in similar direction
+ROMAN-XL achieves a pose estimation success rate in opposite
+directions that is 45 better than MASt3R (GT Scale) and
+31 better when averaged across the different headings.
+In terms of communication and submap storage size, each
+object includes a 3D centroid, a four-dimensional shape de-
+scriptor and a 768-dimensional semantic descriptor. With each
+submap consisting of at most N  40 objects, a submap
+packet size is strictly less than 250 KB. For a trajectory of
+length 1 km, the entire map could be represented with less
+than 25 MB of data.
+C. Loop Closures in Visual SLAM
+We integrate ROMAN as a loop closure detection module
+for single and multi-robot pose-graph SLAM and compare
+the trajectory estimation results here and in Section VI-D.
+We use Kimera-VIO  for front-end odometry when creat-
+ing initial ROMAN submaps. Then, we attempt to register
+each new submap with all existing submaps from the ego
+robot and other robots. Loop closures are reported when the
+number of associations found is at least . Then, sparsied
+Kimera-VIO odometry and ROMAN loop closures are fed into
+the robust pose graph optimization of Kimera-Multi  to
+estimate multi-robot trajectories. Root-mean-squared (RMS)
+absolute trajectory errors (ATE) in the tunnel, hybrid, and
+outdoor Kimera-Multi datasets are reported in Table III.
+We compare SLAM with ROMAN loop closures against a
+centralized Kimera-Multi (KM)  and multi-session ORB-
+SLAM3 (ORB3) . Note that in the single-robot case, the
+baselines are essentially a single-robot version of Kimera and
+TABLE III: Kimera-Multi Data  SLAM Comparison Against
+Various Loop Closure Methods (RMS ATE m)
+Dist. (m)
+Tunnel 0
+Tunnel 1
+Tunnel 2
+Tunnel 3
+Tunnel All
+Hybrid All
+Outdoor All
+Hybrid 1, 2, 3
+Hybrid 4, 5
+Outdoor 1, 2
+single-robot ORB-SLAM3, where a deeper comparison was
+made in . Similar to
+, we found that ORB-SLAM3
+fails to nd reasonable trajectory estimates in some robot
+Estimation errors show that, on average, in easier single-
+robot tunnel runs, ROMAN loop closures result in lower
+trajectory errors than ORB-SLAM3 and errors comparable to
+Kimera-Multi. The full, large-scale multi-robot runs show that
+ROMANs ability to detect loop closures in challenging visual
+scenarios results in moderate gains compared to Kimera-
+Multis trajectory errors. Improvement is somewhat limited
+due to the high-connectivity of robot paths and the fact that
+most robot trajectory overlap occurs when robots are traveling
+in the same direction, which are loop closure opportunities
+in which visual-feature-based methods already perform well.
+robot trajectories that contain difcult instances for visual loop
+closures (e.g., perpendicular path crossing and scenes with
+high visual aliasing), results show that ROMAN has a signi-
+cantly lower ATE in these challenging scenarios. The trend is
+that as loop closure scenarios become increasingly difcult,
+ROMAN demonstrates more signicant improvements over
+state-of-the-art methods.
+D. Loop Closures in Off-Road Environment
+We further evaluate the proposed methods ability to register
+segment maps in an outdoor, off-road environment with high
+visual ambiguity (Fig. 1). In this experiment, data is recorded
+on a Clearpath Jackal using Intel RealSense D455 to capture
+RGB-D images and Kimera-VIO  is used for odometry.
+The robot is teleoperated across four runs, following similar
+trajectories but with different runs traversing the same area
+while traveling in different directions. We run the ROMAN
+pipeline on three different pairs of robot trajectories. We
+compare ROMAN to KM loop closures in
+Fig. 4. The three
+pairs consist of an easy, medium, and hard case. The easy
+case involves two robots that traverse the same loop in the
+Kimera-Multi
+single-robot loop closures
+multi-robot loop closures
+Fig. 4: Off-road qualitative pose graph trajectory estimate. Easy,
+closures. Different combinations were paired together to make easy,
+direction; in the medium case, the two runs go in opposite direction
+except for the small connecting neck; and in the hard case, robots
+only cross paths going opposite directions. Only ROMAN successfully
+nds loop closures between robots running in opposite directions.
+same direction (with one robot that leaves the loop and later
+returns). In the medium difculty case, the robots travel in
+opposite directions except for a short section in the middle
+where both robots briey view the scene from the same
+direction. Finally, in the difcult case, robots travel in a large
+loop in opposite directions. While ground-truth pose is not
+available for this data, Fig. 4 qualitatively shows that ROMAN
+successfully detects loop closures in all three cases. More
+direction traversals, while loop closures from KM only work
+reliably in same-direction traversals and fail to nd any loop
+closures in the hard case.
+E. Ground-Aerial Cross-View Localization
+We also evaluate ROMANs robustness to view changes
+by conducting indoor localization experiments where segment
+maps created from ground views are aligned with segment
+maps created from aerial views. Snapshots of the setup from
+both views are shown in Fig. 5. We test object map alignment
+on 20 ground-aerial pairs of traverses through the environment,
+and report alignment success rate in Table IV. We show
+that ROMAN maintains an advantage over other baselines,
+demonstrating its global localization capability in a small-scale
+aerial-ground cross-view localization demonstration.
+F. Ablation Study
+examining the contribution of different afnity metric im-
+Fig. 5: Environmental setup used in t

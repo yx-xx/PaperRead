@@ -1,7 +1,7 @@
 === PDF文件: Map Space Belief Prediction for Manipulation-Enhanced Mapping.pdf ===
-=== 时间: 2025-07-22 10:00:02.501944 ===
+=== 时间: 2025-07-22 16:13:06.920577 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词，如果是英文关键词就尝试翻译成中文（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -662,4 +662,153 @@ wo pushing.
 Metric and semantic mIoU compared to the ground truth
 map at time t are plotted in Fig. 5. We observe that the
 previous S.O.T.A. for unstructured MEM, Dengler et al. ,
-explores efficiently 
+explores efficiently at early stages. However, with more of the
+scene uncovered and new areas being harder to observe, its
+performance degrades to comparable or worse than random,
+particularly in terms of semantic mIoU. We attribute this
+performance degradation to two key challenges: the use of
+heuristic-based action switching and the lack of map updates
+after manipulation. The heuristic switching mechanism relies
+on hand-crafted rules to alternate between observation and
+manipulation actions, and may not always select the most
+informative action, occasionally choosing to push too early,
+too often, or to continue observing when manipulation would
+be more beneficial. Our POMDP-based action selection over-
+comes this problem and does not select manipulation actions
+when they are not beneficial for higher information gain. Fur-
+update its belief after a push, it requires multiple subsequent
+observations to reconcile inconsistencies between the actual
+scene and the previously assumed map representation. This
+delay in belief correction leads to inefficient re-exploration
+and degraded semantic accuracy, as the agent lacks a reliable
+signal for where to focus its attention.
+scenes even without pushing. In highly occluded scenarios,
+pushing is required to make progress after the visible surfaces
+Random Push Every 5th
+Saturation Pushing
+Random Push Every 5th, No Manip. CNABU
+Random View, Random Push Every 5th
+Action Taken
+Occupancy mIoU
+Low Occlusion - Occupancy
+Action Taken
+Occupancy mIoU
+High Occlusion - Occupancy
+Action Taken
+Semantic mIoU
+Low Occlusion - Semantics
+Action Taken
+Semantic mIoU
+High Occlusion - Semantics
+Fig. 6: Simulation tests of push selection alternatives. Note how our method not only achieves better mIoUs than any of the other methods, it does so
+consistently across all the steps, avoiding uninformative or overly aggressive manipulation actions. Also, next-best-view with the observation belief prediction
+but without push belief prediction (purple) leads to degraded performance. Standard deviation of performance of random baselines is represented as shading
+around each plot.
+are observed. Our method uses pushing to achieve significantly
+higher mIoUs. Note that its IoU growth is slower early
+viewpoint step is taken in the following action.
+C. Push Selection Alternatives
+Unless otherwise noted, the same belief prediction networks
+are provided to each method. Three of the strategies push
+regularly at a five-step interval, which is a typical rate at
+which observation actions provide diminishing returns. The
+its belief using m. The second, Random Push Every 5th, No
+Manip. CNABU is the same, but does not use m to update its
+belief after pushing. The third, Random View Random Push
+Every 5th, chooses random views and randomly pushes every
+five steps without using m. Finally, we consider a heuristic
+that performs a random push when VIG seems to saturate,
+Saturation Pushing. The saturation threshold is when two
+consecutive estimates of VIG during NBV differ by less than
+2. Saturation pushing uses m after each push to update its
+belief. A comparison of selection strategies is given in Sec. F
+in the Appendix.
+Results are shown in Fig. 6. Each baseline that has a
+random component is run three times with different random
+seeds. We observe that push belief prediction is beneficial to
+manipulation-enhanced mapping, even when random pushes
+are being executed. The blue and purple curves show methods
+that are not informed by m. Further, we see that the satura-
+tion pushing (green) does not observe post-push performance
+pushes and our method. Overall, our method still achieves the
+best performance, most strikingly in highly occluded scenes.
+D. Out of Distribution Shape Experiments
+In order to evaluate the robustness of the proposed pipeline
+to shape variations within a given class, we modify the
+simulation setup. For each individual instance of an object
+in a given scene, we randomly and independently rescale
+the objects mesh on each of its principal axis by a factor
+chosen uniformly at random within [0.8, 1.2], and re-run
+our simulation experiments in the high-occlusion scenes with
+these out-of-distribution shapes for the strongest baselines in
+simulation. As seen in Fig. 8, we observe a decrease in the
+agents performance when out of distribution, but note that
+in the long run the performance remains consistent with our
+ID experiments. This is notable since we do not perform
+any sort of shape augmentation during the training of the
+observed maps helps them overcome some level of distribution
+shift. Naturally, we presume that adding shape augmentation
+and more diverse object geometries of the same class during
+training should further help reduce this OOD performance gap.
+E. Hardware Experiments
+We also performed 10 real-world experimental runs on
+a UR5 as described in Sec. V-A. All results are collected
+in a zero-shot fashion, i.e., no fine-tuning on real data was
+performed. We set the budget to 20 steps and sampled a fixed
+set of 75 reachable camera poses in front of the shelf for V.
+We handcrafted 10 challenging scenes, each with an average
+of 18 objects from the YCB dataset , where pushing is
+required to reveal other objects. We collect the ground truths
+by removing the top of the shelf at the end of each episode
+to manually score the final maps. We score each scenario
+according to the status of all of the objects present in the
+map. Each object in the map is classified in four categories:
+1) Correctly Found if the majority of the object is correctly
+represented in the map with the right class; 2) Misclassified
+But Found if the majority of the object is present in the
+occupancy map but is mislabeled; 3) Not Found - if the
+majority of the object is absent from the occupancy map and
+4) Hallucinated if an object that is not present in the scene is
+present in the map. Due to the complexity of precisely resetting
+a scene multiple times for different baselines and the fact that
+cornflakes
+ohio cookies
+chewing gum
+pasta box
+pringles can
+baking powder
+tomato can
+gelatin box
+cheez-it box
+glass cleaner
+coffee can
+milk carton
+mustard bottle
+background
+Fig. 7: Qualitative real-world experiment results. Note how VPP and Random baselines are unable to fully explore the environment due to its occlusions,
+while our method is able to better explore it via reasonable manipulations. In Step 16, Ours, we highlight in yellow one of the scene objects revealed by
+manipulation. We highlight in red a persistent hallucination across all 3 methods, likely due to unreliable semantic segmentation and significant camera noise
+at that corner of the shelf .
+Ours OoD
+Ours wo Pushing OoD
+Saturation Pushing OoD
+Action Taken
+Occupancy mIoU
+(a) Occupancy Results (IoU)
+Action Taken
+Semantic mIoU
+(b) Semantic Results (mIoU)
+Fig. 8: OoD Results in High Occlusion scenes.
+both random  observation CNABU and our approach without
+pushing are about as strong as other pushing baselines (see
+Figs. 5 and 6), we only compare against them in the physical
+experiments. For each model, we report the total quantity of
+each detection at time step 20 summed over all 10 trials.
+Results in Tab. I show that with zero-shot transfer from sim-
+over the compared baselines. Note that all methods compared
+use calibrated belief prediction. However, little difference is
+seen between viewpoint planning (Ours wo Pushing) and
+random viewpoint choices. We expect that this is due to a
+domain gap caused by camera noise from the realsense L515
+leading to some strong artifacting in the depth images and the
+inaccuracies of the open-set sema

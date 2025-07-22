@@ -1,7 +1,7 @@
 === PDF文件: A Probabilistic Measure of Multi-Robot Connectivity and Ergodic Optimal Control.pdf ===
-=== 时间: 2025-07-22 09:59:26.946853 ===
+=== 时间: 2025-07-22 15:46:28.230455 ===
 
-请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个中文词语（不能是英文，不能是多个，不能是短语，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
+请你只输出如下JSON，所有字段都必须有，且每个“关键词”字段只允许输出一个最核心的最有代表性的中文关键词，要中文关键词（不能是英文，不能是多个，不能有逗号、分号、空格），否则视为不合格。不要输出任何解释或正文，只输出JSON。
 {
   "论文标题": "",
   "研究主题关键词": "",
@@ -616,4 +616,251 @@ search to find a control u that decreases the objective (19b)
 based on the convergence conditions (Lines 7-11). Finally,
 we return the state and control trajectories x and u when
 the termination criteria are satisfied. Otherwise, the current
-state and control x, u ar
+state and control x, u are updated (Line 14). In this paper, the
+termination criteria are defined as J(x, u) J(x, u) 106
+and the sum of inequality violations is less than 0.01.
+D. Approximation for CIF
+In Eq. (22), there exists a term lIx(t) containing the partial
+derivative of the CIF (6) with respect to the state x. However,
+this function lacks smooth derivatives, which challenges the
+trajectory optimization approach. A possible solution is to
+approximate the CIF to obtain smooth derivatives. Let (, )
+denote the approximated CIF. In this paper, the connection
+area is represented as a sphere (or circle) centered at wi
+with connection range Rc for robot i, formally defined as
+S(wi) : w wi2 Rc, w W. We consider two
+approximated CIFs, and their performance is discussed in Sec.
+Gaussian CIF:
+(wi, wj)  exp
+Sigmoid CIF:
+(wi, wj)
+tude of the gradient. For higher r, the Sigmoid CIF (28)
+provides steeper gradients than the Gaussian CIF (27) near
+wj wi2  Rc. Therefore, the Sigmoid CIF can potentially
+better represent the relationship between connection probabil-
+ity and inter-robot distances. Besides, while the Gaussian CIF
+provides a coarse approximation, it offers smoother gradients,
+which can be important for nonlinear optimization in practice.
+parameter r, which is set to 1 for all CIFs in this paper.
+VII. EXPERIMENTAL RESULTS
+This section seeks to answer the following three categories
+of questions. First, we examine the effect of the probabilistic
+connectivity measure on the optimized trajectories over a finite
+time horizon [0, T] in practice. Specifically, we address the
+following questions:
+Sec. VII-B1: How does increased connection probability
+correlate with the actual connection time over [0, T]?
+Sec. VII-B2: To what extent does maintaining higher
+connection probability affect the information searching
+performance measured by ergodicity?
+Sec. VII-B3: How different approximated CIFs (, ) (as
+discussed in Sec. VI-D) perform in practice?
+MEC problem and our planning algorithm influence the re-
+sulting trajectories. Specifically, we investigate:
+Sec. VII-C: What are the benefits of the sub-period
+the optimized trajectories?
+Sec. VII-D: How does the horizon T influence the actual
+spatial distributions?
+Sec. VII-B, VII-C, VII-E: How does our method perform
+in different information maps?
+nection) in comparison to baseline approaches to understand
+how different algorithms balance between ergodic search and
+connectivity maintenance. Specifically, we investigate:
+Sec. VII-E: How does our probabilistic connectivity
+maintenance approach compare to a method that encour-
+ages all robots to stay connected at all times?
+bilistic connection versus several existing connectivity
+maintenance strategies: enforcing periodic connectivity,
+enforcing strict all-time connectivity, and no connectivity
+requirement during the ergodic search?
+increasing numbers of robots in Sec. VII-G.
+A. Experiment Settings
+1) Parameters: In our experiments, each robot i has the
+state xi(t)  (qi(t), vi(t)) and control input (acceleration or
+force) ui(t)  (ui
+1(t), ui
+2(t)), where qi(t) and vi(t) denote the
+robots position and velocity in the workspace, respectively.
+The robot dynamics is described as a double integrator model:
+xi  ( qi, vi)  (vi, ui). For robot i, the initial guess for
+the control trajectory ui is set to zero input, i.e., ui  0.
+Given the initial state xi
+be determined by forward simulation (i.e., rollout). All other
+experimental parameters are summarized in Tab. I. Unless
+explicitly stated otherwise, these parameters remain consistent
+throughout all experiments.
+2) Performance Indicators: In this section, we introduce
+several indicators to evaluate the experimental results.
+Ergodicity E: Lower ergodicity means better information
+gathering performance (Eq. (2)).
+Average Connection Ratio Rc: Rc measures the propor-
+tion of time that robots are connected throughout the
+entire time horizon T, which is calculated by:
+Rc  E(i,j)R
+Et[0,T ]
+1(qi(t) qj(t)2 Rc)
+where E denotes the average operator and 1() is an
+indicator function that returns 1 if the condition is true
+and 0 otherwise.
+Average Connection Probability Pc: Pc is the average
+connection probability (8) over all sub-periods.
+Pc  E(i,j)R
+Pc(qi, qj; tp, tp)
+B. Connection Probability
+This section discusses the relationship between average
+connection probability Pc and two performance indicators:
+average connection time Rc (shown in blue) and ergodicity
+E (shown in orange), as illustrated in Fig. 3. This test is
+conducted across different information maps (w) (denoted
+as Map 1-3) and employs both the Sigmoid and Gaussian
+CIF. The additional experimental parameters are: robot number
+N  4, simulation steps NT  300, and sub-period number
+EXPERIMENT PARAMETERS
+Value  Range
+Description
+Workspace
+Frequency set
+0.1 s, NT t s
+Time step, horizon
+Cost matrix
+Cost coefficient
+Initial state
+Control saturation
+Connection range
+Avoidance limit (9e)
+Measure limit (9d)
+Robot number
+Simulation steps
+Sub-Period number
+Parameters in Alg. 1
+Average Connection Ratio Rc
+(a) Map 1
+(I) Average Connection Probability Pc with Sigmoid Approximation
+(b) Map 2
+(c) Map 3
+Ergodicity E
+Average Connection Ratio Rc
+(II) Average Connection Probability Pc with Gaussian Approximation
+Ergodicity E
+Fig. 3. The relationship between average connection probability Pc (the horizontal axis) and two metrics (the left and right vertical axes): average connection
+time ratio Rc (blue data) and ergodicity E (orange data). The subfigure (I) uses the Sigmoid CIF, while the subfigure (II) uses the Gaussian CIF. Each column
+corresponds to the same information distribution maps (w), denoted as Map 1,2, and 3.
+Np  3. The connection probability threshold in Eq (9d) is
+set as c [0.05, 0.5] with a step size of 0.05.
+1) Connection Probability over Connection Ratio:
+shown by the blue data points in Fig. 3-(I, II), the experimen-
+tal results reveal a positive correlation between the average
+connection ratio Rc and average connection probability Pc
+among the test instances. This correlation suggests that higher
+connection probabilities tend to result in increased actual
+connection time ratios between the robots. However, it is noted
+that the blue dots in Fig. 3-(I, II) do not lie perfectly on the
+same straight line, indicating that a higher Pc does not always
+correspond to a higher Rc. This is not a surprise due to the
+inherent probabilistic nature of the connection probability.
+2) Connection Probability over Ergodicity: As shown by
+the orange data points in Fig. 3-(I, II), the ergodicity E
+increases (i.e., worsens) as the average connection probability
+Pc rises for most test instances. The reason is that with a
+higher connection probability Pc, the robots need to gather
+together more frequently to establish the connection, which
+prevents the robots from covering a widespread information
+distribution and thus lowers the ergodicity.
+3) CIF Approximation Methods Comparison: Comparing
+subfigures (I) and (II) in Fig. 3, we observe that the Gaussian
+CIF demonstrates slightly better (lower) ergodicity E and
+corresponds to a similar average connection time Pc. This
+observation aligns with the discussions in Sec. VI-D4.
+C. Sub-Period Experiments
+1) Varying Sub-Period Numbers: In this sub-section, the
+connection probability threshold is set to c  0.2. The
+sub-period number Np takes values from the set Np
+As shown in Fig. 4, as the sub-period number Np increases,
+the average connection probability
+Pc generally increases
+(subfigure (a)), the average connection ratio
+Rc increases
+(subfigure (b)), and the ergodicity rises (subfigure (c)). A
+possible reason is that, with a higher number of sub-periods,
+the robots have to maintain a certain level of connection
+probability in each sub-period. It makes the robots gather
+together more frequently (i.e., Pc and Rc rise), which, in turn,
+prevents the robots from ergodically covering the information
+map (i.e., E increases).
+2) Impact of Sub-Period Formulation: In this sub-section,
+we set the number of robots to N  2 and the connection
+probability threshold to c  0.2. We compare the scenarios
+of Np  1 (with only one period) and Np  3.
+4In the following experiments, unless otherwise stated, the information
+distribution is set to Map 1 under the fixed simulation steps NT  300,
+and the Gaussian CIF is used.
+(a) Average Connection Probability Pc
+Sub-Period Number Np
+(b) Average Connection Ratio Rc
+(c) Ergodicity E
+Fig. 4. Illustration of the impact of varying sub-period numbers on the following performance indicators (a): average connection probability Pc, (b): average
+connection ratio Rc, (c): ergodicity E.
+(I) Np  1
+(a) Trajectory
+(b) Distance
+Workspace (m)
+(II) Np  3
+Time (s)
+Comparison of robot trajectories and inter-robot distances for sub-
+period numbers Np {1, 3}. (a): Robot trajectories, (b): Inter-robot distance
+over time, where Rc and a denote the connection range and the collision
+avoidance threshold.
+As shown in Fig. 5-(I)-(b), when the connection probability
+is constrained to be greater than c over the entire time horizon
+[0, T] (Np  1), the robot pairs lose connection during the
+time range [0, 10] s, as the distance exceeds the connection
+range Rc. In contrast, as shown in subfigure (II)-(b), with
+Np  3, the robots establish the connection when each sub-
+periods connection probability is constrained to be greater
+than c. The reason is that the sub-period formulation divides
+the time horizon into intervals of shorter length. Unlike plan-
+ning with the entire horizon [0, T], which only considers the
+spatial distribution over the entire horizon without considering
+meeting at the same time, these shorter intervals are more
+likely to make the robots reach certain locations at the same
+time and thus achieve better connectivity. This approach
+ensures connectivity within each sub-period, preventing long
+disconnections.
+Combined with the results in the previous sub-section, there
+is a trade-off between ergodicity and connectivity: planning
+with a large number of sub-periods tends to encourage better
+connectivity and worse ergodicity, while having a smaller
+number of sub-periods tends to encourage better ergodicity
+and worse connectivity.
+D. Planning Horizon
+In this section, the parameters remain consistent with those
+in Sec. VII-C2 (N  2, Np  1, c  0.2), and we fix the
+sub-period number Np  1 to study the impact of simulation
+steps NT , which takes values NT {100, 200, 300, 400}.
+As shown in Fig. 6, as the horizon increases, the trajec-
+tory heatmaps of the two robots increasingly align with the
+information map, resulting in a decrease in ergodicity (as
+indicated by the orange data points in Fig. 7). This observation
+is consistent with the definition of ergodic search. Notably, the
+trajectories of the two robots do not merely search specific
+(partial) peaks of the information distribution; rather, both
+trajectories continuously encompass all peaks. This reflects
+the role of the connection probability Pc, as we aim for the
+robots to accomplish both the ergodic search task and maintain
+probabilistic connectivity.
+In the meanwhile, as shown in Fig. 7, the average connec-
+tion time ratio Rc decreases as NT increases. Compared with
+Fig. 6-(IV), although the frequencies of the robots gathering
+together at the same location increase, the robots go to the
+same location at different times, which leads to a decreasing
+Rc. This indicates that as the horizon lengthens, achieving
+the same level of connection probability becomes easier while
+minimizing ergodicity. For example, this can be achieved
+through rapid movement among information peaks, resulting
+in the phenomenon of meeting at the same location at
+different times.
+(I) Trajectory
+(II) Robot 1 HeatMap
+(III) Robot 2 HeatMap
+(IV) Meet HeatMap
+Fig. 6. The trajectories of two robots are 
