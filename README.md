@@ -1,8 +1,8 @@
- # PaperRead
+ # PaperHelper
 
 ## 项目简介
 
-PaperRead 是一个集论文爬取与智能分析于一体的学术工具箱，包含两个核心模块：
+PaperHelper 是一个集论文爬取与智能分析于一体的学术工具箱，包含两个核心模块：
 
 - **PaperCrawler**：多源学术论文爬取与下载，支持RSS、arXiv、会议官网等
 - **PaperReader**：基于大语言模型（GLM/Qwen）的PDF论文结构化分析
@@ -12,7 +12,7 @@ PaperRead 是一个集论文爬取与智能分析于一体的学术工具箱，�
 ## 目录结构
 
 ```
-PaperRead/
+PaperHelper/
 ├── PaperCrawler/         # 论文爬取模块
 │   ├── PC_main.py        # 主程序，命令行入口
 │   ├── rss_crawler.py    # RSS源爬虫

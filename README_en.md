@@ -1,8 +1,8 @@
-# PaperRead
+# PaperHelper
 
 ## Project Overview
 
-PaperRead is an academic toolbox that integrates paper crawling and intelligent analysis, featuring two core modules:
+PaperHelper is an academic toolbox that integrates paper crawling and intelligent analysis, featuring two core modules:
 
 - **PaperCrawler**: Multi-source academic paper crawler and downloader, supporting RSS, arXiv, conference websites, etc.
 - **PaperReader**: Structured PDF paper analysis powered by large language models (GLM/Qwen)
@@ -12,7 +12,7 @@ PaperRead is an academic toolbox that integrates paper crawling and intelligent 
 ## Directory Structure
 
 ```
-PaperRead/
+PaperHelper/
 ├── PaperCrawler/         # Paper crawling module
 │   ├── PC_main.py        # Main entry script
 │   ├── rss_crawler.py    # RSS crawler
