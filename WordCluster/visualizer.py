@@ -2,11 +2,170 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import numpy as np
-from config import VIS_METHOD, LABEL_DENSITY, PLOT_SIZE, PLOT_FILE
+from config import REDUCE_METHOD, LABEL_DENSITY, PLOT_SIZE, PLOT_FILE, DIMSIONS, INTERACTIVE
 import matplotlib.font_manager as fm
 import os
+import plotly.express as px
+import plotly.graph_objects as go
 
-# 找不到字体就很头疼，被迫添加丑陋函数
+
+def visualize_clusters(X, labels, keywords, interactive_=INTERACTIVE, dims_=DIMSIONS):
+    """
+    聚类可视化的统一入口函数
+    
+    参数:
+        X: 降维前的特征矩阵
+        labels: 聚类标签
+        keywords: 关键词列表
+        interactive_: 是否使用交互式可视化
+        dims: 维度 (2 或 3)
+    """
+    if interactive_:
+        return visualize_clusters_interactive(X, labels, keywords, dims_)
+    else:
+        return visualize_clusters_static(X, labels, keywords)
+
+
+
+
+#################################### visualize_clusters_interactive ##################################
+
+def visualize_clusters_interactive(X, labels, keywords, dims_):
+    """交互式聚类可视化（基于Plotly）"""
+    # 参数检查
+    if dims_ not in [2, 3]:
+        raise ValueError("维度必须是2或3")
+    
+    # 降维处理
+    reduced, method_name = reduce_dimensions(X, dims_)
+    
+    # 数据准备
+    df = _prepare_visualization_data(reduced, labels, keywords)
+    
+    # 创建基础图表
+    fig = _create_base_plot(df, dims_, method_name)
+    
+    # 添加标签
+    fig = _add_cluster_labels(fig, reduced, labels, keywords, dims_)
+    
+    # 保存和显示
+    _save_and_show_plot(fig)
+    
+    return fig
+
+
+def reduce_dimensions(X, method_=REDUCE_METHOD, dims_=DIMSIONS):
+    """降维处理，支持2D和3D"""
+    if method_ == "tsne":
+        reducer = TSNE(n_components=dims_, random_state=42)
+        reduced = reducer.fit_transform(X.toarray() if hasattr(X, 'toarray') else X)
+        method_name = "t-SNE"
+    else:
+        reducer = PCA(n_components=dims_, random_state=42)
+        reduced = reducer.fit_transform(X.toarray() if hasattr(X, 'toarray') else X)
+        method_name = "PCA"
+    return reduced, method_name
+
+
+
+def _prepare_visualization_data(reduced, labels, keywords):
+    """准备可视化数据"""
+    dims = reduced.shape[1]
+    df = pd.DataFrame(reduced, columns=[f'Dimension {i+1}' for i in range(dims)])
+    df['Cluster'] = labels
+    df['Keyword'] = keywords
+    return df
+
+
+def _create_base_plot(df, dims, method_name):
+    """创建基础图表"""
+    if dims == 3:
+        return px.scatter_3d(
+            df, 
+            x='Dimension 1', y='Dimension 2', z='Dimension 3',
+            color='Cluster',
+            hover_data=['Keyword'],
+            title=f'关键词聚类可视化 ({method_name} 3D)',
+            labels={'Cluster': '聚类簇'},
+            template='plotly_white'
+        )
+    else:
+        return px.scatter(
+            df,
+            x='Dimension 1', y='Dimension 2',
+            color='Cluster',
+            hover_data=['Keyword'],
+            title=f'关键词聚类可视化 ({method_name} 2D)',
+            labels={'Cluster': '聚类簇'},
+            template='plotly_white'
+        )
+
+
+def _add_cluster_labels(fig, reduced, labels, keywords, dims):
+    """为每个簇添加标签"""
+    for cluster_id in np.unique(labels):
+        cluster_mask = (labels == cluster_id)
+        if np.sum(cluster_mask) > 0:
+            # 计算簇的中心点
+            centroid = np.mean(reduced[cluster_mask], axis=0)
+            
+            # 选择代表性关键词
+            cluster_points, cluster_keywords = _select_representative_points(
+                reduced[cluster_mask], 
+                np.array(keywords)[cluster_mask],
+                centroid
+            )
+            
+            # 添加标签
+            for point, keyword in zip(cluster_points, cluster_keywords):
+                fig = _add_label_to_plot(fig, point, keyword, dims)
+    
+    return fig
+
+
+def _select_representative_points(points, keywords, centroid, n_labels=None):
+    """选择簇中的代表性点"""
+    if n_labels is None:
+        n_labels = max(1, int(len(points) * LABEL_DENSITY))
+    
+    dists = np.linalg.norm(points - centroid, axis=1)
+    closest_indices = np.argsort(dists)[:n_labels]
+    
+    return points[closest_indices], keywords[closest_indices]
+
+
+def _add_label_to_plot(fig, point, text, dims):
+    """向图表添加单个标签"""
+    if dims == 3:
+        fig.add_trace(go.Scatter3d(
+            x=[point[0]], y=[point[1]], z=[point[2]],
+            mode='text',
+            text=[text],
+            textposition="top center",
+            showlegend=False
+        ))
+    else:
+        fig.add_trace(go.Scatter(
+            x=[point[0]], y=[point[1]],
+            mode='text',
+            text=[text],
+            textposition="top center",
+            showlegend=False
+        ))
+    return fig
+
+
+def _save_and_show_plot(fig):
+    """保存并显示图表"""
+    fig.write_html(PLOT_FILE.replace('.png', '.html'))
+    fig.show()
+
+
+
+
+#################################### visualize_clusters_static ##################################
+
+# matplotlib找不到字体就很头疼，被迫添加丑陋函数
 def get_system_chinese_font():
     """获取系统中文字体（优化版）"""
     try:
@@ -30,13 +189,14 @@ def get_system_chinese_font():
     print("警告：未找到合适的中文字体，使用默认字体")
     return fm.FontProperties()
 
-def visualize_clusters(X, labels, keywords):
+
+def visualize_clusters_static(X, labels, keywords):
     """聚类结果可视化 - 安全版本（不影响系统字体设置）"""
     # 获取系统自带的中文字体（不下载新字体）
     chinese_font = get_system_chinese_font()
     
     # 降维处理
-    if VIS_METHOD == "tsne":
+    if REDUCE_METHOD == "tsne":
         reducer = TSNE(n_components=2, random_state=42)
         reduced = reducer.fit_transform(X.toarray() if hasattr(X, 'toarray') else X)
         method_name = "t-SNE"
@@ -115,3 +275,4 @@ def visualize_clusters(X, labels, keywords):
     plt.savefig(PLOT_FILE, dpi=300, bbox_inches='tight')
     print(f"可视化结果已保存至: {PLOT_FILE}")
     plt.show()
+

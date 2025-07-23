@@ -18,6 +18,10 @@ RANDOM_STATE = 42                     # 随机种子
 
 
 # 可视化配置
-VIS_METHOD = "pca"                   # 可视化方法: tsne 或 pca
-LABEL_DENSITY = 0.2                   # 标签显示密度(0-1)
-PLOT_SIZE = (24, 16)                   # 图像尺寸
+REDUCE_METHOD = "pca"                   # 降维方法: tsne 或 pca
+DIMSIONS = 2                            # 降维后的维度(3维仅支持可交互)
+INTERACTIVE = True                      # 是否使用交互式可视化
+
+
+LABEL_DENSITY = 0.2                     # 标签显示密度(0-1)
+PLOT_SIZE = (24, 16)                    # 图像尺寸
