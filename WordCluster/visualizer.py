@@ -7,6 +7,7 @@ import matplotlib.font_manager as fm
 import os
 import plotly.express as px
 import plotly.graph_objects as go
+import pandas as pd
 
 
 def visualize_clusters(X, labels, keywords, interactive_=INTERACTIVE, dims_=DIMSIONS):

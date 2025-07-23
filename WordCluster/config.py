@@ -19,7 +19,7 @@ RANDOM_STATE = 42                     # 随机种子
 
 # 可视化配置
 REDUCE_METHOD = "pca"                   # 降维方法: tsne 或 pca
-DIMSIONS = 2                            # 降维后的维度(3维仅支持可交互)
+DIMSIONS = 3                            # 降维后的维度(3维仅支持可交互)
 INTERACTIVE = True                      # 是否使用交互式可视化
 
 
