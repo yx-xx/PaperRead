@@ -22,6 +22,12 @@ REDUCE_METHOD = "pca"                   # 降维方法: tsne 或 pca
 DIMSIONS = 3                            # 降维后的维度(3维仅支持可交互)
 INTERACTIVE = True                      # 是否使用交互式可视化
 
+MARKER_DEFAULT_SIZE = 3                 # 默认点大小
+DEFAULT_OPACITY = 0.6                   # 点透明度
+MARKER_HIGHLIGHT_SIZE = 6               # 高亮点大小
+HIGHLIGHT_OPACITY = 1.0                           # 点透明度
+LABEL_FONT_SIZE = 8                     # 标签字体大小
+
 
 LABEL_DENSITY = 0.2                     # 标签显示密度(0-1)
 PLOT_SIZE = (24, 16)                    # 图像尺寸
