@@ -37,7 +37,7 @@ def visualize_clusters_interactive(X, labels, keywords, dims_):
         raise ValueError("维度必须是2或3")
     
     # 降维处理
-    reduced, method_name = reduce_dimensions(X, dims_)
+    reduced, method_name = _reduce_dimensions(X, dims_)
     
     # 数据准备
     df = _prepare_visualization_data(reduced, labels, keywords)
@@ -54,7 +54,7 @@ def visualize_clusters_interactive(X, labels, keywords, dims_):
     return fig
 
 
-def reduce_dimensions(X, method_=REDUCE_METHOD, dims_=DIMSIONS):
+def _reduce_dimensions(X, method_=REDUCE_METHOD, dims_=DIMSIONS):
     """降维处理，支持2D和3D"""
     if method_ == "tsne":
         reducer = TSNE(n_components=dims_, random_state=42)
@@ -102,27 +102,37 @@ def _create_base_plot(df, dims, method_name):
 
 
 def _add_cluster_labels(fig, reduced, labels, keywords, dims):
-    """为每个簇添加标签"""
-    for cluster_id in np.unique(labels):
-        cluster_mask = (labels == cluster_id)
-        if np.sum(cluster_mask) > 0:
-            # 计算簇的中心点
-            centroid = np.mean(reduced[cluster_mask], axis=0)
-            
-            # 选择代表性关键词
-            cluster_points, cluster_keywords = _select_representative_points(
-                reduced[cluster_mask], 
-                np.array(keywords)[cluster_mask],
-                centroid
-            )
-            
-            # 添加标签
-            for point, keyword in zip(cluster_points, cluster_keywords):
-                fig = _add_label_to_plot(fig, point, keyword, dims)
-    
+    """为每个点添加标签"""
+    for i, (point, keyword) in enumerate(zip(reduced, keywords)):
+        fig = _add_label_to_plot(fig, point, keyword, dims)
+    return fig
+
+def _add_label_to_plot(fig, point, text, dims):
+    """向图表添加单个标签，优化显示效果"""
+    if dims == 3:
+        fig.add_trace(go.Scatter3d(
+            x=[point[0]], y=[point[1]], z=[point[2]],
+            mode='text+markers',  # 同时显示点和文本
+            text=[text],
+            textposition="top center",
+            textfont=dict(size=8),  # 减小字体大小
+            marker=dict(size=3),    # 减小点的大小
+            showlegend=False
+        ))
+    else:
+        fig.add_trace(go.Scatter(
+            x=[point[0]], y=[point[1]],
+            mode='text+markers',    # 同时显示点和文本
+            text=[text],
+            textposition="top center",
+            textfont=dict(size=8),  # 减小字体大小
+            marker=dict(size=3),    # 减小点的大小
+            showlegend=False
+        ))
     return fig
 
 
+# 暂时弃用
 def _select_representative_points(points, keywords, centroid, n_labels=None):
     """选择簇中的代表性点"""
     if n_labels is None:
