@@ -1,147 +1,127 @@
- # PaperHelper
+# PaperHelper
 
 ## 项目简介
 
-PaperHelper 是一个集论文爬取与智能分析于一体的学术工具箱，包含两个核心模块：
+PaperHelper 是一个论文分析工具箱,集成了论文获取、智能分析等功能:
 
-- **PaperCrawler**：多源学术论文爬取与下载，支持RSS、arXiv、会议官网等
-- **PaperReader**：基于大语言模型（GLM/Qwen）的PDF论文结构化分析
-
----
+- **PaperCrawler**: 支持 RSS、arXiv、会议官网等多源论文爬取与下载
+- **PaperReader**: 基于大语言模型对论文进行关键词提取
+- **WordCluster**: 基于关键词的论文聚类与可视化的模块
 
 ## 目录结构
 
 ```
 PaperHelper/
-├── PaperCrawler/         # 论文爬取模块
-│   ├── PC_main.py        # 主程序，命令行入口
-│   ├── rss_crawler.py    # RSS源爬虫
-│   ├── arxiv_crawler.py  # arXiv爬虫
-│   ├── web_crawler.py    # 通用网页爬虫
-│   ├── robotics_conference_crawler.py # 会议专用爬虫
-│   ├── paper_downloader.py # PDF下载器
-│   └── config.py         # 爬取参数配置
-├── PaperReader/          # 论文分析模块
-│   ├── PR_main.py        # 主程序，命令行入口
-│   ├── pdf_reader.py     # PDF文本提取
-│   ├── glm_api.py        # 智谱GLM-4 API
-│   ├── qwen_api.py       # 通义千问API
-│   ├── result_writer.py  # 结果写入Excel
-│   └── config.py         # 分析参数配置
+├── PaperCrawler/                 ###### 论文爬取模块
+│   ├── PC_main.py                # 主入口
+│   ├── arxiv_crawler.py          # arXiv爬虫
+│   ├── web_crawler.py            # 通用网页爬虫
+│   ├── rss_crawler.py            # RSS爬虫
+│   ├── paper_downloader.py       # PDF下载器
+│   └── config.py                 # 配置文件
+├── PaperReader/                  ###### 论文分析模块
+│   ├── PR_main.py                # 主入口
+│   ├── pdf_reader.py             # PDF解析
+│   ├── glm_api.py                # GLM模型接口
+│   ├── qwen_api.py               # Qwen模型接口
+│   ├── result_writer.py          # 结果写入
+│   └── config.py                 # 配置文件
+├── WordCluster/                  ###### 关键词聚类模块
+│   ├── WC_main.py                # 主入口
+│   ├── preprocessor.py           # 数据预处理
+│   ├── vectorizer.py             # 特征向量化
+│   ├── clusterer.py              # 聚类分析
+│   ├── visualizer.py             # 可视化
+│   └── config.py                 # 配置文件
 ├── Data/
 │   ├── PC_Data/
-│   │   ├── downloads/    # 下载的PDF
-│   │   ├── output/       # 爬取结果json
-│   │   └── logs/         # 爬虫日志
-│   └── PR_Data/
-│       ├── paper/        # 待分析PDF
-│       ├── glm_outputs/  # GLM分析输出
-│       ├── qwen_outputs/ # Qwen分析输出
-│       └── PaperRead_result.xlsx # 分析结果
+│   │   ├── downloads/            # 下载的PDF
+│   │   ├── output/               # 爬取结果json
+│   │   └── logs/                 # 爬虫日志
+│   ├── PR_Data/
+│   │   ├── paper/                # 待分析PDF
+│   │   ├── glm_outputs/          # GLM分析输出
+│   │   ├── qwen_outputs/         # Qwen分析输出
+│   │   └── PaperRead_result.xlsx # 分析结果
+│   └── WC_Data/
+│       ├── keywords.xlsx         # 处理结果
+│       ├── visualization.png     # 可视化静态
+│       └── visualization.html    # 可视化动态
 ├── requirements.txt      # 依赖库
-└── README.md
+├── README_en.md   
+└── README.md    
 ```
 
----
+## 功能特性
 
-## 安装与环境
+### 1. 论文爬取 (PaperCrawler)
+- 多源爬取：RSS、arXiv、会议官网
+- 自动下载 PDF 并去重
+- 支持自定义过滤规则
 
-- Python 3.8 及以上
-- 推荐使用 `venv` 或 `conda` 创建虚拟环境
+### 2. 论文分析 (PaperReader) 
+- PDF 全文提取
+- 基于大模型的结构化分析
+- 支持 GLM-4/Qwen 等多种模型
+- 分析维度包括:研究主题、应用场景、方法创新等
 
-安装依赖：
+### 3. 知识聚类 (WordCluster)
+- 关键词提取与向量化
+- 自适应聚类分析
+- 交互式可视化
+- 支持 2D/3D 动态展示
 
+## 使用方法
+
+### 安装
 ```bash
+# 创建虚拟环境
+conda create -n paperhelper python=3.8
+conda activate paperhelper
+
+# 安装依赖
 pip install -r requirements.txt
 ```
 
-**主要依赖：**
-- pdfplumber、requests、pandas、openpyxl、tqdm、zhipuai、feedparser、beautifulsoup4
-
----
-
-## 1. 论文爬取（PaperCrawler）
-
-### 功能
-- 支持RSS、arXiv、会议官网等多源论文信息抓取
-- 自动下载PDF，支持并发与去重
-- 爬取结果保存为json，日志自动记录
-
-### 使用方法
-
+### 配置
+1. 复制并重命名配置文件:
 ```bash
-cd PaperCrawler
-python PC_main.py           # 爬取所有配置源并下载PDF
-python PC_main.py rss       # 仅爬取RSS
-python PC_main.py arxiv     # 仅爬取arXiv
+cp PaperReader/config_example.py PaperReader/config.py
 ```
 
-**配置说明：**
-- 编辑 `config.py` 可自定义RSS源、arXiv分类、网页源、下载参数等
+2. 编辑配置文件,填入必要参数:
+- API keys (GLM/Qwen)
+- 输入输出路径
+- 其他个性化设置
 
-**输出文件：**
-- `Data/PC_Data/output/crawled_papers.json`：论文元数据
-- `Data/PC_Data/downloads/`：下载的PDF
-- `Data/PC_Data/logs/crawler.log`：日志
+### 运行
 
----
-
-## 2. 论文分析（PaperReader）
-
-### 功能
-- 自动扫描指定文件夹下所有PDF
-- 提取全文，调用GLM-4/Qwen等大模型结构化分析
-- 结果保存为Excel，支持断点续跑与错误日志
-
-### 使用方法
-
-1. 配置API密钥  
-   编辑 `PaperReader/config.py`，填写你的 GLM/Qwen API Key
-
-2. 运行分析
-
+**论文爬取:**
 ```bash
-cd PaperReader
-python PR_main.py
+python PaperCrawler/PC_main.py
 ```
 
-**输出文件：**
-- `Data/PR_Data/PaperRead_result.xlsx`：分析结果
-- `Data/PR_Data/glm_outputs/`、`qwen_outputs/`：模型原始输出
-- `error_log.txt`：错误日志
+**论文分析:**
+```bash
+python PaperReader/PR_main.py
+```
 
-**分析维度：**
-- 论文标题、研究主题、应用场景、主要方法、创新点、主要结论等
-
----
-
-## 配置详解
-
-- `PaperCrawler/config.py`：自定义爬取源、下载参数、过滤规则等
-- `PaperReader/config.py`：API密钥、PDF目录、输出路径等
-
----
-
-## 扩展开发
-
-- **新增爬取源**：在 `config.py` 添加RSS/网页源，或扩展爬虫脚本
-- **新增分析模型**：仿照 `glm_api.py`、`qwen_api.py` 新增API模块，并在 `PR_main.py` 调用
-
----
+**知识聚类:**
+```bash
+python WordCluster/WC_main.py
+```
 
 ## 注意事项
 
-1. 需科学上网以访问部分学术站点
-2. 需自行申请GLM/Qwen等API Key
-3. 请遵守各站点版权与使用条款
-4. 大批量下载建议适当调整爬取间隔，避免IP被封
+1. 需要科学上网访问部分学术网站
+2. 请自行申请 GLM/Qwen API key
+3. 注意遵守网站使用条款和下载限制
+4. 建议合理配置爬取间隔,避免 IP 封禁
 
----
+## License
 
-## 许可证
+本项目仅供学术研究使用,禁止商业用途。
 
-本项目仅供学术研究与学习使用，禁止用于商业用途。
+## 联系方式
 
----
-
-如需更详细的使用说明或遇到问题，欢迎查阅各模块源码或联系作者。 
+如有问题或建议,欢迎提 issue 或联系作者。
