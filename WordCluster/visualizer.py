@@ -45,7 +45,9 @@ def visualize_clusters_interactive(X, labels, keywords, dims_):
     df = _prepare_visualization_data(reduced, labels, keywords)
     
     # 创建基础图表
+    # fig = _create_base_plot_button(df, dims_, method_name)
     fig = _create_base_plot(df, dims_, method_name)
+
     
     # 添加标签
     fig = _add_cluster_labels(fig, reduced, labels, keywords, dims_)
@@ -79,6 +81,7 @@ def _prepare_visualization_data(reduced, labels, keywords):
     return df
 
 
+
 def _create_base_plot(df, dims, method_name):
     """创建基础图表"""
     total_points = len(df)
@@ -89,7 +92,6 @@ def _create_base_plot(df, dims, method_name):
             df, 
             x='Dimension 1', y='Dimension 2', z='Dimension 3',
             color='Cluster',
-            # 鼠标悬停时显示关键词文本
             hover_data=['Keyword'],
             title=f'关键词聚类可视化 ({method_name} 3D) - 共{total_points}个关键词',
             labels={'Cluster': '聚类簇'},
@@ -113,22 +115,66 @@ def _create_base_plot(df, dims, method_name):
             cluster_info[cluster] = []
         cluster_info[cluster].append(keyword)
     
-    # 创建左侧按钮组
-    buttons = []
+    # 更新布局，只设置边距，暂时移除按钮功能
+    fig.update_layout(
+        margin=dict(l=175, r=20, t=100, b=20),
+    )
+    
+    return fig
 
+
+# 点击按钮高亮效果，写不好一直有问题，暂时弃用
+def _create_base_plot_button(df, dims, method_name):
+    """创建基础图表"""
+    total_points = len(df)
+    
+    # 创建基础图表
+    if dims == 3:
+        fig = px.scatter_3d(
+            df, 
+            x='Dimension 1', y='Dimension 2', z='Dimension 3',
+            color='Cluster',
+            hover_data=['Keyword'],
+            title=f'关键词聚类可视化 ({method_name} 3D) - 共{total_points}个关键词',
+            labels={'Cluster': '聚类簇'},
+            template='plotly_dark'
+        )
+    else:
+        fig = px.scatter(
+            df,
+            x='Dimension 1', y='Dimension 2',
+            color='Cluster',
+            hover_data=['Keyword'],
+            title=f'关键词聚类可视化 ({method_name} 2D) - 共{total_points}个关键词',
+            labels={'Cluster': '聚类簇'},
+            template='plotly_dark'
+        )
+    
+    # 为数据点轨迹添加标识符
+    fig.data[0].name = 'data_points'
+    
+    # 准备左侧关键词列表
+    cluster_info = {}
+    for cluster, keyword in zip(df['Cluster'], df['Keyword']):
+        if cluster not in cluster_info:
+            cluster_info[cluster] = []
+        cluster_info[cluster].append(keyword)
+    
+    buttons = []
+    
     # 添加重置按钮
     reset_button = dict(
         args=[{
-            'marker.size': [MARKER_DEFAULT_SIZE]*len(df),  # 所有点恢复默认大小
-            'marker.opacity': [DEFAULT_OPACITY]*len(df)  # 所有点恢复默认透明度
+            'marker.size': [MARKER_DEFAULT_SIZE]*len(df),
+            'marker.opacity': [DEFAULT_OPACITY]*len(df)
         }],
         label='重置视图',
-        method='restyle'
+        method='restyle',
+        args2=[{'selector': 'data_points'}]  # 只应用于数据点
     )
     buttons.append(reset_button)
 
     # 遍历每个簇，添加下拉菜单按钮
-    # 高亮显示选中关键词
     for cluster in sorted(cluster_info.keys()):
         keywords = cluster_info[cluster]
         for keyword in keywords:
@@ -138,10 +184,11 @@ def _create_base_plot(df, dims, method_name):
                     'marker.opacity': [HIGHLIGHT_OPACITY if k == keyword else DEFAULT_OPACITY for k in df['Keyword']]
                 }],
                 label=f'簇{cluster}: {keyword}',
-                method='restyle'
+                method='restyle',
+                args2=[{'selector': 'data_points'}]  # 只应用于数据点
             ))
     
-    # 更新布局，添加左侧面板和控件
+    # 更新布局
     fig.update_layout(
         updatemenus=[
             dict(
@@ -154,12 +201,11 @@ def _create_base_plot(df, dims, method_name):
                 yanchor="top",
                 bgcolor="rgba(255, 255, 255, 0.9)",
                 font=dict(size=10, color="black"),
-                # 为下拉菜单添加边框增强视觉
                 bordercolor="rgba(150, 150, 150, 0.3)",
                 borderwidth=1
             )
         ],
-        margin=dict(l=175, r=20, t=100, b=20),  # 增大顶部边距容纳提示信息
+        margin=dict(l=175, r=20, t=100, b=20),
     )
     
     return fig
