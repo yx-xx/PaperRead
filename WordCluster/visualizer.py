@@ -9,6 +9,7 @@ import os
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+from label_placement import add_cluster_labels
 
 
 def visualize_clusters(X, labels, keywords, interactive_=INTERACTIVE, dims_=DIMSIONS):
@@ -50,7 +51,7 @@ def visualize_clusters_interactive(X, labels, keywords, dims_):
 
     
     # 添加标签
-    fig = _add_cluster_labels(fig, reduced, labels, keywords, dims_)
+    fig = add_cluster_labels(fig, reduced, labels, keywords, dims_)
     
     # 保存和显示
     _save_and_show_plot(fig)
@@ -255,62 +256,62 @@ def _create_base_plot_button(df, dims, method_name):
     
     return fig
 
-def _add_cluster_labels(fig, reduced, labels, keywords, dims):
-    """为每个点添加标签"""
-    for i, (point, keyword) in enumerate(zip(reduced, keywords)):
-        fig = _add_label_to_plot(fig, point, keyword, dims)
-    return fig
+# def _add_cluster_labels(fig, reduced, labels, keywords, dims):
+#     """为每个点添加标签"""
+#     for i, (point, keyword) in enumerate(zip(reduced, keywords)):
+#         fig = _add_label_to_plot(fig, point, keyword, dims)
+#     return fig
 
-def _add_label_to_plot(fig, point, text, dims):
-    """向图表添加带引导线的标签"""
-    offset = 0.1  # 标签偏移量
+# def _add_label_to_plot(fig, point, text, dims):
+#     """向图表添加带引导线的标签"""
+#     offset = 0.1  # 标签偏移量
     
-    if dims == 3:
-        # 添加引导线
-        fig.add_trace(go.Scatter3d(
-            x=[point[0], point[0]+offset],
-            y=[point[1], point[1]+offset],
-            z=[point[2], point[2]+offset],
-            mode='lines',
-            line=dict(color='gray', width=1),
-            showlegend=False
-        ))
+#     if dims == 3:
+#         # 添加引导线
+#         fig.add_trace(go.Scatter3d(
+#             x=[point[0], point[0]+offset],
+#             y=[point[1], point[1]+offset],
+#             z=[point[2], point[2]+offset],
+#             mode='lines',
+#             line=dict(color='gray', width=1),
+#             showlegend=False
+#         ))
         
-        # 添加标签
-        fig.add_trace(go.Scatter3d(
-            x=[point[0]+offset],
-            y=[point[1]+offset],
-            z=[point[2]+offset],
-            mode='text+markers',
-            text=[text],
-            textposition="top center",
-            textfont=dict(size=8),
-            marker=dict(size=1, opacity=0),
-            showlegend=False
-        ))
-    else:
-        # 添加引导线
-        fig.add_trace(go.Scatter(
-            x=[point[0], point[0]+offset],
-            y=[point[1], point[1]+offset],
-            mode='lines',
-            line=dict(color='gray', width=1),
-            showlegend=False
-        ))
+#         # 添加标签
+#         fig.add_trace(go.Scatter3d(
+#             x=[point[0]+offset],
+#             y=[point[1]+offset],
+#             z=[point[2]+offset],
+#             mode='text+markers',
+#             text=[text],
+#             textposition="top center",
+#             textfont=dict(size=8),
+#             marker=dict(size=1, opacity=0),
+#             showlegend=False
+#         ))
+#     else:
+#         # 添加引导线
+#         fig.add_trace(go.Scatter(
+#             x=[point[0], point[0]+offset],
+#             y=[point[1], point[1]+offset],
+#             mode='lines',
+#             line=dict(color='gray', width=1),
+#             showlegend=False
+#         ))
         
-        # 添加标签
-        fig.add_trace(go.Scatter(
-            x=[point[0]+offset],
-            y=[point[1]+offset],
-            mode='text+markers',
-            text=[text],
-            textposition="top center",
-            textfont=dict(size=8),
-            marker=dict(size=1, opacity=0),
-            showlegend=False
-        ))
+#         # 添加标签
+#         fig.add_trace(go.Scatter(
+#             x=[point[0]+offset],
+#             y=[point[1]+offset],
+#             mode='text+markers',
+#             text=[text],
+#             textposition="top center",
+#             textfont=dict(size=8),
+#             marker=dict(size=1, opacity=0),
+#             showlegend=False
+#         ))
     
-    return fig
+#     return fig
 
 
 # 暂时弃用
