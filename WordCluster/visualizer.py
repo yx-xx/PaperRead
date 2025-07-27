@@ -92,6 +92,7 @@ def _create_base_plot(df, dims, method_name):
             df, 
             x='Dimension 1', y='Dimension 2', z='Dimension 3',
             color='Cluster',
+            # 鼠标悬停时显示关键词文本
             hover_data=['Keyword'],
             title=f'关键词聚类可视化 ({method_name} 3D) - 共{total_points}个关键词',
             labels={'Cluster': '聚类簇'},
@@ -115,9 +116,53 @@ def _create_base_plot(df, dims, method_name):
             cluster_info[cluster] = []
         cluster_info[cluster].append(keyword)
     
-    # 更新布局，只设置边距，暂时移除按钮功能
+    # 创建左侧按钮组
+    buttons = []
+
+    # 添加重置按钮
+    reset_button = dict(
+        args=[{
+            # 'marker.size': [MARKER_DEFAULT_SIZE]*len(df),  # 所有点恢复默认大小
+            # 'marker.opacity': [DEFAULT_OPACITY]*len(df)  # 所有点恢复默认透明度
+        }],
+        label='重置视图',
+        method='restyle'
+    )
+    buttons.append(reset_button)
+
+    # 遍历每个簇，添加下拉菜单按钮
+    # 高亮显示选中关键词
+    for cluster in sorted(cluster_info.keys()):
+        keywords = cluster_info[cluster]
+        for keyword in keywords:
+            buttons.append(dict(
+                args=[{
+                    # 'marker.size': [MARKER_HIGHLIGHT_SIZE if k == keyword else MARKER_DEFAULT_SIZE for k in df['Keyword']],
+                    # 'marker.opacity': [HIGHLIGHT_OPACITY if k == keyword else DEFAULT_OPACITY for k in df['Keyword']]
+                }],
+                label=f'簇{cluster}: {keyword}',
+                method='restyle'
+            ))
+    
+    # 更新布局，添加左侧面板和控件
     fig.update_layout(
-        margin=dict(l=175, r=20, t=100, b=20),
+        updatemenus=[
+            dict(
+                buttons=buttons,
+                direction="down",
+                showactive=True,
+                x=-0.4,
+                xanchor="left",
+                y=1,
+                yanchor="top",
+                bgcolor="rgba(255, 255, 255, 0.9)",
+                font=dict(size=10, color="black"),
+                # 为下拉菜单添加边框增强视觉
+                bordercolor="rgba(150, 150, 150, 0.3)",
+                borderwidth=1
+            )
+        ],
+        margin=dict(l=175, r=20, t=100, b=20),  # 增大顶部边距容纳提示信息
     )
     
     return fig
