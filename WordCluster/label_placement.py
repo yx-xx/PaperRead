@@ -4,14 +4,14 @@ import plotly.graph_objects as go
 
 
 def add_cluster_labels(fig, reduced, labels, keywords, dims):
-    """为每个点添加标签，使用优化的布局策略"""
+    """为所有点添加标签，使用优化的布局策略"""
     # 计算点的密度
     densities = _calculate_point_density(reduced)
     
-    # 选择代表性的点来显示标签
-    selected_indices = _select_representative_labels(reduced, densities, labels)
+    # 选择所有点
+    selected_indices = list(range(len(reduced)))
     
-    # 为选中的点添加标签
+    # 为所有点添加标签
     for idx in selected_indices:
         point = reduced[idx]
         text = keywords[idx]
@@ -23,9 +23,9 @@ def add_cluster_labels(fig, reduced, labels, keywords, dims):
     
     return fig
 
+
 def _calculate_point_density(points, sigma=0.1):
     """计算每个点的局部密度"""
-    
     # 计算点之间的距离矩阵
     distances = squareform(pdist(points))
     
@@ -37,38 +37,12 @@ def _calculate_point_density(points, sigma=0.1):
     
     return densities
 
-def _select_representative_labels(points, densities, labels, max_labels=50):
-    """选择代表性的点来显示标签"""
-    selected = []
-    
-    # 确保每个簇至少有一个标签
-    for cluster in np.unique(labels):
-        cluster_mask = labels == cluster
-        cluster_points = points[cluster_mask]
-        cluster_densities = densities[cluster_mask]
-        
-        # 选择密度最低的点（通常在边缘，不容易重叠）
-        if len(cluster_points) > 0:
-            idx = np.where(cluster_mask)[0][np.argmin(cluster_densities)]
-            selected.append(idx)
-    
-    # 在剩余点中选择密度较低的点
-    remaining = set(range(len(points))) - set(selected)
-    if remaining:
-        remaining = list(remaining)
-        remaining_densities = densities[remaining]
-        # 选择密度最低的几个点
-        n_additional = min(max_labels - len(selected), len(remaining))
-        if n_additional > 0:
-            additional = np.array(remaining)[np.argsort(remaining_densities)[:n_additional]]
-            selected.extend(additional)
-    
-    return selected
 
 def _calculate_dynamic_offset(density, base_offset=0.1, max_offset=0.3):
     """根据局部密度计算动态偏移量"""
     # 密度越大，偏移量越大
     return base_offset + density * (max_offset - base_offset)
+
 
 def _find_best_label_position(point, all_points, offset, dims):
     """找到最佳的标签位置"""
@@ -99,6 +73,7 @@ def _find_best_label_position(point, all_points, offset, dims):
             best_pos = pos
     
     return best_pos
+
 
 def _add_label_to_plot(fig, point, text, dims, label_pos):
     """向图表添加带优化位置的标签"""
