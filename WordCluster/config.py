@@ -27,7 +27,7 @@ DEFAULT_OPACITY = 0.6                   # 点透明度
 MARKER_HIGHLIGHT_SIZE = 6               # 高亮点大小
 HIGHLIGHT_OPACITY = 1.0                 # 点透明度
 
-LABEL_FONT_SIZE = 6                     # 标签字体大小
+LABEL_FONT_SIZE = 8                     # 标签字体大小
 
 
 LABEL_DENSITY = 0.2                     # 标签显示密度(0-1)

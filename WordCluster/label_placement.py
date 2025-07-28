@@ -10,7 +10,7 @@ def optimize_label_layout(
     dims: int,
     max_iter: int = 100,
     tolerance: float = 1e-4,
-    max_offset_ratio: float = 5  # 新增：最大偏移比例参数
+    max_offset_ratio: float = 0.2
 ) -> np.ndarray:
     """带最大偏移限制的标签布局优化"""
     # 1. 计算最大允许偏移距离（基于数据范围）
