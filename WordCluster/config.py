@@ -1,6 +1,6 @@
 # 核心配置参数
 INPUT_FILE = "Data/PR_Data/PaperRead_RSS2025.xlsx"     # 输入Excel文件路径
-COLUMN_NAME = "研究主题关键词"           # 包含关键词的列名
+COLUMN_NAME = "创新点关键词"           # 包含关键词的列名
 OUTPUT_FILE = "Data/WC_Data/classified_keywords.xlsx"  # 分类结果输出
 PLOT_FILE = "Data/WC_Data/cluster_visualization.png"   # 可视化图像输出
 
@@ -28,6 +28,8 @@ MARKER_HIGHLIGHT_SIZE = 6               # 高亮点大小
 HIGHLIGHT_OPACITY = 1.0                 # 点透明度
 
 LABEL_FONT_SIZE = 8                     # 标签字体大小
+
+MAX_OFFSET = 0.15                       # 标签最大偏移距离
 
 
 LABEL_DENSITY = 0.2                     # 标签显示密度(0-1)
