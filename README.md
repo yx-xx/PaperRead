@@ -71,7 +71,6 @@ PaperHelper/
 - 交互式可视化
 - 支持 2D/3D 动态展示
 
-## 使用方法
 
 ## Conda安装
 ```bash
