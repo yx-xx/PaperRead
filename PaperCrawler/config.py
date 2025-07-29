@@ -11,6 +11,13 @@ class Config:
     """配置类"""
     
     def __init__(self):
+        # IEEE API配置
+        self.ieee_api_key = ""  # 在这里填入你的IEEE Xplore API密钥
+        self.ieee_conferences = {
+            'ICRA': list(range(2020, 2025)),  # 需要爬取的ICRA年份
+            'IROS': list(range(2020, 2025))   # 需要爬取的IROS年份
+        }
+        
         # 基础路径配置
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         # 使用项目根目录的Data/PC_Data文件夹
@@ -52,7 +59,7 @@ class Config:
             # 'https://roboticsconference.org/program/papers/',
             # 'https://roboticsconference.org/2024/program/papers/',
             # 'https://roboticsconference.org/2023/program/papers/',
-            'https://roboticsconference.org/2022/program/papers/',
+            # 'https://roboticsconference.org/2022/program/papers/',
 
 
         ]

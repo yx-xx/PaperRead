@@ -16,6 +16,7 @@ from arxiv_crawler import ArxivCrawler
 from paper_downloader import PaperDownloader
 from web_crawler import WebCrawler
 from robotics_conference_crawler import RoboticsConferenceCrawler
+from ieee_crawler import IEEEConferenceCrawler
 from config import Config
 
 # 配置日志
@@ -45,6 +46,7 @@ class PaperCrawler:
         self.arxiv_crawler = ArxivCrawler(config)
         self.web_crawler = WebCrawler(config)
         self.robotics_crawler = RoboticsConferenceCrawler(config)
+        self.ieee_crawler = IEEEConferenceCrawler(config)
         self.downloader = PaperDownloader(config)
         
     def crawl_rss_sources(self) -> List[Dict[str, Any]]:
