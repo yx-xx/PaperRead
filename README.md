@@ -73,7 +73,7 @@ PaperHelper/
 
 ## 使用方法
 
-### 安装
+## Conda安装
 ```bash
 # 创建虚拟环境
 conda create -n paperhelper python=3.8
@@ -110,6 +110,41 @@ python PaperReader/PR_main.py
 ```bash
 python WordCluster/WC_main.py
 ```
+
+## Docker部署
+
+项目支持使用Docker进行部署，步骤如下：
+
+1. 构建并启动容器：
+```bash
+docker-compose up -d
+```
+
+2. 进入容器：
+```bash
+docker-compose exec paperhelper bash
+```
+
+3. 在容器内运行各个模块：
+```bash
+# 运行论文爬取
+python PaperCrawler/PC_main.py
+
+# 运行论文分析
+python PaperReader/PR_main.py
+
+# 运行聚类分析
+python WordCluster/WC_main.py
+```
+
+4. 数据持久化：
+- 所有数据都保存在 `Data` 目录下，通过 Docker volume 实现持久化
+- 可以直接在宿主机的 `Data` 目录下查看和管理数据文件
+
+5. 配置文件：
+- 默认配置文件打包在镜像中
+- 如需修改配置，可以在 `docker-compose.yml` 中取消相应配置文件的注释进行挂载
+
 
 ## 注意事项
 
